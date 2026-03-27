@@ -1,0 +1,2907 @@
+Title: Masking Intent, Sustaining Equilibrium: Risk-Aware Potential Game-empowered Two-Stage Mobile Crowdsensing
+
+URL Source: https://arxiv.org/pdf/2603.18670v1
+
+Published Time: Fri, 20 Mar 2026 00:53:10 GMT
+
+Number of Pages: 20
+
+Markdown Content:
+1
+
+# Masking Intent, Sustaining Equilibrium: Risk-Aware Potential Game-empowered Two-Stage Mobile Crowdsensing 
+
+Houyi Qi, Graduate Student Member , IEEE , Minghui Liwang, Senior Member , IEEE , Kaiwen Tan, Wenyong Wang, Senior Member , IEEE , Sai Zou, Senior Member , IEEE , Yiguang Hong, Fellow , IEEE ,Xianbin Wang, Fellow , IEEE , and Wei Ni, Fellow , IEEE 
+
+Abstract —Beyond its basic role of data collection, future mobile crowdsensing (MCS) in complex applications must meet diverse performance criteria, including reliable task completion, strict budget and quality constraints with fluctuating worker availability. In addition to raw-data and location privacy, workers’ long-term intent/preference traces (e.g., task-selection tendencies and participation histories) can be exploited by an honest-but-curious platform, enabling one-/multi-snapshot intent inference through repeated observations and frequency profiling. Meanwhile, worker dropouts and execution uncertainty may cause coverage instability and redundant sensing, whereas repeatedly invoking global online re-optimization incurs high interaction overhead and further enlarges the observable attack surface. To address these challenges, we propose iParts , an intent-preserving and risk-controllable two-stage service provisioning framework for dynamic MCS. In the offline stage, workers report perturbed intent vectors via personalized local differential privacy (LDP) with memorization/permanent randomization, which suppresses long-term frequency-based inference while preserving report utility for decision making. Using only perturbed intents, the platform constructs a redundancy-aware quality model and performs risk-aware pre-planning under budget availability, individual rationality, quality-failure risk, and intent-mismatch risk constraints. We formulate the offline pre-planning problem as an exact potential game with expected social welfare as the potential function, which guarantees the existence of a constrained pure-strategy Nash equilibrium and finite-step convergence under asynchronous feasible improvements. In the online stage, when runtime dynamics induce quality deficits, a temporary-recruitment potential game over idle/standby workers enables lightweight remediation with bounded interaction rounds and low observability. Extensive experiments show that iParts achieves a favorable privacy–utility–efficiency trade-off, improving welfare and task completion while reducing redundancy and communication overhead compared with representative benchmark methods. 
+
+Index Terms —Mobile crowdsensing, Intent privacy, Risk analysis, Personalized Local Differential Privacy, Potential games, Interaction efficiency. 
+
+✦
+
+1 INTRODUCTION 
+
+# BY leveraging distributed resources and capabilities op-portunistically, mobile crowdsensing (MCS) could be used to enable large-scale data acquisition and further sup-port integrated sensing, computing, and communication related applications. Due to its flexibility and low deploy-ment cost, MCS has supported many emerging large-scale applications such as urban environment monitoring, traffic congestion inference, and public safety management [1], [2]. As many new applications increasingly demand timely, reliable, and high-quality sensing, a smart MCS platform must go beyond its conventional “data collection” without evaluating its performance in different aspects. Instead, a new “MCS service provision” model for achieving budget availability, robust to participant dropout, and incur low-overhead MCS becomes essential to meet future diverse needs of complex applications [2]–[4]. Reliable MCS service provision relies on incentive-driven recruitment and task scheduling among heteroge-
+
+H. Qi (houyiqi@tongji.edu.cn), M. Liwang (minghuiliwang@tongji.edu.cn), and Y. Hong (yghong@iss.ac.cn) are with the Shanghai Research Institute for Intelligent Autonomous Systems, the State Key Laboratory of Autonomous Intelligent Unmanned Systems, Department of Control Science and Engi-neering, Tongji University, Shanghai, China. K. Tan (2450031@tongji.edu.cn) is with the Guohao School, Tongji University, Shanghai, China. W. Wang (wywang@must.edu.mo) is with the International Institute of Next Genera-tion Internet, Macau University of Science and Technology, Macau, China. S. Zou (dr-zousai@foxmail.com) is with College of Big Data and Information Engineering, Guizhou University, China. X. Wang (xianbin.wang@uwo.ca) is with the Department of Electrical and Computer Engineering, Western University, Ontario, Canada. W. Ni (Wei.Ni@ieee.org) is with the School of Engineering, Edith Cowan University, Perth, Western Australia, Australia. 
+
+neous workers (e.g., mobile users) [3], [4]. Yet privacy, re-dundancy, and runtime dynamics are tightly coupled, mak-ing mechanism design nontrivial. Most prior work treats them separately, resulting in failure to simultaneously guar-antee reliability and privacy in dynamic settings. Motivated by these gaps, we distill a set of key research questions (RQs) that guide our MCS design and clarify the core motivations behind this work. 
+
+• RQ1: Most privacy-preserving MCS studies focus on location perturbation [2], [5] or raw-data encryp-tion/anonymization [6], [7], while paying less attention to intent/preference privacy: which tasks a worker is willing (or unwilling) to undertake, as well as the long-term pat-terns embedded in the worker’s task-selection and partic-ipation history, constitutes sensitive information that can be readily inferred. Under the honest-but-curious platform assumption, even without direct access to raw sensing data, the platform may still perform one- or multi-snapshot inference [2] by exploiting intent reports, historical task allocations, and interaction logs. This auxiliary information may reveal workers’ behavioral profiles and risk prefer-ences, discouraging participation and threatening the sus-tainability of MCS. Therefore, the first RQ is how to support effective mapping between tasks and workers without explicitly revealing workers’ true intents, while quantifying inference risks and characterizing constraint-aware allocation quality loss under intent perturbation? 
+
+• RQ2: In practical MCS, tasks may be redundantly sampled by multiple workers. While redundancy improves sensing quality, its marginal gain often diminishes or saturates 
+
+> arXiv:2603.18670v1 [cs.NI] 19 Mar 2026 2
+
+due to spatio-temporal correlations. Ignoring redundancy effects may lead to structural imbalance: some “popular” tasks become overcrowded with redundant reports, wasting budget, whereas others remain undersampled, resulting in severe quality and coverage gaps that fail to meet required thresholds. Nevertheless, most prior work overlooks sens-ing redundancy, implicitly presuming a linear quality gain with increased worker recruitment [4], [8]. Therefore, our second RQ is: How to model redundancy-aware sensing quality while ensuring attainable quality, controlled redundancy, and budget feasibility? 
+
+• RQ3: Dynamic MCS is inherently uncertain due to mobil-ity perturbations, and network fluctuations [4], [9]. Online optimization demands frequent preference disclosure and communication, causing high overhead [8], [9] and increas-ing inference exposure, whereas offline planning may fail when participation deviates from expectations. Hence, a practical mechanism must support rapid online adaptation with bounded interactions and stable convergence, while guaranteeing budget feasibility and quality satisfaction. Therefore, our third RQ is: How to design a unified framework integrating risk-aware offline planning with lightweight online adaptation, enabling temporary recruitment and release to con-verge within few interaction rounds under explicit budget and quality guarantees? 
+
+To answer the above-discussed RQs, we propose iParts 
+
+(intent-private and risk-aware two-stage service provision), an offline-online coordinated paradigm, involving both risk-controlled offline pre-plan and lightweight online adjustment .Our key contributions are summarized as follows: 
+
+• We develop a unified intent-preserving and risk-controlled framework for dynamic MCS provisioning with low interaction overhead. By decoupling privacy-sensitive structural deci-sions into offline planning and confining the online stage to lightweight spot adjustment, our framework simultane-ously enhances social welfare (SW) and task reliability, mit-igates redundant sensing, and reduces the inference surface exploitable for intent profiling. 
+
+• We formalize and protect workers’ intent/preference information under repeated participation via personalized local differential privacy (LDP) with memoization. We model workers’ intent vectors and their locally perturbed reports, and introduce an expected intent-report distortion metric to quantify report-level utility loss induced by perturbation. To characterize in-ference risk, we establish one-/multi-snapshot attack mod-els and incorporate an inference-resistance requirement, where memoization mitigates frequency-based profiling un-der long-term observations. 
+
+• We design an offline redundancy-aware and risk-controllable pre-plan mechanism via an exact potential game. To capture diminishing returns induced by redundant sensing, we propose a redundancy-discounted aggregation model for sensing quality. Subject to budget availability, individual ra-tionality, quality-risk constraints, and intent-mismatch risk constraints, we formulate the offline pre-planning problem as an exact potential game, with expected SW (eSW) as the potential function. This formulation guarantees the exis-tence of a constrained pure-strategy Nash equilibrium (NE) and satisfies the finite improvement property. Building on this, we develop a suite of algorithms to preserve workers’ intent privacy while efficiently exploring budget-feasible strategy updates and certifying strict potential improvement under joint constraint satisfaction. 
+
+• We investigate lightweight online adjustment for exe-cution deviations using temporary potential-game dynamics. 
+
+When dynamism lead to quality gaps during execution, the platform initiates a temporary recruitment game over idle/standby workers and coordinates self-adaptive deci-sions with potential-guided updates. The online interaction is restricted to task-level aggregates and bounded update rounds, ensuring fast convergence and low communication overhead while preserving low-observability design goal. 
+
+• We provide theoretical guarantees and extensive evaluations on both performance and privacy. We prove the personalized-LDP guarantee for intent reporting and leverage post-processing immunity for offline outputs, and characterize inference resistance under one-/multi-snapshot adversaries. Experi-ments demonstrate that our iParts achieves higher SW and task reliability, better redundancy control, and lower inter-action overhead, while offering stronger resistance to intent inference compared with representative game-theoretic and privacy-preserving benchmarks. 
+
+2 LITERATURE REVIEW 
+
+This section reviews related work from two perspectives: game-theoretic service provisioning (focusing on interaction efficiency and decision dynamics) and privacy-preserving MCS (emphasizing protection scope and inference expo-sure). We further highlight the key distinctions between our design and existing approaches. 
+
+• Game-theoretic service provision over MCS: interaction efficiency and privacy gaps. Game-theoretic paradigms have been extensively explored as a principled means to characterize strategic interactions in MCS, particularly for incentive design in user recruitment, pricing, and task as-signment. For example, Qi et al. [4] achieved stable task-worker matching via designing stagewise trading, account-ing for task diversity and dynamism. Ouyang et al. [10] formulated worker recruitment by coupling a multi-armed bandit model with a tripartite Stackelberg game to cap-ture hierarchical strategic interactions. In [11], Guang et al. 
+
+designed a collaborative game-detection framework with hierarchical information-sharing for task allocation. Zhang et al. [12] investigated a reverse affine maximizer auc-tion mechanism for service provision, leading to enhanced provider utility. Despite their effectiveness in capturing strategic behav-iors, existing game-theoretic frameworks exhibit fundamen-tal limitations in large-scale and dynamic sensing markets: First, many schemes are interaction-intensive, relying on repeated bidding or pricing, iterative equilibrium compu-tation, and frequent global information exchange, which incurs substantial latency and communication overhead. Second, the schemes often assume that key system pa-rameters are publicly known or can be accurately learned online, which is an assumption that is fragile under the incomplete and uncertain information prevalent in practical crowdsensing. These approaches primarily optimize equi-librium efficiency while overlooking intent privacy: frequent interactions and explicit preference revelation may inadvertently expose fine-grained behavioral traces, significantly expanding the attack surface for inference. 
+
+• Privacy-preserving MCS: data/location vs. intent. Prior studies on privacy-preserving MCS have predominantly concentrated on protecting raw sensing data, such as sen-sor readings and multimedia reports as well as worker locations. For instance, Cai et al. [2] developed a per-sonalized location-privacy trading framework that jointly 3                                                 
+
+> TABLE 1 A summary of related studies (Red.: Redundancy controllability, Ris.: Risk controllability)
+> Reference Privacy Type Network Characteristics Trading Mode Innovative Attributes
+> Static Dynamic Offline Online Red. Ris. [4] —√√√√
+> [10] —√√√
+> [11] —√√
+> [12] —√√
+> [2], [15] location √√√
+> [3] data √√
+> [13] data √√√√
+> [14] data √√√
+> [16] data √√√
+> iParts (Ours) Intent √√√√√
+
+balances privacy protection and task allocation efficiency. 
+
+An et al. [3] combined privacy-preserving recruitment with quality-aware sensing using deviation- and variance-based metrics. Zhao et al. [13] proposed a privacy-preserving truth discovery (PPTD) framework that safeguards both user and requester privacy with high inference accuracy. Liang et al. [14] proposed fog-assisted PPTD scheme for sensory-data, meanwhile accounting for server collusion, server dropout, and heterogeneous worker efficiency. You et al. [15] combined federated learning with reinforcement learning for decentralized and privacy-preserving decision-making. In [16], Zhou et al. proposed shuffle differential privacy-based auction to reduce privacy-related utility loss. Despite these advances, most existing mechanisms pri-marily focus on protecting information/data privacy (what to sense) and location privacy (where to sense). In dy-namic MCS, however, an equally critical yet under ex-plored dimension is intent (or preference) privacy, namely, which tasks a worker is willing/unwilling to undertake and how such preferences evolve over time. Most efforts rely on explicit preference disclosure, repeated bidding, or fine-grained interaction records, which may inadver-tently expose task-selection traces and enable one-/multi-snapshot inference of long-term worker behaviors, even under the honest-but-curious platform assumption. Conse-quently, while prior studies predominantly safeguard data, location, or identity privacy, intent privacy under repeated observations remains insufficiently addressed, particularly in dy-namic, low-interaction settings. Table 1 compares our study with representative existing approaches. 
+
+3 PRELIMINARIES AND SYSTEM MODEL 
+
+3.1 Overview of Our Methodology 
+
+We model a dynamic MCS environment where entities are classified into three distinct roles: (i) a sensing platform, 
+
+(ii) multiple sensing tasks S = {s1, . . . , s |S|}, and (iii) 
+
+multiple workers W = {w1, . . . , w |W|}, where the platform is assumed to be honest-but-curious : the platform faithfully executes the prescribed protocol, yet may attempt to infer workers’ sensitive intent/preference information from re-ported signals and historical logs. Within this multi-party setting, the platform seeks to maximize overall practical SW (pSW) while simultaneously satisfying key system-level requirements: (i) intent privacy preservation, (ii) redundancy-aware quality assurance, (iii) 
+
+budget feasibility, and (iv) low online interaction overhead. To this end, we design iParts, which decouples offline plan-ning from online remedial decision-making (see Fig. 1). 
+
+> Fig. 1. Framework and procedure in terms of a timeline associated with our proposed iParts in dynamic MCS.
+
+• Offline: intent-preserving and risk-aware pre-planning. The of-fline stage precedes sensing realization and mitigates uncer-tainty in dynamic MCS. Worker participation is stochastic due to mobility and dropouts, while privacy constraints restrict the platform to perturbed intent/preference data. To address these, we introduce risk-aware pre-planning with long-term contract design (RAPCoD), which explicitly incorporates execution uncertainty and redundancy-aware sensing requirements. To facilitate RAPCoD, we develop PRIMER and MIRROR (see Sec.4.4) to protect workers’ in-tent privacy. Meanwhile, the offline contract planning is cast as an exact potential game, for which we design ASPIRE-Off (see Sec.4.5) to maximize the eSW. This yields intent-preserving, risk-controllable, and readily implementable long-term contracts, thereby reducing the need for frequent online interactions. 
+
+• Online: lightweight remediation via temporary recruitment. 
+
+Stochastic network dynamics can invalidate offline contracts during execution, resulting in quality violations. To remedy such deviations under strict interaction limits, we introduce a lightweight online adjustment based on a transient poten-tial game for temporary recruitment among idle/standby workers. With potential-guided self-adaptive updates, the process converges within few rounds, restores quality, and improves pSW with low communication overhead and min-imal inference exposure. Together, these jointly shift privacy-sensitive structural decisions to the offline stage under personalized LDP and risk constraints, while confining online decisions to lightweight, temporary remediation. 
+
+3.2 Basic Modeling 
+
+We introduce the basic models of tasks, workers, and intent preferences with perturbed reports. 
+
+(i) Tasks: The attributes of each sensing task si ∈ S are characterized by the triple { loc S 
+
+> i
+
+, B i, Q D 
+
+> i
+
+}, where loc S 
+
+> i
+
+de-notes its spatial location; Bi is the nominal budget; and QD
+
+> i
+
+represents the minimum sensing-quality requirement (i.e., quality-demand threshold). 
+
+(ii) Workers: The attributes of each worker wj ∈ W are modeled by a 4-tuple { loc W 
+
+> j
+
+, ε j , θ j , α j }, where loc W 
+
+> j
+
+de-notes the worker’s location, εj is the personalized intent-privacy budget used in personalized LDP, θj > 0 is the sensing capability parameter (a larger θj implies a smaller observation error), while αj ∈ { 0, 1} indicates whether wj
+
+is practically available during the online stage, capturing the arrival/dropout uncertainty. Moreover, we model αj
+
+as a Bernoulli random variable, i.e., αj ∼ B(πj ), with 
+
+Pr( αj = 1) = πj and Pr( αj = 0) = 1 − πj .4
+
+(iii) Intention preference and perturbed intent report: 
+
+We denote the true intent vector of worker wj by bj =[bi,j ]si∈S , where bi,j = 1 indicates that wj is willing to undertake task si (and bi,j = 0 otherwise). To prevent direct disclosure of task preferences while preserving participatory autonomy, each worker locally generates perturbed intent report: ˜bj = [˜bi,j ]si∈S , which can be observed by the platform (rather than bj as a true and private intent). 
+
+3.3 Intent-Report Distortion Loss Model 
+
+To quantify the report-level distortion induced by intent perturbation, we introduce an intent-privacy-driven inten-tion distortion metric to measure its impact on assignment accuracy. Since both offline planning and online scheduling rely on workers’ reported intention/preference vectors to estimate availability and establish service contracts, privacy-induced perturbation leads to a mismatch between per-ceived and true intent, potentially undermining the feasi-bility and efficiency of service provision 1.
+
+Definition 1 (Expected intent-report distortion (EIRD)) .
+
+Without loss of generality, EIRD of worker wj is defined as 2
+
+Qloss  
+
+> j
+
+(ϕ, f, ∆j ) = Ebj ∼ϕ
+
+h
+
+E˜bj ∼f (·| bj )
+
+∆j (˜bj , bj )i
+
+= X 
+
+> bj∈B j
+
+ϕ(bj ) X  
+
+> ˜bj∈˜Bj
+
+f (˜bj | bj ) ∆ j (˜bj , bj ),
+
+(1) 
+
+where ϕ(bj ) denotes the prior distribution of the true intent vec-tor, and f (·) denotes the intent perturbation mechanism (IPM). Moreover, Bj and ˜Bj describe the input and output spaces of IPM, respectively. 
+
+To measure the entry-wise deviation between perturbed report and true intent vector, we adopt a weighted Ham-ming distortion: 
+
+∆j (˜bj , bj ) ≜ X
+
+> si∈S
+
+γj bi,j − ˜bi,j , (2) where bi,j − ˜bi,j = 1 if the intent on task si is flipped by IPM, and equals 0 otherwise. Coefficient γj ≥ 0 is a worker-specific weighting factor that captures the (normalized) cost of one flipped intent entry. Accordingly, ∆j (˜bj , bj ) aggre-gates into an overall report-level distortion, providing a simple yet effective mechanism-dependent proxy to control how perturbation distorts the intent information observed by the platform. 
+
+3.4 Attack Model on Intent Privacy 
+
+We adopt an honest-but-curious platform assumption, under which the platform faithfully executes the prescribed offline and online protocols but attempts to infer workers’ latent intentions or long-term preferences from observable reports and system logs. In addition, we consider a passive external eavesdropper that may observe intermediate messages over wireless links, constituting a weaker adversarial model. Ac-cordingly, we analyze two representative inference attacks [2]: one-snapshot attack and multi-snapshot attack.    
+
+> 1The proposed metric characterizes the distortion between the true intent vector and the perturbed intent report. It is mechanism-dependent and can be computed directly from the perturbation rule. In contrast, the allocation-level acceptability (i.e., whether the realized assignment matches a worker’s true intent) will be explicitly captured later by the preference mismatch risk RPref
+> jin (24), which depends on the allocation decision x.
+> 2Eq. (1) takes expectation over both the prior distribution and IPM.
+
+3.4.1 One-snapshot attack 
+
+The adversary is assumed to know the prior distribution 
+
+ϕ(bj ) of worker wj ’s true intent preference vector 3 [2], and observes the perturbed intent report ˜bj produced by IPM (i.e., f (˜bj | bj )). Accordingly, the posterior distribution of the true intent vector is 
+
+Pr( bj | ˜bj ) = f (˜bj | bj ) ϕ(bj )
+
+P  
+
+> b′
+> j∈B j
+
+f (˜bj | b′ 
+
+> j
+
+) ϕ(b′ 
+
+> j
+
+) . (3) where b′ 
+
+> j
+
+is a dummy summation variable ranging over the feasible set Bj , and the denominator normalizes the posterior (i.e., Pr( ˜bj )). Given the posterior, the adversary performs optimal inference by choosing an estimated ˆbj
+
+that minimizes the expected inference error (eIE) as [2], [17] 
+
+ˆbj = arg min 
+
+> ˆbj
+
+X 
+
+> bj∈B j
+
+Pr( bj | ˜bj ) d(ˆbj , bj ). (4) To measure intent discrepancy, we adopt a task-level 
+
+weighted Hamming distance as the inference error metric: 
+
+d(ˆbj , bj ) = X
+
+> si∈S
+
+ωi ˆbi,j − bi,j , ωi ≥ 0, (5) where ωi denotes the sensitivity/importance weight of task si. We further define the adversary’s eIE under one-snapshot observation as 
+
+ξj = X 
+
+> bj∈B j
+
+ϕ(bj ) X  
+
+> ˜bj∈˜Bj
+
+f (˜bj | bj ) d
+
+ˆbj (˜bj ), bj
+
+
+
+, (6) where ˆbj (˜bj ) is the adversary’s optimal estimator after observing ˜bj .To defend against one-snapshot attack, we require the inference error to be no smaller than a threshold β0:
+
+ξj ≥ β0. (7) Inspired by representative studies [2], [18], to facilitate computation and constraint decomposition, we introduce an auxiliary function h(˜bj ), and rewrite (7) equivalently as the following two constraints: 
+
+X 
+
+> bj∈B j
+
+ϕ(bj ) f (˜bj | bj ) d
+
+ˆbj (˜bj ), bj
+
+
+
+≥ h(˜bj ), ∀˜bj , (8) 
+
+X  
+
+> ˜bj∈˜Bj
+
+h(˜bj ) ≥ β0. (9) 
+
+3.4.2 Multi-snapshot attack 
+
+In multi-snapshot settings, the adversary can continu-ously obtain a sequence of perturbed intent reports sub-mitted by the same worker wj over multiple rounds, 
+
+{˜b(1)  
+
+> j
+
+, ˜b(2)  
+
+> j
+
+, . . . , ˜b(T ) 
+
+> j
+
+}, and perform frequency statistics and profiling inference on each task dimension. For a task dimension si ∈ S, define the empirical frequency that the output equals 1 over T observations as 
+
+Fi,j ≜ 1
+
+T
+
+> T
+
+X 
+
+> τ=1
+
+˜b(τ ) 
+
+> i,j
+
+, (10) where ˜b(τ ) 
+
+> i,j
+
+∈ { 0, 1} is the perturbed response of worker 
+
+wj on dimension si at service round τ . When IPM is       
+
+> 3We consider ϕ(bj)known to the adversary to model a worst-case inference capability. And ϕ(bj)can be estimated from historical participation statistics/public information/long-term observations. 5
+
+independent across rounds and has a stable expectation, the law of large numbers implies that Fi,j converges to its mathematical expectation with high probability, thereby providing a stable statistical signal for the adversary. After obtaining Fi,j , the adversary may apply alikelihood-based frequency-threshold rule to infer the un-derlying intent. For the standard symmetric binary random-ized response, this reduces to a simple majority-vote test: 
+
+ˆbi,j = 1{Fi,j ≥ 1/2}, ∀si ∈ S, (11) whereas in general the optimal threshold depends on the perturbation parameters and the prior. The above attack implies that if per-round perturbations are independent and identically distributed (i.i.d.) with a stable mean, then averaging {˜b(τ ) 
+
+> i,j
+
+}Tτ =1 progressively re-duces the estimation variance of the underlying intent. As 
+
+T increases, the adversary’s inference accuracy typically improves (i.e., the eIE decreases), eventually leading to 
+
+privacy degradation under long-term observations. To suppress frequency convergence and profiling in-ference under repeated observations, we incorporate two complementary designs into IPM: (i) εj -personalized LDP 
+
+to bound per-epoch distinguishability; and (ii) memoiza-tion/permanent randomized response to eliminate the adver-sary’s variance-reduction gain from repeated queries within an epoch. Specifically, within each memo-epoch e, worker 
+
+wj first generates an epoch-stable permanent perturbed intent vector ˜bperm  
+
+> j
+
+(e) via entry-wise personalized random-ized response under εj , stores it locally, and then reuses the same ˜bperm  
+
+> j
+
+(e) for all reporting rounds in epoch e.Therefore, repeated observations within the epoch reveal the same epoch-stable perturbed vector, so the adversary cannot progressively reduce uncertainty via frequency statistics. To accommodate slowly drifting intents and limit long-horizon linkability, we further enforce epoch-level refresh: when entering e+1 , worker wj discards ˜bperm  
+
+> j
+
+(e) and regenerates a new permanent report ˜bperm  
+
+> j
+
+(e+1) using the same person-alized randomized response rule with budget εj .
+
+3.5 Personalized LDP Guarantee 
+
+Definition 2 (εj -personalized LDP [19]) . Given the task set 
+
+S and the output space ˜B, a randomized mechanism f is said to satisfy εj -personalized LDP for worker wj if, for any two adjacent 4 intent vectors b(1)  
+
+> j
+
+, b(2)  
+
+> j
+
+and any output ˜b∗ ∈ ˜B, it holds that 
+
+f (˜b∗ | b(1)  
+
+> j
+
+)
+
+f (˜b∗ | b(2)  
+
+> j
+
+) ≤ eεj , (12) 
+
+where εj is chosen by the worker to express its privacy preference, with a smaller value indicating a stronger privacy protection. Moreover, our multi-snapshot attack relies on the fact that intent vectors are repeatedly observable on discrete task dimensions, which differs from the location-privacy setting where the exact 
+
+same coordinate is less likely to appear repeatedly in a continuous space. Therefore, in intent-privacy settings, multi-snapshot statis-tical attacks are more realistic and prevalent, and it is thus essen-tial to combine personalized LDP with memoization/permanent randomization to strengthen long-term protection. 
+
+It is worth emphasizing that constraint (12) provides a mechanism-level distinguishability guarantee (facilitating        
+
+> 4Here, “adjacent” means that the two intent vectors differ in exactly one task dimension, i.e., ∥b(1)
+> j−b(2)
+> j∥0= 1 .
+
+composition and parameterization), whereas (8)–(9) charac-terize a lower bound on privacy risk from the perspective of the adversary’s optimal inference. 
+
+4 OFFLINE STAGE : POTENTIAL GAME - 
+
+> EMPOWERED
+
+INTENT -P RIVATE AND RISK -A WARE 
+
+PRE -P LAN 
+
+4.1 Redundancy-Aware Sensing Quality 
+
+To capture the ubiquitous phenomenon that repeated sam-pling of the same task by multiple workers yields quality improvement with diminishing marginal gains, we build a redundancy-aware task-level aggregated quality model. For task si, we directly characterize the sensing relia-bility of worker wj by an effective error variance σ2 
+
+> i,j
+
+, which abstracts the overall uncertainty of the data produced by wj
+
+when serving si, as given by 
+
+σ2 
+
+> i,j
+
+= σ20,i 
+
+θj
+
++ ( σdata  
+
+> i,j
+
+)2, θj > 0. (13) where σ20,i represents the task-dependent reference variance under standard sensing conditions, and θj denotes the sensing capability factor of worker wj . A larger θj implies higher sensing capability and thus a smaller capability-related variance. The data-quality term (σdata  
+
+> i,j
+
+)2 can reflect factors such as distance, delay, and network conditions. Accordingly, we define the single-shot sensing quality of 
+
+wj for task si as the inverse of the error variance (i.e., the precision): 
+
+qi,j = 1
+
+σ2
+
+> i,j
+
+. (14) Let the realized number of participating workers for task 
+
+si be ni = P  
+
+> wj∈W
+
+xi,j αj , where xi,j ∈ { 0, 1} is the offline assignment decision and αj indicates whether worker wj
+
+actually arrives/participates online. To capture the inherent correlation among sensing contributions arising from spa-tial and temporal redundancy, we introduce a redundancy correlation coefficient ζi ∈ [0 , 1) for each task. This charac-terizes the diminishing marginal utility of multiple worker contributions caused by repeated or correlated sampling. Accordingly, we define the redundancy-aware aggregated quality as 
+
+Qi =
+
+P  
+
+> wj∈W
+
+xi,j αj qi,j 
+
+1 +  ni − 1ζi
+
+, (15) This ensures that Qi raises with more participating workers, yet exhibits diminishing returns and saturation due to the redundancy discount in the denominator, thereby capturing the “diminishing gain under redundant sensing” effect. 
+
+4.2 Utilities and Risks of Workers and Tasks 
+
+(i) Worker utility: The utility of worker wj consists of pay-ment and cost: 
+
+uW 
+
+> j
+
+= X
+
+> si∈S
+
+xi,j αj
+
+ pi,j − cW
+
+> i,j
+
+, (16) where pi,j is the payment from the platform to worker 
+
+wj for executing task si, and cW 
+
+> i,j
+
+is the worker cost. We decompose the total cost of worker wj serving task si into an execution cost and a privacy cost, i.e., 
+
+cW 
+
+> i,j
+
+= cexe  
+
+> i,j
+
++ cpriv  
+
+> j
+
+. (17) 6
+
+The execution cost models the physical effort (e.g., traveling) required for wj to accomplish task si, defined as 
+
+cexe  
+
+> i,j
+
+= μj · dist 
+
+
+
+loc W 
+
+> j
+
+, loc S
+
+> i
+
+
+
+, (18) where μj ≥ 0 is a worker-specific cost coefficient that con-verts travel distance into monetary cost, and dist( ·) denotes the Euclidean distance. To capture the compensation demand associated with intent-privacy protection, we model the privacy cost of worker wj as 
+
+cpriv  
+
+> j
+
+= λj
+
+εj
+
+, (19) where λj ≥ 0 is a scaling coefficient converting privacy preference into monetary cost, and εj is the worker’s per-sonalized privacy budget in the IPM. A smaller εj implies stronger privacy protection and therefore a larger privacy cost, reflecting the opportunity cost induced by the worker’s privacy preference. 
+
+(ii) Task utility: The utility of task si involves the value gained from sensing quality and payment cost. Using ω3 >
+
+0 to map the aggregated quality into a utility gain, we have 
+
+uS 
+
+> i
+
+= ω3 Qi − X 
+
+> wj∈W
+
+xi,j αj pi,j . (20) 
+
+(iii) Social welfare: The overall pSW is defined as the sum of task utilities and worker utilities: 
+
+SW = X
+
+> si∈S
+
+uS 
+
+> i
+
++ X 
+
+> wj∈W
+
+uW 
+
+> j
+
+. (21) 
+
+(iv) Risk analysis: Due to the IPM and the underlying dy-namism of MCS, we introduce two types risks: 
+
+• Unsatisfactory service quality risk. Owing to workers’ stochastic participation in long-term contracting and the redundancy-discount effect in quality aggregation, a task si
+
+may experience an unsatisfactory realized service quality, i.e., the aggregated data-assisted quality falls below an accept-able minimum level. Based on (15), we define the risk of task si receiving unsatisfactory service quality as 
+
+RQual  
+
+> i
+
+= Pr 
+
+P  
+
+> wj∈W
+
+xi,j αj qi,j 
+
+1 +  ni − 1ζi
+
+< Q D
+
+> i
+
+!
+
+. (22) 
+
+• Intent mismatch risk. The platform can observe only perturbed intent reports, a worker may be assigned to a task that it is truly unwilling to undertake, which can reduce user satisfaction and discourage future participation. We define the intent-mismatch ratio of worker wj as 
+
+mis j (x, bj ) ≜ 1
+
+|S|
+
+X
+
+> si∈S
+
+xi,j (1 − bi,j ), (23) where x = [xi,j ] denotes the assignment matrix, and a mismatch occurs if and only if xi,j = 1 (i.e., the platform assigns si to wj ) while bi,j = 0 (i.e., the worker is truly unwilling to execute si). Since the platform is unaware of bj
+
+and can only evaluate mismatch under the prior distribution 
+
+ϕ(bj ), we define the expected mismatch ratio as an intent mismatch risk: 
+
+RPref  
+
+> j
+
+= Ebj ∼ϕ[mis j (x, bj )] = X 
+
+> bj∈B j
+
+ϕ(bj ) 1
+
+|S|
+
+X
+
+> si∈S
+
+xi,j (1 − bi,j ). (24) A smaller RPref  
+
+> j
+
+indicates that, in a statistical sense, the tasks assigned to worker wj better align with its true intent, and thus the worker is more likely to remain willing to participate in subsequent service execution. 
+
+4.3 Joint Optimization in the Offline Stage 
+
+In the offline stage, the platform performs risk-controllable pre-plan based on perturbed intent reports. Accordingly, we formulate an eSW maximization problem as 
+
+Foff : max  
+
+> x
+
+Eα[SW ] (25) s.t. X
+
+> si∈S
+
+xi,j ≤ 1, ∀wj ∈ W (25a) 
+
+pi,j ≥ cW 
+
+> i,j
+
+, ∀si ∈ S, ∀wj ∈ W (25b) 
+
+X 
+
+> wj∈W
+
+xi,j αj pi,j ≤ Bi, ∀si ∈ S (25c) 
+
+f satisfies εj -personalized LDP in (12) , ∀wj ∈ W
+
+(25d) 
+
+Qloss  
+
+> j
+
+(ϕ, f, ∆j ) ≤ Qloss 
+
+> max
+
+, ∀wj ∈ W (25e) (8) and (9) hold , ∀wj ∈ W (25f) 
+
+RQual  
+
+> i
+
+≤ ρ1, ∀si ∈ S (25g) 
+
+RPref  
+
+> j
+
+≤ ρ2, ∀wj ∈ W. (25h) where ρ1 and ρ2 are risk thresholds in (0 , 1] , constraint (25a) limits each worker to serve at most one task. Individual rationality is guaranteed by (25b), requiring the payment to cover the worker’s cost, while budget feasibility is enforced by (25c), which bounds the total payment of each task owner within its budget. Privacy protection is imposed through constraint (25d), where workers report perturbed intents under εj -personalized LDP. Meanwhile, (25e) restricts the expected intent-report distortion of each worker to be no greater than Qloss 
+
+> max
+
+, and (25f) ensures a minimum inference-error level against intent inference attacks. Finally, con-straints (25g) and (25h) explicitly bound the risks of service-quality violation and intent mismatch, respectively. Problem Foff represents a mixed-integer stochastic opti-mization with NP-hardness , where elements in x are cou-pled with budget constraints and further complicated by risk constraints, redundancy-aware nonlinear quality, and privacy/inference requirements. To tackle this, we develop RAPCoD (see Fig. 2), involving two key modules. We first equip each worker with an intent-privacy module (Module A) comprising two algorithms (see Sec. 4.4): (i) personalized intent-report determination for privacy-budget calibration (PRIMER) , and (ii) memoization-based personalized LDP perturbation for generating intent reports (MIRROR). Then, we further cast the offline pre-planning problem as an exact potential game (Module B), for which we develop an algorithm called asynchronous self-organized potential improvement for reliable offline pre-contract (ASPIRE-Off), to reach a constraint-satisfying pure-strategy NE with low interaction overhead (see Sec. 4.5). The resulting equilibrium profile directly yields the task–worker assignment, thereby facilitating long-term service contracts between tasks and workers. 
+
+4.4 Design of Module A 
+
+Our intent-privacy module jointly ensures privacy pro-tection and decision utility via two component. First, it calibrates each worker’ s privacy budget to bound intent 7
+
+Fig. 2. A flow chart regarding our proposed RAPCoD in the offline stage. 
+
+distortion by Qloss max and guarantee an expected one-snapshot inference error no smaller than β0 (see Alg. 1). Second, it applies memoization-based personalized LDP [20], [21] to generate an epoch-stable perturbed intent vector reused across all rounds, preventing i.i.d. noise accumulation and suppressing multi-snapshot frequency attacks (see Alg. 2). 
+
+4.4.1 PRIMER: Personalized intent-report determination for privacy-budget calibration 
+
+Our PRIMER aims to calibrate a deployable personalized privacy budget ε⋆j for each worker by jointly enforcing decision usefulness and one-snapshot inference robustness, as shown in Alg. 1, incrementally searching for a feasible personalized budget that satisfies both a usefulness constraint and a privacy-robustness constraint. The main steps are summa-rized as follows. 
+
+Step 1. Personalized search initialization and design goal 
+
+(line 3, Alg. 1): For each worker wj , we specify a candidate budget interval [εmin  
+
+> j
+
+, ε max  
+
+> j
+
+] and a step size ∆ε, and then initialize ε ← εmin  
+
+> j
+
+. The objective is to find a deploy-able privacy budget ε⋆j that simultaneously satisfies (i) the distortion cap Qloss max and (ii) the one-snapshot inference-error requirement β0. Since ε controls the privacy–utility trade-off, this step establishes a principled search region for balancing the two. 
+
+Step 2. IPM instantiation under a trial budget (line 5, Alg. 1): Given the trial value ε, we instantiate IPM 
+
+f (· | · ; ε), which induces the perturbed intent distribution 
+
+˜bj ∼ f (· | bj ; ε) under the prior ϕ(bj ). This instantiation enables evaluating both distortion and inference-risk met-rics consistently under the same mechanism. 
+
+Step 3. Distortion-cap verification for decision usefulness 
+
+(line 5, Alg. 1): Under the instantiated f , we compute the expected intent-report distortion Qloss  
+
+> j
+
+(ϕ, f, ∆j ) according 
+
+Algorithm 1: Proposed PRIMER                                                                     
+
+> 1Input: task set S; worker wj’s candidate privacy budget range
+> [εmin
+> j, ε max
+> j]; budget step ∆ε; IPM f(· | · ;ε); prior ϕ(bj); distortion metric ∆j(˜bj,bj)in (2); distortion cap Qloss max ; (one-snapshot) inference-error threshold β0.
+> 2Output: calibrated privacy budget ε⋆j.
+> 3Initialization: ε←εmin
+> j.
+> 4while ε≤εmax
+> jdo
+> 5Compute the expected intent-report distortion Qloss
+> j(ϕ, f, ∆j)
+> using (1) with f(· | · ;ε);
+> 6Compute the one-snapshot eIE ξjusing (6) and equivalently check (8)–(9);
+> 7if Qloss
+> j(ϕ, f, ∆j)≤Qloss max and ξj≥β0then
+> 8return ε⋆j←ε;
+> 9ε←ε+ ∆ ε;
+> 10 return INFEASIBLE ;
+
+Algorithm 2: Proposed MIRROR                                                   
+
+> 1Input: task set S; worker wj’s true intent vector
+> bj= [ bi,j ]si∈S∈ { 0,1}|S|; calibrated privacy budget ε⋆j(from Alg. 1); memo-epoch index e.
+> 2Output: perturbed intent report ˜bj= [ ˜bi,j ]si∈Sto the platform.
+> 3// Permanent randomization to resist multi-snapshot frequency attacks
+> 4if ˜bperm
+> j(e)is not stored then
+> 5for ∀si∈Sdo
+> 6Sample ˜bperm
+> i,j (e)∼RR
+> 
+> bi,j , ε ⋆j
+> 
+> ;
+> 7Store ˜bperm
+> j(e)locally for epoch e;
+> 8// Report generation in each round within epoch e
+> 9Set ˜bj←˜bperm
+> j(e);
+> 10 return ˜bj.
+
+to (1) (and the distortion metric ∆j (˜bj , bj ) in (2)). The trial budget is utility-feasible only if 
+
+Qloss  
+
+> j
+
+(ϕ, f, ∆j ) ≤ Qloss max , (25) which ensures that the perturbed intent remains sufficiently informative for downstream pre-plan decisions. 
+
+Step 4. One-snapshot inference-robustness verification 
+
+(line 6, Alg. 1): For the same ε, we evaluate the adversary’s one-snapshot eIE ξj using (6) and equivalently verify (8)–(9). The trial budget is privacy-feasible only if 
+
+ξj ≥ β0, (26) meaning that even a single observation of ˜bj does not allow reliable intent inference beyond the required risk threshold. 
+
+Step 5. Feasibility decision and early stopping (lines 7-8, Alg. 1): If both feasibility conditions hold, i.e., 
+
+Qloss  
+
+> j
+
+(ϕ, f, ∆j ) ≤ Qloss max and ξj ≥ β0, we accept the cur-rent budget and output ε⋆j ← ε. Since the scan proceeds from εmin  
+
+> j
+
+upward, the first feasible solution favors stronger privacy among the feasible candidates. 
+
+Step 6. Infeasibility handling via conservative opt-out 
+
+(lines 4–12, Alg. 1): If no privacy budget within [εmin  
+
+> j
+
+, ε max  
+
+> j
+
+]
+
+satisfies Qloss  
+
+> j
+
+(ϕ, f, ∆j ) ≤ Qloss max and ξj ≥ β0 simultane-ously, we return INFEASIBLE . In this case, worker wj opts out from reporting and is excluded from the downstream pre-plan candidate sets. Thus, constraints (25e)–(25f) are ensured for all workers participated in the process. 
+
+4.4.2 MIRROR: Memoization-based personalized LDP per-turbation for generating intent reports 
+
+Given the calibrated budget from Alg. 1, we design MIR-ROR (see Alg. 2), which specifies how each worker gener-ates and reports perturbed intents to repeated observations under robustness, with key steps below. 
+
+Step 1. Personalized LDP instantiation from the calibrated budget (line 1, Alg. 2): Each worker wj takes ε⋆j and in-stantiates an ε⋆j -personalized LDP perturbation rule for each binary intent entry (e.g., RR in (27)), which directly provides the personalized LDP guarantee in (12). 
+
+Step 2. Epoch-level memoization trigger (line 4, Alg. 2): We partition time into memo-epochs e = 1 , 2, . . . . Upon its first reporting instance in epoch e, worker wj verifies the exis-tence of a locally cached epoch-specific permanent report 
+
+˜bperm  
+
+> j
+
+(e). If ˜bperm  
+
+> j
+
+(e) has not been previously generated, the worker applies permanent randomization to construct 
+
+˜bperm  
+
+> j
+
+(e) and stores it locally. Otherwise, it reuses the cached vector without modification. 8
+
+Step 3. Permanent randomization to form an epoch-stable perturbed intent vector (lines 5-7, Alg. 2): For each task 
+
+si ∈ S, worker wj perturbs the true binary intent indicator 
+
+bi,j ∈ { 0, 1} via personalized randomized response (RR) [22] with budget ε⋆j . Specifically, for any z ∈ { 0, 1} and 
+
+ε > 0, RR (z, ε ⋆j ) generates ˜z ∈ { 0, 1} according to 
+
+Pr(˜ z = z) = eε
+
+eε + 1 , Pr(˜ z = 1 − z) = 1
+
+eε + 1 . (27) Accordingly, the epoch-e permanent perturbed intent entry is sampled as 
+
+˜bperm  
+
+> i,j
+
+(e) ∼ RR  bi,j , ε ⋆j
+
+ , ∀si ∈ S. (28) The resulting vector ˜bperm  
+
+> j
+
+(e) is then stored locally and treated as fixed throughout epoch e, so that repeated reports within this epoch do not provide additional independent samples to an observer (thus suppressing frequency-based multi-snapshot attacks). 
+
+Step 4. Round-wise report reuse to suppress multi-snapshot frequency attacks (lines 8-9, Alg. 2): In each interaction round τ within epoch e, worker wj reports 
+
+˜b(τ ) 
+
+> j
+
+← ˜bperm  
+
+> j
+
+(e). This memoization strategy prevents fre-quency convergence to the true intent under long-term observations, thereby mitigating multi-snapshot attacks. The platform treats ˜bi,j purely as eligibility/availability 
+
+signals (e.g., constructing candidate sets by ˜bi,j = 1 ) and conducts all subsequent pre-plan and pricing decisions based on the perturbed intent vector ˜bj , without attempt-ing to reconstruct the true bj . Consequently, the entire downstream pipeline can be viewed as (possibly random-ized) post-processing of ˜bj only; by the post-processing property [23] of (personalized) LDP, such derived decisions do not incur additional privacy leakage beyond the guar-antee induced by the calibrated budget ε⋆j . Moreover, to accommodate slowly drifting intents in long-term partic-ipation and to limit long-horizon linkability, we partition time into memo-epochs and enforce epoch-level refresh: when entering epoch e+1 , worker wj discards the stored permanent report ˜bperm  
+
+> j
+
+(e) and regenerates a new perma-nent vector ˜bperm  
+
+> j
+
+(e+1) by reapplying the same entry-wise randomized response rule with budget ε⋆j . This refresh prevents indefinite reuse of the same permanent noise, mitigates cross-epoch profiling, and meanwhile preserves the intended memoization benefit within each epoch against multi-snapshot frequency attacks [24]. The formal proofs of (i) the εj -personalized LDP guar-antee of MIRROR, (ii) the post-processing invariance for all platform-side outputs, and (iii) the memoization-based robustness against multi-snapshot frequency attacks are provided in Appx. C. 
+
+4.5 Design of Module B 
+
+We now move to Module B and first formulate the pre-plan of assignment between tasks and workers as a non-cooperative game dominated by tasks, where each task selects a subset of candidate workers under local con-straints. We then show that the resulting game is an exact potential game on the joint feasible set , guaranteeing at least one pure-strategy NE and the finite improvement prop-erty (FIP) [25], [26]. These properties further enable a dis-tributed solution based on asynchronous feasible improve-ment dynamics. Leveraging these properties, we develop 
+
+ASPIRE-Off (Alg. 3), a low-overhead asynchronous feasible-improvement algorithm. By enforcing strict potential ascent for every accepted update, ASPIRE-Off inherits the FIP and converges to a deliverable constrained NE (formally defined in Definition 3), yielding the offline assignment and long-term contracts. 
+
+4.5.1 Game formulation 
+
+As noted, each task si seeks high redundancy-aware sensing quality under its budget and risk boundaries. However, tasks are coupled through a shared worker pool. Because each worker can be included in the pre-plan of at most one task, the long-term contracting decision of a given task induces an immediate externality on others by restricting their feasible worker sets and limiting their attainable ser-vice quality. Hence, we formulate the task-side interaction in the offline stage as a non-cooperative game [27]: 
+
+Goff =
+
+
+
+S, {A i}si∈S , {Ui}si∈S
+
+
+
+, (29) where core elements are detailed below: 
+
+• Players. Tasks in S act as players. Each task si ∈ S selects a set of workers to form its offline plan. 
+
+• Worker-side acceptance filtering (non-strategic). Workers do not participate in the strategy updating process. Whether a worker can be considered by a task is determined by the following acceptance screening: (i) perturbed intent visibility :
+
+˜bi,j = 1 ; and (ii) individual rationality : pi,j ≥ cW 
+
+> i,j
+
+. Accord-ingly, the candidate worker set of task si is 
+
+˜Wi ≜
+
+n
+
+wj ∈ W ˜bi,j = 1 , p i,j ≥ cW 
+
+> i,j
+
+, ε j̸ = INFEASIBLE 
+
+o
+
+.
+
+(30) Namely, si can select workers only from ˜Wi.
+
+• Strategy space. The strategy of task si is defined as choosing a pre-plan set from its candidate worker pool, i.e., selecting a subset of eligible workers: 
+
+ai ∈ A i ≜
+
+n
+
+Wi ⊆ ˜Wi
+
+X 
+
+> wj∈Wi
+
+pi,j ≤ Bi
+
+o
+
+, (31) where the budget feasibility is embedded into Ai. Denote the joint strategy by a = ( a1, . . . , a |S|). It induces the binary selection variable 
+
+xi,j = yi,j (a) = 1{wj ∈ ai}, y(a) = [ yi,j (a)] . (32) 
+
+• Feasible set. Due to the exclusivity constraint that each worker can be pre-planned by at most one task, together with the system-wide risk constraints, the task strategies are coupled through shared feasibility requirements. We thus define the joint feasible strategy [28] set as 
+
+Afeas ≜
+
+n
+
+a X
+
+> si∈S
+
+yi,j (a) ≤ 1, ∀wj ∈ W; (25g) , (25h) hold 
+
+o
+
+,
+
+(33) where risk constraints (e.g., quality risk and preference-mismatch risk) define the safety boundary. 
+
+• Offline potential function. To characterize the global effect of an offline pre-plan under the stochastic arrival α,we define the offline potential function using eSW: 
+
+Φoff (a) ≜ Eα
+
+SW  y(a), α . (34) Note that payments cancel out when aggregating task and worker utilities in SW ; thus Φoff can be equivalently writ-9
+
+ten in a “quality gain minus execution cost” form, which facilitates incremental evaluation. 
+
+• Task payoff: marginal contribution. To strictly align unilateral task updates with the global objective, we define each task’s payoff as its marginal contribution [29] to the potential, as given by: 
+
+Ui(a) ≜ Φoff (a) − Φoff (∅, a−i), ∀si ∈ S, (35) where (∅, a−i) means that si selects an empty set while others keep unchanged. This allows viewing each player as a platform-side distributed decision agent for solving the global pre-plans with low interaction. Besides, we define the contrained NE as follow: 
+
+Definition 3 (Constrained NE) . A joint strategy a⋆ ∈ A feas 
+
+is a (pure-strategy) constrained NE if for any task si ∈ S,
+
+Ui(a⋆i , a⋆
+
+> −i
+
+) ≥ Ui(ai, a⋆
+
+> −i
+
+), ∀ai s.t. (ai, a⋆
+
+> −i
+
+) ∈ A feas . (36) When an NE is achieved, no individual task can further improve its marginal contribution payoff by unilaterally changing its pre-plan set within the joint feasible region, and thus the offline solution is stable. 
+
+4.5.2 Potential property and existence of NE 
+
+We show that the above task-side game forms an exact potential game on Afeas , which implies the existence of a pure-strategy NE and the FIP. 
+
+Definition 4 (Exact potential game) . On the joint feasible set 
+
+Afeas , if there exists a function P (a) such that for any task si
+
+and any two feasible joint strategies a = ( ai, a−i) ∈ A feas and 
+
+a′ = ( a′
+
+> i
+
+, a−i) ∈ A feas ,
+
+Ui(a′) − Ui(a) = P (a′) − P (a), (37) 
+
+then the game is an exact potential game and P (a) is a potential function. 
+
+Theorem 1 (Potential structure and existence of NE) . Given 
+
+Afeas , game Goff is an exact potential game with potential function 
+
+P (a) = Φ off (a). (38) 
+
+Hence, the game admits at least one pure-strategy constrained NE and satisfies the FIP [30]. Proof. For given task si and any two feasible joint strategies 
+
+a = ( ai, a−i) ∈ A feas and a′ = ( a′
+
+> i
+
+, a−i) ∈ A feas . Employ-ing (35), we have 
+
+Ui(a′) − Ui(a) = 
+
+
+
+Φoff (a′) − Φoff (∅, a−i)
+
+
+
+−
+
+
+
+Φoff (a) − Φoff (∅, a−i)
+
+
+
+= Φ off (a′) − Φoff (a) = P (a′) − P (a),
+
+(39) which verifies (37). Therefore, the game is an exact potential game on Afeas with P = Φ off .Since each Ai and Afeas are finite, the game admits at least one pure-strategy NE. Under any asynchronous feasible better-response update, the potential function P
+
+strictly increases, and thus the convergence to an NE can be guaranteed within a finite number of steps, implying the FIP. The above structure establishes an exact alignment be-tween unilateral feasible task improvements and the in-crease of the global eSW. This alignment naturally leads 
+
+Algorithm 3: Proposed ASPIRE-Off                                                                                                                                                                    
+
+> 1Input: task set S, worker set W, candidate sets {˜Wi}; given payment menu p= [ pi,j ], budgets {Bi}; reliability parameters {πj}, quality parameters {qi,j }, redundancy factors {ζi}; Monte-Carlo size M,improvement threshold ε′, max iterations Tmax .
+> 2Initialization: t←0; initialize a feasible pre-plan profile
+> a(0) = {ai(0) }(e.g., ai(0) = ∅); set yi,j (0) = 1{wj∈ai(0) };
+> Widle (0) ← { wj∈W|P
+> siyi,j (0) = 0 }.
+> 3while t < T max do
+> 4Platform broadcasts the current profile a(t)(or equivalently y(t))and the idle worker set Widle (t).
+> 5for ∀si∈Sdo
+> 6Wavail
+> i(t)← ai(t)∪Widle (t)∩˜Wi.
+> 7acand
+> i(t)←KNAPSACK DP  Wavail
+> i(t),{pi,j },{vi,j }, B i
+> .
+> 8a′
+> i(t)←(acand
+> i(t),a−i(t)) ;
+> 9if a′
+> i(t)satisfies worker exclusivity and constraints (25c) ,(25g) ,
+> (25h) then
+> 10 estimate bΦoff (a′
+> i(t)) and bΦoff (a(t)) by MMonte-Carlo samples;
+> 11 ∆i(t)←bΦoff (a′
+> i(t)) −bΦoff (a(t)) ;
+> 12 else
+> 13 ∆i(t)←0;
+> 14 I(t)← { i∈S|∆i(t)> ε ′};
+> 15 if I(t) = ∅then
+> 16 break
+> 17 select one task index i⋆∈ I (t)(e.g., arg max i∈I (t)∆i(t)).
+> 18 ai⋆(t+ 1) ←acand
+> i⋆(t);
+> 19 for ∀i∈S, i ̸=i⋆do
+> 20 ai(t+ 1) ←ai(t);
+> 21 update yi,j (t+ 1) = 1{wj∈ai(t+ 1) };
+> 22 Widle (t+ 1) ← { wj∈W|P
+> siyi,j (t+ 1) = 0 };
+> 23 t←t+ 1 ;
+> 24 Return: a⋆=a(t)and the induced pre-plan decision y(a⋆).
+
+to a low-overhead distributed solution via potential-driven asynchronous feasible updates. 
+
+4.5.3 ASPIRE-Off: Asynchronous self-organized potential improvement for reliable offline pre-contract 
+
+By Theorem 1 (FIP), the task-side game converges to a constrained NE under asynchronous feasible unilateral up-dates within a finite number of iterations. The pseudo-code of ASPIRE-Off is provided in Alg. 3, with key procedures detailed below. 
+
+Step 1. Candidate construction and feasible initialization 
+
+(line 1, Alg. 3): During offline stage, workers submit per-turbed intent indicators ˜bi,j via the personalized LDP (see Alg. 1 and Alg. 2). By combining the perturbed-intent accep-tance rule with basic individual-rationality screening, the platform constructs the candidate worker set for each task as ˜Wi =
+
+n
+
+wj ∈ W ˜bi,j = 1 , (25b) hold 
+
+o
+
+. The platform then initializes a deliverable pre-plan profile a(0) = {ai(0) }
+
+within the joint safe feasible region (e.g., the all-empty profile), from which it derives the initial assignment map 
+
+yi,j (0) = 1{wj ∈ ai(0) } and the initial idle-worker set 
+
+Widle (0) = {wj ∈ W | P 
+
+> si
+
+yi,j (0) = 0 }.
+
+Step 2. Round-wise broadcast and available-set formation 
+
+(lines 3-6, Alg. 3): We discretize the interaction into rounds 
+
+t = 0 , 1, 2, . . . . At the beginning of each round, the platform broadcasts only aggregated state information, including the current pre-plan profile a(t) (equivalently y(t)) and the idle-worker set Widle (t). Given these aggregates, each task 
+
+si forms its available worker set as 
+
+Wavail  
+
+> i
+
+(t) =  ai(t) ∪ Widle (t) ∩ ˜Wi, (40) meaning that si is allowed to select only (i) workers already long-term contracted with it or (ii) currently idle workers, still respecting the perturbed-intent candidate constraint. 10 
+
+Step 3. DP-based candidate construction as a surrogate potential-gain search (lines 7-8, Alg. 3): For task si, select-ing a subset of workers from Wavail  
+
+> i
+
+(t) under the budget constraint admits a 0–1 knapsack structure. To obtain a low-complexity and implementable update, we first run a knapsack DP [9], [31] to generate a candidate set acand  
+
+> i
+
+(t) by maximizing a welfare-oriented surrogate objective. Specifi-cally, each candidate worker wj is assigned a DP weight and value, as given by 
+
+wi,j = pi,j , vi,j = πj ω3qi,j − πj
+
+ cexe  
+
+> i,j
+
++ cpriv 
+
+> j
+
+, (41) where vi,j approximates eSW increment under stochastic arrivals (i.e., quality gain minus execution/privacy costs). We emphasize that the DP objective is used only to efficiently search a promising subset under the budget and does not replace the exact potential evaluation (see Step 4). 
+
+Step 4. Feasibility screening and strict potential-improvement verification (lines 9-13, Alg. 3): Since task strategies are coupled (e.g., (25a)) and risk constraints de-pend on the random arrival vector α, a DP output that is budget-feasible may still be jointly infeasible or non-deliverable. Hence, the platform temporarily forms a′
+
+> i
+
+(t) = (acand  
+
+> i
+
+(t), a−i(t)) and performs feasibility checking, includ-ing: (i) worker exclusivity (25a), (ii) budget feasibility (25c), and (iii) risk constraints , i.e., (25g)–(25h). For each candidate update passing all constraints, we evaluate its improvement using the offline potential Φoff (a) = Eα[SW ]. Because the expectation depends on α, we estimate it via M Monte-Carlo samples: 
+
+∆i(t) = bΦoff (a′
+
+> i
+
+(t)) − bΦoff (a(t)) . (42) A candidate is deemed effective only if ∆i(t) > ε ′. Thus, every accepted unilateral update strictly increases the poten-tial, preserving FIP of the underlying exact potential game. 
+
+Step 5. Asynchronous permission control and single-task unilateral execution (lines 14-23, Alg. 3): Let I(t) = 
+
+{i ∈ S | ∆i(t) > ε′} denote the set of tasks that can improve the potential in round t. To avoid conflicts where multiple tasks simultaneously contend for the same worker, the platform enforces asynchronous updates: at most one task i⋆ ∈ I(t) is selected per round (e.g., max-gain) to execute the update. The selected task performs the unilat-eral update ai⋆ (t + 1) ← acand  
+
+> i⋆
+
+(t), while all other tasks remain unchanged. The platform then refreshes y(t+1) and 
+
+Widle (t + 1) accordingly. By the FIP, the process converges in a finite number of rounds. 
+
+Step 6. Termination and constrained-equilibrium output 
+
+(line 24, Alg. 3): If I(t) = ∅, i.e., no feasible unilateral up-date can improve the potential by at least ε′, the algorithm terminates. The resulting profile a⋆ = a(t) is a constrained NE over the joint feasible set, and the induced pre-plan decision y(a⋆) is deliverable by construction. 
+
+5 ONLINE STAGE : LIGHTWEIGHT REMEDIATION VIA TEMPORARY RECRUITMENT 
+
+The offline pre-plan serves as the execution blueprint for the online one. Nevertheless, MCS dynamics (e.g., worker dropout, mobility perturbations, and environmental fluc-tuations) may render some long-term contracted workers unavailable, thereby inducing sensing-quality deficits. Ac-cordingly, we investigate temporary recruitment based on an online potential game to recruit idle workers as backups and bridge the gaps with minimal interaction overhead. To distinguish task/worker sets from offline stage, we introduce Won to describe the set of idle workers in the online stage (i.e., not locked by offline contracts), and Son 
+
+represents the set of tasks with unmet demand during on-line stage (i.e., whose realized quality is below the required threshold or with quality gap remaining). We then characterize the practical utilities of tasks and workers for online. 
+
+(i) Worker utility. The realized utility of worker wj in the online stage is 
+
+uW,on  
+
+> j
+
+= X
+
+> si∈Son
+
+xon 
+
+> i,j
+
+ pi,j − cW
+
+> i,j
+
+, (43) where xon  
+
+> i,j
+
+∈ {0, 1} denotes the online execu-tion/participation decision of wj for task si.
+
+(ii) Task utility. By the redundancy-aware quality model in (15), the realized utility of task si in the online stage is defined as 
+
+uS,on  
+
+> i
+
+= ω3
+
+P  
+
+> wj∈Won
+
+xon  
+
+> i,j
+
+qi,j 
+
+1 +  non  
+
+> i
+
+− 1ζi
+
+− X 
+
+> wj∈Won
+
+xon  
+
+> i,j
+
+pi,j , (44) where non  
+
+> i
+
+≜ P  
+
+> wj∈Won
+
+xon  
+
+> i,j
+
+is the realized number of par-ticipating (temporarily recruited) workers for task si in the online stage. 
+
+(iii) Practical SW during online stage. The practical SW 5
+
+achieved in the online adjustment stage is given by 
+
+SW on = X
+
+> si∈Son
+
+uS,on  
+
+> i
+
++ X 
+
+> wj∈Won
+
+uW,on  
+
+> j
+
+. (45) In the online stage, we aim to maximize SW on via low-overhead temporary recruitment, subject to intent-privacy, redundancy-aware quality, and practical constraints. As the design follows similar potential-game paradigm as offline, details are deferred to Appx. B. 
+
+6 EVALUATION 
+
+We conduct comprehensive evaluations to verify the ef-fectiveness of our iParts. Experiments are carried out via MATLAB R2025a. 
+
+6.1 Key Parameters 
+
+Experiments are conducted on the real-world Chicago taxi trip dataset [9], [32], which reports taxi trajectories from 2013 to 2016 over 77 community areas. Following the widely adopted MCS setup, we designate a single community area (e.g., Area 77) as the sensing region and extract the corresponding trajectory samples for market instantiation. Taxis are regarded as workers, and a worker pool W is con-structed by sampling taxis with sufficient historical traces. Worker availability is modeled via an arrival probability πj
+
+estimated from historical presence frequency in a reference month, based on which αj is drawn as αj ∼ B(πj ). To re-flect task uncertainty, task locations are uniformly generated within the sensing region.                                             
+
+> 5For clarity, we distinguish two notions of SW in the offline stage. Specifically, we denote by pSW the practical social welfare contributed by executing the long-term contracts, and by eSW the expected social welfare evaluated in the offline stage under the estimated uncertainty. Besides, SW on denotes the SW brought by online contracts. 11
+> TABLE 2 A summary of baseline methods (Red.: Redundancy controllability, Ris.: Risk controllability)
+> Reference Privacy Type Allocation Type Trading Mode Innovative Attributes
+> Offline Online Red. Ris. iParts(NoP) —Potential game √√√√
+> iParts(NoR) Intent Potential game √√√
+> ConOff Intent Potential game √√√
+> ConOn Intent Potential game √√
+> Greedy Intent Greedy √√
+> iParts (Ours) Intent Potential game √√√√
+
+To quantify cexe  
+
+> i,j
+
+in a data-driven manner, we record distance-related factors from the dataset: (i) the traveled distance of taxi ( wj ) in the considered trip segment; (ii) 
+
+the distance between current location of wj and task loc si ;and (iii) the distance between the post-service location (after completing the trip segment) and loc si . We set cexe  
+
+> i,j
+
+to be proportional to a weighted sum of the above (i)-(iii) . Then, sensing quality qi,j is chosen to be inversely proportional to the service uncertainty, and set inversely proportional to the sum of factors (ii) and (iii) , which reflects that sensing quality generally degrades with increasing worker-task distance due to higher noise and latency. Accordingly, key parameters are set as [2], [4], [9]: πj ∈ [0 .56 , 0.96] ,
+
+θj ∈ [45 , 55] , pi,j ∈ [40 , 55] , Bi ∈ [200 , 250] , QDi ∈ [20 , 28] ,
+
+ζi ∈ [0 .05 , 0.40] , μj ∈ [0 .2, 0.8] , λj ∈ [1 , 5] , εj ∈ [0 .1, 5.0] ,
+
+ω3 = 7 , and ρ1 = ρ2 = 0 .2. Unless otherwise specified, we set M = 200 for Monte-Carlo based potential evaluation and ϵ = 10 −4 as the improvement tdhreshold. Each reported value is obtained by averaging over 100 independent ex-periements with different random seeds (e.g., task locations, worker sampling, and Bernoulli arrivals). 
+
+6.2 Benchmark Methods 
+
+We compare iParts against 6 representative benchmarks to validate our effectiveness (summarized by Table 2) 6. We first introduce a benchmark scheme to highlight the necessity of intent-privacy protection under repeated participation. 
+
+• iParts without privacy protection (iParts(NoP)): This performs over offline and online stages using workers’ true 
+
+intent vectors bj (i.e., without perturbation). Next, to highlight our contributions on return effect over redundant sensing, we consider: 
+
+• iParts without considering redundancy (iParts(NoR)): 
+
+This replaces the redundancy-aware aggregated quality in (15) with a linear aggregation, e.g., Qlin  
+
+> i
+
+= P 
+
+> wj
+
+xi,j αj qi,j ,and performs two-stage provisioning logic, reflecting the necessity of explicitly modeling redundancy discounting when multiple workers repeatedly sense the same task. We further involve two conventional provisioning benchmarks (single stage), to show the advantages of two-stage complementarity. Since no prior work exactly matches our problem setting, these two baselines are constructed by following the representative design principles of offline-only [33] and online-only [34] provisioning widely adopted in prior MCS literature. 
+
+> 6Note that iParts(NoP) and iParts(NoR) are internally constructed ablation variants used to isolate the effects of privacy protection and redundancy-aware quality modeling, whereas the other baselines are implemented by following representative design principles widely adopted in prior MCS provisioning studies.
+
+• Conventional offline provision (ConOff): This solely relies on offline pre-contracting and applies the resulting contracts during online execution. 
+
+• Conventional online provision (ConOn): This skips of-fline planning and performs only online recruitment from scratch at execution time. Finally, we include a low-complexity greedy baseline, following the budget-constrained selection principle com-monly used in prior MCS/task allocation studies [4], [9]. 
+
+• Greedy-driven service provision (Greedy): For each task, this method greedily selects workers in descending order of SW until running out of budget. 
+
+6.3 Performance Metrics 
+
+We adopt the following metrics to provide a quantitative evaluation, from various perspectives. 
+
+(i) Welfare/utility and service reliability metrics: 
+
+• SW: The overall SW depends on the sum realized value of executing the offline contracts (i.e., (21)) and the additional contribution of online recruitment (i.e., (45)). A larger SW indicates better system efficiency under dynamics. 
+
+• Workers’ utility (WU): This reflects workers’ incentives and long-term willingness for participation. 
+
+• Tasks’ utility (TU): This reflects the task-side benefit and budget efficiency. 
+
+• Task completion rate (TCR): Let 1{Qi ≥ QDi } indicate whether task si meets its required quality in an execution epoch. We define TCR ≜ 1
+
+> |S|
+
+P 
+
+> si∈S
+
+1{Qi ≥ QDi }, where Qi
+
+follows the redundancy-aware model in (15). TCR captures the fraction of tasks that are successfully satisfied. 
+
+(ii) Interaction/computational overhead metrics: 
+
+• Wall-clock running time (RT): This desbribes the actual running time for obtaining the decision in each epoch under the same software/hardware configuration, showing algo-rithmic efficiency and scalability. 
+
+• Number of interactions (NI): This reflects the total number of task-worker message exchanges until convergence, cap-turing signaling overhead and adversarial observability. 
+
+• Interaction latency (IL): We model an uplink latency tU
+
+> i,j
+
+(worker → platform/task, within interval [0.5, 11] millisec-onds [9], [35]) and a downlink latency tD 
+
+> i,j
+
+(platform/task →
+
+worker, within interval [0.5, 4] milliseconds [9], [35]). Then, IL is computed by IL ≜ P
+
+> i
+
+P 
+
+> j
+
+Ni,j 
+
+ tU 
+
+> i,j
+
++ tD
+
+> i,j
+
+, where Ni,j 
+
+is the number of message exchanges involving (si, w j ).
+
+• Interaction energy consumption (IEC): Let eWj (lies in [0.2, 0.4] Watts [36], [37]) and eSi (lies in [6, 20] Watts [36], [37]) denote the transmission powers of workers and tasks/platform, re-spectively. The energy consumption induced by interactions is computed by IEC ≜ P
+
+> i
+
+P 
+
+> j
+
+Ni,j 
+
+ eSi tD 
+
+> i,j
+
++ eWj tU
+
+> i,j
+
+. IEC characterizes the communication-energy overhead during decision-making. 
+
+(iii) Privacy robustness against inference: 
+
+• One-snapshot eIE (OeIE): We report the adversary’s eIE ξj
+
+in (6) (and its average over workers), with distance metric (5). A larger OeIE means stronger resistance against optimal Bayesian inference from a single perturbed report. 
+
+• Success rate of one-snapshot inference (OSR): This shows the probability that the adversary correctly recovers the intent vector. Particularly, we measure an entry-wise accuracy over all (i, j ) pairs: OSR ≜ 1
+
+> |S||W|
+
+P
+
+> j
+
+P 
+
+> i
+
+1{ˆbi,j = bi,j }. A smaller OSR indicates better privacy protection. 
+
+• Multi-snapshots frequency leakage (MFL): Under repeated observations, the adversary computes the empirical fre-quency Fi,j in (10). We measure the deviation between Fi,j 12 Number of Workers     
+
+> 60 120 180 240 300
+> SW
+> 3.6
+> 3.8
+> 4
+> 4.2
+> 4.4
+> 4.6
+> ConOff
+> iParts
+> ConOn
+> Greedy
+> iParts(NoP)
+> iParts(NoR)
+
+(a) SW Number of Workers      
+
+> 60 120 180 240 300
+> TU
+> 3.6
+> 3.8
+> 4
+> 4.2
+> 4.4
+> 4.6
+> ConOff
+> iParts
+> ConOn
+> Greedy
+> iParts(NoP)
+> iParts(NoR)
+
+(b) TU Number of Workers      
+
+> 60 120 180 240 300
+> WU
+> 3
+> 3.2
+> 3.4
+> 3.6
+> 3.8
+> 4
+> ConOff
+> iParts
+> ConOn
+> Greedy
+> iParts(NoP)
+> iParts(NoR)
+
+(c) WU Number of Tasks / Number of Workers     
+
+> 20/120 40/180 60/240 80/300
+> TCR(%)
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> ConOff
+> iParts
+> ConOn
+> Greedy
+> iParts(NoP)
+> iParts(NoR)
+
+(d) TCR 
+
+Fig. 3. Performance comparison in terms of SW, TU, WU and TCR, where (a)–(c) set the number of tasks to 60. 
+
+and the true intent bi,j by MFL ≜ 1
+
+> |S||W|
+
+P
+
+> j
+
+P 
+
+> i
+
+Fi,j − bi,j .Greater deviation indicates that frequency statistics offer a less reliable signal for profiling inference. 
+
+• Multi-snapshot success rate (MSR): We implement afrequency-threshold (majority) profiling attacker (e.g., (11)) and report its recovery accuracy over intent entries. A smaller MSR indicates stronger resistance to long-term aver-aging attacks, validating memoization/permanent random-ization. 
+
+(iv) Individual rationality (IR) and risk controllability: 
+
+• IR of tasks: This reports each task’s realized total payment and verifies that it satisfies the task-side feasibility/IR-related constraint (e.g., (25c)) under budget limitation. 
+
+• IR of workers: This reports workers’ received payments and realized service costs and verifies the worker-side IR constraint (e.g., (25b)). 
+
+• Unsatisfactory-quality risk (QRisk): This reports the em-pirical/estimated probability that a task’s realized quality violates the threshold, i.e., RQual  
+
+> i
+
+in (22), directly reflecting reliability under dropout and redundancy discounting. 
+
+• Intent-mismatch risk (PRisk): This reports the intent-mismatch risk RPref  
+
+> j
+
+in (24), capturing the frequency of being assigned to undesired tasks due to perturbed intent reports. A lower PRisk implies closer alignment with true preferences and greater participation stability. 
+
+6.4 Performance Evaluations 
+
+6.4.1 SW, TU, WU and TCR 
+
+To quantitatively evaluate economic performance and ser-vice reliability, we consider four key metrics shown in Fig. 3: SW, TU, WU, and TCR. Figs. 3(a)-3(c) illustrate the impact of the number of workers, while Fig. 3(d) presents TCR under varying task/worker scales. Figs. 3(a)-3(c) show that all methods improve with more workers, as a larger pool enlarges the feasible match-ing space. iParts consistently approaches the upper-bound iParts(NoP), demonstrating that privacy preservation causes negligible utility loss. In contrast, Greedy performs worst in SW and TU, highlighting the inefficiency of myopic deci-sions under coupled budget–quality constraints. Moreover, the consistent gap between iParts and iParts(NoR) confirms that redundancy-aware modeling effectively mitigates di-minishing returns and enhances overall utility. As shown in Fig. 3(a), SW increases steadily with the number of workers for all benchmarks, but iParts maintains a clear advantage over ConOff, ConOn, Greedy, and iParts(NoR), while remaining close to iParts(NoP). Similar trends can be observed in Fig. 3(b) for TU, where iParts consistently ranks among the top methods, demonstrating that we im-prove the task-side utility without sacrificing feasibility. Fig. 3(c) shows that WU raises with worker population size, indicating enhanced participation benefits in denser mar-kets. Note that iParts outperforms ConOff and iParts(NoR) 
+
+(a) RT (b) NI (c) IL (d) IEC 
+
+Fig. 4. Performance comparisons in terms of interaction overhead. 
+
+in WU, demonstrating that jointly incorporating privacy-preserving reporting and redundancy-aware allocation im-proves worker utility. Fig. 3(d) compares TCR under four task/worker settings. As the market load increases (i.e., from 20 /120 to 80 /300 ), TCR declines for all methods due to intensified competition under limited budget and worker availability. Nevertheless, iParts consistently outperforms ConOff, ConOn, Greedy, and iParts(NoR), and remains close to iParts(NoP). This demonstrates that iParts preserves a high task comple-tion ratio even under stricter privacy constraints. While iParts(NoP) achieves the highest TCR by removing privacy perturbation, it does so at the expense of privacy protection (see Figs. 5(a)–5(d)). Overall, iParts establishes a favorable trade-off among system welfare, task/worker utilities, and service completion reliability. 
+
+6.4.2 Interaction overhead 
+
+To quantitatively evaluate the decision-making overhead and interaction efficiency of iParts, we further examine RT, NI, IL, and IEC in Fig. 4. Note that vertical axes are presented in logarithmic scale (i.e., log 10 (·)) to improve visualization across different market sizes. Fig. 4(a) reports RT under diverse workers/task settings. In particular, ConOn consistently incurs the highest RT and exhibits the poorest scalability as the market expands, since recruitment is conducted entirely online with repeated inter-actions and iterative updates, imposing substantial real-time computational overhead. In contrast, iParts significantly re-duces RT by transferring privacy-sensitive and structural decisions to the offline stage (via RAPCoD/ASPIRE-Off), limiting the online phase to lightweight supplementary recruitment for tasks with realized quality gaps. This design effectively shrinks the active participant set and real-time search space. Although Greedy achieves relatively low RT through one-pass heuristic selection, its inferior welfare and reliability performance (Figs. 3(a) and 3(d)) suggests that runtime efficiency alone does not ensure high-quality provisioning. Figs. 4(b)–4(d) evaluate interaction overhead from com-plementary perspectives: NI, IL, and IEC. All methods ex-hibit increasing overhead as the numbers of workers and tasks grow, with ConOn consistently incurring the highest interaction cost. This is because fully online provisioning requires frequent interactions, repeated candidate probing, and iterative adjustments before reaching feasible recruit-ment decisions, thereby inflating NI and, consequently, IL and IEC. Apparently, iParts maintains significantly lower NI/IL/IEC than ConOn, demonstrating its low-interaction comtribution. This advantage stems from: (i) offline pre-established long-term contracts that internalize the most matching decisions; (ii) risk-aware pre-planning that enhances contract deliverability and mitigates large-scale online remediation; and (iii) temporary potential-game updates confined to idle workers, thereby limiting 13 Randomly sampled worker index       
+
+> 181 126 87 71 157 13 14 44 117
+> OeIE
+> 0
+> 0.05
+> 0.1
+> 0.15
+> 0.2
+> 0.25
+> 0.3
+> 0.35
+> iPart(NoP)
+> iPart
+
+(a) OeIE Randomly sampled worker index        
+
+> 181 126 87 71 157 13 14 44 117
+> OSR
+> 0.6
+> 0.7
+> 0.8
+> 0.9
+> 1
+> iPart(NoP)
+> iPart
+
+(b) OSR Number of snapshots        
+
+> 020 40 60
+> MFL
+> 0
+> 0.05
+> 0.1
+> 0.15
+> 0.2
+> 0.25
+> 0.3
+> 0.35
+> iPart(NoP)
+> iPart(NoMem)
+> iPart
+> 020 40 60
+> 0.345
+> 0.35
+> 0.355
+> 0.36
+
+(c) MFL Number of snapshots     
+
+> 020 40 60
+> MSR
+> 0.65
+> 0.7
+> 0.75
+> 0.8
+> 0.85
+> 0.9
+> 0.95
+> 1
+> iPart(NoP)
+> iPart(NoMem)
+> iPart
+
+(d) MSR 
+
+Fig. 5. Performance comparisons in terms of OeIE, OSR, MFL and MSR, which consider 40 tasks and 160 workers. 
+
+unnecessary interactions. Moreover, iParts outperforms or matches iParts(NoP) and consistently surpasses iParts(NoR) in NI/IL/IEC, indicating that our complete design, namely, integrating intent-preserving filtering and redundancy-aware modeling, not only strengthens privacy and reliability but also reduces interaction overhead. In contrast, ignoring redundancy discount (iParts(NoR)) leads to excessive recruitment and an enlarged coordination space, increasing interactions as well as latency and energy costs. Overall, Fig. 4 verify that iParts effectively balances efficiency and solution quality, significantly lowering run-time and communication overhead relative to fully on-line schemes while maintaining reliable, risk-aware, and privacy-preserving service provision in dynamic MCS. 
+
+6.4.3 Privacy protection and inference robustness 
+
+To further validate privacy-preserving capability of iParts, we examine its robustness against both one-snapshot and 
+
+multi-snapshot intent inference attacks using OeIE, OSR, MFL, and MSR. In particular, OeIE is computed based on the adversary’s expected inference error in (6), while MFL/MSR are evaluated under repeated observations using empirical frequency in (10) and frequency-threshold (majority) profil-ing rule in (11). Specifically, Fig. 5(a) and Fig. 5(b) evaluate one-snapshot 
+
+privacy robustness by randomly sampling 10 workers (out of 160) and comparing iParts with iPart(NoP) (i.e., using true intents without privacy perturbation). In Fig. 5(a), iPart(NoP) yields zero OeIE for all sampled workers, whereas iParts maintains a significantly larger OeIE (around a stable positive level), indicating substantially stronger resistance to one-snapshot intent inference attacks. Fig. 5(b) shows that iParts(NoP) yields an OSR of 1, indicating near-perfect intent inference without privacy protection, whereas iParts reduces OSR to about 0.62-0.68. This confirms that the personalized-LDP-based intent perturbation in Mod-ule A substantially enhances robustness against one-shot inference. Figs. 5(c)-5(d) evaluate robustness under multi-snapshot attacks as the number of observations increases. Besides iParts and iPart(NoP), we introduce iPart(NoMem), which applies the same personalized-LDP perturbation as iParts but removes memoization, generating independent perturbed reports in each round. This baseline isolates the effect of the memoization mechanism (Sec. 3.4.2 and Alg. 2). In Fig. 5(c), both iParts and iPart(NoMem) achieve signifi-cantly higher MFL than iPart(NoP), indicating that local per-turbation effectively distorts observable intent frequencies. Long-term robustness is revealed in Fig. 5(d): the MSR of iPart(NoMem) increases steadily and approaches 1 as snap-shots accumulate, since independent perturbations enable frequency averaging and intent recovery. In contrast, the MSR of iParts remains low and nearly stable, demonstrat-ing that memoization suppresses frequency-convergence at-tacks by preventing the accumulation of independent noisy samples within each memo-epoch. Randomly sampled task index 
+
+> 2
+> 3
+> 5
+> 12
+> 15
+> 17
+> 18
+> 26
+> 30
+> 32
+> Value
+> 0
+> 50
+> 100
+> 150
+> 200
+> 250
+> Pay
+> Budget
+
+(a) IR of tasks Randomly sampled worker index  
+
+> 3
+> 33
+> 41
+> 103
+> 119
+> 120
+> 140
+> 144
+> 149
+> 150
+> Value
+> 0
+> 10
+> 20
+> 30
+> 40
+> 50
+> 60
+> Pay
+> Cost
+
+(b) IR of workers Randomly sampled transaction           
+
+> 12345678910
+> Risk probability
+> 0
+> 0.05
+> 0.1
+> 0.15
+> 0.2
+> 0.25
+> QRisk
+> PRisk
+> Thresholds
+
+(c) Risk analysis 
+
+Fig. 6. IR and risk analysis of tasks and workers. 
+
+Figs. 5(a)–5(d) confirm that iParts achieves robust intent privacy in both one- and multi-snapshot settings: person-alized LDP improves one-shot resistance ( ↑OeIE, ↓OSR), while memoization effectively curbs long-term averaging attacks, maintaining a low, stable MSR unlike the rising MSR of iPart(NoMem). This validates the joint design of person-alized LDP and memoization for repeated participation. 
+
+6.4.4 Individual rationality and risk analysis 
+
+To verify the practical deliverability of iParts, we explicitly verify the constraints related to IR , budget feasibility , and 
+
+risk controllability ((25b), (25c), (25g), and (25h)), under a representative configuration with |W| = 160 and |S| = 40 .Fig. 6(a) validates the task-side budget feasibility (25c). For 10 randomly sampled tasks (out of 40), the realized total payments never exceed their budgets, confirming strict budget compliance. Fig. 6(b) verifies worker-side individual rationality (25b). For 10 sampled workers (out of 160), pay-ments always exceed realized costs, ensuring non-negative utility (including execution and privacy costs). Fig. 6(c) examines the explicit risk constraints (25g)-(25h). For 10 sampled matches, both QRisk and PRisk remain below the threshold 0.2, satisfying the quality and preference-mismatch risk bounds. Notably, PRisk is consistently lower than QRisk, indicating robust intent alignment under per-turbation while effectively controlling quality risk from stochastic participation and redundancy discounting. Fig. 6 provides that iParts satisfies: (i) worker-side IR via (25b), (ii) task-side budget feasibility via (25c), and (iii) dual risk controllability via (25g)–(25h). Together, these support the practical reliability and constraint-compliant execution of iParts. 
+
+7 CONCLUSION 
+
+This paper investigated privacy-preserving and efficiency-aware service provisioning in dynamic MCS under an honest-but-curious platform. We proposed iParts , a uni-fied framework that integrates intent privacy protection, redundancy-aware quality aggregation, budget feasibility, and service reliability into a coherent design. By combining memory-assisted privacy-aware intent reporting with struc-tured offline/online decision-making, iParts enables effec-tive task-worker coordination while safeguarding sensitive intent information. To handle the resulting uncertainty-coupled and multi-constrained optimization, we developed a structured solution framework that systematically en-forces privacy, budget, and quality requirements. Extensive experiments demonstrated that iParts achieves a strong privacy-utility-efficiency trade-off, delivering competitive performance with substantially lower interaction overhead and enhanced robustness against both single- and multi-snapshot inference attacks. 14 
+
+Our future work will advance adaptive privacy-utility co-design through intelligent privacy-budget and pertur-bation mechanisms that leverage data/learning-driven ap-proaches for context-aware adaptation to evolving task and market dynamics. Meanwhile, we will strengthen temporal privacy against correlation-aware and adaptive inference attacks by integrating predictive modeling and adaptive defenses, aiming to build principled and smart protection for long-term participation in dynamic MCS environments. 
+
+REFERENCES 
+
+[1] W. Wang, Y. Yang, Z. Yin, K. Dev, X. Zhou, X. Li, N. M. F. Qureshi, and C. Su, “Bsif: Blockchain-based secure, interactive, and fair mobile crowdsensing,” IEEE J. Sel. Areas Commun. , vol. 40, no. 12, pp. 3452–3469, 2022. [2] H. Cai, C. Lan, Y. Yang, F. Xiao, Y. Zhu, J. Zhou, and B. Sheng, “Towards personalized location privacy trading for mobile crowd sensing,” IEEE Trans. Depend. Sec. Comput. , 2025. [3] J. An, Y. Ren, X. Li, M. Zhang, B. Luo, Y. Miao, X. Liu, and R. H. Deng, “Privacy-preserving user recruitment with sensing quality evaluation in mobile crowdsensing,” IEEE Trans. Depend. Sec. Comput. , vol. 22, no. 1, pp. 787–803, 2024. [4] H. Qi, M. Liwang, X. Wang, L. Fu, Y. Hong, L. Li, and Z. Cheng, “Accelerating stable matching between workers and spatial-temporal tasks for dynamic mcs: A stagewise service trading approach,” IEEE Trans. Mobile Comput. , vol. 25, no. 2, pp. 2878– 2894, 2026. [5] C. Xu, Y. Ding, C. Chen, Y. Ding, W. Zhou, and S. Wen, “Person-alized location privacy protection for location-based services in vehicular networks,” IEEE Trans. Intell. Transp. Syst. , vol. 24, no. 1, pp. 1163–1177, 2022. [6] M. Xiao, G. Gao, J. Wu, S. Zhang, and L. Huang, “Privacy-preserving user recruitment protocol for mobile crowdsensing,” 
+
+IEEE/ACM Trans. Netw. , vol. 28, no. 2, pp. 519–532, 2020. [7] S. Azhar, S. Chang, Y. Liu, Y. Tao, and G. Liu, “Privacy-preserving and utility-aware participant selection for mobile crowd sensing,” 
+
+Mobile Netw. Appl. , vol. 27, no. 1, pp. 290–302, 2022. [8] M. Liwang, Z. Gao, S. Hosseinalipour, Z. Cheng, X. Wang, and Z. Jiao, “Long-term or temporary? hybrid worker recruitment for mobile crowd sensing and computing,” IEEE Trans. Mobile Comput. , vol. 24, no. 2, pp. 1055–1072, 2025. [9] H. Qi, M. Liwang, S. Hosseinalipour, X. Xia, Z. Cheng, X. Wang, and Z. Jiao, “Matching-based hybrid service trading for task assignment over dynamic mobile crowdsensing networks,” IEEE Trans. Serv. Comput. , vol. 17, no. 5, pp. 2597–2612, 2024. [10] Y. Ouyang, F. Zeng, N. N. Xiong, A. Liu, and W. Pedrycz, “Mwrs: A mab-based worker recruitment scheme with tripartite stackel-berg game for reliable mobile crowdsensing,” IEEE Trans. Mobile Comput. , vol. 24, no. 7, pp. 5665–5680, 2025. [11] X. Guang, Y. Peng, and C. Wang, “Game-based multi-uav dynamic collaborative with energy-efficient hierarchical information shar-ing for mobile crowdsensing,” IEEE Trans. Mobile Comput. , pp. 1– 16, 2025. [12] J. Zhang, P. Chen, X. Yang, H. Wu, and W. Li, “An optimal reverse affine maximizer auction mechanism for task allocation in mobile crowdsensing,” IEEE Trans. Mobile Comput. , vol. 24, no. 8, pp. 7475–7488, 2025. [13] J. Zhao, K. Xue, R. Li, B. Zhu, M. Li, Q. Sun, and J. Lu, “Privacy-preserving truth discovery of evolving truths for mobile crowd-sensing systems,” IEEE Trans. Depend. Sec. Comput. , vol. 22, no. 6, pp. 6406–6421, 2025. [14] Y. Liang, Y. Li, and B.-S. Shin, “Privacy-preserving and reliable truth discovery for heterogeneous fog-based crowdsensing,” IEEE Trans. Depend. Sec. Comput. , vol. 22, no. 3, pp. 2338–2351, 2025. [15] Z. You, X. Dong, X. Liu, S. Gao, Y. Wang, and Y. Shen, “Location privacy preservation crowdsensing with federated reinforcement learning,” IEEE Trans. Depend. Sec. Comput. , vol. 22, no. 3, pp. 1877– 1894, 2025. [16] Q. Zhou, X. Zhang, and Z. Yang, “Unknown worker recruitment with long-term incentive in mobile crowdsensing,” IEEE Trans. Mobile Comput. , vol. 24, no. 2, pp. 999–1015, 2025. [17] R. Shokri, G. Theodorakopoulos, C. Troncoso, J.-P. Hubaux, and J.-Y. Le Boudec, “Protecting location privacy: optimal strategy against localization attacks,” in Proc. the 2012 ACM Conf. Comput. commun. security , pp. 617–627, 2012. [18] L. Wang, D. Yang, X. Han, D. Zhang, and X. Ma, “Mobile crowdsourcing task allocation with differential-and-distortion geo-obfuscation,” IEEE Trans. Depend. Sec. Comput. , vol. 18, no. 2, pp. 967–981, 2019. [19] L. Yu, L. Liu, and C. Pu, “Dynamic differential location privacy with personalized error bounds.,” in NDSS , vol. 17, pp. 1–15, 2017. [20] Ú. Erlingsson, V. Pihur, and A. Korolova, “Rappor: Randomized aggregatable privacy-preserving ordinal response,” in Proc. the 2014 ACM SIGSAC conf. comput. commun. security , pp. 1054–1067, 2014. [21] X. Cao, J. Jia, and N. Z. Gong, “Data poisoning attacks to local differential privacy protocols,” in 30th USENIX Security Symposium (USENIX Security 21) , pp. 947–964, 2021. [22] S. L. Warner, “Randomized response: A survey technique for eliminating evasive answer bias,” J. the Amer. statistical Assoc. ,vol. 60, no. 309, pp. 63–69, 1965. [23] J. Dong, A. Roth, and W. J. Su, “Gaussian differential privacy,” 
+
+J. the Royal Statistical Soc. Series B: Statistical Methodology , vol. 84, no. 1, pp. 3–37, 2022. [24] Y. Wang, X. Wu, and D. Hu, “Using randomized response for differential privacy preserving data collection.,” in EDBT/ICDT Workshops , vol. 1558, pp. 0090–6778, 2016. [25] D. Monderer and L. S. Shapley, “Potential games,” Games and econ. behavior , vol. 14, no. 1, pp. 124–143, 1996. [26] Y. Ding, K. Li, C. Liu, and K. Li, “A potential game theoretic approach to computation offloading strategy optimization in end-edge-cloud computing,” IEEE Trans. Parallel Distrib. Syst. , vol. 33, no. 6, pp. 1503–1519, 2021. [27] J. Wang, Y. Hong, J. Wang, J. Xu, Y. Tang, Q.-L. Han, and J. Kurths, “Cooperative and competitive multi-agent systems: From opti-mization to games,” IEEE/CAA J. Autom. Sinica , vol. 9, no. 5, pp. 763–783, 2022. [28] Y. Huang, Z. Meng, and J. Sun, “Distributed nash equilibrium seeking for multicluster aggregative game of euler–lagrange sys-tems with coupled constraints,” IEEE Trans. Cybern. , vol. 54, no. 10, pp. 5672–5683, 2024. [29] R. Konda, R. Chandan, D. Grimsman, and J. R. Marden, “Optimal utility design of greedy algorithms in resource allocation games,” 
+
+IEEE Trans. Autom. Control , vol. 69, no. 10, pp. 6592–6604, 2024. [30] Y. Zhu, C. Xia, and Z. Chen, “Nash equilibrium in iterated multi-player games under asynchronous best-response dynamics,” IEEE Trans. Autom. Control , vol. 68, no. 9, pp. 5798–5805, 2022. [31] O. Thakoor, R. Kannan, and V. Prasanna, “Adversarial knapsack for sequential competitive resource allocation,” in Int. Conf. Game Theory and AI for Security , pp. 256–270, Springer, 2025. [32] City of Chicago, “Taxi trips 2013.” [Online]. Available: https://data.cityofchicago.org/Transportation/Taxi-Trips-2013/6h2x-drp2, 2013. [33] L. Wang, Z. Yu, K. Wu, D. Yang, E. Wang, T. Wang, Y. Mei, and B. Guo, “Towards robust task assignment in mobile crowdsensing systems,” IEEE Trans. Mobile Comput. , vol. 22, no. 7, pp. 4297–4313, 2023. [34] J. Zhang, X. Yang, P. Chen, Z. Wang, W. Li, Z. He, and K. Li, “A utility-optimal reverse posted pricing mechanism for online mobile crowdsensing task allocation,” IEEE Trans. Serv. Comput. ,vol. 18, no. 5, pp. 2588–2601, 2025. [35] 3GPP, “5G; Study on Scenarios and Requirements for Next Gen-eration Access Technologies,” Technical Report TR 38.913 V17.0.0, 3GPP, May 2022. Release 17. [36] C. Yi, J. Cai, and Z. Su, “A multi-user mobile computation offload-ing and transmission scheduling mechanism for delay-sensitive applications,” IEEE Trans. Mobile Comput. , vol. 19, no. 1, pp. 29–43, 2020. [37] H. Qi, M. Liwang, S. Hosseinalipour, L. Fu, S. Zou, and W. Ni, “Future resource bank for isac: Achieving fast and stable win-win matching for both individuals and coalitions,” IEEE J. Sel. Areas Commun. , vol. 44, pp. 513–530, 2026. 15 
+
+APPENDIX AKEY NOTATIONS 
+
+Key notations in this paper are summarized in Table 3. 
+
+APPENDIX BONLINE STAGE : P OTENTIAL -G AME -BASED TEMPO -
+
+RARY RECRUITMENT 
+
+The offline pre-plan y(a⋆) serves as an execution guideline by locking a set of long-term contracts for each task. Never-theless, due to realized arrivals/dropouts and mobility per-turbations, the actually delivered quality may deviate from the offline expectation, leading to execution-time quality deficits for some tasks. To remedy such deficits under strict interaction limits, iParts activates an online temporary recruit-ment procedure that (i) only involves the unmet-demand tasks and an idle worker pool (i.e., workers not locked by offline contracts), and (ii) follows a potential-game-based, low-overhead update consistent with the offline stage. 
+
+B.1 Basic Modeling for Online Temporary Recruitment 
+
+Given the offline profile y(a⋆), let Woff  
+
+> i
+
+⊆ W denote the set of workers pre-contracted to task si. During online exe-cution, each worker wj arrives with indicator αj ∈ { 0, 1}.Thus, the realized set of arrived offline workers for task si is 
+
+Woff  
+
+> i, arr
+
+= { wj ∈ Woff  
+
+> i
+
+| αj = 1 }, noff  
+
+> i
+
+= |Woff 
+
+> i, arr
+
+|. (46) 
+
+(i) Baseline realized quality from offline contracts. Under the redundancy-aware aggregation in (15), the delivered (base-line) quality contributed by the arrived offline workers is 
+
+Qbase  
+
+> i
+
+≜
+
+P  
+
+> wj∈Woff
+> i, arr
+
+qi,j 
+
+1 +  noff  
+
+> i
+
+− 1ζi
+
+. (47) If Qbase  
+
+> i
+
+< Q Di , task si exhibits an execution-time quality deficit and requires online remedy. Accordingly, we define the set of unmet-demand tasks as 
+
+Son = { si ∈ S | Qbase  
+
+> i
+
+< Q Di }. (48) 
+
+(ii) Idle worker for temporary recruitment. To keep the online procedure lightweight, we restrict recruitment to workers that are not locked by offline contracts. Specifically, the idle worker set is defined as 
+
+Won = { wj ∈ W | X
+
+> si∈S
+
+yi,j (a⋆) = 0 }. (49) Workers in Won are eligible for temporary recruitment only if they pass the same acceptance screening as in the offline stage, i.e., perturbed-intent visibility and individual rationality. 
+
+(iii) Remaining budgets. Since payments to the arrived offline workers consume part of the task budget, the remaining budget available for online remedy is 
+
+¯Bi = Bi − X 
+
+> wj∈Woff
+> i, arr
+
+pi,j (50) 
+
+B.2 Joint Optimization for Online Temporary Recruit-ment 
+
+In the online stage, each task si ∈ Son recruits workers from Won to close the quality gap while respecting worker exclusivity and remaining budgets. Let xon  
+
+> i,j
+
+∈ { 0, 1} denote whether idle worker wj ∈ Won is temporarily recruited by task si ∈ Son . The online utilities and the incremental social welfare SW on follow (43)–(45). To enforce quality restoration after adding online re-
+
+TABLE 3 Key notations 
+
+Notation Explanation 
+
+S, W, Son , Won Task/worker sets in offline stage, and unmet-demand tasks/idle workers in online stage 
+
+si, w j The i-th task in S and the j-th worker in W
+
+{loc S 
+
+> i
+
+, B i, Q D 
+
+> i
+
+} Location, budget, and quality-demand threshold of task si
+
+{loc W 
+
+> j
+
+, ε j , θ j , π j } Location, personalized privacy budget, sensing capability, and arrival probability of worker wj
+
+αj ∼ B(πj ) Online availability indicator of worker wj (arrival/dropout uncertainty) 
+
+xi,j ∈ { 0, 1}, x Offline assignment indicator and the assignment matrix 
+
+ai, a, y i,j (a) Task si’s worker-set strategy, joint profile, and induced selection indicator 
+
+σ2 
+
+> i,j
+
+, q i,j Effective error variance and single-shot sensing quality (precision) of wj for si
+
+ni, ζ i, Q i Realized number of participants for si, redundancy factor, and redundancy-aware aggregated quality 
+
+pi,j Payment from the platform/task si to worker wj
+
+cW 
+
+> i,j
+
+, c exe  
+
+> i,j
+
+, c priv  
+
+> j
+
+Worker cost, execution cost (e.g., travel), and privacy cost induced by εj
+
+μj , λ j , ω 3 Execution-cost coefficient, privacy-cost scaling coefficient, and quality-to-utility mapping factor 
+
+uW 
+
+> j
+
+, u S 
+
+> i
+
+, SW , SW on Worker/task utilities, offline practical SW, and online SW 
+
+Φoff (a) Offline potential function (expected SW under stochastic arrivals) 
+
+Ui(a) Task payoff defined by marginal contribution to Φoff (a)
+
+bj , ˜bj , ˜bperm  
+
+> j
+
+(e) True intent vector, perturbed report, and epoch-stable memoized report 
+
+f (· | · ), ε ⋆j IPM and calibrated privacy budget by PRIMER 
+
+Qloss  
+
+> j
+
+(ϕ, f, ∆j ), ∆j (˜bj , bj ), γ j EIRD, weighted Hamming distortion, and worker-specific distortion weight 
+
+ϕ(bj ), ξ j , β 0, h (˜bj ) Prior of intents, one-snapshot eIE, eIE threshold, and auxiliary lower-bound function 
+
+RQual  
+
+> i
+
+, R Pref  
+
+> j
+
+, ρ 1, ρ 2, mis j (x, bj ) Quality-violation risk, intent-mismatch risk, risk thresholds, and mismatch ratio function 
+
+M, bΦoff , ∆i(t), ε ′, T max Monte-Carlo size, estimated potential, potential gain, improvement threshold, and max iterations (ASPIRE-Off) 
+
+Ni,j , t U 
+
+> i,j
+
+, t D 
+
+> i,j
+
+, e W 
+
+> j
+
+, e S
+
+> i
+
+Interaction count on pair (si, w j ), uplink/downlink latency, and transmission powers of worker and task/platform 16 
+
+cruits, we define the final realized quality of task si as 
+
+Qfin  
+
+> i
+
+=
+
+P  
+
+> wj∈Woff
+> i, arr
+
+qi,j + P  
+
+> wj∈Won
+
+xon  
+
+> i,j
+
+qi,j 
+
+1 + 
+
+ noff  
+
+> i
+
++ non 
+
+> i
+
+ − 1
+
+
+
+ζi
+
+, (51) where non  
+
+> i
+
+= P  
+
+> wj∈Won
+
+xon  
+
+> i,j
+
+. Accordingly, the online tempo-rary recruitment problem is formulated as 
+
+Fon : max  
+
+> xon
+
+SW on (52) s.t. X
+
+> si∈Son
+
+xon  
+
+> i,j
+
+≤ 1, ∀wj ∈ Won (52a) 
+
+X 
+
+> wj∈Won
+
+xon  
+
+> i,j
+
+pi,j ≤ ¯Bi, ∀si ∈ Son (52b) 
+
+pi,j ≥ cW 
+
+> i,j
+
+, ∀si ∈ Son , ∀wj ∈ Won (52c) 
+
+Qfin  
+
+> i
+
+≥ QDi , ∀si ∈ Son (52d) 
+
+xon  
+
+> i,j
+
+= 0 , ∀(i, j ) with ˜bi,j = 0 , (52e) where (52a) enforces idle-worker exclusivity, (52b) enforces residual-budget feasibility, (52c) ensures individual ratio-nality, and (52d) guarantees quality restoration. Constraint (52e) restricts recruitment to workers whose perturbed in-tent reports indicate willingness. Note that this screening does not introduce additional privacy leakage, since ˜bi,j is generated by MIRROR and reused as an eligibility signal (post-processing invariance applies). Next, we reformulate 
+
+Fon as a task-dominated exact potential game in the on-line stage, and develop ASPIRE-On to reach a constrained equilibrium with bounded interaction overhead. 
+
+B.3 Online Potential-Game Formulation 
+
+To enable low-overhead distributed remedy, we cast Fon as a task-dominated non-cooperative game. As in the offline stage, each task selects a subset of available idle workers, while feasibility is enforced at the joint system level. 
+
+B.3.1 Game formulation 
+
+During online execution, only a subset of tasks may expe-rience quality deficits (i.e., Son ), and the platform recruits additional workers from the idle pool Won to restore Qfin  
+
+> i
+
+≥
+
+QDi under remaining budgets { ¯Bi}. Although online stage-can be lightweight , tasks are still coupled through the shared idle worker pool: since each idle worker can be temporarily recruited by at most one task, the recruitment decision of a task immediately restricts the feasible choices of other tasks, thereby creating externalities. Therefore, we model the online temporary recruitment as a task-dominated non-cooperative game: 
+
+Gon =
+
+
+
+Son , {A on  
+
+> i
+
+}si∈Son , {U on  
+
+> i
+
+}si∈Son 
+
+
+
+, (53) where the key elements are specified as follows. 
+
+• Players. Tasks in Son act as players. Each task si ∈ Son 
+
+selects a subset of idle workers to perform temporary re-cruitment. 
+
+• Worker-side acceptance filtering. An idle worker wj ∈
+
+Won can be considered by task si only if it satisfies: (i) per-turbed intent visibility : ˜bi,j = 1 ; and (ii) individual rationality :
+
+pi,j ≥ cW 
+
+> i,j
+
+. Accordingly, the online candidate set of task si is 
+
+˜Won  
+
+> i
+
+≜
+
+n
+
+wj ∈ Won ˜bi,j = 1 , p i,j ≥ cW 
+
+> i,j
+
+, ε j̸ = INFEASIBLE 
+
+o
+
+.
+
+(54) Namely, si can recruit only from ˜Won  
+
+> i
+
+.
+
+• Strategy space. The strategy of task si is selecting a temporary recruitment set from its candidate pool under the remaining budget ¯Bi:
+
+aon  
+
+> i
+
+∈ A on  
+
+> i
+
+=
+
+n
+
+Won  
+
+> i
+
+⊆ ˜Won 
+
+> i
+
+X 
+
+> wj∈Won
+> i
+
+pi,j ≤ ¯Bi
+
+o
+
+. (55) Let aon = ( aon 1 , . . . , a on 
+
+> |Son |
+
+) be the joint strategy profile. It induces the binary recruitment indicator 
+
+xon  
+
+> i,j
+
+= yon  
+
+> i,j
+
+(aon ) = 1{wj ∈ aon  
+
+> i
+
+}, yon (aon ) = [ yon  
+
+> i,j
+
+(aon )] .
+
+(56) 
+
+• Joint feasible set. Due to worker exclusivity in the idle pool and the quality-restoration requirement, task strategies are coupled through shared feasibility conditions. We thus define the joint feasible set as 
+
+Aon ,feas =
+
+n
+
+aon X
+
+> si∈Son
+
+yon  
+
+> i,j
+
+(aon ) ≤ 1, (52b) , (52d) hold 
+
+o
+
+,
+
+(57) where (52b) enforces residual-budget feasibility, and (52d) ensures that temporary recruitment restores Qfin  
+
+> i
+
+≥ QDi .
+
+• Online potential function. Since online availability is treated as realized, we define the online potential function directly by the online SW: 
+
+Φon (aon ) = SW on  yon (aon ), (58) where SW on is given in (45). Similar to the offline stage, payments cancel out when aggregating task and worker utilities in SW on ; hence Φon can be equivalently expressed in a “quality gain minus worker costs” form, which facilitates incremental evaluation. 
+
+• Task payoff: marginal contribution. To align unilateral task updates with the global objective, we define each task’s payoff as its marginal contribution to Φon :
+
+U on  
+
+> i
+
+(aon ) = Φ on (aon ) − Φon (∅, aon 
+
+> −i
+
+), ∀si ∈ Son , (59) where (∅, aon 
+
+> −i
+
+) means that task si recruits no idle workers while other tasks keep unchanged. We define the constrained Nash equilibrium (NE) for the online game as follows. 
+
+Definition 5 (Constrained NE (online stage)) . A joint strategy 
+
+aon ⋆ ∈ A on ,feas is a pure-strategy constrained NE if for any task 
+
+si ∈ Son ,
+
+U on  
+
+> i
+
+(aon ⋆i , aon ⋆ 
+
+> −i
+
+) ≥ U on  
+
+> i
+
+(aon  
+
+> i
+
+, aon ⋆ 
+
+> −i
+
+), ∀aon 
+
+> i
+
+s.t. (aon  
+
+> i
+
+, aon ⋆ 
+
+> −i
+
+) ∈ A on ,feas . (60) At a constrained NE, no unmet-demand task can im-prove its marginal contribution by unilaterally changing its temporary recruitment set while remaining feasible, and thus the online remedy decision is stable. 
+
+B.3.2 Potential property and existence of equilibrium 
+
+We show that Gon forms an exact potential game on Aon ,feas ,implying the existence of a pure-strategy constrained NE and the FIP. 
+
+Definition 6 (Exact potential game) . On the joint feasible set 
+
+Aon ,feas , if there exists a scalar function P on (aon ) such that for any task si ∈ Son and any two feasible joint strategies aon =(aon  
+
+> i
+
+, aon 
+
+> −i
+
+) ∈ A on ,feas and aon ′ = ( aon ′ 
+
+> i
+
+, aon 
+
+> −i
+
+) ∈ A on ,feas ,
+
+U on  
+
+> i
+
+(aon ′) − U on  
+
+> i
+
+(aon ) = P on (aon ′) − P on (aon ), (61) 17 
+
+then the game is an exact potential game and P on (·) is a potential function. 
+
+Theorem 2 (Exact potential property and equilibrium exis-tence) . On the joint feasible set Aon ,feas , game Gon is an exact potential game with potential function 
+
+P on (aon ) = Φ on (aon ). (62) 
+
+Hence, Gon admits at least one pure-strategy constrained NE and satisfies the FIP. Proof. For any task si ∈ Son and any two feasible joint strategies aon = (aon  
+
+> i
+
+, aon 
+
+> −i
+
+) ∈ Aon ,feas and aon ′ =(aon ′ 
+
+> i
+
+, aon 
+
+> −i
+
+) ∈ A on ,feas , by (59) we have 
+
+U on  
+
+> i
+
+(aon ′) − U on  
+
+> i
+
+(aon ) = 
+
+
+
+Φon (aon ′) − Φon (∅, aon 
+
+> −i
+
+)
+
+
+
+−
+
+
+
+Φon (aon ) − Φon (∅, aon 
+
+> −i
+
+)
+
+
+
+= Φ on (aon ′) − Φon (aon )= P on (aon ′) − P on (aon ),
+
+(63) which verifies the exact potential condition. Therefore, Gon 
+
+is an exact potential game on Aon ,feas with P on = Φ on .Moreover, since each Aon  
+
+> i
+
+and Aon ,feas are finite, the game admits at least one pure-strategy constrained NE. Un-der any asynchronous feasible better-response (or potential-improvement) update, the potential function strictly in-creases, and thus convergence to a constrained NE is guar-anteed in finite steps, implying the FIP. The above result establishes an exact alignment between unilateral feasible recruitment improvements and the in-crease of global online welfare, enabling a low-overhead remedy solution via potential-driven asynchronous feasible updates. 
+
+B.3.3 ASPIRE-On: asynchronous self-organized potential improvement for online remedy 
+
+By Theorem 2, the online recruitment game converges to a constrained Nash equilibrium under asynchronous fea-sible unilateral updates within a finite number of rounds. To operationalize this, we propose ASPIRE-On (Alg. 4), a lightweight temporary-recruitment procedure that re-stores execution-time quality deficits using only the unmet-demand task set Son and the idle worker pool Won . The pseudo-code of ASPIRE-On is provided in Alg. 4, with key procedures detailed below. 
+
+Step 1. Online candidate construction and feasible initial-ization (line 2, Alg. 4): Using the same acceptance screening as in the offline stage, the platform constructs the online candidate set ˜Won  
+
+> i
+
+for each unmet-demand task si as in (54). It then initializes a feasible online recruitment profile 
+
+aon (0) = {aon  
+
+> i
+
+(0) } within Aon ,feas (e.g., all-empty), derives 
+
+yon  
+
+> i,j
+
+(0) , and forms the initial idle set Widle on (0) .
+
+Step 2. Round-wise broadcast and available-set formation 
+
+(lines 3-4, Alg. 4): We discretize online remediation into rounds r = 0 , 1, 2, . . . . At each round, the platform broad-casts only aggregate state information, including the current profile aon (r) (equivalently yon (r)) and the current idle set 
+
+Widle on (r). Each task si then constructs its available set 
+
+Wavail ,on  
+
+> i
+
+(r) =  aon  
+
+> i
+
+(r) ∪ Widle on (r) ∩ ˜Won  
+
+> i
+
+,
+
+meaning that si can only (re)select workers already re-cruited by itself or recruit from the currently idle pool, while still respecting the perturbed-intent candidate constraint. 
+
+Algorithm 4: Proposed ASPIRE-On                                                                                                                                                                                
+
+> 1Input: online-demand task set Son , idle worker set Won ; candidate sets {˜Won
+> i}; payments p= [ pi,j ], remaining budgets {¯Bi}; quality parameters {qi,j }, redundancy factors {ζi}, baseline qualities
+> {Qbase
+> i}, thresholds {QDi}; improvement threshold ε′, max rounds
+> Rmax .
+> 2Initialization: r←0; initialize a feasible online profile
+> aon (0) = {aon
+> i(0) }(e.g., aon
+> i(0) = ∅); set
+> yon
+> i,j (0) = 1{wj∈aon
+> i(0) };
+> Widle on (0) ← { wj∈Won |P
+> si∈Son yon
+> i,j (0) = 0 }.
+> 3while r < R max do
+> 4Platform broadcasts the current online profile aon (r)(or equivalently yon (r)) and the idle worker set Widle on (r).
+> 5for ∀si∈Son do
+> 6Wavail ,on
+> i(r)← aon
+> i(r)∪Widle on (r)∩˜Won
+> i;
+> 7acand ,on
+> i(r)←
+> KNAPSACK DP  Wavail ,on
+> i(r),{pi,j },{von
+> i,j },¯Bi
+> ;
+> 8aon ′
+> i(r)←(acand ,on
+> i(r),aon
+> −i(r)) ;
+> 9if aon ′
+> i(r)satisfies worker exclusivity (52a) , remaining budget
+> (52b) , and quality restoration (52d) then
+> 10 compute Φon (aon ′
+> i(r)) and Φon (aon (r)) exactly by (58);
+> 11 ∆on
+> i(r)←Φon (aon ′
+> i(r)) −Φon (aon (r)) ;
+> 12 else
+> 13 ∆on
+> i(r)←0;
+> 14 Ion (r)← { i∈Son |∆on
+> i(r)> ε ′};
+> 15 if Ion (r) = ∅then
+> 16 break ;
+> 17 select one task index i⋆∈ I on (r)(e.g.,
+> arg max i∈I on (r)∆on
+> i(r));
+> 18 aon
+> i⋆(r+ 1) ←acand ,on
+> i⋆(r);
+> 19 for ∀i∈Son , i ̸=i⋆do
+> 20 aon
+> i(r+ 1) ←aon
+> i(r);
+> 21 update yon
+> i,j (r+ 1) = 1{wj∈aon
+> i(r+ 1) };
+> 22 Widle on (r+ 1) ← { wj∈Won |P
+> si∈Son yon
+> i,j (r+ 1) = 0 };
+> 23 r←r+ 1 ;
+> 24 Return: aon ⋆=aon (r)and the induced decision yon (aon ⋆).
+
+Step 3. DP-based candidate construction as a surrogate potential-gain search (lines 6-8, Alg. 4): Selecting a subset of idle workers from Wavail ,on  
+
+> i
+
+(r) under the residual budget 
+
+¯Bi admits a 0–1 knapsack structure. We thus run K NAP -
+
+SACK DP to generate a candidate set acand ,on  
+
+> i
+
+(r). Specifically, each candidate worker wj is assigned a DP weight and value as 
+
+won  
+
+> i,j
+
+= pi,j , von  
+
+> i,j
+
+= ω3qi,j − cW 
+
+> i,j
+
+, (64) where von  
+
+> i,j
+
+approximates the marginal online utility gain (quality gain minus worker cost). We emphasize that the DP objective is used only to efficiently search a promising subset under the budget, and does not replace the exact potential evaluation in Step 4. 
+
+Step 4. Feasibility screening and strict potential-improvement verification (lines 9-13, Alg. 4): Because tasks are coupled through the shared idle worker pool and the quality-restoration constraints, a DP-feasible candidate may still violate joint feasibility. Hence, the platform forms 
+
+aon ′ 
+
+> i
+
+(r) = ( acand ,on  
+
+> i
+
+(r), aon 
+
+> −i
+
+(r)) and checks: (i) worker exclu-sivity (52a), (ii) remaining budget feasibility (52b), and (iii) 
+
+quality restoration (52d) via Qfin  
+
+> i
+
+in (51). If all constraints hold, the platform evaluates the online potential exactly and computes 
+
+∆on  
+
+> i
+
+(r) = Φ on (aon ′ 
+
+> i
+
+(r)) − Φon (aon (r)) . (65) A candidate is considered effective only when ∆on  
+
+> i
+
+(r) > ε ′;thus, every accepted update strictly increases Φon , preserv-ing the FIP. 
+
+Step 5. Asynchronous permission control and single-task unilateral execution (lines 17-21, Alg. 4): Let Ion (r) = {i ∈
+
+Son | ∆on  
+
+> i
+
+(r) > ε ′}. To prevent simultaneous contention for 18 
+
+the same idle worker, the platform enforces asynchronous updates: at most one task i⋆ ∈ Ion (r) is selected per round (e.g., max-gain) to execute the update aon  
+
+> i⋆
+
+(r+1) ←
+
+acand ,on  
+
+> i⋆
+
+(r), while all other tasks keep unchanged. The plat-form then refreshes yon (r+1) and Widle on (r+1) accordingly. 
+
+Step 6. Termination and constrained-equilibrium output 
+
+(lines 3-24, Alg. 4): If Ion (r) = ∅, i.e., no feasible unilateral update can improve Φon by at least ε′, ASPIRE-On termi-nates early. Otherwise, the process continues until reaching 
+
+Rmax rounds. By FIP on the finite feasible set Aon ,feas , the al-gorithm terminates in finite steps and returns a constrained equilibrium profile aon ⋆, and the induced temporary recruit-ment decision yon (aon ⋆) restores quality deficits under the residual-budget and exclusivity constraints. 
+
+APPENDIX CSUPPLEMENTARY PROOFS OF KEY PROPERTIES 
+
+This appendix provides proof details for the key theo-retical results used throughout iParts. We first verify the 
+
+mechanism-level privacy guarantee of MIRROR under εj -personalized LDP, then show that all downstream decisions enjoy post-processing immunity . Next, we formalize why memoization neutralizes the adversary’s multi-snapshot fre-quency gain. Finally, we prove the finite termination and feasibility guarantees of PRIMER and ASPIRE-Off, which together ensure that iParts remains deployable under ex-plicit privacy, budget, and risk constraints. 
+
+C.1 Personalized LDP Guarantee of MIRROR via Ran-domized Response 
+
+We start from the elementary building block: the binary RR used in MIRROR. After proving ε-LDP for a single binary intent entry, we extend the result to the full intent vector under the one-entry adjacency notion in Definition (12). 
+
+Lemma 1 (Binary RR satisfies ε-LDP) . Let b ∈ { 0, 1} and 
+
+˜b ∈ { 0, 1} be generated by RR (b, ε ) in (27) . Then for any two adjacent inputs b(1) ̸ = b(2) and any output ˜b ∈ { 0, 1},
+
+Pr( ˜b | b(1) )Pr( ˜b | b(2) ) ≤ eε. (66) 
+
+Proof. By symmetry of the binary domain, it suffices to consider the adjacent pair b(1) = 1 and b(2) = 0 (the reverse case is identical). We next verify the LDP likelihood-ratio bound for the two possible outputs ˜b ∈ { 0, 1}.
+
+Case 1: ˜b = 1 . Using (27), we have 
+
+Pr( ˜b = 1 | b = 1) Pr( ˜b = 1 | b = 0) =
+
+> eε
+> eε+1 1
+> eε+1
+
+= eε. (67) 
+
+Case 2: ˜b = 0 . Similarly, by (27), 
+
+Pr( ˜b = 0 | b = 1) Pr( ˜b = 0 | b = 0) =
+
+> 1
+> eε+1
+> eε
+> eε+1
+
+= e−ε ≤ eε. (68) Since the likelihood ratio is bounded by eε in both exhaustive cases, the randomized response mechanism sat-isfies ε-LDP for a single binary entry. 
+
+Lemma 2 (Vector-level εj -personalized LDP via entry-wise randomized response) . Let bj ∈ { 0, 1}|S| be worker wj ’s intent vector, and let ˜bj be generated by applying RR (·, ε j )
+
+independently to each entry (as in Alg. 2). Under the adjacency notion in Definition 12 (i.e., ∥b(1)  
+
+> j
+
+− b(2)  
+
+> j
+
+∥0 = 1 ), the result-ing mechanism satisfies εj -personalized LDP: for any adjacent 
+
+b(1)  
+
+> j
+
+, b(2)  
+
+> j
+
+and any ˜b∗ ∈ ˜B,
+
+Pr( ˜b∗ | b(1)  
+
+> j
+
+)Pr( ˜b∗ | b(2)  
+
+> j
+
+) ≤ eεj . (69) 
+
+Proof. Consider any two adjacent intent vectors b(1)  
+
+> j
+
+and 
+
+b(2)  
+
+> j
+
+that differ in exactly one task dimension, denoted by 
+
+si◦ , and coincide on all remaining dimensions. Since the ran-domized response is applied independently across entries, the conditional likelihood of observing a specific output vector ˜b∗ factorizes as Pr( ˜b∗ | bj ) = Q 
+
+> i∈S
+
+Pr( ˜b∗ 
+
+> i,j
+
+| bi,j ).
+
+Taking the likelihood ratio under b(1)  
+
+> j
+
+and b(2)  
+
+> j
+
+, all terms corresponding to the identical dimensions cancel out, leav-ing only the single differing entry: 
+
+Pr( ˜b∗ | b(1)  
+
+> j
+
+)Pr( ˜b∗ | b(2)  
+
+> j
+
+) = Pr( ˜b∗ 
+
+> i◦,j
+
+| b(1)  
+
+> i◦,j
+
+)Pr( ˜b∗ 
+
+> i◦,j
+
+| b(2)  
+
+> i◦,j
+
+) . (70) By Lemma 1, the above single-entry ratio is upper bounded by eεj for any ˜b∗ 
+
+> i◦,j
+
+∈ { 0, 1}. Therefore, the entire vector-level ratio can also be bounded by eεj .In MIRROR (i.e., Alg. 2), worker wj first samples an epoch-stable report ˜bperm  
+
+> j
+
+(e) via entry-wise RR, which satisfies εj -personalized LDP by Lemma 2. All subse-quent within-epoch transmissions simply output the same already-randomized ˜bperm  
+
+> j
+
+(e). Hence, each observable re-port remains distributed exactly as the original LDP mecha-nism output, and the per-round distinguishability bound in (12) is preserved unchanged. 
+
+C.2 Post-processing Invariance of εj -Personalized LDP 
+
+After MIRROR outputs the perturbed intent report ˜bj , the platform constructs candidate sets, computes the offline pre-plan (RAPCoD/ASPIRE-Off), and triggers online temporary recruitment using only ˜bj and public system parameters. We show that these platform-side outputs inherit the same privacy guarantee: any subsequent computation on ˜bj does not increase privacy leakage beyond εj .
+
+Lemma 3 (Post-processing invariance for εj -personalized LDP) . Let f be an εj -personalized LDP mechanism that maps 
+
+bj to ˜bj . For any (possibly randomized) mapping g defined on the output space of f , the composed mechanism g ◦ f is also εj -personalized LDP. Proof. Consider any two adjacent inputs b(1)  
+
+> j
+
+, b(2)  
+
+> j
+
+and any output o in the range of g. By the law of total probability over ˜b, we have 
+
+Pr( o | bj ) = X
+
+> ˜b
+
+Pr( o | ˜b) Pr( ˜b | bj ). (71) Thus, we have 
+
+Pr( o | b(1)  
+
+> j
+
+)Pr( o | b(2)  
+
+> j
+
+) =
+
+P˜b Pr( o | ˜b) Pr( ˜b | b(1)  
+
+> j
+
+)
+
+P˜b Pr( o | ˜b) Pr( ˜b | b(2)  
+
+> j
+
+)
+
+≤ max 
+
+> ˜b
+
+Pr( ˜b | b(1)  
+
+> j
+
+)Pr( ˜b | b(2)  
+
+> j
+
+) ≤ eεj ,
+
+(72) 19 
+
+where the last inequality follows directly from the εj -personalized LDP guarantee of f in (12). Lemma 3 implies that all platform-side decisions derived from ˜bj —including candidate filtering, the offline contract profile produced by RAPCoD/ASPIRE-Off, and the online temporary recruitment decisions—are post-processing of MIRROR outputs. Therefore, these outputs do not incur additional privacy leakage beyond the original εj .
+
+C.3 Mitigating Multi-snapshot Frequency Attacks via Memoization 
+
+We next clarify why MIRROR remains robust under re-peated participation. The key point is that, within each memo-epoch, the worker reuses an epoch-stable perturbed intent vector. Hence, an adversary observing multiple rounds within the same epoch does not obtain additional independent samples, and frequency averaging cannot fur-ther improve inference accuracy. 
+
+Proposition 1 (No frequency-averaging gain within a mem-o-epoch) . Fix any memo-epoch e. Under Alg. 2, the reported sequence {˜b(1)  
+
+> j
+
+, . . . , ˜b(T ) 
+
+> j
+
+} within epoch e satisfies 
+
+˜b(1)  
+
+> j
+
+= · · · = ˜b(T ) 
+
+> j
+
+= ˜bperm  
+
+> j
+
+(e). (73) 
+
+Consequently, for any adversary that relies on empirical frequency statistics (e.g., (10) and (11) ), all T observations within epoch e
+
+are equivalent to observing a single perturbed report. Proof. By Alg. 2, once ˜bperm  
+
+> j
+
+(e) is generated and stored, the worker reports ˜b(τ ) 
+
+> j
+
+← ˜bperm  
+
+> j
+
+(e) for every round τ within the same epoch e. Therefore, the observed sequence can stay constant. For any task si, the empirical frequency in (10) reduces to 
+
+Fi,j = 1
+
+> T
+
+PTτ =1 ˜b(τ ) 
+
+> i,j
+
+= ˜bperm  
+
+> i,j
+
+(e), which is independent of T .Hence, repeated observations within epoch e do not create additional samples for averaging, and cannot yield any frequency-based accuracy gain. As a result, any frequency-threshold inference rule (including (11)) is fully determined by the single epoch-stable report ˜bperm  
+
+> j
+
+(e).Proposition 1 directly explains why the MSR of iParts re-mains low and stable as the number of snapshots increases: unlike i.i.d. per-round perturbation, MIRROR prevents the adversary from accumulating independent evidence within a memo-epoch. 
+
+C.4 Finite Termination and Constraint Satisfaction of PRIMER 
+
+We next establish two basic properties of PRIMER. First, the budget scan terminates after a finite number of steps. Sec-ond, any returned ε⋆j is guaranteed to satisfy the distortion constraint (25e) and the one-snapshot inference constraint (25f) by construction. 
+
+Proposition 2 (Finite termination of PRIMER) . PRIMER (Alg. 1) terminates in finite steps. In particular, the number of scanned budgets is at most 1 + 
+
+ εmax  
+
+> j−εmin
+> j
+> ∆ε
+
+
+
+.Proof. PRIMER initializes ε ← εmin  
+
+> j
+
+and increases it by a fixed step ∆ε > 0. The algorithm stops once either a feasible 
+
+ε is found or ε > ε max  
+
+> j
+
+. Therefore, the number of iterations is upper bounded by the size of the discrete scan grid. 
+
+Proposition 3 (Constraint satisfaction for calibrated work-ers) . If PRIMER returns a calibrated ε⋆j for worker wj , then the instantiated IPM f (· | · ; ε⋆j ) satisfies Qloss  
+
+> j
+
+(ϕ, f, ∆j ) ≤ Qloss max 
+
+in (25e) and ξj ≥ β0 (equivalently (25f) ) by construction. If PRIMER returns INFEASIBLE , worker wj is excluded from the candidate sets, and thus constraints (25e) –(25f) hold for all workers that participate in RAPCoD. Proof. PRIMER outputs ε⋆j only when the acceptance test in Alg. 1 is satisfied, i.e., both Qloss  
+
+> j
+
+(ϕ, f, ∆j ) ≤ Qloss max and 
+
+ξj ≥ β0 hold under f (· | · ; ε⋆j ). If no ε in [εmin  
+
+> j
+
+, ε max  
+
+> j
+
+] passes the test, PRIMER returns INFEASIBLE ; the worker is then removed from the effective candidate sets, enforcing (25e)– (25f) over the participating workers. 
+
+C.5 Feasibility Preservation and Finite-step Conver-gence of ASPIRE-Off and ASPIRE-On 
+
+We finally provide proof details for ASPIRE-Off. By design, ASPIRE-Off admits an update only when the resulting pro-file remains feasible and yields a strict potential improve-ment. These two properties imply feasibility preservation throughout the iterations and finite-step convergence to a constrained NE. 
+
+Proposition 4 (Feasibility preservation of ASPIRE-Off) . Sup-pose the initial profile a(0) is feasible, i.e., a(0) ∈ A feas in (33) .Then every accepted update in ASPIRE-Off preserves feasibility: 
+
+a(t) ∈ A feas for all iterations t.Proof. In Alg. 3, a candidate update a′
+
+> i
+
+(t) =(acand  
+
+> i
+
+(t), a−i(t)) is accepted only if it satisfies the defining feasibility conditions in (33), including worker exclusivity, budget feasibility, and the risk constraints. Since ASPIRE-Off commits at most one accepted update per round, the resulting profile a(t+1) remains feasible. The claim then follows by induction on t.
+
+Proposition 5 (Finite-step convergence of ASPIRE-Off to a constrained NE) . ASPIRE-Off terminates in finite steps and returns a constrained Nash equilibrium on Afeas .Proof. By Theorem 1, the offline game is an exact poten-tial game on the finite feasible set Afeas and satisfies FIP. ASPIRE-Off accepts an update only when ∆i(t) > ε′,which yields a strict increase of the (estimated) potential value. Because Afeas is finite, strict potential ascent cannot continue indefinitely. Thus, ASPIRE-Off terminates in finite steps when no feasible unilateral improvement exists. At termination, no task admits a feasible unilateral deviation that improves its payoff (equivalently, increases the poten-tial), which is exactly the definition of a constrained NE on 
+
+Afeas .
+
+Proposition 6 (Finite-step convergence of ASPIRE-On to a constrained NE) . ASPIRE-On terminates in finite steps and returns a constrained Nash equilibrium on Aon ,feas .Proof. By Theorem 2, the online recruitment game is an exact potential game on the finite feasible set Aon ,feas and satisfies FIP. In ASPIRE-On, an update is accepted only when ∆on  
+
+> i
+
+(r) > ε ′, which implies a strict increase of the online potential Φon . Since Aon ,feas is finite, strict potential ascent cannot continue indefinitely. Therefore, ASPIRE-On terminates in finite steps when no feasible unilateral im-provement exists (or earlier due to the round cap Rmax ). 20 
+
+During termination, no task in Son admits a feasible uni-lateral deviation that improves its payoff (equivalently, in-creases the potential), which is exactly the definition of a constrained NE on Aon ,feas .

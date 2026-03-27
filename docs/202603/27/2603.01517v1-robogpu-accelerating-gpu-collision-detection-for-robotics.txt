@@ -1,0 +1,666 @@
+Title: RoboGPU: Accelerating GPU Collision Detection for Robotics
+
+URL Source: https://arxiv.org/pdf/2603.01517v1
+
+Published Time: Tue, 03 Mar 2026 03:04:16 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+# RoboGPU: Accelerating GPU Collision Detection for Robotics 
+
+Lufei Liu ∗, Liwei Xue ∗, Youssef Mohammed ∗, Jocelyn Zhao ∗, Yuan Hsi Chou ∗, Tor M. Aamodt ∗∗University of British Columbia liulufei@student.ubc.ca, aamodt@ece.ubc.ca 
+
+Abstract —Autonomous robots are increasingly prevalent in our society, emerging in medical care, transportation vehicles, and home assistance. These robots rely on motion planning and collision detection to identify a sequence of movements allowing them to navigate to an end goal without colliding with the surrounding environment. While many specialized accelerators have been proposed to meet the real-time requirements of robotics planning tasks, they often lack the flexibility to adapt to the rapidly changing landscape of robotics and support future advancements. However, GPUs are well-positioned for robotics and we find that they can also tackle collision detection algorithms with enhancements to existing ray tracing accelerator (RTA) units. Unlike intersection tests in ray tracing, collision queries in robotics require control flow mechanisms to avoid unnecessary computations in each query. In this work, we explore and compare different architectural modifications to address the gaps of existing GPU RTAs. Our proposed RoboGPU architecture introduces a RoboCore that computes collision queries 3.1 ×
+
+faster than RTA implementations and 14.8 × faster than a CUDA baseline. RoboCore is also useful for other robotics tasks, achiev-ing 3.6 × speedup on a state-of-the-art neural motion planner and 1.1 × speedup on Monte Carlo Localization compared to a baseline GPU. RoboGPU matches the performance of dedicated hardware accelerators while being able to adapt to evolving motion planning algorithms and support classical algorithms. 
+
+I. I NTRODUCTION 
+
+Autonomous robots have significant potential across vari-ous industries, including self-driving vehicles, healthcare, and home assistance. As the field of robotics continues to expand, the demand for autonomous systems is growing rapidly, with the global market for autonomous robots expected to increase by a factor of four by 2030 [14], [46]. Recent advances in artificial intelligence have brought the development of truly autonomous robots capable of performing a wide range of tasks closer to reality. However, for such robots to be deployed in everyday life, there is a critical need for compute platforms that can handle the compute- and energy-intensive tasks required for real-time operation. The robotics pipeline typically consists of three stages: per-ception, planning, and control. The perception stage involves using sensors to gather information about the environment, such as depth maps or point clouds, which are then processed to create a 3D representation of the scene. The planning stage uses this representation to identify a goal and compute a feasible trajectory for the robot to follow, while the control stage executes the planned trajectory by sending commands to the robot actuators. Recently, many works have explored neural motion planning by applying neural networks to predict 0%     
+
+> 50%
+> 100%
+> SIMT Eff.
+> Cubby Dresser Merged
+> Cubby
+> Tabletop
+> 0
+> 250
+> # Queries
+> (1000s)
+> 38.7%
+> 59.1%
+> 2.2%
+> Avg. Collision Query
+> Full Test
+> 1-6 Axis Tests
+> 7-14 Axis Tests
+> CUDA Mochi (RTA) TTA+
+
+Fig. 1. SIMT efficiency and number of collision queries required by each device on four environments from M πNet [30] (left). Required computation for the average collision query (right). 
+
+possible robot paths, demonstrating significant improvements in success rates and runtime performance compared to classi-cal approaches [22], [30], [75]. Although optimized to avoid collisions, many of these neural planners neglect to check for actual collisions in their reported success rates, which fails to guarantee safety in real-world deployments. Explicit collision detection is often the most time and energy-consuming com-ponent when included in the planning stage and can take up to 95% of the total planning time [78], but should not be ignored. Many specialized accelerators have previously been pro-posed to meet the real-time requirements of robotics planning tasks [6], [41], [81], [90], [92], they are limited to specific algorithms and lack the flexibility to adapt to the rapidly evolv-ing landscape of robotics and support future advancements. In contrast, general-purpose Graphics Processing Units (GPUs) are excellent candidates for real-time robotics acceleration due to their high computational capabilities and programmability. For example, NVIDIA’s Jetson GPUs provide a platform to target robotics applications across a wide range of domains. Tesla has also recently announced a dedicated chip for their autonomous vehicles that shifts towards a GPU-like architec-ture [86] but details are not publicly available. Unfortunately, existing GPUs are not specifically optimized for robotics workloads and remain inefficient for kernels with divergence and irregular memory access patterns like those found in collision detection and other robotics tasks. Figure 1 shows the low SIMT efficiency (threads active per warp due to control flow) of collision queries on a NVIDIA RTX 2080 Ti GPU, leading to underutilized GPU resources. Modern GPUs incorporate many specialized functional units, such as Tensor Cores and Ray Tracing Cores, which 1
+
+> arXiv:2603.01517v1 [cs.AR] 2 Mar 2026
+
+contribute to their high success in accelerating AI and com-puter graphics workloads. NVIDIA has repeatedly shown that the tradeoffs between programmability and efficiency can be balanced by integrating such hardware accelerator units into a general-purpose GPU architecture as suggested by Hameed et al. [35], enabled through the flexibility of the CUDA programming model. While Tensor Cores are already well-suited to accelerate tensor operations in neural planners for robotics, there is no ideal hardware unit to accelerate collision detection and irregular kernels. The closest match would be Ray Tracing Accelerators (RTA), since the ray tracing operation is also divergent and generates irregular memory accesses in 3D space, with several works attempting to leverage RTAs for robotics workloads [65], [67], [84]. However, RTAs are primarily designed for graphics workloads and incur many overheads and inefficiencies when applied to robotics workloads. Figure 1 shows that collision queries on the RTA using Mochi [65] hides the divergence better than CUDA but requires 12 × more queries for the same task. Meanwhile, a generalized accelerator such as TTA + [34] can achieve higher SIMT efficiency without the overheads of RTAs, but remains inefficient for collision queries. Around 60% of collision queries can be terminated early after less than half of the total tests, but TTA + lacks control flow mechanisms and conducts full tests for all queries. In this paper, we propose RoboCore, a hardware unit that can be integrated into a RoboGPU architecture to provide an RTA-like accelerator unit optimized for robotics workloads on GPUs. We focus our design on accelerating explicit collision detection, which is critical in real-world autonomous robotics due to safety considerations and especially when adopting neural motion planners. We find that RoboCore also adapts well to other important kernels in the robotics pipeline such as point cloud processing and classical robotics algorithms such as Monte Carlo Localization, highlighting its flexibility to support future advancements in robotics. Our contributions are as follows:  
+
+> •
+
+We introduce RoboGPU, which incorporates the Robo-Core, a modified ray tracing accelerator unit config-ured for fast collision detection queries, achieving 3.1 ×
+
+speedup over existing RTA implementations.  
+
+> •
+
+We compare several design choices for RoboCore and analyze their impact on performance and efficiency for robotics collision detection.  
+
+> •
+
+We demonstrate that RoboCore also accelerates point cloud processing in M πNet [30] (a neural motion planner) by 3.6 × compared to a baseline GPU implementation and Monte Carlo Localization from the RoWild [7] benchmark by 1.1 ×.II. B ACKGROUND 
+
+This section provides an overview of motion planning for robotics, including neural motion planners and collision detection. We also describe details of ray tracing accelerators in modern GPUs and prior works that have attempted to leverage RTAs for alternative workloads.  
+
+> Fig. 2. Example point cloud from the Tabletop environment of M πNet [30], with the robot’s OBBs shown in red.
+
+A. Motion Planning for Robotics 
+
+Given a robot’s kinematic constraints and an environment with obstacles, motion planning aims to find a feasible path to an end goal. A proposed path consists of a sequence of milestones, which are then further discretized and checked for collision. Traditionally, these milestones are generated using algorithmic methods, including search-based planning algorithms [59], [60] and sampling-based algorithms [31], [49], [54]. Search-based algorithms discretize the state space and perform a graph search to find an optimal path, but are limited by the necessity of constructing a graph. On the other hand, sampling-based planners randomly sample the state space and connect the samples to form a graph, then traverse the graph when there is sufficient coverage of the planning problem. Recently, neural motion planners such as M πNet [30] and others [22], [43], [75], [94] have been introduced, seeking to imitate efficient samplers to speed up traditional planners. These neural motion planning approaches have shown greater effectiveness at long-term planning across many metrics and have significantly reduced the number of collision checks required to produce a feasible path through informed sampling. Motion planning requires a meaningful representation of the robot’s environment, typically derived from sensor inputs such as LiDAR or RGB-D cameras. In many modern policies, the environment is represented as a point cloud, capturing the 3D structure of the surroundings. Figure 2 illustrates an example point cloud of the Tabletop environment from M πNet, with the obstacles in red and the robot arm in blue. Neural planners like MπNet often rely on PointNet++ [74] as a backbone network to process point cloud data and extract features necessary for planning. Two key kernels used by PointNet++ include farthest point sampling and ball query, which respectively take up 39% and 38% of the total M πNet inference time in our profiling. These kernels involve irregular memory accesses and computations over the point cloud data, making them challenging to optimize on existing hardware but excellent candidates for acceleration on RoboCore. 
+
+B. Collision Detection 
+
+Collision detection identifies whether a robot will collide with obstacles in its environment given a planned path, and is crucial for ensuring the safety of the robot and its 2Environment Octree  
+
+> (AABBs)
+> Robot Bounding Boxes
+> (OBBs) Projection on each axis
+> Separating line Fig. 3. Separating axis collision test (SACT) between AABB from environ-ment octree and OBB from robot. If a separating line divides the projections of the two boxes, then the boxes are not colliding. Reproduced from [79].
+
+surroundings. During motion planning, the robot’s motion along the path is discretized into multiple waypoints, each with a configuration that describes the robot pose in the environment. The robot’s geometry is typically separated into links, represented as an Oriented Bounding Box (OBB) that tightly bounds the link’s volume in a box, and contains the box’s center point, half-extents, and orientation axes. These robot poses along the planned path are checked for collisions against the environment to ensure that the robot does not collide with obstacles. The environment can be represented with axis-aligned bounding boxes (AABBs). AABBs, unlike OBBs, are aligned with the coordinate axes, making them simpler to compute and store. These AABBs are then stored in spatial data structures, such as the octree that recursively subdivides the 3D space into octants hierarchically, or the bounding volume hierarchies (BVH) that tightly bounds groups of nearby AABBs (possibly overlapping) into larger AABBs to form a tree structure. In other cases, the AABBs may be stored in a voxel grid, which simply divides the 3D space into uniform cubes. Although RTAs are only designed for BVHs, we choose to use octrees since they are easier to construct and store and robotics collision queries do not require knowledge of the precise intersecting object. Each node of an octree divides the 3D space into octants, stores occupancy information for each, and only further subdivides when partially occupied. Collision detection between the robot and environment is performed by traversing the octree and checking for intersections between the robot OBBs and the occupied environment AABBs at each step. Tree traversals are typically inefficiently executed on GPUs due to irregular memory accesses and divergent thread execution, which RTAs can potentially mitigate [34]. Figure 3 illustrates the separating axis collision test (SACT) used for OBB-AABB intersection testing [33]. Both the AABB and OBB are projected onto potential separating axes, which include the three axes of the AABB and OBB, and the cross products of each axis. If there exists a separating line on any axis that divides the projections of the two boxes, then the boxes are not colliding. The SACT creates many opportunities for early exit, since finding a separating line on any axis guarantees no collision and the remaining axes do not need to be checked. Without early exits, each collision test requires 30 projections and 15 overlap checks, which makes collision detection of many robot poses against complex environments SM SM 
+
+> Interconnect
+> Memory
+> Partition
+> Memory
+> Partition
+
+…
+
+… SM Scheduler 
+
+> Reg File
+> Func Units
+
+… Scheduler   
+
+> Reg File
+> Func Units
+> Ray Tracing
+> Accelerator
+> Neural
+> Accelerator
+> Cross Bar
+> L1D
+> Cache
+> Const
+> Cache
+> Tex
+> Cache
+> Fig. 4. Baseline GPU architecture. RoboGPU replaces RTA with RoboCore. TT
+> Warp Buffer
+> Warp
+> Scheduler
+> Memory
+> Scheduler
+> Memory Access Queue
+> Memory Response FIFO
+> OP Dest. Table
+> Ray Collector
+> Node Decoder
+> Intersection Test
+> Hardware
+> Ray -Box Units
+> Ray -Triangle
+> Units
+> Ray -Transform
+> Units
+> 1. RTA
+> Interconnect  ADDSUB
+> CROSS
+> MINMAX
+> RCP
+> PUSH
+
+…  
+
+> 2. TTA+
+> Fig. 5. Ray tracing accelerator architecture on a GPU, which may include fix-function intersection hardware (RTA design) or programmable operation units (TTA +design [34]) to execute intersection tests.
+
+in real-time quite challenging. The high computational cost of collision detection could be the reason why neural planners like M πNet [30] do not include this critical safety check in their planning pipeline. Although neural motion planning networks are becoming increasingly powerful and attaining higher success rates, the failure rate increases significantly with the complexity of the environment and the difficulty of the end goal. More importantly, robots running these neural motion planning networks are unaware of the potential collision until the physical collision itself. For example, M πNet reports up to a 11% collision rate, which would be dangerous for real use cases. Thus, we believe that explicit collision detection before execution, as done in MPNet [75], is always required to ensure the safety of the robot and its environment. 
+
+C. Ray Tracing Accelerators 
+
+GPUs consist of thousands of threads and are designed to accelerate massively parallel applications. These threads are organized into multiple Streaming Multiprocessors (SMs), which are divided into sub cores, as illustrated in Figure 4. Each SM has its own register file, an L1 cache, and shared memory, which are accessed by warps (a group of 32 threads similar to AMD’s concept of a wavefront) through an inter-connect. Threads in a warp are executed in Single Instruction Multiple Thread (SIMT) fashion, where the same instruction is executed on different data. However, the SIMT architecture is not well suited to handle irregular applications such as ray tracing. Therefore, modern GPUs have incorporated a special-ized Ray Tracing Accelerator (RTA) per SM to address these 3performance bottlenecks [1], [3], [45], [47], [72]. Modern GPUs also include a neural accelerator, such as the Tensor Core, that efficiently perform matrix multiplications in neural network inferences. 
+
+1) RTA Architecture: Figure 5 shows the architecture of an RTA on the GPU. When threads in a warp issue a traceRay 
+
+instruction to the RTA, the per-ray information such as ray origin, direction, and a traversal stack are stored in the Warp Buffer. Every cycle, the RTA’s warp scheduler selects a warp to execute and issues memory requests to fetch the required tree nodes from memory. Once the data returns, the rays and node data are arbitrated based on the OP Destination Table and sent to the corresponding intersection units. The intersection units can be implemented as fixed-function hardware, the typical design for ray tracing, or as programmable operation units as proposed in the tree traversal accelerator (TTA +)design [34], described in Section II-C2. Once the intersection tests are complete, the results are written to the warp buffer and eventually updated in memory. Although the RTA is designed for ray tracing in computer graphics, it is often repurposed for alternative applications such as FastRNN [28] and RTNN [97] for nearest neighbor search, Mochi [65] and RT-DCD [84] for collision detection, and many others [38], [70], [95]. These works adapt appli-cations to fit RTAs by reformulating their algorithms into the ray tracing paradigm, representing data as 3D points and volumes stored into a BVH structure and issuing “rays” to query the data. For example, RTNN represents data points as spheres, then issues rays to find the nearest neighbors by performing ray-sphere intersection tests. Unfortunately, constraints of the RTA cause many redundant handoffs to non-accelerated intersection shaders that require CUDA cores. 
+
+2) Generalized Tree Traversal on RTAs: Prior work by Ha et al. [34] and Barnes et al. [9] have shown that the RTA can also be repurposed for other tree-based applications such as B-Trees for databases, octrees for N-Body simulations, and k-d trees for nearest neighbor search. TTA + from Ha et al. [34] aims at flexibility, with a modular system that decomposes the ray intersection units into individual operation units (OP units) and connecting them through an interconnect, akin to a dataflow architecture [24]. GPUs with TTA + form a mixed execution model like SEED [71]. However, TTA + executes a custom instruction set, called μops, which are low-level instructions similar to assembly instructions. Instructions are executed by passing all inputs along the interconnect to the appropriate OP units, which perform the computation and pass the intermediate results to the next OP unit, Each OP unit has an operation destination that is configured before launching a kernel which specifies the flow of data between OP units. This table contains the node type, program counter (PC), and destination port which represents the order of μops for different types of intersection tests. However, TTA + was not designed for node operations as complex as the SACT and has no ability to support conditional branches. 𝐴   
+
+> 𝐵 Bounding sphere test
+> Inscribing sphere test
+> 𝐴0 axis test
+> 𝐴 1axis test
+
+…  
+
+> 𝐴 2×𝐵2 axis test
+> 𝐴0
+> 𝐴 1
+> No Collision Collision Confirmed
+> No overlap Separating line found
+> Overlap
+> Overlap
+> No overlap
+> Overlap
+> Overlap
+
+… 
+
+> A
+> A
+> B
+> Separating Axis Collision Test
+> Fig. 6. Staged collision detection with bounding and inscribing sphere tests and early termination. Box-Normal axis tests are executed first, marked with (A), then Edge ×Edge axis tests marked with (B). Reproduced from [79].
+
+III. R OBO CORE ARCHITECTURE 
+
+To accelerate collision detection in robotics workloads, we propose RoboCore, a robotics-optimized ray tracing accelera-tor (RTA) hardware unit for use in the RoboGPU. We build upon the TTA + architecture [34], which provides an efficient design for tree traversal applications with heavily repeated computation patterns. This section addresses the limitations of TTA+ on collision detection with two key modifications. 
+
+A. Collision Detection Intersection Program 
+
+Figure 6 illustrates the staged collision detection process that executes the 15-axis separating collision test for OBB-AABB intersections. Figure 6 also considers bounding sphere and inscribing sphere tests introduced by Chang et al. [16] and Shah et al. [79] used to cull unnecessary OBB-AABB tests with spheres. If an outer bounding sphere enclosing the OBB does not intersect with the AABB, the OBB can be safely culled. Similarly, if an inner inscribing sphere enclosed by the OBB intersects with the AABB, we can immediately confirm a collision without executing the full SACT. Table I lists the required μops to execute each test of the SACT intersection program on TTA +. Unlike previous works, the bounding and inscribing sphere tests are not helpful on the TTA + architecture because there is no ability to exit from the intersection program before completing all tests. Ignoring these sphere tests still requires a total of 47 μops to test all 15 axes, which is significantly more than the original TTA + workloads which required a maximum of 19 μops or an average of 12 μops per intersection program [34]. Since 
+
+μops are executed sequentially on TTA + and travel across an interconnect between each OP unit, TTA + suffers from long 
+
+μop sequences compared to a pipelined or parallel accelerator. While tree traversal workloads are memory bound, when the 4TABLE I                
+
+> μOPS USED FOR SACT INTERSECTION PROGRAM
+> Test type # of tests Required μops per axis
+> Bounding sphere 11 DOT, 3 MUL, 8 Vec3 SUB, 4 Vec3 CMP Inscribing sphere 12 MINMAX, 4 MUL, 8 Vec3 SUB, 4 Vec3 CMP Preprocessing 14 Vec3 SUB, 1 R-XFORM Box-Normal Axis 62 DOT, 1 Vec3 SUB, 1 Vec3 CMP Edge ×Edge Axis 91 CROSS, 1 Vec3 CMP
+
+TTA + μop program grows in length, the latency of data movement between OP units becomes more significant, which can lead to performance degradation. 
+
+B. Early Exit Support 
+
+The most significant limitation of TTA + is the lack of support for early exits from the intersection program. To address this limitation, we propose two possible hardware modifications to enable early exits: predication and conditional returns. Figure 7 illustrates the baseline TTA + architecture (a) compared to our proposed RoboCore architecture with predication (b) and conditional returns (c). 
+
+1) Predication: One approach to enable early exits is through predication, where each μop is tagged with a predicate flag that determines whether the OP unit should execute the operation or skip it. This solution requires very minimal hardware modifications since the predicate flag can be stored as a single bit in the existing warp buffer storage that TTA +
+
+uses as a register file. The input decoder that decodes the necessary inputs for each μop is modified to treat the first bit in the warp buffer entry as the predicate flag and uses it to control whether the operation is executed by the compute unit or bypasses it to the output buffer. Lastly, the compar-ison (CMP) OP unit is used to set the predicate flag based on its comparison results, like a control token for dataflow engines [24]. Although predication helps skip unnecessary computations, all μops still need to be decoded and travel through the interconnect, incurring a significant overhead and wasting energy. Section VI-A evaluates the performance and inefficiencies of predication. 
+
+2) Conditional Returns: A better approach to improve performance of early exits is to implement conditional returns, where the CMP OP unit can redirect the intersection program like a switch operator in dataflow machines [4] without ex-ecuting the remaining μops. To support conditional returns, we add an RETURN OP unit whose function is to terminate the intersection program and signal to the main RoboCore controller that the intersection test is complete and octree traversal may continue. The RETURN OP unit is similar to the PUSH OP unit in TTA +, which also interacts with the RoboCore controller to update the traversal stacks, except an operation destination table is not needed since the RETURN OP unit always signals the end of the intersection program. In the CMP OP unit, we extend the operation destination table to include a field for the compare result. Each CMP 
+
+μop will now correspond to two entries in the operation destination table, one pointing to a PC and destination port if the compare result is true and another if the compare result is false. The PC increment unit inside the CMP op unit also needs to now update the next PC based on the compare result according to the operation destination table. These changes support conditional branching in general and are not limited to only conditional returns, which opens up possibilities for more complex intersection programs in the future. We choose to use an independent RETURN OP unit to avoid extra complexity in the CMP OP unit and to maintain modularity in the architecture. Without a separate return unit, the comparison unit would either require complex logic to distinguish between normal branches and return branches or only support return branches, limiting its flexibility. There is no change to the routed packet in either case, which still contains the ray and node information and intermediate results. However, a separate return unit does increase the intersection latency by one cycle. Section VI-A compares the performance of conditional returns versus predication. 
+
+C. SACT Hardware 
+
+As noted in Section III-A, another bottleneck of execut-ing SACT on TTA + is the long latency resulting from the large number of μops and interconnect traversal. To address this issue, we consider two possible hardware modifications illustrated in Figure 8, grouping common μop sequences into dedicated clusters or introducing new specialized OP units. Both approaches exploit the repetition of Box-Normal and Edge ×Edge axis tests for SACT and work in conjunction with the early exit support introduced in Section III-B. 
+
+1) Clustered Units: We observe that the Box-Normal and Edge ×Edge tests only share the CMP μop at the end, with other μops exclusive to each test. By grouping OP units that execute the repeated sequences for Box-Normal and Edge ×Edge tests into one pipelined cluster, such as Cluster A in Figure 8(a), μops within the cluster do not need to route through the interconnect. The interconnect latency between OP units in the same cluster is eliminated and interconnect traffic is lowered, reducing latency and energy consumption. The pipelined cluster still allows data input and output from any OP unit of the pipeline, which can support individual μops as necessary. An arbiter is applied at the inputs of the OP unit pipeline in a cluster to select and direct the input from the interconnect to the correct OP unit. The arbiter is controlled by the operation destination table. 
+
+2) Collision OP Units: A simpler solution is to introduce new specialized OP units that can execute the Box-Normal and Edge ×Edge axis tests directly, as shown in Figure 8(b), at the cost of area overhead. Each specialized collision OP unit effectively replicates the compute functionality of a cluster of OP units, but only requires one set of input buffer, output buffer, configuration registers, and operation destination table entries, reducing the complexity compared to a full cluster. The computation latency is the same as a cluster and the interconnect benefits also apply. 5TT 
+
+> Interconnect
+
+ADDSUB 
+
+CROSS 
+
+MINMAX 
+
+CMP 
+
+PUSH 
+
+OP Dest. Table 
+
+Buffers 
+
+> Output Buffer
+> Input Decoder
+> Compute Unit
+> OP Dest.
+> Table
+> Input Buffer
+> Config
+> Regs
+> Dest.
+> Port
+> μOP
+> PC
+> Node
+> Type
+> 13Internal
+> 46Leaf
+
+TTA+ 
+
+…
+
+> TT
+> Interconnect
+
+ADDSUB 
+
+CROSS 
+
+MINMAX 
+
+CMP 
+
+PUSH 
+
+OP Dest. Table 
+
+Buffers 
+
+> Output Buffer
+> Input Decoder
+> Compute Unit
+> OP Dest.
+> Table
+> Input Buffer
+> Config
+> Regs
+
+…
+
+RETURN Dest. 
+
+> Port
+> Next
+> PC
+> CMP
+> μOP
+> PC
+> Node
+> Type
+> 1403Internal
+> 4706Leaf
+
+RoboCore 
+
+> w/ Cond. Return
+> TT
+> Interconnect
+
+ADDSUB 
+
+CROSS 
+
+MINMAX 
+
+CMP 
+
+PUSH 
+
+OP Dest. Table 
+
+Buffers 
+
+> Output Buffer
+> Input Decoder
+> Compute Unit
+> OP Dest.
+> Table
+> Input Buffer
+> Config
+> Regs
+> Dest.
+> Port
+> μOP
+> PC
+> Node
+> Type
+> 13Internal
+> 46Leaf
+
+…
+
+RoboCore 
+
+> w/ Predication
+> Predicate Off
+
+(a) (b) (c) Fig. 7. Details of the baseline TTA + architecture (a) compared to the RoboCore architecture with predication (b) and conditional returns (c). RoboCore modifications are highlighted in orange. TT TT      
+
+> Interconnect
+> ADDSUB
+> CROSS
+> MINMAX
+> CMP
+> PUSH
+> OP Dest. Table
+> Buffers
+> …
+> CLUSTER A
+> Interconnect
+> Box -Normal
+> PUSH
+> OP Dest. Table
+> Buffers
+> ADDSUB
+> CROSS
+> MINMAX
+> …
+> Edge X Edge
+> RoboCore w/ Clusters RoboCore w/ Coll. Units
+> (a) (b)
+
+Fig. 8. RoboCore implemented with OP unit clusters (a) or specialized collision OP units (b), with changes highlighted in orange. 
+
+If area overhead is a concern, many of the existing TTA +
+
+OP units can be removed since they are only used by ray trac-ing workloads. For example, removing the reciprocal (RCP) OP unit reduces the TTA + area by 26% [34] and does not impact collision detection or any of the generalized non-graphics workloads that TTA + supports. The same applies to the cross product (CROSS) OP unit, which saves another 9% of area. By removing these units, we can free up enough area to add the two specialized collision OP units and maintain the same interconnect configuration as TTA +.IV. P OINT CLOUD PROCESSING WITH ROBO CORE 
+
+RoboCore can also accelerate other robotics tasks, such as point cloud processing. Many motion planners rely on point cloud data to represent the environment, obtained from sensors such as LiDAR, then processed through networks such as PointNet++ [74] to extract features. Figure 9 shows the latency distribution of a single forward pass of M πNet [30], a state-of-the-art neural motion planner, executed on a GPU. We find that sampling and grouping inside the PointNet++ [74] 23.8% 
+
+> 38.6%
+> 37.6%
+> Furthest Sampling
+> 34.9%
+> 5.5%
+> 59.6%
+> Random Sampling
+> Kernel
+> Tensor Operations
+> Point Sampling
+> Neighbor Grouping
+
+Fig. 9. Latency distribution of M πNet [30] on a GPU with default furthest point sampling and modified random point sampling. 
+
+backbone consumes 38.6% and 37.6% of the total inference time, respectively. Although furthest point sampling produces the best results, we find that random sampling is sufficient when combined with collision detection. Using random sam-pling, the latency distribution shifts to 5.5% and 59.6% for sampling and grouping, respectively. Thus, we focus on the main bottleneck of grouping, which relies on a ball query operation to find neighboring points within a certain radius. RTNN [97] and FastRNN [28] map the nearest neighbor search to the RTA through software by representing sampled points as spheres and other points as rays, which are launched as a ray tracing application and can be used to accelerate the ball query operation. However, RTAs in commercial GPUs are designed specifically for graphics ray tracing with triangles and incurs significant overheads when launching custom inter-section programs for ball query with spheres. TTA + are better suited for ray tracing with spheres since they handle custom intersection programs more efficiently, but still lack early exit support that would benefit ball query operations. Fortunately, the early exit support we add to RoboCore for collision detection can also be leveraged for ball query operations. There are two different ways execute ball query on Robo-Core since the operation is commutative [28]. Figure 10 illustrates the two approaches (P-Ray and P-Sphere), where P-Ray models the sampled points as spheres and other points 6𝑟     
+
+> miss
+> 𝑟
+> Ahit C
+> 𝑟
+> A
+> A
+> B
+> B
+> C
+> C
+> Chit A
+
+(a ) P -Ray 
+
+(b) P -Sphere  
+
+> Point cloud data
+> Point cloud data
+> Centroids as spheres
+> Centroids as rays
+> Points as rays
+> Points as spheres Fig. 10. Applying ray tracing to PointNet++. (a) P-Ray: Modeling sampled points as spheres and other points as rays. (b) P-Sphere: Modeling sampled points as rays and other points as spheres.
+
+as rays, and P-Sphere models the sampled points as rays and other points as spheres. For example, if point A is the sampled point, and the goal is to find if point B or point C is within the radius of point A, then P-Ray creates a sphere around point A and traces infinitely short rays from point B and point C to check for intersections, while P-Sphere creates spheres around points B and C and traces infinitely short rays from point A to check for intersections. In both cases, the result is that ray A hits sphere C or ray C hits sphere A, implying that point C is within the desired radius of point A. Although both configurations are introduced in Fas-tRNN [28], only P-Ray is evaluated since RTAs favor P-Ray. We find that P-Sphere is much more efficient than P-Ray in RoboCore because spheres can be built into highly efficient bounding volume hierarchies (BVH) structures that can be traversed quickly. In contrast, representing points as rays requires all points to be checked even if they are far from the sampled points. P-Ray also requires more intersection tests, which leads to higher latency and energy consumption. V. M ETHODOLOGY 
+
+We evaluate our proposed RoboCore architecture using Vulkan-Sim [77], a cycle-level GPU architecture simulator that includes a model of RTAs and TTA +. Table II shows the hardware configurations used in our evaluation, matching TTA +. We modify the TTA + model in Vulkan-Sim to include our architectural changes. We evaluate energy consumption of RoboCore using AccelWattch [48] integrated with Vulkan-Sim and the OP units in RoboCore by tracking active cycles and operations performed by each unit. 
+
+A. Evaluation Workloads 
+
+We evaluate on four different environments with varying complexity and density of obstacles. Table III shows the envi-ronments used in our evaluation, matching the environments presented in M πNet [30], each paired with OBBs enclosing different robot poses along planned trajectories. The Tabletop                             
+
+> TABLE II VULKAN -S IM CONFIGURATIONS
+> # Streaming Multiprocessors (SM) 8Max Warps / SM 32 Warp Scheduler GTO # Registers / SM 32768 Instruction Cache 128KB, 16-way assoc., 20 cycles L1 Data Cache + Shared Memory 64KB, Fully assoc. LRU, 20 cycles L2 Unified Cache 3MB, 16-way assoc. LRU, 160 cycles Compute : Interconnect : L2 : Memory Clock 1365 : 1365 : 1365 : 3500 MHz # RoboCore Units / SM 1Warp Buffer Size 4 warps # RoboCore Intersection Units 4 sets
+> TABLE III TEST ENVIRONMENTS
+> Environment # Env. Points # OBBs # Collisions
+> Cubby 524288 10516 9182 Dresser 524288 9856 2966 Merged Cubby 524288 12001 9075 Tabletop 524288 32384 8868
+
+environment is the simplest structure, but still features ran-domly placed obstacles that create a cluttered environment. The Cubby, Dresser, and Merged Cubby environments have a more complex structure, with smaller openings that require precise motion planning. To compare against MPAccel [79], we additionally evaluate ten environmental scenarios with 100 pairs of start and end goals per environment based on data published by the authors. 
+
+1) Collision Detection: We compile a set of robot poses represented by OBBs following the robot trajectories in its environment. We use the same programming model as TTA +,with each thread representing a single OBB-octree collision query. We compare the performance of RoboCore against a CUDA-based GPU implementation [79] that also collision checks OBBs against an octree as our baseline. We also compare against Mochi [65], which maps collision detection to the existing RTA hardware on GPUs. However, Mochi is optimized for particle-based simulations that track all collisions, whereas motion planning applications only need to detect collisions between the robot and the environment. As such, we modify Mochi to filter out self-collisions using the programmable intersection shaders in the ray tracing pipeline. We build a BVH tree using point cloud data from the envi-ronment and robot OBBs with Embree [89] and generate rays from all AABBs in the BVH tree as described by Mandarapu et al. [65]. We implement our version of Mochi using the Vulkan API [50] and evaluate its performance using Vulkan-Sim. 
+
+2) Neural Planner: We evaluate the performance of RoboGPU on M πNet [30] with acceleration from RoboCore on the ball query kernel in the PointNet++ [74] backbone, comparing to the RTNN implementation provided by the authors [97]. We use the same PointNet++ configurations as implemented in M πNet to ensure a fair comparison. For measuring the latency of other kernels that do not require hardware modifications, we use the CUDA implementation provided by the authors of MπNet [30], measured on aNVIDIA RTX 5070 Ti GPU. 7Cubby Dresser Merged          
+
+> Cubby
+> Tabletop
+> 0
+> 10
+> 20
+> Speedup
+> (Relative to CUDA)
+> Mochi
+> TTA+
+> RC_P_CU
+> RC_CR_CU
+> RC_P
+> RC_CR Fig. 11. Performance of collision detection on RoboCore relative to CUDA baseline, with comparisons to Mochi and TTA +. RC-RoboCore, P-Predication, CR-Conditional Return, CU-Collision OP Units.
+
+3) Classical Motion Planning: Although RoboCore is de-signed for collision detection and neural motion planning, we also evaluate its performance on a classical algorithm from the RoWild benchmark [7]. RoWild includes a set of environments and tasks commonly encountered in robotics applications, such as navigation, manipulation, and perception. While most kernels in RoWild are already efficiently parallelized for GPUs, we find that some irregular kernels can benefit from RoboCore. For example, DeliBot uses a ray casting algorithm for Monte Carlo Localization that accounts for 74% of end-to-end latency. We modify the localization kernel to use the RoboCore architecture for ray casting, which traverses by stepping along the ray rather than down a tree and checks for collisions by accessing the occupancy grid of the environment. VI. R ESULTS 
+
+We find that RoboCore is effective in accelerating the robotics pipeline, resulting in speedups on collision queries against a baseline RTA implementation and also on M πNet compared to a baseline GPU, which we present in this section. 
+
+A. Collision Detection 
+
+RoboCore achieves 14.8 × and 3.1 × speedup on collision detection queries over the CUDA and Mochi baselines, re-spectively, as shown in Figure 11. Although Mochi already accelerates collision detection using the hardware ray tracing pipeline, its performance suffers from many unnecessary colli-sion checks and the cost of invoking the intersection shader at each hit. In contrast, the RoboCore architecture is optimized for collision detection and avoids overheads that are created by forcing queries through the ray tracing pipeline. The addition of early termination and collision units within RoboCore also leads to significant improvements over the TTA + architecture. Figure 11 also ablates the impact of each design modifica-tion in RoboCore. RC CR CU represents the full RoboCore architecture with conditional returns and collision units, which performs the best. Note that clustered units and collision units have the same performance impact and differ only in hardware cost. Replacing conditional returns with predication (RC P CU) or removing the collision units (RC CR) both result in a similar performance drop of around 25%. Doing both at the same time (RC P) results in almost the same design as TTA +, since predication alone is ineffective when 47 μops still travel through the OP units and interconnect. ICNT         
+
+> DECODE
+> ADDSUB
+> CROSS
+> DOT
+> CMP
+> R-XFORM
+> RETURN
+> Box-Normal
+> EdgeXEdge
+> 0%
+> 50%
+> 100%
+> Active Cycles
+> TTA+ RC_P_CU RC_CR_CU RC_P RC_CR
+> Fig. 12. Utilization of RoboCore OP units for each implementation. Unused OP units are omitted. Cubby Dresser Merged
+> Cubby
+> Tabletop
+> 0.0
+> 0.5
+> 1.0
+> 1.5
+> Normalized
+> Execution Time
+> 0.5x
+> 1.0x
+> 1.5x
+> 2.0x
+> 0.5x (P)
+> 1.0x (P)
+> 1.5x (P)
+> 2.0x (P)
+> Fig. 13. Impact of collision unit latency on overall performance for condi-tional returns and predication (P).
+
+These effects can be observed in Figure 12, which shows the utilization of each RoboCore OP units. TTA + and predication-based configurations show very high interconnect (ICNT) utilization caused by unnecessary data movements, adding latency and costing energy. Other OP units show higher utilization than observed in ray tracing workloads [62], which suggests that the RoboCore architecture is well-suited for collision detection workloads. However, the RoboCore archi-tecture can still benefit from further optimizations, such as many orthogonal proposals to improve hardware ray tracing performance [21], [61], [88]. The lack of full OP unit utilization also suggests insen-sitivity to collision OP unit latency. Figure 13 compares the performance impact of different collision unit latencies, ranging from 0.5 × to 2 ×. RoboCore with conditional returns is more sensitive than predication since it skips unnecessary interconnect delays and shows higher OP unit utilization. However, both configurations show small performance vari-ations, suggesting that the collision OP units can be designed to conserve area and energy versus optimizing for latency. Figure 14 evaluates RoboCore on the MPAccel [79] test scenarios. Since these scenarios are much smaller in scale and complexity compared to the M πNet environments, the perfor-mance benefits of RoboCore are less pronounced. Although RoboCore cannot match MPAccel, which reports 23-34 ×
+
+speedup over the same CUDA baseline, RoboCore benefits from a more sophisticated memory system and eliminates IO overheads that standalone accelerators like MPAccel incur. We also evaluate the bounding and inscribing sphere opti-mization from MPAccel [79] on RoboCore. Although the op-timization reduces the number of collision checks, the sphere-OBB intersection test is computationally expensive on the RoboCore architecture and competes for resources with other 8MPAccel Environments M Net Environments 
+
+> 0
+> 10
+> 20
+> Geo. Mean Speedup
+> (Relative to CUDA)
+> Mochi
+> TTA+
+> RC_CR_CU
+
+Fig. 14. Performance results for MPAccel test scenarios compared to M πNet environments, showing average, min, and max speedup over CUDA baseline. Bound.    
+
+> Sphere
+> Inscr.
+> Sphere
+> Axis 1
+> Axis 2
+> Axis 3
+> Axis 4
+> Axis 5
+> Axis 6
+> Axis 7
+> Axis 8
+> Axis 9
+> Axis 10
+> Axis 11
+> Axis 12
+> Axis 13
+> Axis 14
+> Full Test
+> Collision Test Exit Point
+> 0
+> 500
+> Avg. Latency (cycles)  TTA+ Sphere Opt. RC_CR_CU RC_P_CU
+> Avg.
+> Latency
+
+Fig. 15. Latency distribution of collision detection queries for different exit conditions. 
+
+OBB-AABB intersection test. As a result, the optimization does not provide any performance benefits on RoboCore. Figure 15 shows the latency distribution of collision queries for different exit conditions, which demonstrates the high overhead of the sphere-OBB intersection test, nearly doubling the latency of the collision detection queries in the worst case. Figure 16 shows the energy consumption of RoboCore for collision detection queries compared to the CUDA and Mochi baselines. Energy from the main GPU components dominate total energy consumption, with the RoboCore only contributing to less than 5% of the total energy. We achieve 87% energy savings against the CUDA baseline and 42% against Mochi by reducing redundant operations and improv-ing overall performance. 
+
+B. Point Cloud Processing 
+
+We find that the CUDA implementation of ball query used in PointNet++ is highly inefficient and iterates through all points in the point cloud to find neighbors within a radius. RTNN provides a more reasonable baseline and has been shown to reach 44 × speedup on average even over the highly optimized cuNSearch [39] implementation. RoboCore further outperforms RTNN by 1.9 × on average using P-Sphere. Table IV compares P-Ray and P-Sphere for the Cubby environment, measured on RoboCore. P-Ray generates a large number of rays that traverse through a small tree of spheres with six levels, whereas P-Sphere generates a small number of rays that traverse through a much larger tree of spheres with twelve levels. Surprisingly, P-Sphere performs better despite only launching enough rays to utilize 47.4% of the RoboCore occupancy. This result is because the tree structure organizes the spheres for a very efficient traversal, leading to fewer memory fetches for node data overall. Mochi 
+
+> RoboCore 0%
+> 50%
+> 100%
+> Energy Consumption
+> (Relative to CUDA)  Cubby
+> Mochi
+> RoboCore
+> Dresser
+> Mochi
+> RoboCore
+> Merged
+> Cubby
+> Mochi
+> RoboCore
+> Tabletop
+> Main GPU
+> RoboCore Warp Buffer
+> RoboCore Ops
+> RoboCore Icnt.
+
+Fig. 16. Energy consumption distribution of collision tests. 0
+
+> 500
+> 1000
+> P-Ray
+> 0.01
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> 0.35
+> 0.40
+> 0.45
+> 0.50
+> Radius
+> 0
+> 1
+> 2
+> P-Sphere
+> Normalized Latency
+> (relative to r=0.05)
+
+Fig. 17. Execution latency of different grouping radii (r) on ball query with RoboCore, relative to r=0.05 used by M πNet. 
+
+P-Sphere is enhanced by the programmability and early termination support in RoboCore, which avoids the overhead of running custom intersection shaders in the compute cores and any unnecessary intersection tests beyond the required number of spheres. In the RTNN implementation, there is no mechanism to immediately stop traversal after a maximum group size is reached, forcing the hardware to continue travers-ing the tree and launching shader invocations simply to find that no more points are needed. This problem is much worse with P-Sphere because the number of spheres is much larger than the maximum group size. On average, RoboCore traverses 6× fewer nodes with early exit than without, which leads to a significant reduction in latency and energy consumption. Figure 17 evaluates ball query on RoboCore with different radius values that may be used in other robotics workloads such as ContactGen [63], Sugar [19], HDP [64] and more. P-Ray does not scale well with larger radius values and the relative latency grows exponentially alongside the increased intersection shader invocations. In contrast, P-Sphere scales better with larger radii, when the majority of the points (spheres) can be efficiently traversed with RoboCore. Although PointNet++ uses furthest point sampling, we test random point sampling to reduce the overall latency. We find that random point sampling still achieves an 88.7% success rate, which is only slightly lower than the 94.8% of furthest point sampling, but saves 29% of the total latency. We further confirm this result by implementing random point sampling in NIRRT* [44], another neural motion planner that uses PointNet++, and observe similarly high success rates. Since we add explicit collision detection to the motion planning pipeline, degradations in success rates can be caught by the collision 9TABLE IV COMPARISON OF P-R AY AND P-S PHERE ON POINT NET ++ FOR CUBBY ENVIRONMENT WITH ROBO CORE .               
+
+> P-Ray P-Sphere Total rays 523,776 512
+> RoboCore occupancy 100% 47.4%
+> Total spheres 512 523,776
+> Tree depth 612
+> Avg. (nodes, spheres) / ray (14.1, 2.3) (959.2, 276.1)
+> Total nodes traversed 6,856,980 349,272
+> Speedup 1.2 ×2.9 ×
+
+detection stage. For environments or tasks where high success rates are critical, furthest point sampling can still be used. Section VI-B1 compares these two sampling methods in the full motion planning pipeline. 
+
+1) Full Robotics Pipeline: By accelerating point cloud pro-cessing in PointNet++, we create a balance between neural in-ference and RoboCore tasks, allowing better utilization of the specialized GPU resources in an end-to-end motion planning pipeline. Figure 18 shows the latency breakdown of M πNet measured on a GPU, including the neural motion planner and explicit collision detection. Since RoboCore cannot be measured on existing GPUs, we estimate the BVH Build and Grouping times using RTNN and the Collision Check time by adjusting the CUDA baseline 7.0 × to match our speedup for the Cubby environment. By using random sampling in PointNet++, combined with neighbor grouping on RoboCore, we speedup the point cloud processing stage in M πNet by 2.2 × over the original CUDA baseline. With this speedup, the additional latency from explicit collision detection does not delay the overall motion planning pipeline and actually completes 1.4 × faster on RoboGPU than the baseline without collision detection. The full pipeline including collision detec-tion is 3.6 × faster and completes in under 10ms to meet real-time latency requirements for robotics. Collision detection and milestone generation in M πNet may also be pipelined together using accelerator-level parallelism to further reduce latency. The overall latency is then dependent on the speed of the octree builder, which is beyond the scope of this work. However, there are many orthogonal works optimizing octree construction and updates [18], [23], [25], [67] that can be integrated. Octree construction can begin as soon as the point cloud is available, in parallel with other motion planning tasks. Also, after the first iteration octree build, subsequent octree updates are substantially faster and should not be a bottleneck. 
+
+C. Classical Algorithm 
+
+We demonstrate the flexibility of RoboCore with an example classical motion planning algorithm from the RoWild bench-mark [7]. Figure 19 shows the cumulative execution time of the DeliBot kernel on RoboCore compared to CUDA and TTA +
+
+implementations, with 10% and 20% speedups respectively. RoWild benchmarks execute over a large number of kernel iterations, exhibiting different characteristics throughout exe-cution. For example, DeliBot begins with randomly initialized particles that are refined over time. To start, there are few Baseline             
+
+> w/ RoboCore
+> (Random)
+> 0510 15 20 25
+> Time (ms)
+> w/ RoboCore
+> (Furthest)
+> Sampling
+> BVH Build
+> Grouping
+> Tensor Ops
+> Octree Build
+> Collision Check
+> RoboCore
+> Fig. 18. Latency breakdown of proposed motion planning pipeline on RoboGPU with RoboCore compared to the baseline CUDA implementation for Cubby environment. 0.0
+> 2.5
+> 5.0
+> 7.5
+> Accumulated Latency
+> (Million Cycles)
+> CUDA
+> TTA+
+> RoboCore
+> 020 40 60 80
+> Kernel Iteration
+> 0
+> 5
+> 10
+> Avg. Nodes
+> Per Ray
+> Threshold
+> Switch
+> Fig. 19. Execution time of DeliBot from RoWild on RoboCore compared to CUDA and TTA +implementations.
+
+collisions, leading to long ray traversals ideal for RoboCore. However, as the particles converge, the number of collisions increase, leading to short traversals that fail to offset the RoboCore launch overhead. Therefore, we allow DeliBot to dynamically switch between execution on the RoboCore and CUDA cores for each kernel iteration, based on expected collisions. We implement this dynamic switching by using a threshold on average traversal distance in the previous itera-tion, tracked using the average number of nodes traversed per ray. Figure 19 also shows how this metric changes over time, triggering the switches between the RoboCore and CUDA cores, resulting in the best overall performance. Other RoWild kernels can also benefit from a RoboCore implementation, such as CarriBot and MoveBot. CarriBot uses an A* algorithm that relies on collision detection, which is a good candidate for RoboCore and MoveBot uses a RRT* algorithm that implements a nearest neighbor search, which may also benefit from RoboCore. 10 D. Area Overheads 
+
+The area overhead of the modifications in the RoboCore architecture is minimal compared to TTA +, which itself is a smaller area footprint than a typical RTA. Predication only occupies one bit in the warp buffer and conditional returns require an increase to the size of the operation destination table. However, each entry is only 2 bytes, so the overall area overhead is negligible. Although we add an additional operation unit for RETURN, the additional port does not increase the area overhead because TTA + already supports up to 16 ports to the interconnect. The Box-Normal and Edge ×Edge OP units contribute 0.099mm 2 and 0.076mm 2
+
+respectively, based on combining 45nm area estimates of each individual operation reported for TTA + [34]. Alternatively, the design from MPAccel [79] for collisions only totals just 0.143mm 2 in 45nm technology. These collision OP units could add up to 18% area overhead to a baseline RTA if ray tracing support is needed. Otherwise, removing large unused OP units such as the RCP OP unit would reduce the overall area by 8%. VII. R ELATED WORK 
+
+Computer architecture has an important role in robotics. This section discusses related works optimizing robotics tasks and tree building techniques for environment representation. 
+
+A. Accelerating Robotics Workloads 
+
+Robotics is a broad field with many different tasks spanning scene representation and motion planning. While there have been many works proposing hardware accelerators for specific robotic workloads [17], [29], [42], [55], [76], [79], [87], these accelerators lack the flexibility to adapt to the rapidly changing landscape of robotics. Tartan [8] proposes a general-purpose CPU architecture optimized for robotics, but evaluated solely on algorithmic motion planning workloads. As the robotics field shifts from traditional algorithmic approaches to neural-based approaches like RT-1 [15] and GR00T [13], GPUs will be a better general-purpose device to support both approaches. Motion planning and collision detection in robotics are well-studied problems and there have been many works proposing optimizations for these tasks. Amato and Dale [2] first show that motion planning can be parallelized on a multicore CPUs, then Gayle et al. [32] show that both path planning and collision detection can be parallelized on GPUs. Bialkowski et al. [12] used a brute force CUDA algorithm to parallelize collision detection checks on the GPU, achieving massive speedups over the serial CPU implementation. Kider et al. [51] showed how a random search algorithm can be accelerated on a GPU. Pan and Manocha [73] proposed a BVH tree-based GPU collision detection using hierarchical traversal, which is faster than prior GPU implementations. CuRobo [85] provides optimized continuous and discrete collision detection algorithm on GPUs, but are outperformed by ray tracing-based methods [84]. More recently, ReCA [90], Orianna [36], MOPED [41], and Blitzcrank [37] all target a specific motion planning algorithm, but are less flexible than a GPU, especially for neural motion planning. FPGAs [5], [58], [69], [80], [83], [96] and ASICs [6], [57], [68], [81], [92] have also been used to accelerate motion planning. However, FPGAs become prohibitively expensive to provide the same level of support for neural motion planning as GPUs with large power gaps to ASICs [52] and ASICs cannot adapt to the wide variety and ever-changing landscape of motion planning algorithms. They are both less accessible to the consumer market compared to GPUs, and more useful in specialized industrial applications. Typically in robotics, many different algorithms are running concurrently on the same processor. Although scheduling is outside the scope of this paper, we note that an efficient scheduling algorithm tailored for the modern robotic work-loads is crucial for achieving high performance. RED [56] is one example that could improve performance on GPUs. Meanwhile, works such as CoopRT [88] and treelets [20], [21] introduce scheduling optimizations to improve the per-formance of ray tracing workloads on RTAs, which are likely to be beneficial for RoboCore with robotics workloads as well. 
+
+B. Tree Building Techniques 
+
+While tree building is not in the scope of this paper, it is still a crucial part of the collision detection pipeline. Elseberg et al. [26] proposed data structures and algorithms to efficiently construct and process octrees from point cloud data, such as from robots equipped with laser scanners. Then they proposed an efficient octree to store and compress 3D data without loss of precision, especially on large point cloud datasets [27]. Su et al. [82] explored an algorithm to perform segmentation on LiDAR point cloud data using octree decomposition. Hao et al. [91] proposed a method to construct octrees from LiDAR point cloud data that specializes in detecting changes to buildings and trees in an urban environment. More recently, OctoMap-RT [67] and OctoCache [18] accelerate the Oc-toMap [40] octree representation build and update operations. These works help ensure that the octree representation of the environment matches the current state of the environment and can easily be used in collision detection. BVH trees are also commonly used to represent the environment, with various construction algorithms such as LBVH [53], PLOC [66], H-PLOC [11], PLOC++ [10], and CWBVH [93] that may offer better performance for some robotics tasks. VIII. C ONCLUSION 
+
+In this paper, we present RoboGPU with RoboCore, a dedicated hardware unit integrated into the GPU architecture to accelerate collision detection and other robotics tasks. We identify key performance bottlenecks of irregular robotics workloads on existing GPUs and propose simple yet ef-fective architectural modifications optimized specifically for robotics. RoboCore achieves 3.1 × speedup over the state-of-the-art Mochi [65] for collision detection, while accelerating MπNet [30] by 3.6 ×, and Monte Carlo Localization from the RoWild [7] by 1.1 ×. Overall, GPUs with specialized cores provide a flexible and efficient solution for accelerating the robotics pipeline, offering a platform that can adapt to the rapidly evolving landscape of robotics applications. 11 REFERENCES [1] Advanced Micro Devices Inc. (2022) AMD RDNA architecture. [Online]. Available: https://www.amd.com/en/technologies/rdna [2] N. Amato and L. Dale, “Probabilistic roadmap methods are embarrass-ingly parallel,” in Proc. IEEE Int’l Conf. on Robotics and Automation (ICRA) , 1999. [3] Apple. (2023) Apple unveils M3, M3 Pro, and M3 Max, the most advanced chips for a personal computer. [Online]. Avail-able: https://www.apple.com/newsroom/2023/10/apple-unveils-m3-m3-pro-and-m3-max-the-most-advanced-chips-for-a-personal-computer/ [4] Arvind and R. S. Nikhil, “Executing a program on the mit tagged-token dataflow architecture,” in International Conference on Parallel Architectures and Languages Europe , 1987. [5] N. Atay and B. Bayazit, “A motion planning processor on reconfigurable hardware,” in Proc. IEEE Int’l Conf. on Robotics and Automation (ICRA) , 2006. [6] M. Bakhshalipour, S. B. Ehsani, M. Qadri, D. Guri, M. Likhachev, and P. B. Gibbons, “RACOD: Algorithm/hardware co-design for mobile robot path planning,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 2022. [7] M. Bakhshalipour and P. B. Gibbons, “Agents of autonomy: A system-atic study of robotics on modern hardware,” Proc. ACM on Measurement and Analysis of Computing Systems (POMACS) , vol. 7, no. 3, pp. 1–31, 2023. [8] M. Bakhshalipour and P. B. Gibbons, “Tartan: Microarchitecting a robotic processor,” in Proc. IEEE/ACM Int’l Symp. on Computer Ar-chitecture (ISCA) , 2024. [9] A. Barnes, F. Shen, and R. T. G., “Extending GPU Ray-Tracing Units for Hierarchical Search Acceleration,” in Proc. IEEE/ACM Symp. on Microarch. (MICRO) , 2024. [10] C. Benthin, R. Drabinski, L. Tessari, and A. Dittebrandt, “PLOC++ parallel locally-ordered clustering for bounding volume hierarchy con-struction revisited,” Proc. ACM Conf. on High Performance Graphics (HPG) , 2022. [11] C. Benthin, D. Meister, J. Barczak, R. Mehalwal, J. Tsakok, and A. Kensler, “H-PLOC: Hierarchical parallel locally-ordered clustering for bounding volume hierarchy construction,” Proc. ACM Conf. on High Performance Graphics (HPG) , 2024. [12] J. Bialkowski, S. Karaman, and E. Frazzoli, “Massively parallelizing the RRT and the RRT,” in Proc. IEEE/RSJ Int’l Conf. on Intelligent Robots and Systems (IROS) , 2011. [13] J. Bjorck, F. Casta˜ neda, N. Cherniadev, X. Da, R. Ding, L. J. Fan, Y. Fang, D. Fox, F. Hu, S. Huang, J. Jang, Z. Jiang, J. Kautz, K. Kundalia, L. Lao, Z. Li, Z. Lin, K. Lin, G. Liu, E. Llontop, L. Magne, A. Mandlekar, A. Narayan, S. Nasiriany, S. Reed, Y. L. Tan, G. Wang, Z. Wang, J. Wang, Q. Wang, J. Xiang, Y. Xie, Y. Xu, Z. Xu, S. Ye, Z. Yu, A. Zhang, H. Zhang, Y. Zhao, R. Zheng, and Y. Zhu, “Gr00t n1: An open foundation model for generalist humanoid robots,” arXiv preprint arXiv:2503.14734 , 2025. [14] D. Bridge, “Autonomous robot market to exhibit a remarkable growth of usd 11607.13 million by 2030,” https://www.globenewswire.com/news-release/2023/02/02/2600592/0/en/Autonomous-Robot-Market-to-Exhibit-a-Remarkable-Growth-of-USD-11607-13-Million-by-2030-Size-Share-Trends-Key-Drivers-Growth-and-Opportunity-Analysis.html, 2023. [15] A. Brohan, N. Brown, J. Carbajal, Y. Chebotar, J. Dabis, C. Finn, K. Gopalakrishnan, K. Hausman, A. Herzog, J. Hsu, J. Ibarz, B. Ichter, A. Irpan, T. Jackson, S. Jesmonth, N. Joshi, R. Julian, D. Kalashnikov, Y. Kuang, I. Leal, K.-H. Lee, S. Levine, Y. Lu, U. Malla, D. Manjunath, I. Mordatch, O. Nachum, C. Parada, J. Peralta, E. Perez, K. Pertsch, J. Quiambao, K. Rao, M. Ryoo, G. Salazar, P. Sanketi, K. Sayed, J. Singh, S. Sontakke, A. Stone, C. Tan, H. Tran, V. Vanhoucke, S. Vega, Q. Vuong, F. Xia, T. Xiao, P. Xu, S. Xu, T. Yu, and B. Zitkovich, “RT-1: Robotics transformer for real-world control at scale,” in arXiv preprint arXiv:2212.06817 , 2022. [16] J.-W. Chang, W. Wang, and M.-S. Kim, “Efficient collision detection using a dual OBB-sphere bounding volume hierarchy,” Computer-Aided Design , 2010. [17] F. Chen, R. Ying, J. Xue, F. Wen, and P. Liu, “ParallelNN: A parallel octree-based nearest neighbor search accelerator for 3D point clouds,” in 
+
+Proc. IEEE Symp. on High-Perf. Computer Architecture (HPCA) , 2023, pp. 403–414. [18] P. Chen, M. Li, Z. Wan, Y.-S. Hsiao, M. Yu, V. J. Reddi, and Z. Liu, “OctoCache: Caching voxels for accelerating 3D occupancy mapping in autonomous systems,” in Proc. ACM Conf. on Arch. Support for Prog. Lang. and Op. Sys. (ASPLOS) , 2025. [19] S. Chen, R. Garcia, I. Laptev, and C. Schmid, “Sugar: Pre-training 3D visual representations for robotics,” in Proc. IEEE Conf. on Computer Vision and Pattern Recognition (CVPR) , 2024, pp. 18 049–18 060. [20] Y. H. Chou and T. M. Aamodt, “Treelet accelerated ray tracing on GPUs,” in Proc. ACM Conf. on Arch. Support for Prog. Lang. and Op. Sys. (ASPLOS) , 2025, pp. 1334–1347. [21] Y. H. Chou, T. Nowicki, and T. M. Aamodt, “Treelet prefetching for ray tracing,” in Proc. IEEE/ACM Symp. on Microarch. (MICRO) , 2023. [22] M. Dalal, J. Yang, R. Mendonca, Y. Khaky, R. Salakhutdinov, and D. Pathak, “Neural MP: A generalist neural motion planner,” Proc. Conf. on Robot Learning (CoRL) , 2024. [23] Z. Deng, L. Wang, W. Han, R. Ranjan, and A. Zomaya, “G-ML-Octree: An update-efficient index structure for simulating 3D moving objects across GPUs,” IEEE Transactions on Parallel and Distributed Systems (TPDS) , vol. 29, no. 5, pp. 1075–1088, 2017. [24] J. B. Dennis and D. P. Misunas, “A preliminary architecture for a basic data-flow processor,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 1974, pp. 126–132. [25] S. Durvasula, R. Kiguru, S. Mathur, J. Xu, J. Lin, and N. Vijaykumar, “VoxelCache: Accelerating online mapping in robotics and 3D recon-struction tasks,” in Proc. IEEE/ACM Conf. on Par. Arch. and Comp. Tech. (PACT) , 2022. [26] J. Elseberg, D. Borrmann, and A. N¨ uchter, “Efficient processing of large 3D point clouds,” in International Symposium on Information, Communication and Automation Technologies , 2011. [27] J. Elseberg, D. Borrmann, and A. N¨ uchter, “One billion points in the cloud - an octree for efficient processing of 3D laser scans,” ISPRS Journal of Photogrammetry and Remote Sensing , 2013. [28] I. Evangelou, G. Papaioannou, K. Vardis, and A. Vasilakis, “Fast radius search exploiting ray-tracing frameworks,” Journal of Computer Graphics Techniques (JCGT) , vol. 10, no. 1, 2021. [29] Y. Feng, B. Tian, T. Xu, P. Whatmough, and Y. Zhu, “Mesorasi: Architecture support for point cloud analytics via delayed aggregation,” in Proc. IEEE/ACM Symp. on Microarch. (MICRO) , 2020. [30] A. Fishman, A. Murali, C. Eppner, B. Peele, B. Boots, and D. Fox, “Motion policy networks,” in Proc. Conf. on Robot Learning (CoRL) ,2022. [31] J. D. Gammell, S. S. Srinivasa, and T. D. Barfoot, “Batch informed trees (bit*): Sampling-based optimal planning via the heuristically guided search of implicit random geometrics graphs,” Proc. IEEE Int’l Conf. on Robotics and Automation (ICRA) , 2015. [32] R. Gayle, P. Segars, M. Lin, and D. Manocha, “Path planning for deformable robots in complex environments,” in Robotics: Science and Systems , 2005. [33] S. Gottschalk, M. C. Lin, and D. Manocha, “OBBTree: a hierarchical structure for rapid interference detection,” in Proc. Int’l Conf. on Computer Graphics and Interactive Techniques (SIGGRAPH) , 1996. [34] D. Ha, L. Liu, Y. H. Chou, S. Go, W. W. Ro, H.-W. Tseng, and T. M. Aamodt, “Generalizing ray tracing accelerators for tree traversals on GPUs,” in Proc. IEEE/ACM Symp. on Microarch. (MICRO) , 2024. [35] R. Hameed, W. Qadeer, M. Wachs, O. Azizi, A. Solomatnikov, B. C. Lee, S. Richardson, C. Kozyrakis, and M. Horowitz, “Understanding sources of inefficiency in general-purpose chips,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 2010, pp. 37–47. [36] Y. Hao, Y. Gan, B. Yu, Q. Liu, Y. Han, Z. Wan, and S. Liu, “Orianna: An accelerator generation framework for optimization-based robotic applications,” in Proc. ACM Conf. on Arch. Support for Prog. Lang. and Op. Sys. (ASPLOS) , 2024. [37] Y. Hao, Y. Gan, B. Yu, Q. Liu, S.-S. Liu, and Y. Zhu, “Blitzcrank: Factor graph accelerator for motion planning,” in Proc. ACM/IEEE Design Automation Conference (DAC) , 2023. [38] J. Henneberg and F. Schuhknecht, “RTIndeX: Exploiting hardware-accelerated GPU raytracing for database indexing,” Proc. of the VLDB Endowment , vol. 16, no. 13, pp. 4268–4281, 2023. [39] R. C. Hoetzlein, “Fast fixed-radius nearest neighbors: interactive million-particle fluids,” in GPU Technology Conference , vol. 18, 2014, p. 2. [40] A. Hornung, K. M. Wurm, M. Bennewitz, C. Stachniss, and W. Burgard, “OctoMap: An efficient probabilistic 3D mapping framework based on octrees,” Autonomous robots , vol. 34, no. 3, pp. 189–206, 2013. 
+
+12 [41] L. Huang, Y. Gong, Y. Sui, X. Zang, and B. Yuan, “MOPED: Efficient motion planning engine with flexible dimension support,” in Proc. IEEE Symp. on High-Perf. Computer Architecture (HPCA) , 2024. [42] Y. Huang, Y. Hao, B. Yu, F. Yan, Y. Yang, F. Min, Y. Han, L. Ma, S. Liu, Q. Liu, and Y. Gan, “Dadu-Corki: Algorithm-architecture co-design for embodied AI-powered robotic manipulation,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 2025. [43] Z. Huang, H. Chen, J. Pohovey, and K. Driggs-Campbell, “Neural informed RRT*: Learning-based path planning with point cloud state representations under admissible ellipsoidal constraints,” in Proc. IEEE Int’l Conf. on Robotics and Automation (ICRA) . IEEE, 2024, pp. 8742– 8748. [44] Z. Huang, H. Chen, J. Pohovey, and K. Driggs-Campbell, “Neural informed RRT*: Learning-based path planning with point cloud state representations under admissible ellipsoidal constraints,” in Proc. IEEE Int’l Conf. on Robotics and Automation (ICRA) , 2024. [45] Imagination Technologies. (2022) Rays your game: Introduction to the PowerVR photon architecture. [Online]. Available: https: //www.imaginationtech.com/resources/rays-your-game-en/ [46] F. B. Insights, “The global autonomous mobile robots market...” https://www.fortunebusinessinsights.com/autonomous-mobile-robots-market-105055, 2022. [47] Intel Corporation. (2022) Introduction to the Xe-HPG architecture. [On-line]. Available: https://www.intel.com/content/www/us/en/developer/ articles/technical/introduction-to-the-xe-hpg-architecture.html [48] V. Kandiah, S. Peverelle, M. Khairy, J. Pan, A. Manjunath, T. G. Rogers, T. M. Aamodt, and N. Hardavellas, “AccelWattch: A Power Modeling Framework for Modern GPUs,” in Proc. IEEE/ACM Symp. on Microarch. (MICRO) , 2021, pp. 738–753. [49] S. Karaman and E. Frazzoli, “Sampling-based algorithms for optimal motion planning,” The International Journal of Robotics Research , 2011. [50] Khronos Group. (2025) Vulkan. [Online]. Available: https://www. vulkan.org/ [51] J. T. Kider, M. Henderson, M. Likhachev, and A. Safonova, “High-dimensional planning on the GPU,” in Proc. IEEE Int’l Conf. on Robotics and Automation (ICRA) , 2010. [52] I. Kuon and J. Rose, “Measuring the gap between FPGAs and ASICs,” in Proc. ACM/SIGDA Int’l Symp. on Field Programmable Gate Arrays ,2006, pp. 21–30. [53] C. Lauterbach, M. Garland, S. Sengupta, D. Luebke, and D. Manocha, “Fast BVH construction on GPUs,” in Computer Graphics Forum , 2009. [54] S. M. LaValle, “Rapidly-exploring random tress : a new tool for path planning,” The annual research report , 1998. [55] S. Li, Y. Zhao, C. Li, B. Guo, J. Zhang, W. Zhu, Z. Ye, C. Wan, and Y. C. Lin, “Fusion-3D: Integrated acceleration for instant 3D reconstruction and real-time rendering,” in Proc. IEEE/ACM Symp. on Microarch. (MICRO) , 2024. [56] Z. Li, T. Ren, X. He, and C. Liu, “RED: A systematic real-time scheduling approach for robotic environmental dynamics,” in IEEE Real-Time Systems Symposium (RTSS) , 2023, pp. 210–223. [57] S. Lian, Y. Han, X. Chen, Y. Wang, and H. Xiao, “Dadu-P: A scalable accelerator for robot motion planning in a dynamic environment,” in 
+
+Proc. ACM/IEEE Design Automation Conference (DAC) , 2018. [58] C. Lienen, M. Platzner, and B. Rinner, “ReconROS: Flexible hard-ware acceleration for ROS2 applications,” in Int’l Conf. on Field-Programmable Technology (ICFPT) , 2020. [59] M. Likhachev, D. Ferguson, G. J. Gordon, A. Stentz, and S. Thrun, “Anytime dynamic A*: An anytime, replanning algorithm,” ICAPS ,2005. [60] M. Likhachev, G. J. Gordon, and S. Thrun, “ARA*: Anytime A* with provable bounds on suboptimality,” ICAPS , 2005. [61] L. Liu, W. Chang, F. Demoullin, Y. H. Chou, M. Saed, D. Pankratz, T. Nowicki, and T. M. Aamodt, “Intersection prediction for accelerated GPU ray tracing,” in Proc. IEEE/ACM Symp. on Microarch. (MICRO) ,2021, pp. 709–723. [62] L. Liu, M. Saed, Y. H. Chou, D. Grigoryan, T. Nowicki, and T. M. Aamodt, “LumiBench: A benchmark suite for hardware ray tracing,” in 
+
+Proc. IEEE Symp. on Workload Characterization (IISWC) , 2023. [63] S. Liu, Y. Zhou, J. Yang, S. Gupta, and S. Wang, “ContactGen: Generative contact modeling for grasp generation,” in Proc. IEEE Int’l Conf. on Computer Vision (ICCV) , 2023, pp. 20 609–20 620. [64] X. Ma, S. Patidar, I. Haughton, and S. James, “Hierarchical diffusion policy for kinematics-aware multi-task robotic manipulation,” in Proc. IEEE Conf. on Computer Vision and Pattern Recognition (CVPR) , 2024, pp. 18 081–18 090. [65] D. K. Mandarapu, N. James, and M. Kulkarni, “Mochi: Fast & exact collision detection,” arXiv preprint arXiv:2402.14801 , 2024. [66] D. Meister and J. Bittner, “Parallel locally-ordered clustering for bound-ing volume hierarchy construction,” IEEE Transactions on Visualization and Computer Graphics (TVCG) , 2017. [67] H. Min, K. M. Han, and Y. J. Kim, “OctoMap-RT: Fast probabilistic volumetric mapping using ray-tracing GPUs,” IEEE Robotics and Au-tomation Letters , vol. 8, no. 9, 2023. [68] S. Murray, W. Floyd-jones, G. Konidaris, and D. J. Sorin, “A Pro-grammable Architecture for Robot Motion Planning Acceleration,” in 
+
+Int’l Conf. on Application-specific Systems, Architectures and Proces-sors , 2019. [69] S. Murray, W. Floyd-Jones, Y. Qi, G. Konidaris, and D. J. Sorin, “The microarchitecture of a real-time robot motion planning accelerator,” in 
+
+Proc. IEEE/ACM Symp. on Microarch. (MICRO) , 2016. [70] V. Nagarajan and M. Kulkarni, “RT-DBSCAN: Accelerating DBSCAN using ray tracing hardware,” in Proc. IEEE Int’l Parallel and Distributed Processing Symp. (IPDPS) , 2023, pp. 963–973. [71] T. Nowatzki, V. Gangadhar, and K. Sankaralingam, “Exploring the potential of heterogeneous Von Neumann/dataflow execution models,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 2015, pp. 298–310. [72] Nvidia Corporation. (2018) Nvidia Turing GPU architecture. [Online]. Available: https://images.nvidia.com/aem-dam/en-zz/Solutions/design-visualization/technologies/turing-architecture/NVIDIA-Turing-Architecture-Whitepaper.pdf [73] J. Pan and D. Manocha, “GPU-based parallel collision detection for fast motion planning,” The International Journal of Robotics Research , 2012. [74] C. R. Qi, L. Yi, H. Su, and L. J. Guibas, “PointNet++: Deep hierarchical feature learning on point sets in a metric space,” Advances in Neural Information Processing Systems (NeurIPS) , vol. 30, 2017. [75] A. H. Qureshi, A. Simeonov, M. J. Bency, and M. C. Yip, “Motion plan-ning networks,” in Proc. IEEE Int’l Conf. on Robotics and Automation (ICRA) . IEEE, 2019, pp. 2118–2124. [76] J. Sacks, D. Mahajan, R. C. Lawson, and H. Esmaeilzadeh, “RoboX: An end-to-end solution to accelerate autonomous control in robotics,” in 
+
+Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 2018. [77] M. Saed, Y. H. Chou, L. Liu, T. Nowicki, and T. M. Aamodt, “Vulkan-Sim: A GPU architecture simulator for ray tracing,” in Proc. IEEE/ACM Symp. on Microarch. (MICRO) , 2022, pp. 263–281. [78] D. Shah and T. M. Aamodt, “Collision prediction for robotics accelera-tors,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) ,2024. [79] D. Shah, N. Yang, and T. M. Aamodt, “Energy-efficient realtime motion planning,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 2023. [80] X. Shi, L. Cao, D. Wang, L. Liu, G. You, S. Liu, and C. Wang, “HERO: Accelerating Autonomous Robotic Tasks with FPGA,” 2018. [81] D. J. Sorin, G. Konidaris, W. Floyd-Jones, and S. Murray, “Motion planning for autonomous vehicles and reconfigurable motion planning processor,” 2019, patent No. US20190163191A1, Filed June 9, 2017, Issued May 30, 2019. [82] Y.-T. Su, J. Bethel, and S. Hu, “Octree-based segmentation for terrestrial LiDAR point cloud data in industrial applications,” ISPRS Journal of Photogrammetry and Remote Sensing , 2016. [83] K. Sugiura and H. Matsutani, “An integrated FPGA accelerator for deep learning-based 2D/3D path planning,” IEEE Transactions on Computers ,vol. 73, no. 6, pp. 1442–1456, 2024. [84] S. Sui, L. Sentis, and A. Bylard, “Hardware-accelerated ray tracing for discrete and continuous collision detection on GPUs,” in Proc. IEEE Int’l Conf. on Robotics and Automation (ICRA) , 2025. [85] B. Sundaralingam, S. K. S. Hari, A. Fishman, C. R. Garrett, K. Van Wyk, V. Blukis, A. Millane, H. Oleynikova, A. Handa, F. Ramos et al. ,“CuRobo: Parallelized collision-free minimum-jerk robot motion gen-eration,” CoRR , 2023. [86] I. Tesla, “Q3 2025 financial results and Q&A webcast,” Webcast, Investor Relations, Oct. 2025, available at https://www.youtube.com/live/ GQ9S7xbkGAY. [87] J. Ting, M. Kim, J. Zhu, H. Sheng, and Z. Zhang, “HiPER: Hierarchically-composed processing for efficient robot learning-based control,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 2025. 
+
+13 [88] Y. S. Tozlu and H. Zhou, “CoopRT: Accelerating BVH traversal for ray tracing via cooperative threads,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 2025. [89] I. Wald, S. Woop, C. Benthin, G. S. Johnson, and M. Ernst, “Embree: a kernel framework for efficient CPU ray tracing,” ACM Transactions on Graphics (TOG) , vol. 33, no. 4, 2014. [90] Z. Wan, Y. Du, M. Ibrahim, J. Qian, J. Jabbour, Y. Zhao, T. Krishna, A. Raychowdhury, and V. J. Reddi, “ReCA: Integrated acceleration for real-time and efficient cooperative embodied autonomous agents,” in Proc. ACM Conf. on Arch. Support for Prog. Lang. and Op. Sys. (ASPLOS) , 2025. [91] H. Xu, L. Cheng, M. Li, Y. Chen, and L. Zhong, “Using octrees to detect changes to buildings and trees in the urban environment from airborne LiDAR data,” Remote Sensing , 2015. [92] Y. Yang, X. Chen, and Y. Han, “Dadu-CD: Fast and efficient processing-in-memory accelerator for collision detection,” in Proc. ACM/IEEE Design Automation Conference (DAC) , 2020. [93] H. Ylitie, T. Karras, and S. Laine, “Efficient incoherent ray traversal on GPUs through compressed wide BVHs,” in Proc. ACM Conf. on High Performance Graphics (HPG) , 2017. [94] M. Yu, C. Yu, M.-M. Naddaf-Sh, D. Upadhyay, S. Gao, and C. Fan, “Ef-ficient motion planning for manipulators with control barrier function-induced neural controller,” in Proc. IEEE Int’l Conf. on Robotics and Automation (ICRA) . IEEE, 2024, pp. 14 348–14 355. [95] H. Zhang, Y. Zhang, and H.-W. Tseng, “RTSpMSpM: Harnessing ray tracing for efficient sparse matrix computations,” in Proc. IEEE/ACM Int’l Symp. on Computer Architecture (ISCA) , 2025. [96] Y. Zhang, X. Niu, H. Tian, Y. Zhang, B. Yu, S. Liu, and S. Huang, “A sparsity-aware autonomous path planning accelerator with HW/SW co-design and multi-level dataflow optimization,” ACM Transactions on Architecture and Code Optimization (TACO) , 2025. [97] Y. Zhu, “RTNN: accelerating neighbor search using hardware ray tracing,” in Proc. ACM Symp. on Prin. and Prac. of Par. Prog. (PPoPP) ,2022, pp. 76–89. 
+
+14

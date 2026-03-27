@@ -1,0 +1,784 @@
+Title: Interleaved Information Structures in Dynamic Games: A General Framework with Application to the Linear-Quadratic Case
+
+URL Source: https://arxiv.org/pdf/2603.18407v1
+
+Published Time: Fri, 20 Mar 2026 00:32:57 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Interleaved Information Structures in Dynamic Games: A General Framework with Application to the Linear-Quadratic Case 
+
+Janani S K ∗1, Kushagra Gupta ∗2, Ufuk Topcu 3, and David Fridovich-Keil 3
+
+Abstract — A fundamental problem in noncooperative dy-namic game theory is the computation of Nash equilibria under different information structures, which specify the information available to each agent during decision-making. Prior work has extensively studied equilibrium solutions for two canonical information structures: feedback, where agents observe the current state at each time, and open-loop, where agents only observe the initial state. However, these paradigms are often too restrictive to capture realistic settings exhibiting interleaved 
+
+information structures, in which each agent observes only a subset of other agents at every timestep. To date, there is no systematic framework for modeling and solving dynamic games under arbitrary interleaved information structures. To this end, we make two main contributions. First, we introduce a method to model deterministic dynamic games with arbitrary interleaved information structures as Mathematical Program Networks (MPNs), where the network structure encodes the informational dependencies between agents. Second, for linear-quadratic (LQ) dynamic games, we leverage the MPN formu-lation to develop a systematic procedure for deriving Riccati-like equations that characterize Nash equilibria. Finally, we illustrate our approach through an example involving three agents exhibiting a cyclic information structure. 
+
+I. Introduction 
+
+Equilibria in non-cooperative dynamic games depend cru-cially on the underlying information structure , which speci-fies the information available to every agent at each decision-making timestep. Two canonical extremes are typically stud-ied in the literature: open-loop and feedback information structures. Under the feedback information structure, at every timestep, each agent observes the full game state which includes the state of all agents. In contrast, the more restric-tive open-loop information assumes that all agents observe only the initial full game state and do not have access to subsequent states when making decisions at later timesteps. Extensive prior work has characterized equilibrium solutions for broad classes of both open-loop and feedback dynamic games [1]–[5]. However, these existing methods fail to cater               
+
+> This work was sponsored by the Army Research Laboratory under Cooperative Agreements W911NF-25-2-0021 and ARO W911NF-23-1-0317, the Office of Naval Research under Grant N00014-22-1-2703, the Air Force Office of Scientific Research under Grant FA9550-22-1-0403, and by the National Science Foundation under Grants 2211548 and 2336840. * denotes equal contribution
+> 1Janani SKis with Department of Engineering Design, Indian Institute of Technology Madras, Chennai, India
+
+ed22b017@smail.iitm.ac.in 
+
+> 2Kushagra Gupta is with the Department of Electrical and Computer Engineering, The University of Texas at Austin, Austin, TX 78712, USA
+
+kushagrag@utexas.edu 
+
+> 2Ufuk Topcu and David Fridovich-Keil are with the Department of Aerospace Engineering and the Oden Institute for Computational Engineering and Sciences, The University of Texas at Austin, Austin, TX 78712, USA
+
+utopcu@utexas.edu, dfk@utexas.edu 
+
+to many practical settings in which state information is neither fully available nor completely absent. In realistic multi-agent scenarios, agents often observe the states of only a subset of other agents, leading to interleaved information structures where different agents observe different subsets of the system state variables during the game. Existing works that go beyond the canonical information structures can broadly be categorized into three modeling paradigms. The first allows the dynamic game’s information structure to alternate between open-loop and feedback over the time horizon, but still assumes that all agents share identical information at any given time step [6], [7]. The second paradigm studies games with incomplete information, where agents lack knowledge of certain game components, such as the costs and dynamics of other agents, and reason by learning these unknown quantities [8], [9]. The third paradigm considers games with asymmetric information, in which agents receive private noisy observations of hidden states and reason about other agents’ information by main-taining beliefs based on shared public signals [10]–[14]. A separate but related line of work theoretically characterizes the differences between open-loop and feedback equilibrium solutions in dynamic games [15], [16]. However, the above approaches do not readily accommo-date interleaved information structures in dynamic games, where each agent may have access to a different subset of the game state at a given time step. Even for the widely studied class of linear-quadratic dynamic games—which serve as a fundamental building block for analyzing more complex dynamic games—it remains unclear how to derive Riccati-like equations that yield Nash equilibria for given interleaved information structures. To address this challenge, we build on the recently introduced Mathematical Program Network (MPN) framework [17], which models collections of interdependent optimization problems as a network and enables the systematic derivation of solutions for such cou-pled problems. MPNs have previously been used to model interdependencies arising from hierarchical decision-making structures among agents in dynamic games [18]. In this work, we show that the utility of MPNs for dynamic games extends beyond hierarchical settings; in particular, MPNs provide a natural framework for capturing the interdependencies among agents’ individual optimization problems that arise from interleaved information structures. 
+
+Contributions: Motivated by the above discussion, we ask: How can one compute Nash equilibria in linear-quadratic dynamic games where agents possess interleaved information structures, i.e., where each agent observes the 
+
+> arXiv:2603.18407v1 [cs.GT] 19 Mar 2026
+
+states of a (potentially unique) subset of the agents in the game? To this end, we make the following contributions: 1) We formulate dynamic games with interleaved infor-mation structures as MPNs by modeling the time-indexed optimization problems of all agents as a net-work that captures the interdependencies induced by interleaved information. 2) Using this formulation, we develop a systematic pro-cedure for deriving Riccati-like equations which char-acterize Nash equilibria for 𝑁 -agent linear-quadratic dynamic games under arbitrary interleaved information structures. 
+
+II. Preliminaries 
+
+A. On Mathematical Program Networks (MPNs) 
+
+A Mathematical Program Network (MPN) [17] is a directed graph of 𝐾 decision nodes, each representing a mathe-matical program. Formally, an MPN is defined by a tuple 
+
+({F 𝑖 , C𝑖 , J 𝑖 }𝑖 ∈ [ 𝐾 ] , 𝐸 ), where [𝐾 ] := {1, . . . , 𝐾 }, 𝐾 ∈ Z+. The program corresponding to the 𝑖 th decision node has an objective F 𝑖 : R𝑛 x → R over the vector of decision variables 
+
+x ∈ C 𝑖 ⊂ R𝑛 x . Node 𝑖 only controls a subset of the entries of 
+
+x, specified by the decision index set J 𝑖 ⊂ [ 𝑛 x]. The set of directed edges 𝐸 ⊂ [ 𝐾 ] × [ 𝐾 ] specifies the network structure and encodes the interdependence between the mathematical programs. An edge (𝑖, 𝑗 ) ∈ 𝐸 indicates that node 𝑗 is a child of node 𝑖 . Let 𝑛 𝑖  
+
+> x
+
+= |J 𝑖 |, and define the private decision variables of node 𝑖 as x𝑖 ∈ R𝑛 𝑖  
+
+> x
+
+:= [𝑥 𝑗 ] 𝑗 ∈ J 𝑖 . We denote the set of reachable node pairs in the MPN by 𝑅 ⊂ [ 𝐾 ] × [ 𝐾 ],where (𝑖, 𝑗 ) ∈ 𝑅 if and only if a path exists from node 𝑖 to node 𝑗 obtained by traversing edges in 𝐸 . The reachable set is useful for identifying the programs whose decisions are dependent on the program at node 𝑖 . In particular, we define 
+
+𝐷 𝑖 := {𝑖 } ∪ { 𝑗 : (𝑖, 𝑗 ) ∈ 𝑅 }, 𝐷 −𝑖 := [𝐾 ] \ 𝐷 𝑖 . Correspondingly, we partition the decision variables as x𝐷 𝑖 
+
+:= [x 𝑗 ] 𝑗 ∈𝐷 𝑖 , x𝐷 −𝑖 
+
+:=
+
+[x 𝑗 ] 𝑗 ∈𝐷 −𝑖 . Tracking these interdependencies among the math-ematical programs allows us to characterize their solutions through the notion of a solution graph . The solution graph 𝑆 𝑖 
+
+corresponding to node 𝑖 yields 
+
+𝑆 𝑖 =
+
+
+
+x∗ ∈ R𝑛 x , where (x∗)𝐷 𝑖 
+
+satisfies: 
+
+(x∗)𝐷 𝑖 
+
+∈ arg min 
+
+> x𝐷 𝑖
+
+F 𝑖 
+
+x𝐷 𝑖 
+
+, (x∗)𝐷 −𝑖 
+
+s.t. 
+
+
+
+x𝐷 𝑖 
+
+, (x∗)𝐷 −𝑖 
+
+∈ C 𝑖 ,
+
+
+
+x𝐷 𝑖 
+
+, (x∗)𝐷 −𝑖 
+
+∈ 𝑆 𝑗 , (𝑖, 𝑗 ) ∈ 𝐸. 
+
+
+
+(1) A solution which is optimal for all the programs in a MPN must belong to the solution graphs of all MPN nodes; such a solution is called an equilibrium. 
+
+Definition 1 (Equilibrium of an MPN): A vector x∗ is an equilibrium of an MPN if it is an element of the solution graph of each node. Formally, x∗ is an equilibrium of an MPN iff 
+
+x∗ ∈ 𝑆 ∗, where 𝑆 ∗ := Ñ𝑖 ∈ [ 𝑁 ] 𝑆 𝑖 .
+
+B. On Dynamic Noncooperative Games 
+
+We consider 𝑁 -agent, discrete-time, deterministic dynamic games with a finite decision-making time horizon of 𝑇 
+
+steps. The state of the game at time 𝑡 is denoted by 𝑥 𝑡 :=
+
+(𝑥 1 
+
+> 𝑡
+
+, . . . , 𝑥 𝑁 𝑡 ), 𝑥 𝑖 𝑡 ∈ R𝑛 𝑖 
+
+, Í𝑖 𝑛 𝑖 = 𝑛 , representing the concate-nated state of all agents. The state evolves according to the dynamics 𝑥 𝑡 +1 = 𝑓 𝑡 (𝑥 𝑡 , 𝑢 1 
+
+> 𝑡
+
+, . . . , 𝑢 𝑁 𝑡 ), 𝑡 ∈ [ 𝑇 ] where 𝑢 𝑖 𝑡 ∈ R𝑚 𝑖 
+
+denotes the control input of the 𝑖 th agent at time 𝑡 . The initial game state 𝑥 1 is given a priori . For brevity, we define 
+
+𝑢 −𝑖 𝑡 := (𝑢 𝑗 𝑡 ) 𝑗 ∈ [ 𝑁 ], 𝑗 ≠𝑖 . For any vector-valued quantity 𝑎 indexed by agents and/or time, we use 𝑎 𝑝 :𝑞 𝑟 :𝑠 to denote the collec-tion of vectors corresponding to agents 𝑝, 𝑝 + 1, . . . , 𝑞 over times 𝑟, 𝑟 + 1, . . . , 𝑠 . Each agent 𝑖 minimizes a time-additive cost 𝐽 𝑖 (𝑥 1, 𝑢 𝑖  
+
+> 1: 𝑇
+
+, 𝑢 −𝑖  
+
+> 1: 𝑇
+
+) = Í𝑇 𝑡 =1 𝑔 𝑖 𝑡 (𝑥 𝑡 , 𝑢 𝑖 𝑡 , 𝑢 −𝑖 𝑡 ) + 𝑔 𝑖 𝑇 +1 (𝑥 𝑇 +1). For a linear-quadratic (LQ) dynamic game, the stage cost and dynamics take the form 
+
+𝑔 𝑖 𝑡 (𝑥 𝑡 , 𝑢 𝑖 𝑡 , 𝑢 −𝑖 𝑡 ) = 𝑥 ⊤ 
+
+> 𝑡
+
+𝑄 𝑖 𝑡 𝑥 𝑡 + 2𝑞 𝑖 ⊤ 
+
+> 𝑡
+
+𝑥 𝑡 +∑︁    
+
+> 𝑗 ∈ [ 𝑁 ]
+
+𝑢 𝑗 ⊤ 
+
+> 𝑡
+
+𝑅 𝑖 𝑗 𝑡 𝑢 𝑗 𝑡 + 2𝑟 𝑖 𝑗 ⊤ 
+
+> 𝑡
+
+𝑢 𝑗 𝑡 ,𝑓 𝑡 (𝑥 𝑡 , 𝑢 𝑖 𝑡 , 𝑢 −𝑖 𝑡 ) = 𝐴 𝑡 𝑥 𝑡 +∑︁    
+
+> 𝑗 ∈ [ 𝑁 ]
+
+𝐵 𝑗 𝑡 𝑢 𝑗 𝑡 , (2) where 𝑅 𝑖𝑖 𝑡 ≻ 0 and 𝑅 𝑖 𝑗 𝑡 , 𝑄 𝑖 𝑡 ⪰ 0 for all 𝑖, 𝑗 and 𝑡 . We now review open-loop and feedback Nash equilibria for LQ games, which can be varied as two extreme variants of MPNs for a game. 
+
+1) Open-Loop Nash Equilibria in Dynamic Games: Let agent 𝑖 choose its action at time 𝑡 using a strategy mapping 𝛾 𝑖 𝑡 :
+
+R𝑛 → R𝑚 𝑖 
+
+. Under the open-loop information structure, each agent observes only the initial game state and does not have access to subsequent game states. Consequently, the control actions of each agent are determined solely based on the initial state,i.e., 𝑢 𝑖 𝑡 = 𝛾 𝑖 𝑡 (𝑥 1). An open-loop Nash equilibrium for an LQ dynamic game consists of control sequences 𝑢 𝑖, OL 1: 𝑇 and the corresponding state trajectory 𝑥 OL 1: 𝑇 +1 (with 𝑥 OL 1 = 𝑥 1) such that for all agents 𝑖 ∈ [ 𝑁 ],
+
+𝐽 𝑖 (𝑥 1, 𝑢 𝑖, OL 1: 𝑇 , 𝑢 −𝑖, OL 1: 𝑇 ) ≤ 𝐽 𝑖 (𝑥 1, ˜𝑢 𝑖  
+
+> 1: 𝑇
+
+, 𝑢 −𝑖, OL 1: 𝑇 ) ∀ ˜𝑢 𝑖  
+
+> 1: 𝑇
+
+∈ R𝑚 𝑖 ×𝑇 .
+
+Computing an open-loop Nash equilibrium in an 𝑁 -agent LQ dynamic game amounts to solving 𝑁 optimization prob-lems. For agent 𝑖 , the problem is 
+
+𝑢 𝑖, OL 1: 𝑇 ∈ arg min  
+
+> 𝑥 2: 𝑇 +1, 𝑢 𝑖
+> 1: 𝑇
+
+𝐽 𝑖 
+
+𝑥 1, 𝑢 𝑖  
+
+> 1: 𝑇
+
+, 𝑢 −𝑖, OL 1: 𝑇 
+
+
+
+,
+
+s.t. 𝑥 𝑡 +1 = 𝑓 𝑡 (𝑥 𝑡 , 𝑢 𝑖 𝑡 , 𝑢 −𝑖, OL  
+
+> 𝑡
+
+), 𝑡 ∈ [ 𝑇 ].
+
+(3) 
+
+2) Feedback Nash Equilibria in Dynamic Games: Under the feedback information structure, all agents observe the current game state 𝑥 𝑡 when making decisions at time 𝑡 .Accordingly, a feedback Nash equilibrium is defined in terms of feedback strategy mappings 𝜋 𝑖 𝑡 : R𝑛 → R𝑚 𝑖 
+
+for 𝑡 ∈ [ 𝑇 ], state value functions 𝑉 𝑖 𝑡 : R𝑛 → R for 𝑡 ∈ [ 𝑇 + 1], and state-control value functions 𝑍 𝑖 𝑡 : R𝑛 × Î𝑖 ∈ [ 𝑁 ] R𝑚 𝑖 
+
+→ R for 𝑡 ∈ [ 𝑇 ], which satisfy the following backward recursion for each 𝑖 ∈ [ 𝑁 ]:
+
+𝑉 𝑖 𝑇 +1 (𝑥 𝑇 +1) := 𝑔 𝑖 𝑇 +1 (𝑥 𝑇 +1),𝑍 𝑖 𝑡 (𝑥 𝑡 , 𝑢 𝑖 𝑡 , 𝑢 −𝑖 𝑡 ) := 𝑔 𝑖 𝑡 (𝑥 𝑡 , 𝑢 1: 𝑁 𝑡 ) + 𝑉 𝑖 𝑡 +1
+
+  𝑓 (𝑥 𝑡 , 𝑢 𝑖 𝑡 , 𝑢 −𝑖 𝑡 ) ,𝑉 𝑖 𝑡 (𝑥 𝑡 ) := 𝑍 𝑖 𝑡 (𝑥 𝑡 , 𝜋 𝑖 𝑡 (𝑥 𝑡 ), 𝜋 −𝑖 𝑡 (𝑥 𝑡 )) , ∀ 𝑡 ∈ [ 𝑇 ].
+
+(4) Let 𝑢 𝑖, FB 1: 𝑇 and 𝑥 FB 1: 𝑇 +1 denote the control and state trajectories corresponding to the feedback Nash equilibrium for all agents 
+
+𝑖 , with 𝑥 FB 1 = 𝑥 1. The feedback strategies 𝜋 𝑖 𝑡 are defined so that for each time 𝑡 ∈ [ 𝑇 ],
+
+𝑍 𝑖 𝑡 (𝑥 𝑡 , 𝑢 𝑖, FB  
+
+> 𝑡
+
+, 𝑢 −𝑖, FB  
+
+> 𝑡
+
+) ≤ 𝑍 𝑖 𝑡 (𝑥 𝑡 , ˜𝑢 𝑖 𝑡 , 𝑢 −𝑖, FB  
+
+> 𝑡
+
+), ∀ ˜𝑢 𝑖 𝑡 ∈ R𝑚 𝑖 
+
+. (5) Computing a feedback Nash equilibrium amounts to solving a sequence of nested equilibrium problems, one at each time step coupling all the agents’ decisions. For agent 𝑖 at time 
+
+𝑡 ∈ [ 𝑇 ], the corresponding optimization problem is [5]: min    
+
+> 𝑥 𝑠 :𝑇 +1, 𝑢 𝑖 𝑡 :𝑇 ,˜𝑢 −𝑖, FB
+> 𝑡 +1: 𝑇
+> 𝑇
+
+∑︁ 
+
+> 𝑠 =𝑡
+
+𝑔 𝑠 (𝑥 𝑠 , 𝑢 𝑖 𝑠 , ˜𝑢 −𝑖, FB  
+
+> 𝑠
+
+) + 𝑔 𝑇 +1 (𝑥 𝑇 +1)
+
+s.t. 𝑥 𝑠 +1 − 𝑓 𝑠 (𝑥 𝑠 , 𝑢 𝑖 𝑠 , ˜𝑢 −𝑖, FB  
+
+> 𝑠
+
+) = 0, 𝑡 ≤ 𝑠 ≤ 𝑇, 
+
+˜𝑢 −𝑖, FB  
+
+> 𝑠
+
+− 𝜋 −𝑖 𝑠 (𝑥 𝑠 ) = 0, 𝑡 + 1 ≤ 𝑠 ≤ 𝑇 . 
+
+(6) 
+
+Remark 1: The final set of feedback constraints in Equa-tion (6) are an example of the game’s information structure inducing interdependencies between the agents’ optimization problems, which will be modeled as edges in accordance with Section II-A. This interdependence enforces strong Bellman consistency required to satisfy Equation (4). 
+
+III. Formulating Interleaved Information Games as MPNs 
+
+We now present our main contributions. As a warm-up, we first show how two-agent open-loop and feedback dynamic games can be formulated as MPNs. The insights gained from these canonical cases will guide the systematic construction of MPNs for dynamic games with arbitrarily interleaved information structures. We refer to the two agents in both open-loop and feedback games as 𝑖 and −𝑖 , respectively. 
+
+1) MPNs for open-loop games: Consider the cost-to-go that agent 𝑖 minimizes at the decision-making time step 𝑡 ∈[𝑇 ], 𝐽 𝑖 𝑡 (𝑥 𝑡 :𝑇 +1, 𝑢 𝑖 𝑡 :𝑇 , 𝑢 −𝑖 𝑡 :𝑇 ) := Í𝑇 𝑠 =𝑡 𝑔 𝑖 𝑠 (𝑥 𝑠 , 𝑢 𝑖 𝑠 , 𝑢 −𝑖 𝑠 ) + 𝑔 𝑖 𝑇 +1 (𝑥 𝑇 +1).From Equation (3), two observations follow. First, the op-timization problem of agent 𝑖 at any timestep 𝑡 influences the actions that 𝑖 selects at future timesteps. Second, because agent −𝑖 must choose an open-loop strategy, its action at any time after 𝑡 cannot depend on agent 𝑖 ’s actions at time 𝑡 .Therefore, for an open-loop dynamic game with a decision-making horizon of 𝑇 steps, we construct an MPN with 𝑇 nodes per agent. The 𝑡 th node corresponding to agent 𝑖 , denoted by 
+
+𝑁 𝑖 𝑡 , represents the problem of minimizing the cost-to-go 𝐽 𝑖 𝑡 .The interdependence across time induces edges between consecutive nodes of the same agent. Let A := {𝑖, −𝑖 }, and let the concatenated decision variables for agent 𝑗 across all nodes be denoted by 𝑧 𝑗 , for 𝑗 ∈ A . For brevity, we denote the decision variables at node 𝑁 𝑗 𝑡 by 𝑧 𝑗 𝑡 , consisting of {𝑥 𝑡 +1: 𝑇 +1, 𝑢 𝑗 𝑡 :𝑇 }. The variables 𝑧 𝑗 𝑡 are constrained to lie in the dynamically feasible subset 𝐹 𝑗 𝑡 ⊂ ( R𝑛 × R𝑚 𝑗 
+
+)𝑇 −𝑡 +1. The edge set for agent 𝑗 is 
+
+𝐸 𝑗,𝑂𝐿 , consisting of 𝑇 − 1 edges connecting 𝑁 𝑗 𝑡 to 𝑁 𝑗 𝑡 +1 for all 
+
+𝑡 ∈ [ 𝑇 − 1]. Let 𝐸 𝑂𝐿 = {𝐸 𝑖,𝑂𝐿 , 𝐸 −𝑖,𝑂𝐿 }. Then the open-loop MPN 𝑀 OL , shown in Figure 1, is 
+
+𝑀 OL =
+
+n
+
+{𝐽 𝑗 𝑠 }𝑠 ∈ [ 𝑇 ] , {𝐹 𝑗 𝑠 }𝑠 ∈ [ 𝑇 ] , {𝑧 𝑗 𝑠 }𝑠 ∈ [ 𝑇 ]
+
+o  
+
+> 𝑗 ∈ A
+
+, 𝐸 𝑂𝐿 
+
+
+
+.
+
+2) MPNs for feedback games: Remark 1 shows that in the feedback setting, at any timestep an agent’s optimization prob-lem depends not only on its own future decisions but also on the future strategies of other agents. Consequently, the optimiza-tion problems across agents become coupled. As in the open-loop case, we construct an MPN with 𝑇 nodes per agent, where node 𝑁 𝑗 𝑡 represents agent 𝑗 ’s optimization problem at time 𝑡 .The node set therefore is unchanged. However, the interdepen-dence induced by feedback information requires augmenting both the decision variables and the edge set. In particular, each agent 𝑗 ∈ A introduces additional variables representing its reasoning about the other agent − 𝑗 ’s future decisions made at 𝑁 − 𝑗 𝑡 +1. Thus, for 𝑗 ∈ A , 𝑧 𝑗, FB  
+
+> 𝑡
+
+= 𝑧 𝑗, OL 
+
+> 𝑡
+
+Ð{ ˜𝑢 − 𝑗, FB  
+
+> 𝑡 +1: 𝑇
+
+}, 𝐹 𝑗, FB  
+
+> 𝑡
+
+⊂(R𝑛 × R𝑚 𝑗 
+
+)𝑇 −𝑡 +1 × R𝑚 − 𝑗 
+
+)𝑇 −𝑡 , 𝐸 𝑗, FB = 𝐸 𝑗, OL Ð{𝑁 𝑗 𝑡 → 𝑁 − 𝑗 𝑡 +1 },and 𝐸 FB = {𝐸 𝑖, FB , 𝐸 −𝑖, FB }. Then the feedback MPN, shown in Figure 1, is 
+
+𝑀 FB =
+
+n
+
+{𝐽 𝑗 𝑠 }𝑠 ∈ [ 𝑇 ] , {𝐹 𝑗,𝐹 𝐵 𝑠 }𝑠 ∈ [ 𝑇 ] , {𝑧 𝑗,𝐹 𝐵 𝑠 }𝑠 ∈ [ 𝑇 ]
+
+o  
+
+> 𝑗 ∈ A
+
+, 𝐸 𝐹 𝐵 
+
+
+
+.
+
+A. MPNs for arbitrarily interleaved information 
+
+We are now ready to construct MPNs for dynamic games with arbitrary interleaved information structures. We assume that this information structure is known to all agents at the starting of the game. Consider an 𝑁 -agent game and any pair of agents 𝑖 and 𝑗 . The information relationship between these agents must fall into one of four cases at every decision-making timestep time 𝑡 : (i) mutual feedback, where both agents observe each other; (ii) mutually open-loop, where neither agent observes the other; (iii) one-sided observation, where 𝑖 
+
+observes 𝑗 but not vice versa; or (iv) one-sided observation in the opposite direction, where 𝑗 observes 𝑖 but not vice versa. The open-loop and feedback MPN constructions presented earlier already cover the first two cases and provide insight into the remaining asymmetric cases. Without loss of generality, we therefore focus on the one-sided observation case, I,in which 𝑖 observes 𝑗 but not vice versa. At decision-making timestep 𝑡 , agent 𝑖 incorporates the state(s) of agent 
+
+𝑗 into its decision-making process. Consequently, agent 𝑗 ’s optimization problem at 𝑡 influences agent 𝑖 ’s optimization problem at 𝑡 + 1. In contrast, since agent 𝑗 does not observe agent 𝑖 , the optimization problem of agent 𝑗 at 𝑡 does not depend on agent 𝑖 ’s past decisions. Thus, in addition to the agent-wise temporal interdependencies, the MPN includes edges 𝑁 𝑗 𝑡 → 𝑁 𝑖 𝑡 +1 for all timesteps 𝑡 in which agent 𝑖 observes agent 𝑗 .
+
+This further implies that MPN decision variables for agent 
+
+𝑗 at time 𝑡 , 𝑧 𝑗, I 
+
+> 𝑡
+
+should be augmented to include decision variables of 𝑖 at its future timestep node 𝑁 𝑖 𝑡 +1. These arguments are precisely presented in Figure 2, and are simply reversed for case (iv). To construct the MPN for the entire game, the above argument is applied to every pair of agents, at every timestep. Notably, the MPN construction accommodates interleaved information in which an agent 𝑖 observes different subsets of agents across timesteps. Successive timesteps in any arbitrary interleaved information structure can be decomposed into one of the four canonical cases for which we have constructed MPNs, as illustrated in Figures 1 and 2. 𝑖 𝑡 −𝑖 𝑡 𝑡 
+
+𝑖 𝑡 +1 −𝑖 𝑡 +1𝑡 + 1
+
+𝑖 −𝑖 
+
+Open-loop 
+
+Agent 
+
+𝑖 𝑡 −𝑖 𝑡 
+
+𝑖 𝑡 +1 −𝑖 𝑡 +1
+
+𝑖 −𝑖 
+
+Feedback  
+
+> Fig. 1. MPN building blocks across successive time steps for dynamic games with canonical information structures.
+
+Interleaved: 𝑖 observes 𝑗 , but not vice-versa 
+
+𝑖 𝑡 𝑗 𝑡 𝑡 
+
+𝑖 𝑡 +1 𝑗 𝑡 +1𝑡 + 1
+
+𝑖 𝑗 Agent 
+
+𝑧 𝑖, I 
+
+> 𝑡
+
+= {𝑥 𝑡 +1, 𝑢 𝑖 𝑡 } ∪ 𝑧 𝑖, I
+
+> 𝑡 +1
+
+𝑧 𝑗, I 
+
+> 𝑡
+
+= {𝑥 𝑡 +1, ˜𝑢 𝑖 𝑡 +1, 𝑢 𝑗 𝑡 } ∪ 𝑧 𝑗, I    
+
+> 𝑡 +1
+> Fig. 2. MPN building block across successive timesteps for a dynamic game in which agents 𝑖 and 𝑗 exhibit a non-canonical interleaved information structure. Additional edges may appear depending on the information relationships with other agents in the game.
+
+IV. Finding Nash Equilibria in Interleaved Information Games 
+
+We now present our second contribution: a systematic method for computing Nash equilibria in dynamic games with arbitrary interleaved information structures, leveraging the MPN construction procedure developed in Section III. Given an MPN representation of a game, a solution graph is constructed for each node using Equation (1). Under appropriate constraint qualifications, the optimal decision vari-ables at each node satisfy the first-order necessary optimality conditions—the Karush-Kuhn-Tucker (KKT) conditions [19] associated with Equation (1). In the special case of linear-quadratic (LQ) games, the affine structure of the constraints and convexity of agent cost functions ensure that these constraint qualifications hold. Further, for LQ games, due to convexity, the KKT conditions are not only necessary but also sufficient for optimality, and reduce to a system of Riccati-like equations that characterize the Nash equilibrium. 
+
+It follows that the Nash equilibrium of an LQ game with an interleaved information structure can be computed via the following procedure: (i) formulate the game as an MPN, (ii) construct the solution graph at each node, and (iii) solve the resulting system of Riccati-like equations obtained by concatenating the KKT conditions across all nodes. We now formalize this procedure for an LQ game with any possible interleaved information structure. A Systematic Procedure for Deriving Riccati-like Equations in LQ Games with Interleaved Information Given an 𝑁 -agent LQ dynamic game with interleaved information, and decision-making time horizon 𝑇 :1) Construct the corresponding MPN as follows: a) Nodes. For each agent 𝑖 ∈ [ 𝑁 ] and timestep 
+
+𝑡 ∈ [ 𝑇 ], create a node 𝑁 𝑖 𝑡 representing agent 
+
+𝑖 ’s problem of optimizing 𝐽 𝑖 𝑡 at time 𝑡 .b) Dynamical Constraints. Add the dynam-ical constraints for times {𝑡, 𝑡 + 1, . . . ,𝑇 } to the constraint set C𝑖 𝑡 corresponding to 𝑁 𝑖 𝑡 .c) Temporal edges. For every agent 𝑖 and timestep 𝑡 ∈ [ 𝑇 − 1], include an edge 𝑁 𝑖 𝑡 →
+
+𝑁 𝑖 𝑡 +1 capturing the dependence of agent 𝑖 ’s actions at time 𝑡 on its future actions. d) Observation edges. For any pair of agents 
+
+(𝑖, 𝑗 ) and timestep 𝑡 , if agent 𝑖 observes agent 𝑗 at time 𝑡 , include an edge 𝑁 𝑗 𝑡 →
+
+𝑁 𝑖 𝑡 +1 capturing the dependence of agent 
+
+𝑖 ’s future decision problem on agent 𝑗 ’s current decision at time 𝑡 .This MPN encodes the interdependencies be-tween the agents’ optimization problems in-duced by the interleaved information structure. 2) Create the solution graph for all nodes of the constructed MPN, according to Equation (1). For each solution graph, write the corresponding KKT conditions. 3) Concatenating the KKT conditions of all nodes yields Riccati-like equations. Jointly solving them yields the Nash equilibrium of the game. 
+
+V. Illustrative Example 
+
+We now present an example illustrating our contributions, following the procedure outlined in Section IV. Specifically, we consider a three-player LQ game with a circular information structure. Cyclical Interleaved Information Structure 
+
+11 21 31𝑡 = 1
+
+12 22 32𝑡 = 2
+
+13 23 33𝑡 = 31 2 3Agent 
+
+> Fig. 3. MPN for a three-agent, three timestep game with a cyclical information structure: agent 1 observes agent 2, who in turn observes agent 3, who in turn observes agent 1.
+
+Consider an LQ game with three agents— {1, 2, 3}, and a decision-making time horizon of 𝑇 = 3 steps. We assume the following circular interleaved information structure:  
+
+> •
+
+Agent 1 observes agent 2, but not vice-versa.  
+
+> •
+
+Agent 2 observes agent 3, but not vice-versa.  
+
+> •
+
+Agent 3 observes agent 1, but not vice-versa. For a positive semi-definite matrix 𝑀 and a vector 𝑣 , we denote 
+
+∥𝑣 ∥𝑀 = √𝑣 ⊤ 𝑀𝑣 and ∥𝑣 ∥ = √𝑣 ⊤𝑣 . For 𝑖 ∈ [ 3], we assume that the 𝑖 th agent has quadratic stagewise and terminal costs, 
+
+𝑔 𝑖 𝑡 , 𝑡 ∈ [ 3] and 𝑔 𝑖 
+
+> 4
+
+, respectively. We have 
+
+𝑔 𝑖 𝑡 (𝑢 𝑡 , 𝑥 𝑡 ) = ∥𝑥 𝑖 𝑡 − 𝑥 𝑖 𝑔 ∥2 + ∥ 𝑢 𝑖 𝑡 ∥2
+
+> 𝑅 𝑖𝑖 𝑡
+
++∑︁ 
+
+> 𝑗 ≠𝑖
+
+∥𝑥 𝑖 𝑡 − 𝑥 𝑗 𝑡 − 𝑝 𝑖 𝑗 𝑡 ∥2
+
+> 𝑄 𝑖 𝑗 𝑡
+
+𝑔 𝑖  
+
+> 4
+
+(𝑢 𝑡 , 𝑥 𝑡 ) =∥𝑥 𝑖  
+
+> 4
+
+− 𝑥 𝑖 𝑔 ∥2 +∑︁ 
+
+> 𝑗 ≠𝑖
+
+∥𝑥 𝑖  
+
+> 4
+
+− 𝑥 𝑗  
+
+> 4
+
+− 𝑝 𝑖 𝑗  
+
+> 4
+
+∥2
+
+> 𝑄 𝑖 𝑗
+> 4
+
+,
+
+where 𝑅 𝑖𝑖 𝑡 ≻ 0 ∀ 𝑡 ∈ [ 3], 𝑄 𝑖 𝑗 𝑡 ⪰ 0 ∀ 𝑡 ∈ [ 4], 𝑥 𝑖 𝑔 represents the goal state for agent 𝑖 , and 𝑝 𝑖 𝑗 𝑡 represents the desired state difference between agents 𝑖 and 𝑗 at time 𝑡 . We assume that agent 𝑖 ’s state evolves only due its own control, and that the linear dynamics for agent 𝑖 are given by 
+
+𝑥 𝑖 𝑡 +1 = 𝑓 𝑖 𝑡 (𝑥 𝑖 𝑡 , 𝑢 𝑖 𝑡 ) := 𝐴 𝑖 𝑡 𝑥 𝑖 𝑡 + 𝐵 𝑖 𝑡 𝑢 𝑖 𝑡 , 𝑡 ∈ [ 3].
+
+The MPN for this cyclic information game, presented in Figure 3, is made according to the procedure outlined in Section IV. Let the state and action of agent 𝑖 corresponding to the Nash equilibrium of the game at time 𝑡 be 𝑥 𝑖, I 
+
+> 𝑡
+
+and 𝑢 𝑖, I
+
+> 𝑡
+
+respectively. Further, let the state accessible to agent 𝑖 at time 𝑡 
+
+be 𝑋 𝑖 𝑡 . Then, we denote the Nash equilibrium decision for agent 
+
+𝑖 at time 𝑡 as 𝑢 𝑖, I 
+
+> 𝑡
+
+= 𝛾 𝑖 𝑡 (𝑋 𝑖 𝑡 ). As an example of constructing the solution graph at a node, consider agent 1 at time 𝑡 = 1. Agent 1 has the decision variables 𝑧 11 = {𝑥 2:4 , 𝑢 11:3 , ˜𝑢 23, ˜𝑢 32:3 } at node 𝑁 11 .For 𝑖 = {2, 3}, 𝑡 ∈ [ 3], let 𝑢 𝑖 𝜙 1 
+
+> 𝑡
+
+= ˜𝑢 𝑖 𝑡 if ˜ 𝑢 𝑖 𝑡 ∈ 𝑧 11, else 𝑢 𝑖 𝜙 1 
+
+> 𝑡
+
+= 𝑢 𝑖, I 
+
+> 𝑡
+
+.From the MPN given in Figure 3, we can construct the solution graph 𝑆 11 for node 𝑁 11 through Equation (1), yielding the optimization problem 
+
+𝑥 I
+
+> 2:4
+
+, 𝑢 1,I 
+
+> 1:3
+
+, ˜𝑢 2,I 
+
+> 3
+
+, ˜𝑢 3,I 
+
+> 2:3
+
+∈ arg min      
+
+> 𝑥 2:4 ,𝑢 11:3 ,˜𝑢 23,˜𝑢 32:3
+
+𝐽 11 (𝑥 1:4 , 𝑢 11:3 )
+
+s.t. 
+
+
+
+𝑥 𝑡 +1 − 𝑓 𝑡 (𝑥 𝑡 , 𝑢 1 
+
+> 𝑡
+
+, 𝑢 2𝜙 1 
+
+> 𝑡
+
+, 𝑢 3𝜙 1 
+
+> 𝑡
+
+) = 0, 𝑡 ∈ [ 3]
+
+˜𝑢 32:3 ∈ 𝑆 32 s.t ˜ 𝑢 33 ∈ 𝑆 33
+
+˜𝑢 23 ∈ 𝑆 23
+
+𝑢 12:3 ∈ 𝑆 12 s.t. 𝑢 13 ∈ 𝑆 13.
+
+The optimization problems at other nodes can be transcribed similarly. We now proceed to derive the KKT conditions for node 𝑁 11 . Observe that three distinct types of constraints exist. For the problem being considered at node 𝑁 𝑖 𝑡 , we denote the Lagrange multipliers for each constraint type as follows:  
+
+> •
+
+𝜂 𝑖 𝑡 , ( 𝑗,𝑘 ) is the multiplier associated with agent 𝑗 ’s state dynamics being feasible at time 𝑘 ≥ 𝑡 . 
+
+> •
+
+𝜆 𝑖 𝑡 , (𝑖,𝑘 ) is the multiplier associated with the dependence of agent 𝑖 ’s action at 𝑡 on its future action taken at time 𝑘 . 
+
+> •
+
+𝜆 𝑖 𝑡 , ( 𝑗,𝑘 ) is the multiplier associated with the dependence of agent 𝑖 ’s action at 𝑡 on agent 𝑗 ’s future action taken at time 
+
+𝑘 , where this dependence occurs due to the interleaved information structure. Note that the first two types of multipliers correspond to con-straints that remain the same for any interleaved information structure, while the last type of constraints strongly depend on the information structure. The Lagrangians for agent 1 at times 1, 2, and 3 thus become 
+
+L13 = 𝐽 13 +( 𝜂 13, (1,4) )⊤ (𝑥 14 − 𝐴 13𝑥 13 − 𝐵 13𝑢 13)+∑︁ 
+
+> 𝑗 =2,3
+
+(𝜂 13, ( 𝑗, 4) )⊤ (𝑥 𝑗  
+
+> 4
+
+− 𝐴 𝑗  
+
+> 3
+
+𝑥 𝑗  
+
+> 3
+
+− 𝐵 𝑗 
+
+> 3
+
+𝑢 𝑗, I 
+
+> 3
+
+), (7) 
+
+L12 = 𝐽 12 +( 𝜂 12, (1,3) )⊤ (𝑥 13 − 𝐴 12𝑥 12 − 𝐵 12𝑢 12)+∑︁ 
+
+> 𝑗 =2,3
+
+(𝜂 12, ( 𝑗, 3) )⊤ (𝑥 𝑗  
+
+> 3
+
+− 𝐴 𝑗  
+
+> 2
+
+𝑥 𝑗  
+
+> 2
+
+− 𝐵 𝑗 
+
+> 2
+
+𝑢 𝑗, I 
+
+> 2
+
+)+( 𝜂 12, (2,4) )⊤ (𝑥 24 − 𝐴 23𝑥 23 − 𝐵 23𝑢 2,I 
+
+> 3
+
+)+( 𝜂 12, (1,4) )⊤ (𝑥 14 − 𝐴 13𝑥 13 − 𝐵 13𝑢 13)+( 𝜂 12, (3,4) )⊤ (𝑥 34 − 𝐴 33𝑥 33 − 𝐵 33 ˜𝑢 33)+( 𝜆 12, (3,3) )⊤ 
+
+˜𝑢 33 − 𝛾 33 (𝑥 13, 𝑥 33)
+
+
+
++( 𝜆 12, (1,3) )⊤ 
+
+𝑢 13 − 𝛾 13 (𝑥 13, 𝑥 23)
+
+
+
+(8) 
+
+L11 = 𝐽 11 +( 𝜂 11, (1,4) )⊤ (𝑥 14 − 𝐴 13𝑥 13 − 𝐵 13𝑢 13)+∑︁ 
+
+> 𝑗 =2,3
+
+(𝜂 11, ( 𝑗, 4) )⊤ (𝑥 𝑗  
+
+> 4
+
+− 𝐴 𝑗  
+
+> 3
+
+𝑥 𝑗  
+
+> 3
+
+− 𝐵 𝑗  
+
+> 3
+
+˜𝑢 𝑗 
+
+> 3
+
+)+( 𝜂 11, (2,3) )⊤ (𝑥 23 − 𝐴 22𝑥 22 − 𝐵 22𝑢 2,I 
+
+> 2
+
+)+( 𝜂 11, (1,3) )⊤ (𝑥 13 − 𝐴 12𝑥 12 − 𝐵 12𝑢 12)+( 𝜂 11, (3,3) )⊤ (𝑥 33 − 𝐴 32𝑥 32 − 𝐵 32 ˜𝑢 32)+( 𝜂 11, (1,2) )⊤ (𝑥 12 − 𝐴 11𝑥 11 − 𝐵 11𝑢 11)+∑︁ 
+
+> 𝑗 =2,3
+
+(𝜂 11, ( 𝑗, 2) )⊤ (𝑥 𝑗  
+
+> 2
+
+− 𝐴 𝑗  
+
+> 1
+
+𝑥 𝑗  
+
+> 1
+
+− 𝐵 𝑗 
+
+> 1
+
+𝑢 𝑗, I 
+
+> 1
+
+)+( 𝜆 11, (3,3) )⊤ 
+
+˜𝑢 31 − 𝛾 33 (𝑥 13, 𝑥 33)
+
+
+
++( 𝜆 11, (3,2) )⊤ 
+
+˜𝑢 32 − 𝛾 32 (𝑥 12, 𝑥 32)
+
+
+
++( 𝜆 11, (2,3) )⊤ 
+
+˜𝑢 23 − 𝛾 23 (𝑥 23, 𝑥 33)
+
+
+
++( 𝜆 11, (1,3) )⊤ 
+
+𝑢 13 − 𝛾 13 (𝑥 13, 𝑥 23)
+
+
+
++( 𝜆 11, (1,2) )⊤ 
+
+𝑢 12 − 𝛾 12 (𝑥 12, 𝑥 22)
+
+
+
+. (9) We can now list the KKT conditions for agent 1’s problems. Besides primal feasibility, at a Nash equilibrium we must have: 
+
+∇𝑢 13 ,𝑥 14 ,𝑥 24 ,𝑥 34
+
+L13 = 0,
+
+∇𝑢 12 ,𝑢 13 , ˜𝑢 33 ,𝑥 13 ,𝑥 23 ,𝑥 33 ,𝑥 14 ,𝑥 24 ,𝑥 34
+
+L12 = 0, and 
+
+∇𝑢 11 ,𝑢 12 ,𝑢 13 , ˜𝑢 33 , ˜𝑢 23 , ˜𝑢 32 ,𝑥 12 ,𝑥 22 ,𝑥 32 ,𝑥 13 ,𝑥 23 ,𝑥 33 ,𝑥 14 ,𝑥 24 ,𝑥 34
+
+L11 = 0(10) Using Equations (7) to (10) and primal feasibility, one can find the values of the Lagrange multipliers as functions of agent states and controls. Plugging them into Equation (10) and repeating the procedure for agents 2 and 3 yields Riccati-like equations. In this game, given the cyclical nature of the interleaved information, corresponding equations for other agents can be produced by changing agent indices 1 → 2, 2 → 3, and 3 → 1. To this end, analyzing the stationarity conditions backwards in time allows us to find Lagrange multiplier values. For example, 𝜆 12, (1,3) can be shown to be 0, because 
+
+∇𝑢 13
+
+𝐿 12 = 2𝑅 11 3 𝑢 13 − [ 𝐵 13]𝑇 𝜂 12, (1,4) + 𝜆 12, (1,3) = 0,
+
+∇𝑢 13
+
+L13 = 2𝑅 11 3 𝑢 13 − [ 𝐵 13]𝑇 𝜂 13, (1,4) = 0, and 
+
+𝑢 13 = 𝛾 13 (𝑥 13, 𝑥 23)
+
+yield 𝜂 13, (1,4) = 𝜂 12, (1,4) , and thus 𝜆 12, (1,3) = 0. Similarly, one can verify that 𝜆 𝑖 𝑡 , (𝑖,𝑚 ) = 0 ∀ 𝑡 ∈ [ 𝑚 ], ∀ 𝑚 ∈[3], ∀ 𝑖 ∈ [ 3]. It can also be shown that not all multipliers values are needed in order for the equilibrium controls and states to be found. For example, the value of 𝑢 12 can be found through the stationary conditions ∇𝑢 12 ,𝑥 13
+
+L12 = 0 without needing to find 𝜂 12, (3,3) . Furthermore, conditions ∇𝑥 𝑖 𝑡 L 𝑗 𝑘 = 0and ∇𝑥 𝑖 𝑡 L 𝑗 𝑚 = 0 yield 𝜂 𝑗 𝑘, (𝑖,𝑡 ) = 𝜂 𝑗 𝑚, (𝑖,𝑡 ) ∀ 𝑘, 𝑚 ∈ { 1, . . . , 𝑡 ∗ },where 𝑡 ∗ is the first time that finding the control requires the use of the corresponding Lagrange multiplier. These results are incorporated back into Equation (10), which, along with primal feasibility, allows the derivation of Ricatti-like equations. 
+
+VI. Conclusion 
+
+Realistic multi-agent scenarios often exhibit interleaved information structures, where agents observe only a subset of other agents at each decision-making timestep. In contrast, existing dynamic game literature primarily focuses on canon-ical open-loop and feedback information structures, which assume that agents observe either only the initial state or the full state of all agents at every timestep. Motivated by this gap, we present two main contributions. First, we develop a systematic procedure to represent dynamic games with interleaved information as Mathematical Program Networks (MPNs). Second, for linear-quadratic (LQ) games, we leverage the MPN formulation to derive Riccati-like equations that char-acterize Nash equilibria. We illustrate our approach through a three-agent LQ game with a cyclic information structure. Our framework provides a foundation for analyzing more general classes of dynamic games, and future work should investigate interleaved information games beyond the LQ setting and scenarios where the interleaved information structure is not known a priori and evolves with the agents’ decisions. 
+
+References 
+
+[1] T. Bas ¸ar and G. J. Olsder, Dynamic noncooperative game theory .SIAM, 1998. [2] D. Fridovich-Keil, E. Ratner, L. Peters, A. D. Dragan, and C. J. Tomlin, “Efficient iterative linear-quadratic approximations for nonlinear multi-player general-sum differential games,” in 2020 IEEE international conference on robotics and automation (ICRA) . IEEE, 2020, pp. 1475–1481. [3] S. Le Cleac’h, M. Schwager, and Z. Manchester, “Algames: a fast aug-mented lagrangian solver for constrained dynamic games,” Autonomous Robots , vol. 46, no. 1, pp. 201–215, 2022. [4] E. L. Zhu and F. Borrelli, “A sequential quadratic programming approach to the solution of open-loop generalized nash equilibria,” in 2023 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2023, pp. 3211–3217. [5] F. Laine, D. Fridovich-Keil, C.-Y. Chiu, and C. Tomlin, “The com-putation of approximate generalized feedback nash equilibria,” SIAM Journal on Optimization , vol. 33, no. 1, pp. 294–318, 2023. [6] Z. Zhang and J. F. Fisac, “Safe occlusion-aware autonomous driving via game-theoretic active perception,” arXiv preprint arXiv:2105.08169 ,2021. [7] K. Gupta and D. Fridovich-Keil, “Game-theoretic occlusion-aware motion planning: an efficient hybrid-information approach,” 2024. [Online]. Available: https://arxiv.org/abs/2309.10901 [8] O. So, K. Stachowicz, and E. A. Theodorou, “Multimodal maximum entropy dynamic games,” arXiv preprint arXiv:2201.12925 , 2022. [9] S. Y. Soltanian and W. Zhang, “Pace: A framework for learning and control in linear incomplete-information differential games,” in 
+
+Proceedings of the 7th Annual Learning for Dynamics & Control Conference , vol. 283. PMLR, 04–06 Jun 2025, pp. 1419–1433. [Online]. Available: https://proceedings.mlr.press/v283/soltanian25a. html [10] N. Heydaribeni and A. Anastasopoulos, “Linear equilibria for dynamic lqg games with asymmetric information and dependent types,” in 2019 IEEE 58th Conference on Decision and Control (CDC) . IEEE, 2019, pp. 5971–5976. [11] B. Hambly, R. Xu, and H. Yang, “Linear-quadratic gaussian games with asymmetric information: Belief corrections using the opponents actions,” arXiv preprint arXiv:2307.15842 , 2023. [12] A. Swarup and J. L. Speyer, “Characterization of lqg differential games with different information patterns,” in 2004 43rd IEEE Conference on Decision and Control (CDC) , vol. 4. IEEE, 2004, pp. 3459–3466. [13] W. Schwarting, A. Pierson, S. Karaman, and D. Rus, “Stochastic dynamic games in belief space,” IEEE Transactions on Robotics , vol. 37, no. 6, pp. 2157–2172, 2021. [14] D. Vasal and A. Anastasopoulos, “Signaling equilibria for dynamic lqg games with asymmetric information,” IEEE Transactions on Control of Network Systems , vol. 8, no. 3, pp. 1177–1188, 2021. [15] C.-Y. Chiu, J. Li, M. Bhatt, and N. Mehr, “To what extent do open-loop and feedback nash equilibria diverge in general-sum linear quadratic dynamic games?” IEEE Control Systems Letters , vol. 8, pp. 2583–2588, 2024. [16] K. Gupta, R. E. Allen, D. Fridovich-Keil, and U. Topcu, “More information is not always better: Connections between zero-sum local nash equilibria in feedback and open-loop information patterns,” IEEE Control Systems Letters , 2025. [17] F. Laine, “Mathematical program networks,” 2024. [Online]. Available: https://arxiv.org/abs/2404.03767 [18] H. Khan, D. H. Lee, J. Li, T. Qiu, C. Ellis, J. Milzman, W. Suttle, and D. Fridovich-Keil, “Efficiently solving mixed-hierarchy games with quasi-policy approximations,” arXiv preprint arXiv:2602.01568 , 2026. [19] J. Nocedal and S. J. Wright, Numerical optimization . Springer, 2006.

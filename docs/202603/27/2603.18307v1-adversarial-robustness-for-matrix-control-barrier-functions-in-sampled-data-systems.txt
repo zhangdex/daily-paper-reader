@@ -1,0 +1,705 @@
+Title: Adversarial Robustness for Matrix Control Barrier Functions in Sampled-Data Systems
+
+URL Source: https://arxiv.org/pdf/2603.18307v1
+
+Published Time: Fri, 20 Mar 2026 00:22:14 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Adversarial Robustness for Matrix Control Barrier Functions in Sampled-Data Systems 
+
+James Usevitch 
+
+Abstract — This paper presents novel theoretical results to guarantee multi-agent set invariance using Matrix Control Barrier Functions in sampled-data systems. More specifically, the paper presents conditions under which heterogeneous control-affine agents applying zero-order-hold control inputs can compute control inputs to render safe sets defined by matrix inequalities forward invariant. It then introduces methods to guarantee set invariance while accounting for the presence of adversarial agents seeking to drive the system state to unsafe sets. Finally, the paper presents theoretical extensions of these set invariance results to systems having high relative degree with respect to the matrix-valued safe set function. 
+
+I. I NTRODUCTION 
+
+Set invariance and safety guarantees are critically im-portant to the development and deployment of modern autonomous systems and robotics technologies. Safety is commonly defined in the literature as forward invariance of a subset of the system’s state space, and a fundamental problem in robotics and control is to derive feedback control laws that guarantee this property. Control Barrier Functions (CBFs) [1], [2] are a well-established class of techniques to derive both theoretical conditions and algorithmic control laws to ensure forward invariance of safe subsets of state space. CBFs have been successfully applied to a broad variety of domains including legged robots [3], aircraft [4], optimization algorithms [5], satellites [6], self-driving vehicles [7], and more. Prior work on CBFs have typically defined safe sets in terms of superlevel sets of scalar-valued functions. Recent work has generalized CBF theory to matrix-valued functions through the introduction of Matrix CBFs (MCBFs) for both continuous-time [8] and discrete-time [9] systems. These MCBFs define safe sets in terms of subsets of state space in which symmetric matrix-valued functions yield positive definite outputs. This generalization has significantly broad-ened the types of safety constraints that can be expressed in CBF form including direct constraints on matrix eigen-values, encoding spectrahedra-based safe sets, and enforcing combinatorial p-choose-r sets of constraints [10]. Despite these advancements, there remain several lim-itations to prior work on MCBFs. First, no prior liter-ature exists that considers MCBF methods for sampled-data systems. Such systems involve continuous-dynamics and a piecewise-constant control law, and are frequently more realistic models when describing physical plants driven by computer-based control algorithms. The application of                 
+
+> James Usevitch is with the Department of Electrical and Com-puter Engineering, Brigham Young University, Provo, UT, USA
+
+james usevitch@byu.edu 
+
+CBF and set invariance methods to nonlinear sampled-data systems is nontrivial since safety guarantees must hold for the entire sampling interval on which the control input is constant and not just for the time instants at which control is computed. Prior literature has presented methods to apply scalar-valued CBFs to sampled-data systems [11], [12], but none have yet considered the more general class of matrix-valued CBFs. Second, the limited prior work that exists on multi-agent MCBFs assumes that all agents are behaving cooperatively; i.e., all agents are collaboratively applying nominal control laws to ensure satisfaction of sufficient conditions for set invariance. Modern multi-agent systems are increasingly exposed to faulty and adversarial misbehavior, either originating from their environment or from other agents. Prior literature has analyzed robustness to adversarial misbehavior for scalar-valued CBFs [12], [13], but no work has generalized this to matrix-valued CBFs. Finally, prior work on MCBFs has only considered systems with relative degree 1 with respect to the safe set function. Higher relative degrees have been considered for scalar-valued CBFs [14], [15], but this direction has not yet been generalized to the matrix-valued case. To address these gaps, this paper presents novel methods to provide set invariance for heterogeneous, multi-agent, sampled-data dynamical systems in the presence of adver-sarial misbehavior using Matrix Control Barrier Function methods. To the best of our knowledge, this paper presents the first set invariance results using MCBFs for sampled-data systems, the first results guaranteeing adversarial robustness for MCBFs, and the first set invariance analysis for systems having high relative degree with respect to the matrix-valued safe set function. This paper’s specific contributions are as follows:  
+
+> •
+
+We present a novel set invariance result for matrix control barrier functions under sampled-data dynamics in cooperative multi-agent settings.  
+
+> •
+
+We present a novel adversarially robust set invari-ance result for matrix control barrier functions under sampled-data dynamics.  
+
+> •
+
+We present a novel set invariance result for systems with high relative degree using matrix control barrier functions. This result is valid for either cooperative or adversarial settings. II. N OTATION AND PROBLEM FORMULATION 
+
+The notation H ∈ C 1,1 
+
+> loc
+
+denotes a continuously differen-tiable function H whose Jacobian ∂H ∂x is locally Lipschitz continuous on its domain. The set of symmetric, real-valued 
+
+> arXiv:2603.18307v1 [math.OC] 18 Mar 2026
+
+matrices of size p × p is denoted Sp. The cone of positive definite symmetric p × p matrices is denoted Sp
+
+> +
+
++ and the cone of positive definite symmetric matrices is denoted Sp
+
+> +
+
+.Given matrices A, B ∈ Rn×n, the notation A ⪰ 0 and B ≻ 0
+
+indicate that A is positive semidefinite and B is positive definite as per the Loewner order. The notation ∥·∥ indicates the Euclidean norm when applied to vectors in Rn and the spectral norm when applied to matrices in Rm×n. Given a vector v ∈ V 1 and a linear operator A : V1 → V 2, where 
+
+V1 and V2 are normed vector spaces with respective norms 
+
+∥·∥ α and ∥·∥ β , the induced norm ∥·∥ α,β is defined as ([16]) 
+
+∥A∥ α,β ≜ sup  
+
+> v̸=0
+
+∥A v∥β
+
+∥v∥α
+
+.
+
+It follows that ∥A v∥β ≤ ∥A∥ α,β ∥v∥α. When the specific values are omitted, it is assumed that α = β = 2 .
+
+A. Problem Formulation 
+
+Consider a system of N agents with indices {1, . . . , N }.The ith agent has state xi ∈ Rni
+
+and control input ui ∈ Rmi
+
+with control affine dynamics 
+
+˙xi = f i(xi) + gi(xi)ui. (1) Each f i : Rni
+
+→ Rni
+
+and gi : Rni
+
+→ Rni×mi
+
+may differ among agents, but all are assumed to be locally Lipschitz in their arguments on their respective domains. Agents’ control inputs ui are updated in a sampled-data manner using a zero-order hold (ZOH) method. More specifically, each agent applies a constant control input ui(t) = uik ∀t ∈ [tk, t k+1 )
+
+where the sampling times are defined as tk ≜ t0 + k∆t,
+
+k ∈ N, ∆t > 0. The set of sampling times is denoted 
+
+T = {tk}k∈N. It is assumed that agents receive knowledge of the system state ⃗x at sampling times t k and may apply feedback control laws uik = κi(⃗x(t k)) .For brevity, we define n ≜ PNi=1 ni and m = PNi=1 mi.The vector of combined states for all agents is denoted ⃗x ≜ (x1)⊺ · · · (xN )⊺⊺ ∈ Rn, the vector of combined control inputs is denoted ⃗u ≜ (u1)⊺ · · · (uN )⊺⊺ ∈ Rm.For brevity, we will denote ⃗x k ≜⃗x(t k) and ⃗u k ≜⃗u(t k). The dynamics of the combined system is denoted 
+
+˙⃗x = F (⃗x) + G(⃗x)⃗u k =
+
+
+
+f 1(x1) + g1(x1)u1
+
+> k
+
+...
+
+f N (xN ) + gN (xN )uNk
+
+ (2) where F (⃗x) ≜ (f 1(x1)) ⊺ · · · (f N (xN )) ⊺⊺ and G(⃗x) ≜
+
+blkdiag  g1(x1), · · · , g N (xN ). Since each control input is a piecewise constant function of time, Carath´ eodory’s theorem guarantees existence and uniqueness of solutions to the combined system dynamics (2) [17, Sec. 2.2], [18, Thm. 54]. Each agent’s control input ui is constrained to lie within a nonempty convex, compact subset Ui ⊂ Rmi
+
+. The Cartesian product of these subsets is denoted U =×Ni=1 Ui, with ⃗u ∈U. Observe that U is compact since each Ui is compact, which implies that the norm ∥⃗u∥ has the upper bound 
+
+bu ≜ sup ⃗u∈U 
+
+∥⃗u∥ . (3) For purposes of computational feasibility, each subset Ui is assumed to be the intersection of a finite number of convex cones. This will ensure that the constraint ui ∈ U i can be handled by state-of-the-art convex optimization solvers [19], [20]. The state space for the combined system is partitioned into a safe set S ⊂ Rn and an unsafe set S = Rn\S . The safe set 
+
+S is defined in terms of the superlevel sets of a matrix-valued function H : Rn → Sp as follows: 
+
+S = {⃗x ∈ R n : H(⃗x) ⪰ 0} . (4) We assume H ∈ C 1,1 
+
+> loc
+
+; i.e., H is continuously differentiable and its (tensor-valued) Jacobian ∂H ∂x is locally Lipschitz continuous on its domain. We will be mainly interested in ensuring that the set S is rendered forward invariant, which is defined as follows. 
+
+Definition 1. A set C ⊂ Rn is forward invariant with respect to the dynamics (2) if ⃗x(t) ∈ C for all t ≥ t 0. The set C is called safe if it is both forward invariant and C ⊆ S .
+
+The central problem of this paper is as follows: 
+
+Problem 1. Given the multi-agent sampled-data dynamics 
+
+(2) , derive a method to compute control inputs uik rendering sets of the form (4) forward invariant. 
+
+This problem will be solved for three settings: 1) under the assumption of cooperative behavior among all agents, 2) in the presence of adversarial misbehavior from a subset of agents, and 3) for systems with high relative degree. The precise definition of adversarial behavior will be given in Section III-C. 
+
+B. Preliminaries and Overview of Matrix Control Barrier Functions 
+
+In preparation for the main results we briefly review several relevant preliminary concepts. Similar to [8], the entry-wise Lie derivative matrix LF H : Rn → Sp along a vector field F is defined as 
+
+[LF H]ij (⃗x) = L F (Hij )( ⃗x), ∀i, j ∈ { 1, . . . , p }. (5) Next, let Gj be the jth column of G and let [⃗u] j be the jth entry of ⃗u. The entrywise Lie derivative L Gj H(⃗x) : R m →
+
+Sp operates on the control input ⃗u as follows: 
+
+(LGH(⃗x))( ⃗u) ≜
+
+> m
+
+X
+
+> j=1
+
+LGj H(x)[ ⃗u] j ∈ Sp.
+
+It follows that ˙H(⃗x) = L bF H(⃗x) for a (possibly closed-loop) autonomous system ˙⃗x = bF (⃗x). Likewise, ˙H(⃗x,⃗ u) = 
+
+LF H(⃗x) + ( L GH(⃗x))( ⃗u) for the control affine dynamics in (2). The following result from [8] establishes a sufficient condition for forward invariance of the set S for continuous-time autonomous systems. 
+
+Proposition 1 (Adapted from [8]) . Consider the autonomous system with control affine dynamics ˙⃗x = bF (⃗x) with a continuous vector field bF Let S be defined as in (4) . If the following barrier condition holds with a positive constant 
+
+cα > 0,
+
+˙H(⃗x) ⪰ − c αH(⃗x) (6) 
+
+for all ⃗x in an open neighborhood E ⊃ S, then set S is forward invariant for the system. 
+
+This result motivated the definition of Exponential MCBFs , which can be found in [8]. However, Exponential MCBFs assume that the system applies a continuous (i.e., non-ZOH) control input ⃗u(⃗x(t)) . When applying a closed-loop, ZOH control input ⃗u k =⃗κ(⃗x(t k)) over the time interval 
+
+t ∈ [tk, t k+1 ), care must be taken so that the inequality in (6) is not violated as the state ⃗x(t) evolves but the control input ⃗u k remains piecewise constant. Finally, the following theorem known as Weyl’s Inequality 
+
+will be used to obtain lower bounds on the eigenvalues of matrices. 
+
+Proposition 2 (Weyl’s Inequality [21, Thm 4.3.1]) . Let 
+
+A, B ∈ Sp. Let the respective eigenvalues of A, B and A+B
+
+be {λi(A)}pi=1 , {λi(B)}pi=1 , and {λi(A + B)}pi=1 . Let the eigenvalues be ordered such that λ1 ≤ λ2 ≤ · · · ≤ λp. Then the following holds for all j ∈ { 1, . . . , i }:
+
+λi−j+1 (A) + λj (B) ≤ λi(A + B). (7) Given two symmetric matrices A, B ∈ Sp, the following corollary establishes lower bounds on their eigenvalues in terms of the spectral norm of their difference. 
+
+Corollary 1. Let A, B ∈ Sp. Let the eigenvalues of each matrix be ordered as in Proposition 2. Then the following holds: 
+
+λ1(A) ≥ λ1(B) − ∥ A − B∥2 . (8) 
+
+Proof. Recall that for symmetric matrices, ∥A∥2 =pλp(A2) = |λp(A)|. By the ordering of eigenvalues, 
+
+|λ1(A)| ≤ | λp(A)|, which implies −| λp(A)| ≤ λ1(A) ≤|λp(A)|. Let E = A − B. By Weyl’s inequality with i = j =1, we have 
+
+λ1(B + E) ≥ λ1(B) + λ1(E) ≥ λ1(B) − ∥ E∥2 .
+
+The result follows by substituting in the definition of E.III. M AIN RESULTS 
+
+We now present our main results. Subsection III-A gives a set invariance result for sampled-data systems in cooperative multi-agent settings. Next, subsection III-C set invariance conditions in the presence of adversaries are derived. Fi-nally, subsection III-D presents set invariance conditions for systems with high relative degree with respect to the safe set function. 
+
+A. Zero-Order Hold Exponential Matrix Control Barrier Functions 
+
+Let D ⊆ Rn be a domain such that S ⊂ D. The following standing assumptions are made: 
+
+Assumption 1. The function H and Lie derivatives LF H(x)
+
+and LGH(x) are Lipschitz on D with respective constants 
+
+LH , L F H , L GH ≥ 0.1
+
+Assumption 2. There exist finite upper bounds bF , b G > 0
+
+such that sup ⃗x∈D ∥F (⃗x)∥ 2 ≤ bF and sup ⃗x∈D ∥G(⃗x)∥ 2 ≤
+
+bG.2
+
+B. Multi-Agent Exponential Matrix Control Barrier Func-tions 
+
+To guarantee forward invariance of S under the dynamics (2), we must ensure that the piecewise constant control input ⃗u k =⃗κ(⃗x(t k)) is chosen such that H(x(t)) ⪰ 0 for all times 
+
+t ∈ [tk, t k+1 ) on each sampling interval. Towards this end, we define the function 
+
+Ψ( ⃗x,⃗ u) ≜ ˙H(⃗x,⃗ u) + c αH(⃗x),
+
+= LF H(⃗x) + L GH(⃗x)⃗u + c αH(⃗x), (9) where (9) follows from evaluating ˙H under the system dynamics (2). Observe by Proposition 1 that the existence of a constant ⃗u k such that Ψ( ⃗x(t),⃗ u k) ⪰ 0 ∀t ∈ [tk, t k+1 ) is a sufficient condition for ensuring H(x(t)) ⪰ 0 and therefore ⃗x(t) ∈ S ∀t ∈ [t k, t k+1 ). We accordingly seek to analyze and bound the worst-case normed error between the value of Ψ( ⃗x k,⃗ u k) at the sampled time when the control input is computed, and the value of Ψ( ⃗x(t),⃗ u k) as the state evolves over the sampling interval: 
+
+E(tk,⃗ x k,⃗ u k) ≜ sup  
+
+> t∈[tk,t k+1 )
+
+∥Ψ( ⃗x(t),⃗ u k) − Ψ( ⃗x k,⃗ u k)∥2 .
+
+Computing E directly is intractable in general, but its value can be bounded as follows. Let D ⊂ Rn be the domain from Assumptions 1 and 2. From (2) we can derive the following bound on the norm of the state evolution over any interval 
+
+t ∈ [tk, t k+1 ):
+
+∥⃗x(t) −⃗x k∥2 =
+
+Z ttk
+
+(F (⃗x(τ )) + G(⃗x(τ )) ⃗u k) dτ 
+
+> 2
+
+,
+
+≤
+
+Z tk+1 
+
+> tk
+
+sup ⃗x∈D⃗ u∈U 
+
+∥F (⃗x) + G(⃗x)⃗u k∥2 dτ, 
+
+≤ ∆t
+
+ 
+
+sup ⃗x∈D
+
+∥F (⃗x)∥ 2
+
+
+
++
+
+
+
+sup ⃗x∈D
+
+∥G(⃗x)∥ 2
+
+  
+
+sup ⃗u∈U 
+
+∥⃗u∥ 2
+
+ 
+
+,
+
+(10) where we have used the fact that tk+1 − tk = ∆ t. Observe that this upper bound is independent of t and therefore holds for all t ∈ [tk, t k+1 ). Using (3) and Assumption 2, equation (10) can therefore be rewritten as 
+
+∥⃗x(t) −⃗x k∥2 ≤ ∆t(bF + bGbu) ∀t ∈ [tk, t k+1 ), (11) where ∆t is the sampling interval. 
+
+Remark 1. It may be possible to tighten the bound in 
+
+(11) by considering the quantity sup ⃗x∈D⃗ u∈U 
+
+∥F (⃗x) + G(⃗x)⃗u k∥2          
+
+> 1As a special case, this holds when H,LFH(x)and LGH(x)are locally Lipschitz and Dis compact.
+> 2This likewise holds as a special case when Dis compact.
+
+instead of the sum of the norms of its individual components. However, in practice it may be more straightforward to obtain bounds on the norms of the components rather than a bound on the norm of the combined expression. 
+
+Using this result, the following Lemma demonstrates an upper bound on the value of E(tk,⃗ x k,⃗ u k).
+
+Lemma 1. The following holds for all ⃗x k ∈ D and ⃗u k ∈ U :
+
+E(tk,⃗ x k,⃗ u k) ≤ ∆t(LF H + LGH bu + cαLH )( bF + bGbu),
+
+where bu is defined in (3) , LF H , L GH , L H are defined in Assumption 1, and bF , b G are defined in Assumption 2. Proof. Observe that 
+
+∥Ψ( ⃗x(t),⃗ u k) − Ψ( ⃗x k,⃗ u k)∥2 ≤ ∥L F H(⃗x(t)) − L F H(⃗x k)∥2
+
++ ∥L GH(⃗x(t)) − L GH(⃗x k)∥2 ∥⃗u k∥2
+
++ cα ∥H(⃗x(t)) − H(⃗x k)∥2 .
+
+By Assumption 1, we have 
+
+∥Ψ( ⃗x(t),⃗ u k) − Ψ( ⃗x k,⃗ u k)∥2 ≤
+
+(LF H + LGH bu + cαLH ) ∥⃗x(t) −⃗x k∥2 . (12) Substituting in (11) yields 
+
+∥Ψ( ⃗x(t),⃗ u k) − Ψ( ⃗x k,⃗ u k)∥2 ≤
+
+∆t(LF H + LGH bu + cαLH )( bF + bGbu), (13) which concludes the proof. For brevity, we define 
+
+δ(∆ t, c α) ≜ ∆t(LF H + LGH bu + cαLH )( bF + bGbu),
+
+and write E(tk,⃗ x k,⃗ u k) ≤ δ(∆ t, c α).Given this bound, we are now prepared to present a novel extension of Exponential MCBFs to multi-agent, zero-order hold settings. 
+
+Definition 2. Let H : Rn → Sp, H ∈ C 1,1 
+
+> loc
+
+be a matrix valued function and let S be defined as in (4) . Let D ⊆
+
+Rn be a domain such that S ⊂ D. The function H is called a Zero-order-hold Exponential Matrix Control Barrier Function (ZE-MCBF) for the dynamics (2) if there exists a constant cα > 0 such that for all ⃗x ∈ D there exists a ⃗u ∈ U 
+
+satisfying 
+
+LF H(⃗x) + ( L GH(⃗x))( ⃗u) ⪰ − c αH(⃗x) + δ(∆ t, c α)I. (14) Define the set of feasible control inputs satisfying (21) as 
+
+K(⃗x) ≜ {⃗u ∈ U : Ψ( ⃗x,⃗ u) ⪰ δ(∆ t, c α)I} , (15) 
+
+= ⃗u ∈ U : L F H(⃗x) + ( L GH(⃗x))( ⃗u)+ cαH(⃗x) ⪰ δ(∆ t, c α)I .
+
+Observe that this is equivalent to requiring the smallest eigenvalue to satisfy λ1
+
+ ˙H(⃗x,⃗ u) + c αH(⃗x)
+
+
+
+≥ δ(∆ t, c α).
+
+Theorem 1. Consider the dynamics (2) and the set S in 
+
+(4) . If H is a ZE-MCBF, then any feedback control law ⃗κ(·) satisfying ⃗κ(⃗x k) ∈ K(⃗x k) for all tk, k ∈ N renders 
+
+S forward invariant for the closed-loop system. Proof. Let ⃗x(t 0) ∈ S. Choose any feedback control law such that ⃗κ(⃗x k) ∈ K(⃗x k) for all k ∈ N. From Lemma 1 we have E(tk,⃗ x k,⃗ u k) ≤ δ(∆ t, c α) for all t ∈ [tk, t k+1 ). By Corollary 1 and the definition of K(⃗x) in (15), the following holds for all t ∈ [tk, t k+1 ):
+
+λ1 (Ψ( ⃗x(t),⃗ κ(⃗x))) ≥
+
+λ1 (Ψ( ⃗x k,⃗ κ(⃗x k))) − ∥ Ψ( ⃗x(t),⃗ κ(⃗x)) − Ψ( ⃗x k,⃗ κ(⃗x k)) ∥2 ,
+
+≥ λ1 (Ψ( ⃗x k,⃗ κ(⃗x k))) − E(tk,⃗ x k,⃗ u k),
+
+≥ λ1 (Ψ( ⃗x k,⃗ κ(⃗x k))) − δ(∆ t, c α),
+
+≥ λ1 (δ(∆ t, c α)I) − δ(∆ t, c α),
+
+≥ 0.
+
+It follows that Ψ( ⃗x(t),⃗ κ(⃗x k)) = ˙H(⃗x(t), κ (⃗x k)) + 
+
+cαH(⃗x(t)) ⪰ 0 for all t ∈ [t k, t k+1 ). By Proposition 1, the set S is forward invariant on the interval [tk, t k+1 ). Since this holds for all k ∈ N, the set S is therefore forward invariant for all t ≥ t0.We point out that the ZOH feedback law ⃗ κ(·) is not required to be continuous, since existence and uniqueness of solutions for the sampled-data system are guaranteed by Carath´ eodory’s theorem as noted previously. An example of a feedback law satisfying ⃗ κ(⃗x k) ∈ K(⃗x k) is given by the following parametric convex conic program, which minimally modifies a nominal control input ⃗u nom :⃗κ (⃗x) ≜ min ⃗u∈R m ∥⃗u −⃗u nom ∥22 (16) s.t. LF H(⃗x) + ( L GH(⃗x))( ⃗u) ⪰ − c αH(⃗x) + δ(∆ t, c α)I,⃗ u ∈ U .
+
+Observe that the objective is quadratic and convex in ⃗u, the first constraint is a convex semidefinite constraint in ⃗u, and the second constraint is a convex conic constraint. 
+
+C. Adversarial Robustness for Exponential Matrix Control Barrier Functions 
+
+We next consider the presence of adversarial agents. The definition of adversarial agents is as follows: 
+
+Definition 3. An adversarial agent with index j ∈{1, . . . , N } is an agent that applies the following control input for all sampling times tk, k ∈ N:
+
+uj
+
+> min
+
+(⃗x) ≜ arg min 
+
+> u∈U j
+
+Lgj H(⃗x)u  (17) In words, adversarial agents apply maximum possible con-trol authority towards attempting to violate the set invariance condition in (6). Observe that each uj
+
+> min
+
+(⃗x) can be computed via convex optimization methods since the objective and constraints are both convex in the optimization variable. The set of adversarial agent indices is denoted A ⊂{1, . . . , N }. Agents that are not adversarial are called nor-mal . The set of normal agent indices is denoted N =
+
+{1, . . . , N }\A . We denote the vectors of normal and adver-sarial control inputs as ⃗u N ≜ (ui1 )⊺, · · · , (ui|N | )⊺⊺ , i q ∈N and ⃗u A(⃗x) ≜
+
+h 
+
+uj1
+
+> min
+
+(⃗x)
+
+⊺
+
+, · · · ,
+
+
+
+uj|A|  
+
+> min
+
+(⃗x)
+
+⊺i⊺
+
+, (18) with jq ∈ A . The Cartesian products of normal and adversar-ial feasible control input sets are denoted UN ≜ ×i∈N Ui
+
+and UA ≜×j∈A Uj .We are interested in finding a feedback control law for the normal agents ⃗κ N (⃗x) that renders the set S forward invariant despite the adversarial behavior described in (17). In the presence of these adversarial control inputs, the expression for ˙H becomes 
+
+˙H(⃗x,⃗ u N ) = LF H(⃗x)+ (19) 
+
+X
+
+> i∈N
+
+(Lgi H(⃗x))( u i)
+
+!
+
++
+
+X
+
+> j∈A
+
+(Lgj H(⃗x))( u j
+
+> min
+
+(⃗x)) 
+
+
+
+Similar to the previous subsection, define the function 
+
+ΨN (⃗x,⃗ u N ) ≜ ˙H(⃗x,⃗ u N ) + cαH(⃗x). (20) As before, the existence of a constant ⃗ u N 
+
+> k
+
+such that 
+
+Ψ( ⃗x,⃗ u N ) ⪰ 0 ∀t ∈ [tk, t k+1 ) is a sufficient condition for ensuring H(x(t)) ⪰ 0 ∀t ∈ [tk, t k+1 ). We define the following maximum normed error between the value of Ψ
+
+at the sampled time tk and the current time t ∈ [tk, t k+1 ):
+
+EN (tk,⃗ x k,⃗ u N 
+
+> k
+
+) ≜ sup  
+
+> t∈[tk,t k+1 )
+
+Ψ( ⃗x(t),⃗ u N 
+
+> k
+
+) − Ψ( ⃗x k,⃗ u N 
+
+> k
+
+) 2 .
+
+Lemma 2. The following holds for all ⃗x k ∈ D and ⃗u k ∈ U :
+
+EN (tk,⃗ x k,⃗ u k) ≤ ∆t(LF H + LGH bu + cαLH )( bF + bGbu),
+
+Proof. Follows from the proof of Lemma 1 and the fact that 
+
+uj
+
+> min
+
+(⃗x) 2
+
+≤ sup uj ∈U j uj 
+
+> 2
+
+∀⃗x ∈ R n, ∀j ∈ A .The following definition extends the notion of ZE-MCBFs to incorporate robustness against adversarial actions. 
+
+Definition 4. Let H : Rn → Sp, H ∈ C 1,1 
+
+> loc
+
+be a matrix valued function and let S be defined as in (4) . Let D ⊆ Rn
+
+be a domain such that S ⊂ D. The function H is called an Adversarially Robust Zero-order-hold Exponential Matrix Control Barrier Function (ARZE-MCBF) for the dynamics 
+
+(2) if there exists a constant cα > 0 such that for all ⃗x ∈ D
+
+there exists a ⃗u N ∈ U N satisfying 
+
+LF H(⃗x) + X
+
+> i∈N
+
+(Lgi H(⃗x))( u i)
+
+!
+
++ (21) 
+
+X
+
+> j∈A
+
+(Lgj H(⃗x))( u j
+
+> min
+
+(⃗x)) 
+
+ ⪰ − cαH(⃗x) + δ(∆ t, c α)I. 
+
+We define the set of normal agent feasible control inputs satisfying (21) as follows: 
+
+KN (⃗x) ≜ ⃗u N ∈ U N : Ψ N (⃗x,⃗ u N ) ⪰ δ(∆ t, c α)I , (22) 
+
+=
+
+(⃗u N ∈ U : LF H(⃗x) + X
+
+> i∈N
+
+(Lgi H(⃗x))( u i)
+
+!
+
++
+
+X
+
+> j∈A
+
+(Lgj H(⃗x))( u j
+
+> min
+
+(⃗x)) 
+
+ ⪰ − cαH(⃗x) + δ(∆ t, c α)I. 
+
+)
+
+.
+
+Theorem 2. Consider the dynamics (2) and the set S in (4) .If H is a ARZE-MCBF, then any feedback control law for the normal agents ⃗κ N (·) satisfying ⃗κ N (⃗x k) ∈ KN (⃗x k) for all 
+
+tk, k ∈ N renders S forward invariant for the closed-loop system. Proof. Follows from similar arguments as Theorem 1. Feasible control inputs within KN (⃗x) can be computed using convex optimization methods similar to (16). 
+
+D. Systems with High Relative Degree 
+
+We now consider scenarios where the system (2) has relative degree greater than one with respect to the function 
+
+H. To analyze the evolution of H and its time derivatives on each of the intervals t ∈ [tk, t k+1 ), k ∈ N, we define the following set of Ψq functions: 
+
+Ψ0(⃗x) ≜ H(⃗x), (23) 
+
+Ψq (⃗x) = ˙Ψq−1(⃗x) + c αq (Ψ q−1(⃗x)) , 1 ≤ q ≤ r − 1,
+
+Ψr (⃗x,⃗ u N ) ≜ ˙Ψr−1(⃗x,⃗ u A
+
+> min
+
+(⃗x),⃗ u N ) + cαr Ψr−1(⃗x),
+
+= LF Ψr−1(⃗x) + X
+
+> i∈N
+
+(Lgi Ψr−1(⃗x))( u i)
+
+!
+
++
+
+X
+
+> j∈A
+
+(Lgj Ψr−1(⃗x)) + ( u j
+
+> min
+
+(⃗x)) 
+
+ + cαr Ψr−1(⃗x).
+
+Here, the constants cαq satisfy cαq ≥ 0, 1 ≤ q ≤ r. The integer r ∈ Z≥1 is the smallest integer such that control inputs ⃗u N or ⃗u A(⃗x) appear in Ψ r and are absent in Ψq ,
+
+0 ≤ q ≤ r − 1. We further assume that ⃗u A(⃗x),⃗ u N both appear in the expression for Ψr . Due to space constraints, extensions to more general settings are left for future work. Similar to previous subsections, let the error function EN
+
+> r
+
+be defined as 
+
+EN 
+
+> r
+
+(tk,⃗ x k,⃗ u N 
+
+> k
+
+) ≜ sup  
+
+> t∈[tk,t k+1 )
+
+Ψr (⃗x(t),⃗ u N 
+
+> k
+
+) − Ψr (⃗x k,⃗ u N 
+
+> k
+
+) .
+
+Assumption 3. The functions LF Ψr−1 and LGΨr−1
+
+are Lipschitz continuous on D with respective constants 
+
+bLF H , bLGH .
+
+Similar to Lemmas 1 and 2, it can be shown that 
+
+EN (tk,⃗ x k,⃗ u k) ≤ ∆t(bLF H + bLGH bu + cαr LH )( bF + bGbu).
+
+We likewise define 
+
+δr (∆ t, c αr ) ≜ ∆t(bLF H + bLGH bu + cαr LH )( bF + bGbu).
+
+The following subsets Sq ⊂ Rn are defined in terms of the superlevel sets of each corresponding Ψq function: 
+
+Sq ≜ {⃗x ∈ R n : Ψ q−1(⃗x) ⪰ 0}, 1 ≤ q ≤ r, (24a) 
+
+SQ ≜
+
+> r
+
+\
+
+> q=1
+
+Sq . (24b) Similar to higher order methods for scalar-valued CBFs, these Sq sets form a hierarchy of sets involved with guaran-teeing forward invariance of S1 = {x ∈ Rn : H(x) ⪰ 0}.Intuitively, each set Sq corresponds to the states that ensure the previous set Sq−1 remains forward invariant under (2). 
+
+Definition 5. Let H : Rn → Sp be a matrix valued function that is at least r-times continuously differentiable. Let S be defined as in (4) . Let D ⊆ Rn be a domain such that S ⊂ D.The function H is called a High-Order ARZE-MCBF for the dynamics (2) if there exists constants cα1 , . . . , c αr > 0 such that for all ⃗x ∈ D there exists a ⃗u N ∈ U N satisfying 
+
+Ψr (⃗x,⃗ u N ) ⪰ δr (∆ t, c αr )I. (25) The set of feasible normal agent control inputs satisfying (25) is denoted 
+
+KN 
+
+> r
+
+≜ ⃗u N ∈ U N : Ψ r (⃗x,⃗ u N ) ⪰ δr (∆ t, c αr )I . (26) Our final result presents conditions under which the sets Sq
+
+are rendered forward invariant under the dynamics (2). 
+
+Theorem 3. Consider the dynamics (2) and the set SQ
+
+in (24b) . If H is a High-Order ARZE-MCBF, then any feedback control law for the normal agents ⃗κ N (·) satisfying ⃗κ N (⃗x k) ∈ KN 
+
+> r
+
+(⃗x k) for all tk, k ∈ N renders the set SQ
+
+forward invariant for the closed-loop system. Proof. Consider any interval [tk, t k+1 ) for k ∈ N. Sup-pose ⃗ x k ∈ SQ. Choose any feedback control law sat-isfying ⃗ κ N (⃗x k) ∈ KN 
+
+> r
+
+(⃗x k). It follows from (26) that 
+
+Ψr (⃗x k,⃗ κ(⃗x k)) ⪰ δr (∆ t, c αr )I. Using the definition of EN
+
+and similar arguments as in the proofs of Theorems 1and 2, it can be shown that Ψr (⃗x(t),⃗ κ(⃗x k)) ⪰ 0 for all 
+
+t ∈ [tk, t k+1 ). From (23), this implies that ˙Ψr−1(⃗x(t)) + 
+
+cαr−1 Ψr−1(⃗x(t)) ⪰ 0 for all t ∈ [t k, t k+1 ). By Proposition 1 it follows that Ψq−1(⃗x(t)) ⪰ 0 and ⃗x(t) ∈ S r on this time interval. This argument can be continued inductively for sets 
+
+Sr−2, . . . , S 1. Observe that ⃗x(t) ∈ S 1 implies that Ψ0(⃗x) = 
+
+H(⃗x) ⪰ 0 on the interval [t k, t k+1 ). By these arguments, we therefore have ⃗x(t) ∈ S Q for all t ∈ [tk, t k+1 ). Since these arguments hold for arbitrary k ∈ N, the set SQ is therefore forward invariant for all t ≥ t0.Feasible control inputs within KN 
+
+> r
+
+(⃗x) can be computed using convex optimization methods similar to (16). IV. C ONCLUSION 
+
+This paper introduced methods to provide adversarial robustness guarantees to multi-agent Matrix Control Bar-rier Functions for sampled-data systems. The paper derived novel theoretical results for set invariance under a zero-order control law and cooperative behavior among agents. We presented theoretical results for set invariance in the presence of adversarial inputs. Finally, the paper extended the results to systems having high relative degree. Future work will explore integration of this theory in various multi-agent robotic settings to provide rigorous online safety guarantees in adversarial environments. ACKNOWLEDGEMENTS 
+
+Generative AI tools [22], [23] were used to conduct math-ematical brainstorming and identify relevant mathematical concepts. The paper itself was written solely by the author. REFERENCES [1] A. D. Ames, S. Coogan, M. Egerstedt, G. Notomista, K. Sreenath, and P. Tabuada, “Control barrier functions: Theory and applications,” in 2019 18th European control conference (ECC) . Ieee, 2019, pp. 3420–3431. [2] K. Garg, J. Usevitch, J. Breeden, M. Black, D. Agrawal, H. Parwana, and D. Panagou, “Advances in the theory of control barrier func-tions: Addressing practical challenges in safe control synthesis for autonomous and robotic systems,” Annual Reviews in Control , vol. 57, p. 100945, 2024. [3] A. Agrawal and K. Sreenath, “Discrete control barrier functions for safety-critical control of discrete systems with application to bipedal robot navigation.” in Robotics: Science and Systems , vol. 13. Cambridge, MA, USA, 2017, pp. 1–10. [4] O. So, Z. Serlin, M. Mann, J. Gonzales, K. Rutledge, N. Roy, and C. Fan, “How to train your neural control barrier function: Learning safety filters for complex input-constrained systems,” in 2024 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2024, pp. 11 532–11 539. [5] T. G. Molnar, S. K. Kannan, J. Cunningham, K. Dunlap, K. L. Hobbs, and A. D. Ames, “Collision avoidance and geofencing for fixed-wing aircraft with control barrier functions,” IEEE Transactions on Control Systems Technology , 2025. [6] J. Breeden and D. Panagou, “Robust control barrier functions under high relative degree and input constraints for satellite trajectories,” 
+
+Automatica , vol. 155, p. 111109, 2023. [7] Y. Chen, H. Peng, and J. Grizzle, “Obstacle avoidance for low-speed autonomous vehicles with barrier function,” IEEE Transactions on Control Systems Technology , vol. 26, no. 1, pp. 194–206, 2017. [8] P. Ong, Y. Xu, R. M. Bena, F. Jabbari, and A. D. Ames, “Matrix control barrier functions,” arXiv preprint arXiv:2508.11795 , 2025. [9] J. Usevitch, J. A. P. Salazar, and A. Goel, “Computing safe control inputs using discrete-time matrix control barrier functions via convex optimization,” arXiv preprint arXiv:2510.09925 , 2025. [10] P. Ong, H. Lee, T. G. Molnar, D. Panagou, and A. D. Ames, “Com-binatorial control barrier functions: Nested boolean and p-choose-r compositions of safety constraints,” IEEE Control Systems Letters ,vol. 9, pp. 2705–2710, 2025. [11] J. Breeden, K. Garg, and D. Panagou, “Control barrier functions in sampled-data systems,” IEEE Control Systems Letters , vol. 6, pp. 367– 372, 2021. [12] J. Usevitch and D. Panagou, “Adversarial resilience for sampled-data systems under high-relative-degree safety constraints,” IEEE Transactions on Automatic Control , vol. 68, no. 3, pp. 1537–1552, 2022. [13] ——, “Adversarial resilience for sampled-data systems using control barrier function methods,” in 2021 American Control Conference (ACC) . IEEE, 2021, pp. 758–763. [14] X. Tan, W. S. Cortez, and D. V. Dimarogonas, “High-order barrier functions: Robustness, safety, and performance-critical control,” IEEE Transactions on Automatic Control , vol. 67, no. 6, pp. 3021–3028, 2021. [15] W. Xiao and C. Belta, “High-order control barrier functions,” IEEE Transactions on Automatic Control , vol. 67, no. 7, pp. 3655–3662, 2021. [16] T. K. Moon and W. C. Stirling, “Mathematical methods and algorithms for signal processing,” (No Title) , 2000. [17] L. Gr¨ une and J. Pannek, “Nonlinear model predictive control,” in 
+
+Nonlinear model predictive control: Theory and algorithms . Springer, 2016, pp. 45–69. [18] E. D. Sontag, Mathematical control theory: deterministic finite dimen-sional systems . Springer Science & Business Media, 2013, vol. 6. [19] P. J. Goulart and Y. Chen, “Clarabel: An interior-point solver for conic programs with quadratic objectives,” 2024. [20] M. ApS, The MOSEK Optimization Suite 11.1.3 , 2025. [Online]. Available: https://www.mosek.com/ [21] R. A. Horn and C. R. Johnson, Matrix analysis . Cambridge university press, 2012. [22] OpenAI, “ChatGPT 5,” 2025, [Large language model]. https://chat.openai.com/chat. [23] Anthropic, “Claude Opus,” 2025, [Large language model]. https://claude.ai/.

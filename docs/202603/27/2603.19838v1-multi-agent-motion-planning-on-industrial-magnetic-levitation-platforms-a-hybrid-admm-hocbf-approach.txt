@@ -1,0 +1,651 @@
+Title: Multi-Agent Motion Planning on Industrial Magnetic Levitation Platforms: A Hybrid ADMM-HOCBF approach
+
+URL Source: https://arxiv.org/pdf/2603.19838v1
+
+Published Time: Mon, 23 Mar 2026 00:45:14 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Multi-Agent Motion Planning on Industrial Magnetic Levitation Platforms: A Hybrid ADMM-HOCBF approach 
+
+Bavo Tistaert ∗, Stan Servaes ∗, Alejandro Gonzalez-Garcia ∗∗ , Ibrahim Ibrahim ∗∗ ,Louis Callens, Jan Swevers and Wilm Decr´ e
+
+Abstract — This paper presents a novel hybrid motion plan-ning method for holonomic multi-agent systems. The proposed decentralised model predictive control (MPC) framework tack-les the intractability of classical centralised MPC for a growing number of agents while providing safety guarantees. This is achieved by combining a decentralised version of the alternating direction method of multipliers (ADMM) with a centralised high-order control barrier function (HOCBF) architecture. Simulation results show significant improvement in scalability over classical centralised MPC. We validate the efficacy and real-time capability of the proposed method by developing a highly efficient C++ implementation and deploying the resulting trajectories on a real industrial magnetic levitation platform. 
+
+I. I NTRODUCTION 
+
+In recent years, trends in industry show a growing inter-est in multi-agent systems, where multiple agents, such as warehouse robots, autonomous ground vehicles, autonomous surface vessels, or unmanned aerial vehicle swarms [2]–[5], perform complex tasks that are beyond the capabilities of a single agent, either by cooperating or by distributing multiple tasks over the agents. An example of a system primed for multi-agent appli-cations is the Beckhoff XPlanar [6] (Fig. 1), originally developed as an efficient, accurate, and precise transport system for production lines. Its working principle is based on magnetic levitation, where passive square-shaped movers, composed of permanent magnets, are actuated using ac-tive tiles, driving the movers anywhere on top of these tiles with very high precision and accuracy. The holonomic characteristic of the movers introduces great flexibility in their motion, but also provides many feasible paths for each mover. Hence, challenges persist in the coordination of agents in these systems. When restricting their motion to pre-defined tracks with traffic rules, coordination becomes much easier. However, this undermines the flexibility of the system and makes the production line susceptible to traffic jams, causing production delays. An appealing way to make use of this flexibility and thereby increase efficiency is to employ a real-time motion planner. Existing heuristic-based classical planners such as 
+
+> Authors are with MECO Research Team, Dept. of Mechanical Engineer-ing, KU Leuven and Flanders Make @KU Leuven, 3001 Leuven, Belgium.
+
+firstname.name@kuleuven.be 
+
+> This work is based on the Master’s Thesis [1] and has been carried out within the framework of the Flanders Make SBO project ARENA: Agile and Reliable Navigation. Flanders Make is the Flemish strategic research centre for the manufacturing industry.
+> ∗B. Tistaert and S. Servaes are equal contributors to this work.
+> ∗∗ A. Gonzalez-Garcia and I. Ibrahim are equal contributors to this work.
+
+Fig. 1: The Beckhoff XPlanar setup in the robotics lab. This industrial machine is used for the experimental validation of the motion planner. A* [7], Rapidly exploring random trees (RRT) [8], and arti-ficial potential fields [9] and their variations are not ideally suited for the problem at hand. A*-class methods rely on discrete graphs, require graph-building, and often come with no safety or optimality guarantees. On the other hand, RRT variants are not guaranteed to find solutions and are more catered towards higher dimensional planning problems [10]. Lastly, artificial potential fields notoriously suffer from local minima and deadlocks [11]. Most importantly, those methods are also catered to single-agent scenarios and must rely on additional planning schemes to properly perform multi-agent planning. In contrast, learning techniques are becoming increasingly popular and have been applied to large-scale multi-agent motion planning problems due to their favourable scalability. However, due to the lack of sufficient formal proofs in this area, they often have to be coupled with existing motion planning techniques [12], [13]. Alternatively, Model Predictive Control (MPC) naturally lends itself to multi-agent motion planning. MPC allows for flexible real-time motion planning under constraints in dynamic environments. Due to its inherent optimality, the resulting trajectories are very efficient, leading to reduced transit times. The most efficient trajectories would be ob-tained with centralised MPC, which solves one central op-timisation problem for all the agents. However, the com-putational cost for such problems often scales unfavourably with the number of agents, rendering the problem intractable for real-time motion planning. For multi-agent systems, this 
+
+> arXiv:2603.19838v1 [cs.RO] 20 Mar 2026
+
+issue is often addressed by reformulating or approximating collision avoidance constraints [3], [14]–[17], by introducing neighbourhoods [5], [14], [18], and by using distributed optimisation methods [19]. This work focusses on the latter, which include distributed first-order methods, distributed sequential convex programming, and the alternating direction method of multipliers (ADMM). Here, the optimisation prob-lem is decoupled and the sub-problems are distributed over the agents, with the possibility for parallel computations. We use a decentralised variation of ADMM due to its ability to fully decouple heavily constrained (convex) problems [3], [14], [20]. Another important aspect in multi-agent motion planning is safety, i.e. , agents must not collide with each other or with obstacles in the environment. When the original mo-tion planner is not inherently safe, control barrier functions (CBFs) [21] can provide a safety guarantee for systems with a relative degree of one. These techniques have therefore been applied to collision avoidance constraints in multi-agent systems [22], [23], where they can also be decentralised. More recently, this concept was generalised to high-order control barrier functions (HOCBF) [24], which apply to sys-tems of any relative degree. Since ADMM is only guaranteed to converge for convex problems [25], it cannot guarantee safety in nonconvex settings. Therefore, [26] incorporates first-order discrete-time CBFs into the ADMM scheme to ensure safety. However, this strategy is only valid for systems of relative degree one. Our work presents a hybrid multi-agent motion planner that complements decentralised ADMM by adding a separate centralised safety filter to the algorithm that uses continuous-time, second-order HOCBFs. Hence, this motion planner is safe for systems with acceleration input. Moreover, we leverage the centralised control architecture of the XPlanar by computing the safety filter in a centralised manner, which is known to result in more efficient and less conservative trajectories than computing it in a decentralised manner [22]. In summary, the main contributions of this work are:  
+
+> •
+
+A novel hybrid multi-agent motion planner which com-bines decentralised ADMM with centralised HOCBFs;  
+
+> •
+
+A comparison of our proposed hybrid method against classical centralised MPC;  
+
+> •
+
+Hardware experiments on a Beckhoff XPlanar industrial setup where we deploy computed trajectories. The remainder of this paper is structured as follows: Section II introduces the conventions, preliminary notions, and the problem formulation of this work. Section III then discusses the method and algorithm used to tackle this prob-lem. The results are presented in Section IV, which contains extensive simulations to compare the novel method with the classic centralised MPC approach, as well as experiments on an industrial setup for a proof of concept. Finally, Section V draws some conclusions and suggests future work. II. P RELIMINARIES AND PROBLEM FORMULATION 
+
+After some conventions and definitions, this section de-scribes and formulates the problem to be solved by the algorithm. 
+
+A. Conventions 
+
+Consider the problem of generating 2D trajectories for agents i ∈ { 1, ..., N }, each consisting of a set of positions 
+
+pi(t), velocities vi(t), and accelerations ai(t), where t ∈
+
+[0 , T f ]. Let an agent be modelled as as two decoupled double integrators with 
+
+xi(t) = [ px,i (t), p y,i (t), v x,i (t), v y,i (t)] ⊤ (1) 
+
+ui(t) = [ ax,i (t), a y,i (t)] ⊤, (2) yielding: 
+
+˙xi(t) = Ax i(t) + Bu i(t), (3) with 
+
+A =
+
+02x2 I2x2
+
+02x2 02x2
+
+
+
+and B =
+
+02x2
+
+I2x2
+
+
+
+. (4) 
+
+B. High-Order Control Barrier Functions Definition 1: A system is nonlinear control-affine if the state space can be described in the following form [24]: 
+
+˙x = f(x) + g(x)u. (5) The theory of HOCBFs considers systems of this form. Since system (4) is linear control-affine, it is a special case of system (5), and thus the theory applies. 
+
+Definition 2: “A continuous function α : [0 , a ) →
+
+[0 , ∞), a > 0 belongs to class K if it is strictly increasing and α(0) = 0 .” [24] 
+
+Definition 3: “A set C is forward invariant for a system if its solutions starting at any x(t0) ∈ C satisfy x(t) ∈ C for 
+
+∀t > t 0.” [24] 
+
+Definition 4: “The relative degree r of a (sufficiently) differentiable function h with respect to system (5) is the number of times we need to differentiate it along the dy-namics of (5) until the control u explicitly shows.” [24] When h(x) ≥ 0 represents a safety constraint, rendering the superlevel set of h invariant implies that the system will never leave this safe set, thereby imposing safety [21]. When the relative degree of the system is larger than one, the following functions must be constructed [24]: 
+
+ψi(x) = ˙ψi−1(x) + αi(ψi−1(x)) ∀i ∈ { 1, ..., r }
+
+with ψ0(x) = h(x), (6) where αi denote class-K functions. Along with these func-tions, the following sets are defined: 
+
+Ci = {x ∈ Rnx : ψi−1(x) ≥ 0} ∀i ∈ { 1, ..., r }. (7) Due to the relative degree of r, only ψr (x, u) depends on the inputs. It can then be proven that the condition for rendering the safe set forward invariant is the following [24]: 
+
+sup 
+
+> u∈U
+
+ψr (x, u)  ≥ 0 ∀x ∈ C 1 ∩ ... ∩ C r , (8) which can be expanded to obtain the formal condition on h
+
+to classify as a HOCBF [24]: 
+
+sup 
+
+> u∈U
+
+
+
+Lr 
+
+> f
+
+h(x) + LgLr−1 
+
+> f
+
+h(x)u +
+
+> r−1
+
+X
+
+> i=1
+
+Li 
+
+> f
+
+(αr−i(ψr−i−1(x))) + αr (ψr−1(x)) 
+
+
+
+≥ 0 ∀x ∈ C 1 ∩ . . . ∩ C r . (9) Here, Lf and Lg denote the Lie derivatives along f(x)
+
+and g(x) respectively. Note that the expression within the brackets is linearly dependant on the input u, making it computationally efficient to use in optimisation problems. 
+
+C. Problem formulation 
+
+The goal of the motion planner is to steer every agent from an initial state to a target state, where the latter can be adapted in real-time for maximum flexibility. In order to generate optimal, collisionless trajectories, we rely on an MPC-based motion planner which solves the following optimal control problem (OCP) during every time step ∆t:
+
+min 
+
+> ∀xi(·),ui(·)
+
+Z Tf
+
+> 0
+> N
+
+X
+
+> i=1
+
+Ji(xi(t), ui(t)) dt (10a) s.t. xi(0) = x0,i (10b) 
+
+˙xi(t) = Ax i(t) + Bu i(t) (10c) 
+
+|| vi(t)|| 2 ≤ v2 
+
+> max
+
+(10d) 
+
+|| ai(t)|| 2 ≤ a2 
+
+> max
+
+(10e) 
+
+|| pi(t) − pj (t)|| 2 ≥ (2 R + ϵ)2 ∀j̸ = i (10f) 
+
+∀ i ∈ { 1, ..., N }, t ∈ [0 , T f ].
+
+This formulation constitutes the classical centralised MPC approach. The objective function (10a) is the sum of each agent’s own objective, which represents a quadratic penalisa-tion from its target state xf,i , along with an input penalisation for smoothness: 
+
+Ji(xi(t), ui(t)) = ( xi(t) − xf,i (t)) ⊤Qi(xi(t) − xf,i (t)) + ui(t)⊤Riui(t). (11a) Eq. (10b)-(10e) respectively impose on each agent its initial condition, system dynamics, and an upper limit on the magni-tude of its velocity and acceleration. Finally, Eq. (10f) repre-sent the nonconvex collision avoidance constraints, which are enforced by imposing a minimal Euclidean distance between every pair of agents. Hence, agents are modelled as circles of radius R in this constraint, and a safety margin ϵ is taken. Note that this circular model introduces conservatism since the physical agents are square-shaped. All constraints, with the exception of the initial condition, are enforced over the full time interval [0 , T f ].III. H YBRID METHOD AND ALGORITHM 
+
+This section discusses the method for solving OCP (10) and how it is incorporated into the motion planning algo-rithm. First, we use decentralised ADMM to decouple and solve OCP (10). As this method is not inherently safe, we complement it with an extra step which employs HOCBFs to recover the safety guarantee. Then, the pseudo-code for the motion planning algorithm is discussed. Finally, additional constraints are discussed to restrict the agents to a specified arena, e.g. the boundaries of the transport system. 
+
+A. ADMM 
+
+OCP (10) is a coupled problem for all agents due to the collision avoidance constraints. Following [3], we may decouple the problem by reformulating constraints (10f) as follows: 
+
+pi(t) = zi(t), pj (t) = zi,j (t) j ∈ N i (12a) 
+
+|| zi(t) − zi,j (t)|| 2 ≥ (2 R + ϵ)2 j ∈ N i (12b) Here, we introduce for each agent i the slack variables zi(t)
+
+and zi,j (t) along with the consensus constraints (12a). The latter constraints ensure that the slack variables represent local copies of its own positions and the other agents’ positions. This allows us to write the collision avoidance constraints (12b) as a function of the local variables zi(t)
+
+and zi,j (t) of agent i alone, instead of the positions pi(t)
+
+and pj (t) of agent i and j. Moreover, neighbourhoods Ni
+
+are commonly introduced for each agent i to decrease the computational load. Consequently, an agent only needs to enforce collision avoidance between other agents that pose a safety threat, e.g. only when they are within a certain detection radius from each other [14]. 
+
+Remark 1: Due to the highly dynamic nature of our prob-lem, agent neighbourhoods become time-dependent, which standard ADMM cannot efficiently handle [19]. Therefore, in this paper, each agent’s neighbourhood is taken to contain all other agents. The augmented Lagrangian of the reformulated problem is obtained by only dualising the consensus constraints [3]: 
+
+Lμ =
+
+Z Tf
+
+> 0
+> N
+
+X
+
+> i=1
+
+Ji(xi, ui) + λ⊤ 
+
+> i
+
+(pi − zi) + μ
+
+2 ∥pi − zi∥2dt 
+
++
+
+Z Tf
+
+> 0
+> N
+
+X
+
+> i=1
+
+X
+
+> j∈N i
+
+λ⊤ 
+
+> i,j
+
+(pj − zi,j ) + μ
+
+2 ∥pj − zi,j ∥2dt 
+
+(13a) 
+
+=
+
+> N
+
+X
+
+> i=1
+
+Lμ,i (xi, ui, pi, zi, λi, pj , zi,j , λi,j ) (13b) 
+
+=
+
+> N
+
+X
+
+> i=1
+
+Lμ,i (xi, ui, pi, zi, λi, pi, zj,i , λj,i ). (13c) Here, we can drop the time argument for brevity. Hence, the global Lagrangian Lμ of OCP (10) with constraints (12) is the sum of every agent’s local Lagrangian Lμ,i , for which two expressions can be formulated, Eq. (13b) and (13c). The equivalence between Eq. (13b) and (13c) is obtained by reshuffling the terms under the summation signs in Eq. (13a). This is only possible when the bidirectional identity holds [3], i.e. , agent j considers agent i as neighbour if and only if agent i considers agent j as neighbour. By taking each agent’s neighbourhood to contain all other agents (see Remark 1), this condition is automatically satisfied. We then use decentralised ADMM to solve OCP (10) with constraints (12) in an iterative manner, first minimising Eq. (13c) w.r.t. xi and ui, then minimising Eq. (13b) w.r.t. zi,
+
+zi,j , and finally updating λi and λi,j . Eq. (14)-(16) describe this sequence of computations. First, in OCP (14), we only enforce each agent’s own dynamic constraints and actuation limits, without considering collision avoidance. After this step is solved, each agent communicates its updated position 
+
+pk+1  
+
+> i
+
+with all its neighbours. Solving NLP (15) for each agent corrects these paths using the collision avoidance constraints. The results are stored as agent i’s local copies 
+
+zk+1  
+
+> i
+
+and zk+1  
+
+> i,j
+
+. These are subsequently communicated and serve as “suggestions” which can be used by the neighbours as a safe reference path. Lastly, the dual variables are updated using Eq. (16). In the next iteration, OCP (14) takes into account the local copies (or “suggestions”) of the previous iteration through penalisation terms in the augmented La-grangian. 
+
+xk+1 
+
+> i
+
+uk+1 
+
+> i
+
+
+
+= arg min 
+
+> xi,ui
+
+Lμ,i (xi, ui, zki , λki , pi, zkj,i , λkj,i )
+
+s.t. xi(0) = x0,i 
+
+˙xi = Ax i + Bu i
+
+|| vi|| 2 ≤ v2
+
+> max
+
+|| ai|| 2 ≤ a2
+
+> max
+
+(14) 
+
+zk+1 
+
+> i
+
+zk+1 
+
+> i,j
+
+
+
+=arg min 
+
+> zi,zi,j
+
+Lμ,i (pk+1  
+
+> i
+
+, zi, λki , pk+1  
+
+> j
+
+, zi,j , λki,j )
+
+s.t. || zi − zi,j || 2 ≥ (2 R + ϵ)2 j ∈ N i
+
+(15) 
+
+λk+1  
+
+> i
+
+= λki + μ(pk+1  
+
+> i
+
+− zk+1  
+
+> i
+
+)
+
+λk+1  
+
+> i,j
+
+= λki,j + μ(pk+1  
+
+> j
+
+− zk+1  
+
+> i,j
+
+) ∀j ∈ N i
+
+(16) This iterative procedure continues until the agents reach a consensus, i.e. , we obtain optimal collisionless trajectories. In an MPC setting, the number of iterations per time step is often limited to avoid redundant computations [3]. 
+
+Remark 2: Note that in updates (14)-(16), each agent’s optimisation problem is decoupled. Computations for each agent can be carried out in parallel, with communication steps in between. Since ADMM’s convergence has only been proven for convex optimisation problems [25], there is no formal guar-antee that the agents will reach a consensus due to the nonconvex collision avoidance constraints. Because safety is of crucial importance for industrial production lines, an additional step in the procedure is needed to recover a safety guarantee. 
+
+B. ADMM-HOCBF 
+
+To address the safety issue, we design an HOCBF to be used in an additional computationally-efficient step that enforces safety. We choose the left hand side of the collision avoidance constraint as HOCBF, after rewriting it in the following standard form: 
+
+hi,j = || pi(0) − pj (0) || 2 − (2 R + ϵ)2 ≥ 0. (17) Note that the HOCBF only acts at the current time step t = 0 .Since this function depends only on the positions of agents 
+
+i and j, the relative degree of hi,j is r = 2 . Therefore, we construct the following two functions: 
+
+ψ1 = ˙hi,j + α1(hi,j ) (18a) 
+
+ψ2 = ˙ψ1 + α2(ψ1). (18b) We choose linear class-K functions [24] for αi(h) = Kih
+
+to simplify the expressions. This results in the following condition that hi,j must satisfy in order to be a HOCBF: 
+
+Hi,j (ui(0) , uj (0)) = ¨hi,j + ( K1 + K2) ˙hi,j + K1K2hi,j ≥ 0,
+
+(19) where the time derivatives of hi,j are found by differentiating over the dynamics: 
+
+˙hi,j = 2( pi(0) − pj (0)) · (vi(0) − vj (0)) ¨hi,j = 2 || vi(0) − vj (0) || 2
+
++ 2( pi(0) − pj (0)) · (ai(0) − aj (0)) .
+
+(20) This constraint should be repeated for all combinations of agent pairs. Note that the constraints are indeed linearly dependent on the acceleration input. The position and veloc-ity variables of Eq. (20) are already known from the initial condition of OCP (14). We use this HOCBF to formulate a convex quadratically constrained quadratic program (QCQP): 
+
+min 
+
+> ∀ui
+> N
+
+X
+
+> i=1
+
+|| ui(0) − u∗ 
+
+> i
+
+(0) || 2
+
+s.t. Hi,j (ui(0) , uj (0)) ≥ 0 , ∀j̸ = i
+
+|| ui(0) || 2 ≤ a2
+
+> peak
+
+∀i ∈ { 1, ..., N },
+
+(21) where u∗ 
+
+> i
+
+(0) denotes the control input at t = 0 obtained by ADMM. Constraints (10e) are also added to ensure that the acceleration is still within the allowed range. To avoid infeasibilities, it can also be implemented as a soft constraint. However, the XPlanar has different power limits for contin-uous operation and short-term peak usage. Hence, we can increase the maximum allowed acceleration in QCQP (21) (apeak ) w.r.t. its value in OCP (14) ( amax ). It is then possible to temporarily apply higher accelerations to avoid a collision, and QCQP (21) will only do so if the original control input is not sufficient. We compute QCQP (21) after the ADMM iterations to obtain a hybrid method. Although decentralised CBFs can also be safe under certain conditions, centralised CBFs are more efficient and less conservative [22]. Since the XPlanar is controlled by a central computer, we can solve QCQP (21) centrally. This choice is further motivated by the more tractable structure of this optimisation problem compared to OCP (10). C. Pseudo-code 
+
+We provide a pseudo-code of the hybrid method in Algo-rithm 1. This algorithm takes every agent’s initial state xinit,i 
+
+and target state xf,i as inputs. On lines 2-12, we perform 
+
+m ADMM iterations by repetitively solving Eq. (14)-(16) and communicating the intermediate results. Communication between agents is achieved by reading and writing these results in a shared memory since the system is controlled by a central computer. On line 14, we apply a safety filter to the inputs on the current time step by solving QCQP (21). Finally, on lines 15-19, we simulate the system with the safe inputs using the agents’ discrete-time dynamics and log the results. This procedure is repeated during every time step until all agents are sufficiently close to their target state. The output of Algorithm 1 is the set of trajectories for all agents. The parameters that need to be tuned are the number of ADMM iterations per time step m, the penalty parameter μ,the HOCBF coefficients K1 and K2, and the weights in the objective function Qi and Ri.
+
+Remark 3: Note that each “for” loop (lines 3 and 7) can be executed in parallel as there is no dependency on other agents within that for loop. However, a synchronisation step is needed after the first “for” loop (lines 3-6) because the results of all the agents are simultaneously needed for the second “for” loop (lines 7-11). 
+
+Remark 4: This algorithm can be hot-started by perform-ing mpre ADMM pre-iterations before the first time step. In this way, the algorithm can start with a proper initial guess for zi(t), zi,j (t), λi(t) and λi,j (t). In practice, the pre-iterations could be performed while agents are standing still, e.g. when being loaded. 
+
+D. Rectangular arena constraints 
+
+When operating on a transport system, agents must remain within the boundaries of this system. We start by considering a rectangular arena and formulate the following constraints on the agents’ position: 
+
+px,min + ( w
+
+2 + ϵ) ≤ px,i (t) ≤ px,max − ( w
+
+2 + ϵ)
+
+py,min + ( w
+
+2 + ϵ) ≤ py,i (t) ≤ py,max − ( w
+
+2 + ϵ)
+
+∀i ∈ { 1, ..., N }.
+
+(22) Here, w denotes the width of an agent. Since the movers do not rotate during their trajectory, we model them as squares for this constraint, which is less conservative than the circular model for the collision avoidance constraints. These constraints must also be added to QCQP (21). Since the positions are no longer decision variables here, we express Eq. (22) as a function of the input: 
+
+px,min + ( w
+
+2 + ϵ) ≤ px,i (0) + vx,i (0)∆ t + 0 .5ux,i (0)∆ t2
+
+≤ px,max − ( w
+
+2 + ϵ)
+
+py,min + ( w
+
+2 + ϵ) ≤ py,i (0) + vy,i (0)∆ t + 0 .5uy,i (0)∆ t2
+
+≤ py,max − ( w
+
+2 + ϵ) ∀i ∈ { 1, ..., N }.
+
+(23) 
+
+Algorithm 1 Hybrid method: ADMM-HOCBF 
+
+Inputs : xinit,i , xf,i 
+
+Parameters : m, μ, K 1, K 2, Qi, Ri
+
+Outputs : xi(t), ui(t) 
+
+> 1:
+
+while || xc,i − xf,i || 2 ≥ 10 −3, ∀i do  
+
+> 2:
+
+for all ADMM iterations m do  
+
+> 3:
+
+for all agents i ∈ { 1, ..., N } do  
+
+> 4:
+
+xi(t), ui(t) according to OCP (14)  
+
+> 5:
+
+Update pi(t) in shared memory  
+
+> 6:
+
+end for  
+
+> 7:
+
+for all agents i ∈ { 1, ..., N } do  
+
+> 8:
+
+zi(t), zi,j (t) according to NLP (15)  
+
+> 9:
+
+λi(t), λi,j (t) according to Eq. (16)  
+
+> 10:
+
+Update zi(t), zi,j (t), λi(t) and λi,j (t) in shared memory  
+
+> 11:
+
+end for  
+
+> 12:
+
+end for  
+
+> 13:
+
+/* Render input safe */  
+
+> 14:
+
+u1(0) , ..., uN (0) according to QCQP (21)  
+
+> 15:
+
+for all agents i ∈ { 1, ..., N } do  
+
+> 16:
+
+uc,i ← ui(0)  
+
+> 17:
+
+xc,i ← Adxc,i + Bduc,i  
+
+> 18:
+
+x0,i ← xc,i  
+
+> 19:
+
+Log uc,i and xc,i  
+
+> 20:
+
+end for  
+
+> 21:
+
+end while 
+
+We assume a constant acceleration law during each time step, making it compatible with the multiple shooting method, which will be used to solve Problems (14)-(15) in Section IV. 
+
+E. Corridor strategy for nonconvex arenas 
+
+The XPlanar arena consists of square tiles that can be configured in more general (nonconvex) shapes, as shown in Fig. 1. To deal with this, we use a heuristic corridor strategy, depicted in Fig. 2. First, the arena is partitioned into rectangular overlapping corridors. We then define a sub-target in each overlapping zone. If an agent’s target is not in its current corridor, it must track a sequence of sub-targets. Every time the agent reaches an overlap zone, it immediately switches to the next sub-target. This procedure continues until the agent reaches the corridor with the final target. If the arena has a complex structure with many overlap zones, the sequence of sub-targets may be computed using a grid-based planner like A*. This strategy ensures that every agent is always located in one corridor at a time, allowing the use of the rectan-gular arena constraints from Section III-D. The structure of the constraints remains the same; only the dimensions are adaptively changed throughout the trajectory. 
+
+Remark 5: In the current preliminary implementation, the sub-targets are placed in the middle of the overlap zone. In future research, we will adapt the position of the sub-targets for each agent according to their current scenario to avoid excessive clustering and make more efficient use of Fig. 2: To deal with nonconvex arenas, agents track asequence of sub-targets before arriving at their main target. The sub-targets are located in the intersection of corridors, where agents can switch from one corridor to the next. The final sub-target is the destination of the agent. the overlap zone. IV. R ESULTS AND EXPERIMENTAL VALIDATION 
+
+In this section, we present the results of our work, for which we provide an accompanying YouTube video 1.We first perform extensive Python simulations to compare ADMM-HOCBF to the classical centralised MPC approach based on scalability, performance, and safety. We also verify the deadlock resistance of ADMM-HOCBF. Then, we em-ploy a fast C++ implementation to achieve real-time perfor-mance and conduct three different hardware experiments by deploying the calculated trajectories on a Beckhoff XPlanar system. 
+
+A. Simulation results 
+
+In simulations, we use the open-source toolkits CasADi [27] and Rockit [28] to configure and transcribe the three op-timisation problems (OCP (14), NLP (15), and QCQP (21)) in Python. For transcription, we use the multiple shooting method with sampling time ∆t = 100 ms. We use IPOPT [29] to solve all optimisation problems to ensure a fair comparison between the methods. All tests are performed on a Linux computer with a 7th Gen Intel® Core™ i7-7700K CPU @ 4.20GHz. Finally, the ADMM-HOCBF scheme is still implemented sequentially in Python; the ability to parallelise Algorithm 1 has not yet been exploited. 
+
+1) Scalability analysis: We test 17 scenarios varying from 2 to 30 agents. For each scenario, we perform 20 simulations using random start and target positions for each agent. Each case is solved using three different methods: (I) centralised MPC, (II) ADMM-HOCBF with m = 1
+
+and μ = 1, and (III) ADMM-HOCBF with m = 20 
+
+and μ = 40 . The other parameters are fixed: Tf = 1 s, 
+
+∆t = 100 ms, mpre = 50 , K1 = 8 s−1, K2 = 7 s−1,
+
+Qi = diag ([1 m−2, 1 m−2, 0 ( m/s )−2, 0 ( m/s )−2]) , Ri = 
+
+> 1https://youtu.be/5H8QRz0ndy4
+
+Fig. 3: Scalability plot of ADMM-HOCBF ( m = 1 and m =20 ) and centralised MPC. 
+
+10 −4 × I2×2 (m/s 2)−2 , vmax = 1 m/s, amax = 5 m/s 2,
+
+apeak = 8 m/s 2.
+
+Remark 6: Since we operate at rather high velocities, the safety margin for centralised MPC has to be set at ϵ = 30 
+
+mm to avoid safety violations between the grid points after discretisation. For ADMM-HOCBF, we can strongly reduce the safety margin to ϵ = 5 mm since the HOCBF tends to slow down agents as they approach each other. We log the computation time per time step for each instance and illustrate the results in Fig. 3 using three distinct colours. We notice a sharp difference in scalability between centralised MPC ( ∼ O(N 2.96 )) and ADMM-HOCBF ( ∼
+
+O(N 1.83 )). For the latter, the scalability is approximately independent of the number of ADMM iterations m. Another advantage is a lower uncertainty in the computation time per time step. This is due to the fact that ADMM-HOCBF does not have to compute to full convergence during each time step unlike centralised MPC, and it can be done without losing safety guarantees. 
+
+2) Performance comparison and safety: The same three methods are compared for one case with five agents in terms of the transit time, average computation time per time step, and number of collisions. We also investigate the importance of the HOCBFs by calculating percentage-wise how many times, and by how much, the safety filter has to adjust the input along the trajectory. The results are shown in Tab. I.                            
+
+> ADMM-HOCBF Centr. MPC
+> m= 1 m= 20
+> transit time 4.6s3.0s2.0savg. computation time 115 ms 1244 ms 169 ms number of collisions 000
+> safety filter activity 65 .22% 36 .67% −
+> avg. input correction 6.75 m/s 21.80 m/s 2−
+
+TABLE I: Performance and safety comparison between se-quential ADMM-HOCBF and centralised MPC. Tests are performed in Python for five agents. ADMM-HOCBF with m = 1 produces the least efficient trajectories, but exhibits the lowest computational cost. In-creasing the number of ADMM iterations reduces the transit time, but it also increases the computation time from 115 ms to 1244 ms. This might seem detrimental, as the computation time is now larger than that of centralised MPC, but from around 20 agents, the computation time of the latter surpasses ADMM-HOCBF (with m = 20 ), as shown in Fig. 3. Hence, the computational cost starts at a higher value but increases more gently. The number of collisions is zero for every method, confirming that the trajectories are safe. We observe that ADMM-HOCBF with m = 1 relies more heavily on the safety filter than ADMM-HOCBF with m = 20 . This results in more reactive behaviour, which explains its larger transit time. Because a rising number of ADMM iterations per time-step results in trajectories with a lower transit time but higher computation time, the efficiency of the trajectories can be directly linked to the available hardware on which the algorithm is executed. 
+
+3) Deadlocks: Since ADMM-HOCBF produces reactive behaviour at a lower number of ADMM iterations, we verify its performance in a case which is susceptible to deadlocks. The result is shown in the video 1. Although the agents’ reactive behaviour causes a deadlock, they continue performing ADMM iterations, improving the approximate solution of the OCP, which eventually allows them to escape the deadlock. In future research, we will investigate this deadlock resistance quantitively. 
+
+B. Experimental results 
+
+To verify whether the trajectories produced by Algorithm 1 are suitable for real industrial applications, they are tested on an XPlanar setup, shown in Fig. 1. The improved scalability of ADMM-HOCBF motivates the development of a highly efficient multithreaded C++ code with more tailored solvers. We use FATROP [30] for problems (14)-(15), and qpOASES [31] for QCQP (21). We conduct 3 experiments with 5 movers, which are also shown in the video 1. The first two experiments are performed within the largest rectangle of the arena, while the last uses the entire arena. 
+
+1) Performance analysis: In the first experiment, we compute trajectories for 5 XPlanar movers using ADMM-HOCBF with m = 1 and m = 20 . To restrict these movers to the main rectangle of the setup, the (tight) arena constraints from Section III-D must be included. Fig. 4 shows the resulting trajectories for m = 20 . The experimental results are consistent with the simulations, yielding the same trade-off between efficiency and computation time. However, the computation time per time step is significantly improved and ADMM-HOCBF with m = 1 exhibits real-time performance by a large margin, as shown in Table II.            
+
+> ADMM-HOCBF
+> m= 1 m= 20
+> transit time 4.5s3.6savg. computation time 20 ms 204 ms
+
+TABLE II: Performance results of the parallel C++ imple-mentation of ADMM-HOCBF.                     
+
+> (a) t= 0 −1s
+> (b) t= 1 −1.6s
+> (c) t= 1 .6−2.4s
+> (d) t= 2 .4−3.6s
+
+Fig. 4: Trajectories of 5 agents on the XPlanar system with ADMM-HOCBF (m=20). 
+
+2) Continuous operation: In the second experiment, every agent starts by tracking its own target. Whenever it reaches this target, it is instantly assigned a new random one. This process continues for 25 s, at which point the command is given to all agents to return to their starting positions, immediately overwriting the targets they were originally tracking. This experiment shows that the motion planner is capable of working with changing targets, making it flexible, efficient, and reliable for continuous operation. 
+
+3) General arena shape: In the final experiment, we allow targets to be spread over the full non-convex arena. This is achieved by employing the corridor strategy, highlighted in Section III-E. This experiment shows that the algorithm can be implemented in complex realistic environments. V. C ONCLUSIONS AND FUTURE WORK 
+
+This paper presents an MPC-based motion planner that utilises a combination of decentralised ADMM and cen-tralised HOCBFs. ADMM-HOCBF is shown to scale better than centralised MPC, without losing safety guarantees. Experimental validation of the algorithm is conducted on the Beckhoff XPlanar system, where ADMM-HOCBF is shown to be promising for real-time applications. It is also shown that the algorithm can be extended to deal with nonconvex arenas by partitioning the arena into corridors. Future work consists of three parts. For practical use, integrating a more efficient corridor strategy and a framework for online computations is essential. To further improve performance, we can explore ADMM acceleration techniques [32] and dynamic parameter tuning. To further improve scal-ability, possibilities include introducing more efficient, time-varying neighbourhoods, which is non-trivial for ADMM-based algorithms [33], and incorporating learning techniques into the non-safety-critical parts of the algorithm. VI. A CKNOWLEDGEMENTS 
+
+The authors would like to thank Joris Gillis for his support with CasADi in the C++ implementation. REFERENCES [1] B. Tistaert, S. Servaes, J. Swevers, I. Ibrahim, A. Gonz´ alez Garc´ ıa, and K. L. F. I. O. M. of Mechanical Engineering (Leuven) degree granting institution, “Decentralised motion planning for holonomic multi-agent systems using a hybrid ADMM-CBF approach: Application to indus-trial magnetic levitation platforms,” Leuven, 2025. [2] J. Li, A. Tinka, S. Kiesel, J. W. Durham, T. S. Kumar, and S. Koenig, “Lifelong multi-agent path finding in large-scale warehouses,” in 
+
+Proceedings of the AAAI Conference on Artificial Intelligence , vol. 35, no. 13, 2021, pp. 11 272–11 281. [3] R. Van Parys and G. Pipeleers, “Distributed MPC for multi-vehicle systems moving in formation,” Robotics and Autonomous Systems ,vol. 97, pp. 144–152, 2017. [4] J. Paulos, N. Eckenstein, T. Tosun, J. Seo, J. Davey, J. Greco, V. Kumar, and M. Yim, “Automated self-assembly of large maritime structures by a team of robotic boats,” IEEE Transactions on Automa-tion Science and Engineering , vol. 12, no. 3, pp. 958–968, 2015. [5] C. E. Luis and A. P. Schoellig, “Trajectory generation for multiagent point-to-point transitions via distributed model predictive control,” 
+
+IEEE Robotics and Automation Letters , vol. 4, no. 2, pp. 375–382, 2019. [6] Beckhoff. Xplanar — planar motor system. https://www.beckhoff.com/en-en/products/motion/xplanar-planar-motor-system/, Accessed: 05/05/2025. [7] P. E. Hart, N. J. Nilsson, and B. Raphael, “A formal basis for the heuristic determination of minimum cost paths,” IEEE transactions on Systems Science and Cybernetics , vol. 4, no. 2, pp. 100–107, 1968. [8] S. LaValle, “Rapidly-exploring random trees: A new tool for path planning,” Research Report 9811 , 1998. [9] O. Khatib, “Real-time obstacle avoidance for manipulators and mobile robots,” The international journal of robotics research , vol. 5, no. 1, pp. 90–98, 1986. [10] L. Zhang, K. Cai, Z. Sun, Z. Bing, C. Wang, L. Figueredo, S. Had-dadin, and A. Knoll, “Motion planning for robotics: A review for sampling-based planners,” Biomimetic Intelligence and Robotics , p. 100207, 2025. [11] Y. Koren, J. Borenstein et al. , “Potential field methods and their inherent limitations for mobile robot navigation.” in Icra , vol. 2, no. 1991, 1991, pp. 1398–1404. [12] Z. Qin, K. Zhang, Y. Chen, J. Chen, and C. Fan, “Learning safe multi-agent control with decentralized neural barrier certificates,” in 
+
+Proceedings of the Nineth International Conference on Learning Representations (ICLR 2021) , 2021. [13] V. Zinage, A. Jha, R. Chandra, and E. Bakolas, “Decentralized safe and scalable multi-agent control under limited actuation,” 05 2025, pp. 12 105–12 111. [14] F. Rey, Z. Pan, A. Hauswirth, and J. Lygeros, “Fully decentralized ADMM for coordination and collision avoidance,” in 2018 European Control Conference (ECC) . IEEE, 2018, pp. 825–830. [15] H. Zhou and C. Liu, “Distributed motion coordination using convex feasible set based model predictive control,” in 2021 IEEE Interna-tional Conference on Robotics and Automation (ICRA) . IEEE, 2021, pp. 8330–8336. [16] C. Liu, C.-Y. Lin, and M. Tomizuka, “The convex feasible set algo-rithm for real time optimization in motion planning,” SIAM Journal on Control and optimization , vol. 56, no. 4, pp. 2712–2733, 2018. [17] X. Zhang, A. Liniger, and F. Borrelli, “Optimization-based colli-sion avoidance,” IEEE Transactions on Control Systems Technology ,vol. 29, no. 3, pp. 972–983, 2020. [18] M. Chahine, R. Firoozi, W. Xiao, M. Schwager, and D. Rus, “Local non-cooperative games with principled player selection for scalable motion planning,” in 2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) . IEEE, 2023, pp. 880–887. [19] O. Shorinwa, T. Halsted, J. Yu, and M. Schwager, “Distributed optimization methods for multi-robot systems: Part 1—a tutorial [tutorial],” IEEE Robotics & Automation Magazine , vol. 31, no. 3, pp. 121–138, 2024. [20] R. Van Parys and G. Pipeleers, “Online distributed motion planning for multi-vehicle systems,” in 2016 European Control Conference (ECC) .IEEE, 2016, pp. 1580–1585. [21] A. D. Ames, S. Coogan, M. Egerstedt, G. Notomista, K. Sreenath, and P. Tabuada, “Control barrier functions: Theory and applications,” in 2019 18th European control conference (ECC) . Ieee, 2019, pp. 3420–3431. [22] U. Borrmann, L. Wang, A. D. Ames, and M. Egerstedt, “Control barrier certificates for safe swarm behavior,” IFAC-PapersOnLine ,vol. 48, no. 27, pp. 68–73, 2015. [23] L. Wang, A. D. Ames, and M. Egerstedt, “Safety barrier certificates for collisions-free multirobot systems,” IEEE Transactions on Robotics ,vol. 33, no. 3, pp. 661–674, 2017. [24] W. Xiao and C. Belta, “High-order control barrier functions,” IEEE Transactions on Automatic Control , vol. 67, no. 7, pp. 3655–3662, 2021. [25] S. Boyd, N. Parikh, E. Chu, B. Peleato, J. Eckstein et al. , “Dis-tributed optimization and statistical learning via the alternating di-rection method of multipliers,” Foundations and Trends® in Machine learning , vol. 3, no. 1, pp. 1–122, 2011. [26] C. Jiang and Y. Guo, “Incorporating control barrier functions in dis-tributed model predictive control for multirobot coordinated control,” 
+
+IEEE Transactions on Control of Network Systems , vol. 11, no. 1, pp. 547–557, 2023. [27] J. A. Andersson, J. Gillis, G. Horn, J. B. Rawlings, and M. Diehl, “Casadi: a software framework for nonlinear optimization and optimal control,” Mathematical Programming Computation , vol. 11, pp. 1–36, 2019. [28] J. Gillis, B. Vandewal, G. Pipeleers, and J. Swevers, “Effortless modeling of optimal control problems with rockit,” in 39th Benelux Meeting on Systems and Control, Date: 2020/03/10-2020/03/12, Lo-cation: Elspeet, The Netherlands , 2020. [29] A. W¨ achter and L. T. Biegler, “On the implementation of an interior-point filter line-search algorithm for large-scale nonlinear program-ming,” Mathematical programming , vol. 106, pp. 25–57, 2006. [30] L. Vanroye, A. Sathya, J. De Schutter, and W. Decr´ e, “Fatrop: A fast constrained optimal control problem solver for robot trajectory optimization and control,” in 2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) . IEEE, 2023, pp. 10 036– 10 043. [31] H. J. Ferreau, C. Kirches, A. Potschka, H. G. Bock, and M. Diehl, “qpoases: A parametric active-set algorithm for quadratic program-ming,” Mathematical Programming Computation , vol. 6, pp. 327–363, 2014. [32] T. Goldstein, B. O’Donoghue, S. Setzer, and R. Baraniuk, “Fast alternating direction optimization methods,” SIAM Journal on Imaging Sciences , vol. 7, no. 3, pp. 1588–1623, 2014. [33] Z. Tian, Z. Zhang, and R. Jin, “Distributed ADMM for time-varying communication networks,” in 2022 IEEE 96th Vehicular Technology Conference (VTC2022-Fall) . IEEE, 2022, pp. 1–5.

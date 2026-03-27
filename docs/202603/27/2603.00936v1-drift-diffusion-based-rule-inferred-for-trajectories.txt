@@ -1,0 +1,634 @@
+Title: DRIFT: Diffusion-based Rule-Inferred For Trajectories
+
+URL Source: https://arxiv.org/pdf/2603.00936v1
+
+Published Time: Tue, 03 Mar 2026 02:12:28 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+> JOURNAL OF L ATEX CLASS FILES,2026 1
+
+# DRIFT: Diffusion-based Rule-Inferred For Trajectories 
+
+Jinyang Zhao, Handong Zheng, Yanjiu Zhong, Qiang Zhang, Shunyu Wu, Yu Kang 
+
+Abstract —Trajectory generation for mobile robots in un-structured environments faces a critical dilemma: balancing kinematic smoothness for safe execution with terminal precision for fine-grained tasks. Existing generative planners often struggle with this trade-off, yielding either smooth but imprecise paths or geometrically accurate but erratic motions. To address the aforementioned shortcomings, this article proposes DRIFT (Diffusion-based Rule-Inferred for Trajectories), a conditional diffusion framework designed to generate high-fidelity reference trajectories by integrating two complementary inductive biases. First, a Relational Inductive Bias, realized via a GNN-based Structured Scene Perception (SSP) module, encodes global topological constraints to ensure holistic smoothness. Second, a Temporal Attention Bias, implemented through a novel Graph-Conditioned Time-Aware GRU (GTGRU), dynamically attends to sparse obstacles and targets for precise local maneuvering. In the end, quantitative results demonstrate that DRIFT reconciles these conflicting objectives, achieving centimeter-level imitation fidelity (0.041m FDE) and competitive smoothness (27.19 Jerk). This balance yields highly executable reference plans for downstream control. 
+
+Index Terms —Mobile Robots, Motion Planning, Trajectory Generation, Diffusion Models, 
+
+I. I NTRODUCTION 
+
+Generating safe, smooth, and feasible trajectories in large-scale, unstructured environments is a prerequisite for au-tonomous mobile robots [1], [2]. While perception-driven mapless methods have rapidly advanced in producing feasible paths for open-space navigation [3]–[7], fine-grained tasks such as docking, pre-grasping positioning, or close-quarters maneuvering remain particularly challenging. In these scenarios, the validity of a trajectory is no longer defined merely by reachability, but by its ability to simultaneously satisfy two strict and often conflicting objectives: kinematic smoothness for safe execution and terminal precision for accurate task completion [8]–[10]. For fine-grained manipulation or docking tasks, the generated reference trajectory must converge to the target pose with high geometric precision under strict endpoint constraints. At the same time, to enable stable tracking by downstream low-level controllers and ensure predictability in shared environments, the trajectory must remain kinematically smooth by minimizing higher-order motion derivatives [11] However, these two      
+
+> This work is supported by the National Natural Science Foundation of China (Number 72501093, 92367206, 92467302), and the China Postdoctoral Science Foundation (2024T012AH, 2025M781632) (Corresponding author: Handong Zheng, Yanjiu Zhong.) Jinyang Zhao, Handong Zheng, Yanjiu Zhong, Qiang Zhang and Yu Kang are with the School of Management, Ministry of Education Engineering Research Center for Intelligent Decision-Making & Information System Technologies, Hefei University of Technology, Hefei, 230009, Anhui, China. Shunyu Wu is the Department of Automation, Shanghai Jiao Tong University, Shanghai 200240, China (e-mail: 2023213574@mail.hfut.edu.cn; zheng-handong@hfut.edu.cn; zhongyanjiu@sjtu.edu.cn; qiang zhang@hfut.edu.cn; shunyuwu@sjtu.edu.cn; kangduyu@hfut.edu.cn).
+
+objectives are often intrinsically conflicting in learning-based planning. Enforcing strict terminal constraints typically induces high-frequency adjustments near the goal, leading to erratic velocity or jerk profiles. Conversely, prioritizing global smooth-ness often results in non-negligible terminal displacement errors. This precision-smoothness trade-off represents an unresolved fundamental bottleneck in current mapless trajectory generation approaches. Existing data-driven methods generally address this trade-off through two distinct paradigms. Classical generative models or optimization-embedded networks prioritize strict geometric con-straints and terminal accuracy [12]–[14]. However, effective in enforcing endpoint conditions, such rigid boundary constraints often introduce kinematic discontinuities, yielding trajectories that are difficult for low-level controllers to track smoothly. In contrast, recent diffusion-based policies excel in synthe-sizing globally coherent and kinematically feasible motions, making them well-suited for unconstrained navigation [15]– [19]. Nevertheless, due to their stochastic nature and reliance on static conditioning, these models commonly struggle with fine-grained terminal control, often failing to converge to the precise target states required for high-fidelity maneuvering. Consequently, achieving ”High-Fidelity Generation”—defined by the simultaneous satisfaction of kinematic smoothness and geometric precision—remains an open challenge. To address this challenge, we propose DRIFT (Diffusion-based Rule-Inferred for Trajectories), a conditional generative framework for high-fidelity trajectory generation. DRIFT explicitly incorporates architectural inductive biases into the diffusion process, structurally decoupling global topological reasoning from fine-grained local maneuvering. This design enables the planner to reconcile kinematic smoothness and terminal precision within a unified generative framework. Specifically, DRIFT integrates a Relational Inductive Bias through a GNN-based Structured Scene Perception (SSP) module to enhance global kinematic coherence. Addressing the kinematic instability often caused by a lack of topological context, SSP encodes unstructured point clouds [20]–[22] into a latent scene graph [23]–[26]. This structured representation explicitly captures environmental affordances, ensuring trajec-tories remain globally coherent and align proactively with the target pose, thereby structurally precluding high-Jerk artifacts. Complementarily, to ensure terminal state fidelity, DRIFT introduces a Temporal Attention Bias via a novel Graph-Conditioned Time-Aware GRU (GTGRU). We attribute the terminal deviation in standard diffusion planners to their reliance on static conditioning, which fails to adapt to fine-grained constraints during the denoising process. By integrating Sparse Cross-Attention, GTGRU enables the generator to dynamically attend to critical obstacles and goal states at each timestep. This mechanism ensures that the generated  
+
+> arXiv:2603.00936v1 [cs.RO] 1 Mar 2026 2JOURNAL OF L ATEX CLASS FILES,2026
+
+reference trajectories converge precisely to the target pose while respecting local geometric constraints, effectively balancing precision and smoothness in cluttered environments [6], [27]– [31]. In summary, the main contributions of this work are as follows:  
+
+> •
+
+The proposal of DRIFT, a conditional diffusion-based trajectory generative framework that effectively reconciles the critical trade-off between geometric precision and kine-matic smoothness for trajectory generation in unstructured environments.  
+
+> •
+
+The integration of a Relational Inductive Bias via a GNN-based structured perception module, which encodes global scene topology to ensure holistic kinematic coherence and traversability.  
+
+> •
+
+The design of a Temporal Attention Bias using a Graph-Conditioned Time-Aware GRU (GTGRU), which en-ables dynamic attention to fine-grained constraints for centimeter-level terminal fidelity. II. P RIOR WORK AND BACKGROUND 
+
+A. Structured Scene Encoding for Trajectory Generation 
+
+The representation of the unstructured environment is fundamental to the fidelity of subsequent trajectory generation. Mainstream perception methods, such as semantic segmentation using CNNs or geometric reconstruction via Neural Radiance Fields (NeRFs), have achieved high fidelity in dense scene de-scription [32]–[35]. However, the architectural inductive biases of these grid-based or implicit representations—specifically their locality and translational invariance—are inherently ill-suited for modeling global topological relationships. Conse-quently, they struggle to capture long-range connectivity and spatial affordances required for consistent planning. To bridge this gap, GNNs offer a powerful paradigm. By explicitly modeling environmental entities as nodes and spatial constraints as edges, the unique relational inductive bias of GNNs enables the extraction of topologically consistent context embeddings from raw perception [23]–[25], [36], [37] providing a structured foundation for the downstream diffusion generator. 
+
+B. Generative Models for Motion Planning 
+
+Learning-based trajectory generation has evolved from early Conditional Variational Autoencoders (CVAEs) [38], GANs [39]–[42] and Transformers [43] to recent Denoising Diffusion Probabilistic Models (DDPMs) [3], [16], [19]. While early generative models and sequence predictors capture motion distributions, they often suffer from training instability or kinematic discontinuities.In contrast, diffusion-based planners, such as Diffuser [15] and DTG [18], excel at synthesizing long-horizon, coherent trajectories. However, a critical bottleneck in existing diffusion policies is their reliance on static conditioning, where environmental context is encoded into a fixed vector prior to generation. This paradigm is generally ill-suited for fine-grained terminal tasks, as it prevents the model from dynamically attending to local geometric constraints during the iterative denoising process. 
+
+C. Optimizing Smoothness and Precision in Motion Planning 
+
+Generating trajectories that effectively reconcile kinematic feasibility with geometric precision remains a fundamental chal-lenge in unstructured environments. Traditional optimization-based planners (e.g., MPC) [12]–[14] excel at strictly enforcing terminal constraints and safety bounds. However, these ap-proaches are often constrained by high computational latency and susceptibility to local minima. Conversely, learning-based policies (e.g., Behavior Cloning) [10], [44], [45] offer high inference efficiency but frequently struggle to capture the multi-modal nature of expert maneuvers. This limitation typically manifests as a trade-off between under-fitting—resulting in terminal spatial drift—and forced over-fitting, which induces high-frequency jitter that compromises downstream tracking stability. Currently, few frameworks effectively reconcile the conflict between kinematic coherence and terminal precision solely through the architectural inductive biases of a generative model, without reliance on computationally expensive online optimization. In summary, prior work has made significant progress in structured scene representation, generative trajectory model-ing, and motion optimization. However, the lack of unified frameworks that explicitly integrate relational scene structure with time-adaptive generative processes continues to limit high-fidelity trajectory generation in fine-grained tasks. This obser-vation motivates the development of the approach introduced in the following section. III. PROBLEM FORMULATION We formalize the mapless trajectory generation task as learning a conditional distribution pθ (τ |O ) to synthesize high-fidelity reference plans. As illustrated in Fig. 1, at time step t,the observation Ot consists of the local LiDAR point cloud 
+
+Pt ∈ RN ×3, the robot’s historical velocity sequence vt ∈
+
+RHv ×2, and the local target coordinates gt ∈ R2. The objective is to generate a future trajectory τ = ( w1, w2, . . . , wM ), where 
+
+wi ∈ R2 denotes the planned waypoint in the robot’s local frame. Unlike standard imitation learning, which solely minimizes geometric reconstruction errors (e.g., Hausdorff distance), a valid reference plan for fine-grained maneuvering must satisfy two sets of intrinsic constraints:  
+
+> •
+
+Global Topological Consistency ( Cglobal ): The trajectory must be kinematically coherent and collision-free re-garding the environmental topology. This corresponds to minimizing smoothness cost Lsmooth and collision cost 
+
+Lcoll . 
+
+> •
+
+Terminal State Fidelity ( Clocal ): The trajectory must precisely converge to the target state with minimal displacement, necessitating the minimization of terminal error Lterm .Mathematically, let ˆτ = πθ (Ot) denote the trajectory generated by the policy. The optimal parameters θ∗ are learned by minimizing a compound objective function: 
+
+θ∗ = arg min  
+
+> θ
+
+Eτgt ∼D 
+
+h
+
+Limit (ˆ τ , τ gt )+ λ1Cglobal (ˆ τ ) + λ2Clocal (ˆ τ )
+
+i
+
+,
+
+(1) SHELL et al. : A SAMPLE ARTICLE USING IEEETRAN.CLS FOR IEEE JOURNALS 3GTGRU  Layer  1     
+
+> Graph−Conditioned
+> Time−Aware GRU
+> 𝐶 !"# tE"$%!
+> 𝐶 &'$()' context
+> +x
+> x
+> x
+> X*h+
+> tanh
+> 1-
+> 𝜎
+> 𝜎
+> r*
+> z*
+> .h*
+> h,
+> GTGRU  Layer  2
+> GTGRU  Layer  M
+
+…
+
+Encoder Decoder   
+
+> 𝑡𝑟𝑎𝑗𝑒𝑐𝑡𝑜𝑟𝑦
+> h*-).
+> LayerNorm
+> h/*)(
+> cumsum
+> Sequential
+> (Δx ,Δy )
+> bezier  curve
+> (x, y)
+> Output MLP
+> h0
+> h,h0
+
+… h1              
+
+> Denoising Network (DN)
+> SSP
+> Structured Scene
+> Perception
+> Lida rVel Target
+> MLP
+> E"$%!
+> Encoder
+> Fusion  MLP
+> 𝐶 23456 𝐶 #!' 𝐶 *)-
+> Convs
+> 𝐶 #!'
+> 𝐶 23456
+> 𝐶 *)-
+> 𝐶 !"#
+> Relational Inductive Bias (RIB) Temporal Inductive Bias (TIB)
+> RIB Flow
+> TIB Flow
+> DN Flow
+> Lida r
+> Vel
+> Target 𝐶 *)-
+> 𝐶 *)-&!*
+
+Fig. 1: DRIFT fuses relational topological bias (SSP) and temporal attention bias (GTGRU) to produce high-fidelity reference plans. The Denoising Network (DN) then iteratively refines trajectories from these structured encodings, balancing smoothness and precision. where λ1,2 are dynamic weighting factors balancing the constraints. However, directly optimizing Eq. (1) is challenging due to the non-differentiable nature of obstacle avoidance and the conflict between smoothness and precision. To address this, DRIFT adopts an “Architecture-as-Regularizer” approach. Instead of relying solely on loss constraints, we embed specific inductive biases directly into the network architecture. Specifically, the SSP module injects a Relational Inductive Bias to implicitly satisfy Cglobal by encoding scene topology Enode , while the Graph-Conditioned Time-Aware GRU (GTGRU) injects a Temporal Attention Bias to enforce Clocal by dynamically attending to fine-grained terminal constraints. IV. METHODOLOGY 
+
+A. Overview 
+
+The proposed DRIFT framework reformulates mapless navi-gation planning as a conditional trajectory generation process, explicitly decoupling the challenge into global topological reasoning and local fine-grained refinement. To reconcile the inherent trade-off between kinematic smoothness and terminal precision, the architecture integrates two orthogonal Architectural Inductive Biases. First, a SSP module injects a Relational Inductive Bias, encoding unstructured point clouds into a latent scene graph to enforce global topological consistency. Second, a Recurrent Denoising Generator (RDG) incorporates a Temporal Attention Bias via an autoregressive denoising mechanism. This generator is instantiated by a novel Graph-Conditioned Time-Aware GRU (GTGRU), enabling the model to dynamically attend to critical terminal constraints for high-fidelity convergence. 
+
+B. Relational Inductive Bias: Structured Scene Perception 
+
+To instantiate the Relational Inductive Bias, the SSP module is designed to extract topologically consistent representations from unstructured inputs. Unlike projection-based methods that compress spatial data into global vectors, SSP explicitly models the local environment as a latent graph G = ( V, E) to reason about geometric affordances. The pipeline begins by processing the raw LiDAR point cloud Pt. To balance computational efficiency with local detail, we apply voxel-based downsampling to discretize the cloud into local regions, treating each populated voxel as a graph node 
+
+vi ∈ V (Fig. 2). The initial node feature xi encodes the centroid coordinates and local point density. Topological connectivity is established by constructing edges E via k-Nearest Neighbors (k-NN) in the feature space, ensuring robust message passing even in sparse regions. This latent graph is processed by a GNN backbone composed of stacked EdgeConv layers [21]. It is selected for its ability to capture local geometric structures by operating on edge features. The node feature update is defined as an symmetric aggregation over local neighborhoods N (vi):
+
+h(l+1)  
+
+> i
+
+= max   
+
+> j∈N (vi)
+
+MLP (l) 
+
+h(l) 
+
+> i
+
+⊕ (h(l) 
+
+> j
+
+− h(l) 
+
+> i
+
+)
+
+
+
+, (2) 4 JOURNAL OF L ATEX CLASS FILES,2026 
+
+where ⊕ denotes feature concatenation, and h(l) 
+
+> i
+
+represents the hidden feature vector of node vi at the l-th layer (with h(0)  
+
+> i
+
+=
+
+xi). The term (h(l) 
+
+> j
+
+−h(l) 
+
+> i
+
+) explicitly captures the relative spatial relationship between the centroid node i and its neighbor j.This operation ensures that the learned representations capture local geometric details invariant to global translation. Critically, the SSP module yields two distinct representations to support the dual constraints of our framework:  
+
+> •
+
+Node-level Embeddings ( Enode ): The dense features from the final GNN layer preserve fine-grained spatial details, which are retained for the subsequent attention mechanism to query local obstacles. 
+
+Algorithm 1 Structured Scene Perception (SSP) Module  
+
+> 1:
+
+GENERATE GRAPH EMBEDDINGS (Ol; k, L ) 
+
+> 2:
+
+Inputs: raw point set / observations Ol, neighbor size k,GNN depth L 
+
+> 3:
+
+Outputs: node embeddings Enode , global context clidar  
+
+> 4:
+
+1. Dynamic Graph Construction  
+
+> 5:
+
+Vsparse ← VoxelDownsample( Ol) 
+
+> 6:
+
+E ← k-NN( Vsparse , k ) 
+
+> 7:
+
+h(0) ← InitialFeatures( Vsparse ) 
+
+> 8:
+
+G ← (Vsparse , h (0) , E) 
+
+> 9:
+
+2. GNN Feature Propagation (RGE)  
+
+> 10:
+
+for l = 0 to L − 1 do  
+
+> 11:
+
+for each node v ∈ Vsparse do  
+
+> 12:
+
+hedge ← L  
+
+> u∈N (v)
+
+MLP (l)
+
+> ϕ
+
+ h(l) 
+
+> v
+
+⊕ (h(l) 
+
+> u
+
+− h(l) 
+
+> v
+
+) 
+
+> 13:
+
+h(l+1)  
+
+> v
+
+← f (l)
+
+> θ
+
+ h(l) 
+
+> v
+
+, h edge 
+
+ 
+
+> 14:
+
+end for  
+
+> 15:
+
+end for  
+
+> 16:
+
+3. Generate Outputs  
+
+> 17:
+
+Enode ← { h(L) 
+
+> v
+
+}v∈Vsparse  
+
+> 18:
+
+clidar ← GlobalMaxPool( Enode ) 
+
+> 19:
+
+return Enode , c lidar  
+
+> •
+
+Environmental Context ( cenv ): A global context vector is derived by fusing the pooled graph feature clidar =
+
+MaxPool (Enode ) with the robot’s historical kinematic state. The velocity history vt is encoded into cvel via a 1D-CNN, and fused as: 
+
+cenv = MLP fuse (clidar ⊕ cvel ). (3) Notably, unlike prior works that bake the goal into the global context, we deliberately exclude the target gt from 
+
+cenv . This design enforces a structural decoupling, ensuring that the perception module focuses purely on environmental traversability (satisfying Cglobal ), while target guidance is handled dynamically by the temporal generation process. 
+
+C. Temporal Inductive Bias: Recurrent Denoising Generator 
+
+Complementarily, to enforce Terminal State Fidelity ( Clocal ), the framework introduces a Temporal Attention Bias via the Recurrent Denoising Generator (RDG). While the SSP module provides a static global map, the diffusion denoising process re-quires dynamic adaptability to fine-grained constraints that vary 
+
+Fig. 2: Voxel downsampling converts the dense LiDAR point cloud (green) into sparse graph nodes (red) (Alg. 1), cutting computational cost and producing structured topologies for GNN relational reasoning. along the prediction horizon. The RDG employs a novel Graph-Conditioned Time-Aware GRU (GTGRU) as its backbone, reformulating trajectory generation as a sequence-to-sequence translation task conditioned on topological embeddings. Specifically, at each diffusion step k, the noisy trajectory 
+
+x(k) is processed autoregressively. For the m-th waypoint wm,the GTGRU cell updates its hidden state hm by integrating three critical information streams: 
+
+1) Dynamic Obstacle Attention: To resolve local collision risks, we employ a Sparse Cross-Attention mechanism. Unlike static pooling, the current hidden state hm−1 serves as a query to retrieve relevant spatial features from the node embeddings 
+
+Enode (Key/Value) generated by SSP. This produces a dynamic context vector dm that focuses specifically on obstacles relevant to the current horizon step: 
+
+dm = Attention (Q = hm−1, K = Enode , V = Enode ). (4) This mechanism allows the planner to ”look at” specific graph nodes (e.g., a door frame or obstacle edge) only when the trajectory approaches them, ensuring kinematic clearance without over-smoothing. 
+
+2) Target-Driven Gating: To ensure precise convergence to the goal, the target encoding ctarget is fused with the global context cenv and time embedding tembed to form a conditioning vector ccond . This vector is injected into every recurrent step, directly modulating the GRU’s update gate zm and reset gate 
+
+rm:
+
+zm = σ(Wz wm + Uz hm−1 + Vz dm + Cz ccond ),
+
+hm = (1 − zm) ⊙ hm−1 + zm ⊙ ˜hm. (5) By persistently injecting ctarget into the gating mechanism, the network maintains a strong gradient flow towards the ter-minal state throughout the long-horizon generation, effectively minimizing the endpoint displacement error Lterm .
+
+D. Training Objectives and Curriculum 
+
+To enforce the proposed architectural inductive biases, we adopt a prediction-based training strategy. Unlike standard diffusion models that predict the noise residue ϵ, our generator 
+
+Gθ is parameterized to predict the noise-free trajectory ˆτ = x0SHELL et al. : A SAMPLE ARTICLE USING IEEETRAN.CLS FOR IEEE JOURNALS 5
+
+directly. This formulation allows us to apply differentiable geometric and kinematic constraints directly in the output space. The global objective Ltotal combines the standard diffusion denoising loss Lsimple with a set of auxiliary constraint losses 
+
+Laux , dynamically balanced by a curriculum scheduler: 
+
+Ltotal = Lsimple (ϵ, ϵ θ ) + X
+
+> k
+
+λk(e) · L k(ˆ τ , τ gt , Ot), (6) where e denotes the current epoch. The auxiliary losses are designed to enforce the dual constraints defined in Sec. III: 
+
+1) Imitation Fidelity ( Limit ): To satisfy Terminal State Fidelity ( Clocal ) and capture expert intent, we minimize a compound geometric distance comprising Hausdorff distance, Dynamic Time Warping (DTW), and endpoint MSE: 
+
+Limit = LHaus (ˆ τ , τ gt ) + LDT W (ˆ τ , τ gt ) + ∥ ˆwM − gt∥2. (7) 
+
+2) Kinematic Coherence (Lsmooth ): To ensure Global Topological Consistency ( Cglobal ), we explicitly penalize high-frequency jitter. The smoothness loss maximizes the cosine similarity between adjacent velocity vectors vi = wi+1 − wi
+
+to encourage directional continuity: 
+
+Lsmooth = Ei
+
+
+
+1 − vi · vi+1 
+
+∥vi∥2∥vi+1 ∥2 + ξ
+
+
+
+. (8) 
+
+3) Safety Constraint ( Lcoll ): We impose a soft penalty for any waypoint wi that breaches the safety radius rsaf e of obstacle points oj ∈ Pt:
+
+Lcoll = X
+
+> i,j
+
+max (0 , r saf e − ∥ wi − oj ∥2)2 . (9) 
+
+4) Curriculum Strategy: We implement a two-stage curricu-lum via λk(e). In the initial Imitation Phase ( e < E stage 1), weights prioritize Limit to establish a valid trajectory manifold. In the subsequent Refinement Phase ( e ≥ Estage 1), we significantly increase the weights for Lsmooth and Lcoll (e.g., increasing λcoll by 3×). This strategy guides the model from learning basic reachability to refining high-fidelity, collision-free plans suitable for downstream control. V. EXPERIMENTS 
+
+A. Experimental Setup 
+
+We utilize the large-scale outdoor navigation dataset from [3], collected by a Husky robot equipped with a 3Hz VLP-16 LiDAR. Following the standard protocol [3], the observation input comprises the last Cl = 3 LiDAR frames and Cv = 10 
+
+velocity frames. Ground truth trajectories are generated via an A* planner, thresholded at 15m with H = 16 waypoints. Goals are sampled within 60m for training and > 50 m for testing to evaluate long-horizon generation. Unlike the DTG baseline which uses PointCNN with 0.08m voxels, our perception encoder employs a coarser 0.2m voxel downsampling coupled with a k-NN ( k = 8 ) graph constructor to explicitly preserve topological connectivity. All models are trained on an NVIDIA RTX 3090 GPU. 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0 
+
+Distance (m) 
+
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Success rate (%)
+> S2TNet
+> DRIFT
+> BC
+> DTG
+
+Fig. 3: Terminal accuracy comparison for close-proximity docking. Our method, DRIFT (purple), maintains 92.55% success at 0.1m, while the DTG baseline (blue) fails (45.49%). This result demonstrates DRIFT’s ability to resolve the ”precision-smoothness trade-off” by achieving high-precision local maneuvering. 
+
+Algorithm 2 DRIFT Denoising Step with GTGRUCell  
+
+> 1:
+
+DENOISING STEP (hprev , x prev , p curr  
+
+> t
+
+, E node , c target , t embed ) 
+
+> 2:
+
+1. Sparse Cross-Attention  
+
+> 3:
+
+Q ← MLP Q(hprev ) 
+
+> 4:
+
+K, V ← MLP K (Enode ), MLP V (Enode ) 
+
+> 5:
+
+Nk ← k-NN( pcurr  
+
+> t
+
+, E node , k env ) 
+
+> 6:
+
+α ← Softmax  Similarity( Q, K [Nk])  
+
+> 7:
+
+di ← P 
+
+> j∈N k
+
+αj Vj 
+
+> 8:
+
+2. Gated Recurrent Unit (GTGRU) Update  
+
+> 9:
+
+xin ← PointEmbed( xprev ) + TargetProj( ctarget ) 
+
+> 10:
+
+zt ← σ Wz xin + Uz hprev + Vz di + . . .  
+
+> 11:
+
+rt ← σ Wr xin + Ur hprev + Vr di + . . .  
+
+> 12:
+
+˜hi ← tanh  Whxin + Uh(rt ⊙ hprev ) + . . .  
+
+> 13:
+
+hi ← (1 − zt) ⊙ hprev + zt ⊙ ˜hi 
+
+> 14:
+
+3. Waypoint Prediction  
+
+> 15:
+
+w0 
+
+> i
+
+← MLP out (hi) 
+
+> 16:
+
+return hi, w 0
+
+> i
+
+1) Dataset and Challenge Protocols: The dataset is par-titioned into spatially disjoint training and testing areas. To rigorously stress-test the generation fidelity, we constructed a Challenge Subset by filtering the test split based on four extreme geometric and kinematic thresholds:  
+
+> •
+
+Spatial Constriction: Traversable width < 2.0m, demand-ing precise boundary adherence.  
+
+> •
+
+High Clutter: Obstacle occupancy > 15% (3.0m radius), requiring intricate path generation.  
+
+> •
+
+High Dynamics: Expert trajectory Jerk > 5.0m/s 3, repre-senting aggressive evasion maneuvers.  
+
+> •
+
+Topological Complexity: Expert-to-A* length ratio ≫ 1,implying latent navigation rules beyond Euclidean heuris-tics. 6 JOURNAL OF L ATEX CLASS FILES,2026 DRIFT DTG[18] S2TNet[43] CAVE[38] BC[44] 
+
+Fig. 4: Predicted trajectories (dark) vs. ground truth (light gray) across models: DTG is smooth but deviates and misses terminals; CAVE and BC are erratic or imprecise. DRIFT resolves the precision–smoothness trade-off, matching the ground truth while remaining smooth. 
+
+2) Baselines: We compare DRIFT against representative methods from distinct learning paradigms to validate its supe-riority in the mapless trajectory generation task. Optimization-based planners (e.g., MPC) are excluded as they rely on explicit mapping, which falls outside the scope of this end-to-end learning study.  
+
+> •
+
+BC (Behavior Cloning) [44]: A fundamental imitation learning baseline with a deterministic perception-to-action mapping. While recent theoretical analysis suggests its optimality under certain conditions, in our context, it serves as a standard benchmark for geometric fitting performance.  
+
+> •
+
+CAVE [38] (Conditional VAE): A classic generative baseline. In trajectory synthesis, VAEs typically pro-duce geometrically diverse but kinematically incoherent (high-Jerk) paths, representing the “high-precision, low-smoothness” extreme.  
+
+> •
+
+S2TNet [43] (Spatio-Temporal Transformer) [43]: A SOTA trajectory predictor utilizing transformers to model complex interactions. It serves as a high-performance baseline for precision-focused architectures.  
+
+> •
+
+DTG [18] (Diffusion-based): A SOTA diffusion policy for navigation. While excelling at generating smooth, naturalistic paths, it relies on static conditioning, often lacking the fine-grained terminal fidelity required for docking tasks. It represents the high-smoothness, low-precision” extreme. 
+
+3) Evaluation Metrics: To rigorously quantify the quality of the generated reference plans τ , we employ a comprehensive set of metrics across three dimensions:  
+
+> •
+
+Geometric Fidelity: Final Displacement Error (FDE) 
+
+measures the Euclidean distance between the last gen-erated waypoint wM and the local goal g, quantifying the terminal precision ( Clocal ). Length Fidelity (LF) computes the ratio between the generated trajectory length and the ground truth length, quantifying the model’s ability to replicate the expert’s geometric scale without taking shortcuts or generating redundant motions.  
+
+> •
+
+Kinematic Coherence: Average Jerk ( J ) evaluates the smoothness of the trajectory by calculating the mean magnitude of the third derivative of position. Lower values indicate smoother, more trackable motions, reflecting global topological consistency ( Cglobal ).  
+
+> •
+
+Generation Feasibility: Inference Success Rate (ISR) 
+
+reports the percentage of episodes where the generator produces a collision-free path that converges to the goal region (error < 0.5m) within the horizon. Predicted Collision Rate (PCR) measures the percentage of generated trajectories that intersect with obstacle points in the input point cloud Ol. Inference Latency records the average wall-clock time for a single generation step. 
+
+B. Quantitative Analysis 
+
+The quantitative results (Table I) empirically validate the proposed “Architecture-as-Regularizer” paradigm and reveal the limitations of existing baselines in reconciling the fidelity-smoothness trade-off. 
+
+1) Analysis of the Fidelity-Smoothness Dilemma: The base-lines exhibit a stark polarization, confirming the conflicting nature of geometric and kinematic constraints:  
+
+> •
+
+High Fidelity, Low Smoothness (CAVE): While CAVE achieves exceptional geometric fidelity with a low FDE (0.041 m), this precision comes at the cost of severe kinematic instability, evidenced by a catastrophic Jerk (527 .87 m/s 3). Such erratic, high-frequency oscillations render the generated trajectories practically untrackable for downstream controllers.  
+
+> •
+
+High Smoothness, Low Fidelity (DTG): Conversely, the diffusion-based DTG produces the smoothest trajectories (22 .49 m/s 3) but suffers from significant terminal drift (0.699 m FDE) and a high Predicted Collision Rate (32 .47% ). This validates our hypothesis that static condi-tioning fails to provide the fine-grained guidance necessary for terminal state convergence.  
+
+> •
+
+Suboptimal Baselines (S2TNet & BC): Standard imitation methods struggle to master either objective, yielding trajectories with both high displacement errors ( > 0.7m) and poor kinematic coherence. 
+
+2) Reconciling the Conflict with DRIFT: DRIFT effec-tively resolves this dilemma by structurally decoupling global and local reasoning. It achieves centimeter-level terminal fidelity ( 0.041 m FDE), comparable to the precision-focused CAVE, while simultaneously maintaining competitive kine-matic smoothness ( 27 .19 m/s 3), on par with the smoothness-focused DTG. Crucially, this balance leads to a high Inference Success Rate ( 91 .66% ) and a low Predicted Collision Rate SHELL et al. : A SAMPLE ARTICLE USING IEEETRAN.CLS FOR IEEE JOURNALS 7
+
+TABLE I: QUANTITATIVE EVALUATION OF TRAJECTORY GENERATION PERFORMANCE 
+
+Methods ISR (%) PCR (%) Len. Fid. (%) FDE (m) Jerk (m/s 3) Latency (s) BC [44] 0.52 5.55 90.61 1.44 118.37 0.05 
+
+CAVE [38] 96.80 4.73 99.72 0.041 527.87 0.09 S2TNet [43] 2.35 5.32 99.73 0.712 163.19 0.08 DTG [18] 45.35 32.47 99.20 0.699 22.49 0.14 
+
+DRIFT (Ours) 91.66 5.17 99.73 0.041 27.19 0.27 w/o GNN 87.45 5.40 99.71 0.058 22.17 0.30 w/o GTGRU (U-Net) 92.03 5.47 99.70 0.043 27.84 2.10 w/o Attention 64.04 5.51 99.82 0.094 24.05 0.29 
+
+Note: ISR : Inference Success Rate, PCR : Predicted Collision Rate, Len. Fid. : Length Fidelity (ratio to ground truth length). DRIFT achieves the best balance between geometric precision (FDE) and kinematic smoothness (Jerk). (a)Trajectory View (b)2D Map View (c)Point Cloud View 
+
+Fig. 5: Predicted trajectory (dark) closely matches ground truth (light gray) in (a) trajectory, (b) 2D map, and (c) point-cloud views, showing DRIFT reconciles precision and smoothness. (5.17% ). These results demonstrate DRIFT’s unique capability to generate reference plans that are both geometrically accurate (for fine-grained tasks) and kinematically coherent (for stable execution), fulfilling the core requirements of high-fidelity trajectory generation. 
+
+C. Ablation Analysis: Inductive Biases 
+
+To validate the contribution of the proposed architectural biases, the variants presented in Table I are analyzed. 
+
+1) Impact of Relational Inductive Bias (w/o GNN): Replac-ing the SSP module with a standard U-Net encoder results in a 4.2% drop in ISR. This performance degradation suggests that grid-based convolutions struggle to capture the non-local topological connectivity of unstructured point clouds, which is critical for resolving global geometric constraints in complex environments. 
+
+2) Impact of Temporal Attention Bias (w/o Attention): 
+
+Removing the dynamic attention mechanism (GTGRU) leads to a catastrophic performance drop, with ISR falling to 64 .04% 
+
+and FDE degrading significantly to 0.094 m. This empirical evidence validates the hypothesis that static conditioning is insufficient for fine-grained tasks. The per-step attention mechanism is indispensable for correcting accumulation errors during the denoising process, thereby ensuring terminal state fidelity. VI. C ONCLUSION 
+
+In this letter, we presented DRIFT, a conditional generative framework that effectively reconciles the trade-off between geometric precision and kinematic smoothness for mapless tra-jectory generation. By adopting an “Architecture-as-Regularizer” paradigm, we embedded Relational and Temporal Inductive Biases to decouple global topological reasoning from fine-grained terminal refinement. Quantitative experiments demon-strate that DRIFT achieves centimeter-level imitation fidelity while maintaining competitive smoothness, surpassing existing baselines in generating executable reference plans. Future work will focus on accelerating inference via Consistency Models and integrating the generator with closed-loop tracking controllers for dynamic real-world deployment. ACKNOWLEDGMENTS 
+
+This should be a simple paragraph before the References to thank those individuals and institutions who have supported your work on this article. REFERENCES [1] S. M. LaValle, Planning algorithms . Cambridge university press, 2006. [2] S. Thrun, “Probabilistic robotics,” Communications of the ACM , vol. 45, no. 3, pp. 52–57, 2002. [3] J. Liang, P. Gao, X. Xiao, A. J. Sathyamoorthy, M. Elnoor, M. C. Lin, and D. Manocha, “Mtg: Mapless trajectory generator with traversability coverage for outdoor navigation,” in 2024 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2024, pp. 2396–2402. [4] Y. Hu, S. Wang, Y. Xie, S. Zheng, P. Shi, I. Rudas, and X. Cheng, “Deep reinforcement learning-based mapless navigation for mobile robot in unknown environment with local optima,” IEEE Robotics and Automation Letters , vol. 10, no. 1, pp. 628–635, 2025. [5] T. Ort, L. Paull, and D. Rus, “Autonomous vehicle navigation in rural environments without detailed prior maps,” in 2018 IEEE International Conference on Robotics and Automation (ICRA) , 2018, pp. 2040–2047. [6] Y. Zhu, R. Mottaghi, E. Kolve, J. J. Lim, A. Gupta, L. Fei-Fei, and A. Farhadi, “Target-driven visual navigation in indoor scenes using deep reinforcement learning,” in 2017 IEEE International Conference on Robotics and Automation (ICRA) , 2017, pp. 3357–3364. [7] P. Mirowski, R. Pascanu, F. Viola, H. Soyer, A. J. Ballard, A. Banino, M. Denil, R. Goroshin, L. Sifre, K. Kavukcuoglu, D. Kumaran, and R. Hadsell, “Learning to navigate in complex environments,” 2017. [Online]. Available: https://arxiv.org/abs/1611.03673 [8] C. Mavrogiannis, F. Baldini, A. Wang, D. Zhao, P. Trautman, A. Steinfeld, and J. Oh, “Core challenges of social robot navigation: A survey,” ACM Transactions on Human-Robot Interaction , vol. 12, no. 3, pp. 1–39, 2023. [9] T. Kruse, A. K. Pandey, R. Alami, and A. Kirsch, “Human-aware robot navigation: A survey,” Robotics and Autonomous Systems , vol. 61, no. 12, pp. 1726–1743, 2013. [10] N. Hirose, D. Shah, A. Sridhar, and S. Levine, “Sacson: Scalable autonomous control for social navigation,” IEEE Robotics and Automation Letters , vol. 9, no. 1, pp. 49–56, 2024. [11] Y. Gao and C.-M. Huang, “Evaluation of socially-aware robot navigation,” 
+
+Frontiers in Robotics and AI , vol. 8, p. 721317, 2022. [12] P. E. Hart, N. J. Nilsson, and B. Raphael, “A formal basis for the heuristic determination of minimum cost paths,” IEEE Transactions on Systems Science and Cybernetics , vol. 4, no. 2, pp. 100–107, 1968. 8 JOURNAL OF L ATEX CLASS FILES,2026 
+
+[13] S. Karaman and E. Frazzoli, “Sampling-based algorithms for optimal motion planning,” The International Journal of Robotics Research , vol. 30, no. 7, pp. 846–894, 2011. [Online]. Available: https://doi.org/10.1177/0278364911406761 [14] Z. Han, L. Xu, L. Pei, and F. Gao, “Dynamically feasible trajectory generation with optimization-embedded networks for autonomous flight,” 
+
+IEEE Robotics and Automation Letters , vol. 10, no. 10, pp. 9995–10 002, 2025. [15] M. Janner, Y. Du, J. B. Tenenbaum, and S. Levine, “Planning with diffusion for flexible behavior synthesis,” 2022. [Online]. Available: https://arxiv.org/abs/2205.09991 [16] C. Chi, Z. Xu, S. Feng, E. Cousineau, Y. Du, B. Burchfiel, R. Tedrake, and S. Song, “Diffusion policy: Visuomotor policy learning via action diffusion,” The International Journal of Robotics Research , vol. 0, no. 0, p. 02783649241273668, 0. [Online]. Available: https://doi.org/10.1177/02783649241273668 [17] A. Sridhar, D. Shah, C. Glossop, and S. Levine, “Nomad: Goal masked diffusion policies for navigation and exploration,” in 2024 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2024, pp. 63–70. [18] J. Liang, A. Payandeh, D. Song, X. Xiao, and D. Manocha, “Dtg : Diffusion-based trajectory generation for mapless global navigation,” in 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , 2024, pp. 5340–5347. [19] J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,” in Advances in Neural Information Processing Systems ,H. Larochelle, M. Ranzato, R. Hadsell, M. Balcan, and H. Lin, Eds., vol. 33. Curran Associates, Inc., 2020, pp. 6840–6851. [Online]. Available: https://proceedings.neurips.cc/paper files/paper/ 2020/file/4c5bcfec8584af0d967f1ab10179ca4b-Paper.pdf [20] C. R. Qi, L. Yi, H. Su, and L. J. Guibas, “Pointnet++: Deep hierarchical feature learning on point sets in a metric space,” in 
+
+Advances in Neural Information Processing Systems , I. Guyon, U. V. Luxburg, S. Bengio, H. Wallach, R. Fergus, S. Vishwanathan, and R. Garnett, Eds., vol. 30. Curran Associates, Inc., 2017. [Online]. Available: https://proceedings.neurips.cc/paper files/paper/ 2017/file/d8bf84be3800d12f74d8b05e9b89836f-Paper.pdf [21] Y. Wang, Y. Sun, Z. Liu, S. E. Sarma, M. M. Bronstein, and J. M. Solomon, “Dynamic graph cnn for learning on point clouds,” 
+
+ACM Trans. Graph. , vol. 38, no. 5, Oct. 2019. [Online]. Available: https://doi.org/10.1145/3326362 [22] B.-S. Hua, M.-K. Tran, and S.-K. Yeung, “Pointwise convolutional neural networks,” in Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , June 2018. [23] A. Rosinol, A. Gupta, M. Abate, J. Shi, and L. Carlone, “3d dynamic scene graphs: Actionable spatial perception with places, objects, and humans,” arXiv preprint arXiv:2002.06289 , 2020. [24] L. Chen, Z. He, L. Wang, C. Liu, and Q. Chen, “Temporal scene-object graph learning for object navigation,” IEEE Robotics and Automation Letters , vol. 10, no. 5, pp. 4914–4921, 2025. [25] Y. Meng, C. Guo, A. Li, and Y. Luo, “Context-aware graph inference and generative adversarial imitation learning for object-goal navigation in unfamiliar environment,” IEEE Robotics and Automation Letters , vol. 10, no. 4, pp. 3803–3810, 2025. [26] A. Sanchez-Gonzalez, N. Heess, J. T. Springenberg, J. Merel, M. Riedmiller, R. Hadsell, and P. Battaglia, “Graph networks as learnable physics engines for inference and control,” in Proceedings of the 35th International Conference on Machine Learning , ser. Proceedings of Machine Learning Research, J. Dy and A. Krause, Eds., vol. 80. PMLR, 10–15 Jul 2018, pp. 4470–4479. [Online]. Available: https://proceedings.mlr.press/v80/sanchez-gonzalez18a.html [27] Q. Wu, X. Gong, K. Xu, D. Manocha, J. Dong, and J. Wang, “Towards target-driven visual navigation in indoor scenes via generative imitation learning,” IEEE Robotics and Automation Letters , vol. 6, no. 1, pp. 175–182, 2021. [28] C. Chen, Y. Liu, S. Kreiss, and A. Alahi, “Crowd-robot interaction: Crowd-aware robot navigation with attention-based deep reinforcement learning,” in 2019 international conference on robotics and automation (ICRA) . IEEE, 2019, pp. 6015–6022. [29] Y. Yang, J. Jiang, J. Zhang, J. Huang, and M. Gao, “St 2: Spatial-temporal state transformer for crowd-aware autonomous navigation,” 
+
+IEEE Robotics and Automation Letters , vol. 8, no. 2, pp. 912–919, 2023. [30] K. D. Katyal, G. D. Hager, and C.-M. Huang, “Intent-aware pedestrian prediction for adaptive crowd navigation,” in 2020 IEEE International Conference on Robotics and Automation (ICRA) , 2020, pp. 3277–3283. [31] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. u. Kaiser, and I. Polosukhin, “Attention is all you need,” in Advances in Neural Information Processing Systems , I. Guyon, U. V. Luxburg, S. Bengio, H. Wallach, R. Fergus, S. Vishwanathan, and R. Garnett, Eds., vol. 30. Curran Associates, Inc., 2017. [Online]. Available: https://proceedings.neurips.cc/paper files/paper/ 2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf [32] M. Adamkiewicz, T. Chen, A. Caccavale, R. Gardner, P. Culbertson, J. Bohg, and M. Schwager, “Vision-only robot navigation in a neural radiance world,” IEEE Robotics and Automation Letters , vol. 7, no. 2, pp. 4606–4613, 2022. [33] B. Mildenhall, P. P. Srinivasan, M. Tancik, J. T. Barron, R. Ramamoorthi, and R. Ng, “Nerf: representing scenes as neural radiance fields for view synthesis,” Commun. ACM , vol. 65, no. 1, p. 99–106, Dec. 2021. [Online]. Available: https://doi.org/10.1145/3503250 [34] M. Cordts, M. Omran, S. Ramos, T. Rehfeld, M. Enzweiler, R. Benenson, U. Franke, S. Roth, and B. Schiele, “The cityscapes dataset for semantic urban scene understanding,” in Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , June 2016. [35] L.-C. Chen, Y. Zhu, G. Papandreou, F. Schroff, and H. Adam, “Encoder-decoder with atrous separable convolution for semantic image segmenta-tion,” in Proceedings of the European Conference on Computer Vision (ECCV) , September 2018. [36] P. W. Battaglia, J. B. Hamrick, V. Bapst, A. Sanchez-Gonzalez, V. Zam-baldi, M. Malinowski, A. Tacchetti, D. Raposo, A. Santoro, R. Faulkner, C. Gulcehre, F. Song, A. Ballard, J. Gilmer, G. Dahl, A. Vaswani, K. Allen, C. Nash, V. Langston, C. Dyer, N. Heess, D. Wierstra, P. Kohli, M. Botvinick, O. Vinyals, Y. Li, and R. Pascanu, “Relational inductive biases, deep learning, and graph networks,” 2018. [37] Y. Liu, T. Yuan, Y. Wang, Y. Wang, and H. Zhao, “VectorMapNet: End-to-end vectorized HD map learning,” in Proceedings of the 40th International Conference on Machine Learning , ser. Proceedings of Machine Learning Research, A. Krause, E. Brunskill, K. Cho, B. Engelhardt, S. Sabato, and J. Scarlett, Eds., vol. 202. PMLR, 23–29 Jul 2023, pp. 22 352–22 369. [Online]. Available: https://proceedings.mlr.press/v202/liu23ax.html [38] K. Sohn, H. Lee, and X. Yan, “Learning structured output representation using deep conditional generative models,” in Advances in Neural Information Processing Systems , C. Cortes, N. Lawrence, D. Lee, M. Sugiyama, and R. Garnett, Eds., vol. 28. Curran Associates, Inc., 2015. [Online]. Available: https://proceedings.neurips.cc/paper files/paper/2015/file/8d55a249e6baa5c06772297520da2051-Paper.pdf [39] I. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu, D. Warde-Farley, S. Ozair, A. Courville, and Y. Bengio, “Generative adversarial networks,” 
+
+Communications of the ACM , vol. 63, no. 11, pp. 139–144, 2020. [40] A. Gupta, J. Johnson, L. Fei-Fei, S. Savarese, and A. Alahi, “Social gan: Socially acceptable trajectories with generative adversarial networks,” in 
+
+Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR) , June 2018. [41] A. Ghafourian, Z. CuiZhu, D. Shi, I. Chuang, F. Charette, R. Sachdeva, and I. Soltani, “Hierarchical end-to-end autonomous navigation through few-shot waypoint detection,” IEEE Robotics and Automation Letters ,vol. 9, no. 4, pp. 3211–3218, 2024. [42] W. Feng, L. Ding, R. Zhou, C. Xu, H. Yang, H. Gao, G. Liu, and Z. Deng, “Learning-based end-to-end navigation for planetary rovers considering non-geometric hazards,” IEEE Robotics and Automation Letters , vol. 8, no. 7, pp. 4084–4091, 2023. [43] W. Chen, F. Wang, and H. Sun, “S2tnet: Spatio-temporal transformer networks for trajectory prediction in autonomous driving,” in Proceedings of The 13th Asian Conference on Machine Learning , ser. Proceedings of Machine Learning Research, V. N. Balasubramanian and I. Tsang, Eds., vol. 157. PMLR, 17–19 Nov 2021, pp. 454–469. [Online]. Available: https://proceedings.mlr.press/v157/chen21a.html [44] D. J. Foster, A. Block, and D. Misra, “Is behavior cloning all you need? understanding horizon in imitation learning,” in Advances in Neural Information Processing Systems , A. Globerson, L. Mackey, D. Belgrave, A. Fan, U. Paquet, J. Tomczak, and C. Zhang, Eds., vol. 37. Curran Associates, Inc., 2024, pp. 120 602–120 666. [Online]. Available: https://proceedings.neurips.cc/paper files/paper/ 2024/file/da84e39ae51fd26bb5110d9659c06e13-Paper-Conference.pdf [45] H. Kretzschmar, M. Spies, C. Sprunk, and W. Burgard, “Socially compliant mobile robot navigation via inverse reinforcement learning,” 
+
+The International Journal of Robotics Research , vol. 35, no. 11, pp. 1289–1307, 2016. [Online]. Available: https://doi.org/10.1177/ 0278364915619772

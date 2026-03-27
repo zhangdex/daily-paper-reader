@@ -1,0 +1,948 @@
+Title: LLM-Powered Automatic Theorem Proving and Synthesis for Hybrid Systems and Game
+
+URL Source: https://arxiv.org/pdf/2603.00737v1
+
+Published Time: Tue, 03 Mar 2026 01:55:24 GMT
+
+Number of Pages: 78
+
+Markdown Content:
+# LLM-Powered Automatic Theorem Proving and Synthesis for Hybrid Systems and Games 
+
+Aditi Kabra 1, Jonathan Laurent 2, Ruben Martins 1, Stefan Mitsch 3, and Andr´ ePlatzer 2 
+
+> 1
+
+Carnegie Mellon University, Pittsburgh, USA 
+
+akabra@cs.cmu.edu, rmatins@cs.cmu.edu  
+
+> 2
+
+Karlsruhe Institute of Technology, Karlsruhe, Germany 
+
+jonathan.laurent@kit.edu, platzer@kit.edu  
+
+> 3
+
+DePaul University, Chicago, USA 
+
+smitsh@depaul.edu 
+
+Abstract. Hybrid games model cyber-physical systems (CPS), like cars, trains, and airplanes, where discrete control decisions interact with con-tinuous physical dynamics. We use Large Language Models (LLMs) to scale formal verification and synthesis for hybrid systems and games for a high-level hybrid games symbolic logic, differential game logic ( dGL ). This combination of a logic with the right expressivity and automation of the interactive theorem proving process using LLMs brings within reach a challenging class of CPS verification/synthesis problems, that were pre-viously well out of range of automatic theorem proving. We demonstrate it on five challenging case studies, all beyond the reach of existing auto-matic techniques. Verification succeeds for all five, and the synthesis of control solutions succeeds for four of the five. 
+
+Keywords: hybrid systems · synthesis · verification · counter-example 
+
+· large language models 
+
+# 1 Introduction 
+
+Systems like cars, trains, and airplanes, where discrete control software interacts with continuous physical dynamics, are modeled by hybrid systems and hybrid games . Their verification and formally justified synthesis is important because they are often safety-critical, but mathematically complex, and thus difficult to get exactly right. As a consequence, extensive research has gone into developing formal methods for hybrid systems and games, with different approaches making different tradeoffs. Some tools gain impressive scalability by limiting the systems that they handle to mathematically simpler dynamics such as piecewise constant [4] or affine [14,29]. Other tools very effectively handle nonlinear dynamics over short time horizons [1,2] using numerical techniques, but lose precision of predic-tion over longer time horizons, struggling when time is unbounded. The general trend is that scalability is gained at the cost of expressiveness and precision. On the most expressive end are deductive, symbolic techniques in high-level logics  
+
+> arXiv:2603.00737v1 [cs.LO] 28 Feb 2026 2Authors Suppressed Due to Excessive Length
+
+[24,7,35,34]. They accept nonlinear dynamics interacting with discrete control in rich, program-like structures, permit reasoning in terms of symbolic parameters 
+
+that make theorems adaptable and re-usable, and cleanly handle infinite state space as well as unbounded domains including unbounded time horizons, all with precise reasoning free of discretization or approximation. However, they have one big disadvantage: despite efforts towards automation [32,10], they generally re-quire effort-intensive interactive theorem proving by an expert, which becomes a bottleneck for the complexity of systems handled and broader adoption. Expressivity 
+
+> Automation
+
+## this 
+
+## work 
+
+> Piecewise Constant
+> Deductive Logics
+> Traditional Tradeoff
+> Curve
+
+Fig. 1: Schematic representa-tion of tradeoffs in formal methods applied to Hybrid Sys-tems. LLMs have recently shown promise in au-tomating (and therefore scaling) interactive theorem proving for mathematics and (purely discrete) software [27,28,33]. This paper ex-plores the same premise for the data-scarce, mathematically complex domain of hybrid sys-tems and games. We identify five challenging case studies in verification and control synthe-sis and create LLM-assisted pipelines to prove and synthesize for them. The implication is a change in the tradeoff landscape of formal methods for hybrid systems, as the application of LLMs brings unprecedented automation to symbolic, deductive verification and synthesis, illustrated schematically in Fig. 1. We create a pipeline that lets the LLM interact with the interactive theorem prover KeYmaera X over multiple rounds, analyzing the problem, and summarizing and fixing its own mistakes. With this verifica-tion engine available, we turn to synthesizing the space of correct control. We synthesize control envelopes , or families of controllers that all verifiably meet the control objectives. A symbolic control envelope is parametric in symbols in its input, e.g., a train control solution in terms of symbolic train weight 
+
+w that can be any real number. We use LLMs strategically within a recent control envelope synthesis framework [12,11] to automatically synthesize veri-fied symbolic control envelopes . The resulting tool verifies all and synthesizes four of the five case studies, which are all not solved by existing automatic tools. Our key contributions are an automatic theorem proving system and a 
+
+synthesis pipeline that scale symbolic logic based verification and synthesis for hybrid systems and games, with the pipeline design justified by ablation exper-iments on challenging case studies. Our implementation is available online at 
+
+https://figshare.com/s/7f39a6756a7efa2e460e .
+
+# 2 Related Work 
+
+Hybrid games, and in particular the tactic language of KeYmaera X, are sig-nificantly more data-scarce than LLM-based verification in mathematics [27,33] Title Suppressed Due to Excessive Length 3
+
+and software [28,15,17], with few proof and synthesis examples available online. To our knowledge, this is the first work to explore LLM-based verification and synthesis for hybrid systems and games using a deductive, high-level symbolic logic like differential game logic [25]. Theorem provers for hybrid systems tradi-tionally focus on a mix of interactive proof techniques and proof heuristics for automation [19]. HHL Prover [34] and HHLPy [30] use proof scripts with an-notated invariants for loops and differential equations [19]. IsaVODEs [22] uses mostly scripted proofs with automation provided by Isabelle [23]. Plaidypvs [31] embeds differential dynamic logic in PVS. KeYmaera X [7] selects proof tac-tics based on the syntactic shape of proof obligations; proof heuristics provide a manually selected priority between tactic alternatives, attempted in order with timeouts. These proof heuristics achieve automation in hybrid systems, nonlin-ear continuous systems, and hybrid games, outperforming even proof scripts of other hybrid systems theorem provers [20,19]. This paper introduces a reasoning pipeline to push automation beyond the reach of KeYmaera X heuristics. 
+
+# 3 Automated Theorem Proving 
+
+We design an automated theorem proving (ATP) framework that uses LLMs to prove hybrid game/systems theorems in KeYmaera X. A strength of our framework is its generality: we design the pipeline and prompts to focus on generic information about all parts of dGL , and the pipeline works across all five case studies without any case-study-specific engineering. 
+
+Background. Hybrid systems extend discrete software by also modeling continu-ous dynamics which allows them to model control systems governed by discrete code in a continuous physical environment. Hybrid games extend systems by adding nondeterministic choice points resolved adversarially by players. They can be used to specify the space of control within which a controller player must find a strategy to achieve its control objectives despite potentially adversarial environmental conditions, e.g., a car that must reach the destination while re-maining safe despite other cars driving aggressively. In this paper, hybrid games are represented in differential game logic ( dGL ) [25]. Differential dynamic logic (dL ) [26] is the single-player subset of dGL that models hybrid systems . dGL can be read similar to an imperative programming language. This paper does not re-quire a detailed understanding, but an introduction to dGL [26,25] can be found in the literature, with the central details recalled in Appendix E. 
+
+3.1 Pipeline Description 
+
+Our automated theorem proving system follows the pipeline in Fig. 2. A natu-ral design is a conversational agent that iteratively proposes tactics that KeY-maera X checks. With access to the full conversation history, it corrects mistakes based on KeYmaera X output. This system fails to find proofs for three of our case studies. Therefore, to condense long contexts with limited signal, we add 4 Authors Suppressed Due to Excessive Length Analyze Game            
+
+> •What decisions does Angel make?
+> •What decisions does Demon make?
+> •What are the control modes?
+> Input
+> formula
+> analysis Propose Tactic
+> Proof Tactic
+> tactic KeYmaera X
+> Proof outcome Summarize
+> •Global proof plan
+> •Previous tactic and
+> open subgoals
+> •Mistakes and failed
+> proof directions
+> feedback
+> Proof
+> succeeded?
+> summary
+> Proof Complete
+> LLM Queries Removed in Ablation
+
+Fig. 2: Automated Theorem Proving Pipeline. Appendix F shows prompts. a summarization-and-reflection step. To make the LLM aware of the high-level meaning of the theorem, we add an initial problem analysis step. The analysis appears in subsequent prompts, having a small positive effect on robustness. In the Analyze Game step, given information about the syntax of dGL , the LLM produces an analysis of the input formula that contains four parts: what actions are controlled by which player, what modes (regions of different qualita-tive behavior) the game has, and comments about the overall gameplay pattern. Then the proving loop begins. This consists of three steps repeated until the proof is complete. First, the LLM is prompted to propose a tactic. It is given a guide on the Bellerophon tactic language [6] that KeYmaera X supports, the formula to prove, and a summary of past proof attempts, if available. The sec-ond step is to run the proposed tactic in KeYmaera X. If the tactic completes the proof, the pipeline ends successfully. Otherwise, KeYmaera X produces some output indicating where the proof failed. This output proceeds to the third step, 
+
+Summarize . In this step, the LLM uses the summary from the previous round (if available), and the proposed tactic and outcome of the present round to come up with a summary of the new proof state, currently known information, and suggestions/speculations about what to do next. This summary feeds back into the next tactic proposal step, continuing the loop. Appendix F lists the detailed prompts for each query. The pipeline is implemented using the Delphyne frame-work [16] for oracular programming with LLMs. 
+
+3.2 Case Studies 
+
+Five case studies are carefully developed to pose challenging verification and synthesis problems . The first is about maintaining safe populations under the 
+
+non-linear predator-prey Lotka-Volterra model given the ability to introduce additional predators and prey at unpredictable intervals of unbounded duration .The second case study is about verifying the ability of a train control system to maintain safety over train dynamics with Davis resistance (nonlinear) and time-dependent airbrakes . This case study poses structural complexity with a 
+
+nested inner loop over different modes of air brake operation. The third is main-taining safe temperatures during a chemical reaction . This system again requires reasoning about complex dynamics and different, arbitrarily alternating control modes over unbounded iterations. The solution to the dynamics lies outside the Title Suppressed Due to Excessive Length 5
+
+decidable (polynomial) fragment of real arithmetic , requiring non-trivial deduc-tive reasoning about differential equations via invariants . The fourth is about the ability of a coolant system to meet heat absorption quotas in a nuclear power plant while limiting coolant discharge, with a complex, timed, reach-avoid objective , different discrete modes, and dynamics that behave very differently de-pending on initial conditions of variables. Anecdotally, it took a human expert three days to manually prove this case study. The fifth is about choosing the right initial conditions for a Van der Pol oscillator to maintain a safety prop-erty, which again requires reasoning about nonlinear dynamics over unbounded iterations, and therefore, effectively, unbounded time . The chaotic nature of the Van der Pol oscillator dynamics makes the choice of initial conditions delicate. 
+
+Appendix D presents these case studies in detail. 
+
+3.3 Outcomes 
+
+Table 1 summarizes the outcomes of running the tool on the case studies. A suc-cessful outcome means that the tool was able to find a proof within eight runs and a total LLM call budget of twenty four dollars. Appendix A reports details. 
+
+None of the case studies can be solved by KeYmaera X’s existing automation alone [32]. An ablation experiment demonstrate the significance of the summa-rization step. Instead of an LLM-generated summary, the tactic proposal step is given a list of all previously proposed tactics and their outcomes, solving only two of the five case studies. With the summarization step, all five case studies are solved. All experiments in this paper use OpenAI GPT-5 for LLM calls. 
+
+3.4 Verification Impact by Example 
+
+This section illustrates how the combination of a symbolic logic with the right level of expressivity and LLMs to automate reasoning resolves challenges be-yond the reach of existing automatic techniques. For simplicity of explanation, we focus on one case study in particular, but the style of challenges and their resolutions generalize to all case studies and most dGL theorems. 
+
+Case Study: Lotka-Volterra. We introduce the first case study as a running example. A forest department must maintain predator population y and prey population x above minimum thresholds ymn and xmn respectively, for arbitrarily long. Because of unpredictable funding cycles, they can introduce additional prey and predators at unpredictable intervals, that could last arbitrarily long. This case study is inspired by an ARCH-COMP benchmark [8], but is modified by the addition of discrete control choices and adversarial game play.   
+
+> Traditional Proof Automation Agent with Full History Agent with Summarization 0/5 2/5 5/5
+
+Table 1: Verification: Adding a summarization step improves success rate com-pared to providing the agent the full history of tactic attempts and outcomes. 6 Authors Suppressed Due to Excessive Length 
+
+Model 1 Lotka-Volterra Population Control. Gray text is part of the verification problem but is excluded during synthesis, where it is synthesized automatically.                                                                                                   
+
+> assume 1x≤gd∧y≤ab∧gd≥xmn ∧ab≥ymn ∧x>0∧y>0
+> 2∧a > 0∧b > 0∧d > 0∧g > 0∧x≥xmn ∧y≥ymn →
+> ctrl 3⟨(x add := ∗; ? x add ≥0 ; y add := ∗; ? y add ≥0 ;
+> 4x:= x+x add ;y:= y+y add ;
+> plant 5{x′=a·x−b·x·y,y′=d·x·y−g·y}d
+> contract 6)×⟩(x≥xmn ∧y≥ymn )
+
+Model 1 Explanation. Model 1 shows the dGL formula modeling this problem via a game , with two players, canonically called Angel (representing the forest department) and Demon (representing uncertainties). Angel chooses the number of animals to introduce (Line 3 and 4) 4, while Demon adversarially chooses the length of the interval till the next opportunity to introduce animals (Line 5), as well as how many iterations the game runs for (Line 6), forcing Angel to maintain safe populations for arbitrarily long 5. Angel wins if in the end populations remain above the minimum thresholds (Line 6). The overall modal formula of form ⟨α⟩ϕ
+
+is true in states where Angel has a strategy to play in α so that regardless of how Demon plays in α, she will win (i.e., postcondition ϕ holds). Model 1 asks us to prove that, under the assumptions of Lines 1 and 2, Angel can always win. This case study is symbolic, with different behavior depending on the values of the parameters a, b, d, g, and variables x and y. Our reasoning must account for all uncountably infinite possible values that these symbols can take. To verify this formula, we will necessarily have to reason about the nonlinear dynamics of the Lotka-Volterra equation over unbounded time horizons (Line 5). While only a few automatic solvers can reason about nonlinear dynamics, even these cannot reason about reachability over unbounded time horizons 6. Then we must consider the discrete and adversarial dynamics: Angel chooses some positive real number of animals to introduce (Line 3) and we must verify whether any of her uncountably infinite choices will work over the nonlinear, unbounded-time dynamics. Additionally, we must consider what happens if this entire process repeats arbitrarily many times in a loop (Line 6). This explosion in possible behaviors is hard for traditional automatic techniques to deal with. Yet a symbolic proof is possible by translating a high-level physical under-standing of the problem to a clever choice of deductive proof rules. Looking                     
+
+> 4In the game x add := ∗, Angel freely chooses any real number to assign to x add .Then, ? x add ≥0 asserts that x add must be non-negative.
+> 5In the game {x′=f(x)}d, the state evolves per the flow of the differential equation
+> x′=f(x) for a duration chosen by Demon. In the game ( α)×, Demon chooses how many times to repeat the game α.
+> 6For instance, at ARCH-COMP 2025, where benchmark 5 involved Lotka-Volterra dynamics, the aim was only to solve for 3.64 time units. Title Suppressed Due to Excessive Length 7
+
+closely at the qualitative behavior of the Lotka-Volterra dynamics reveals a way for Angel to win. The dynamics have an equilibrium point at ( x, y) = ( g/d , a/b ), which is above the minimum populations threshold per assumptions a/b ≥ ymn 
+
+and g/d ≥ xmn (Model 1, Line 1). If Angel manages to set the populations to this equilibrium point at the start of each iteration, then she will satisfy her winning condition at the end of the iteration, regardless of how long Demon runs the dynamics. Since Angel can introduce any non-negative number of animals, all she needs at the start of each iteration is that predator and prey populations are no greater than the equilibrium point. Finally, many iterations of this ma-noeuver string together correctly over loop iterations because at the end of each iteration, populations are at the equilibrium point, satisfying the requirement that populations are no greater than the equilibrium point. To translate this high-level physical reasoning to a formal proof, the right choice of dGL proof rules 7 is critical, and traditionally provided by a human expert who understands what proof rule is applicable when. To show the first step in our reasoning above, that ( x, y) = ( g/d , a/b ) is an equilibrium point of the dynamics, the rule most commonly used to prove invariants of differ-ential equations (the differential invariant rule) does not immediately apply. Instead, a quick proof is possible using the more rarely used differential radical invariant [9] rule (Eq. (1)). It allows us to conclude that polynomial equation 
+
+hj = 0 is an invariant of the dynamics if we can show that its Lie derivatives 
+
+Ld(hj ), L2
+
+> d
+
+(hj ), . . . LNd (hj ) are zero, where N is the finite derivative order at which the chain of ideals ⟨h⟩ ⊆ ⟨ h, Lp(h)⟩ ⊆ · · · reaches a fixed point. (dRI) Γ , Q ⊢ ∧ Ni ∧j Lip(hj ) = 0 
+
+Γ ⊢ [x′ = p & Q] ∧j hj = 0 (1) Eq. (2) shows how this applies to our case. Read from bottom to top, the differen-tial radical invariant rule (dRI) applies to produce a sequent that is propositional in the decidable fragment of real arithmetic, that an automatic prover like Z3 [21] can discharge, establish an equilibrium point of these nonlinear dynamics.                                            
+
+> ∗
+> dRI
+> x−g/d = 0 ∧y−a/b = 0 ⊢d(ax−bxy ) = 0 ∧b(dxy −gy) = 0
+> x−g/d = 0 ∧y−a/b = 0 ⊢[x′=ax−bxy ,y′=dxy −gy]( x−g/d = 0 ∧y−a/b = 0)
+
+(2) This reasoning step must be carefully combined with the other reasoning steps to complete the proof. In this example we also need to apply rules such as the 
+
+loop rule with the correct invariant J ≡ x ≥ xmn ∧ y ≥ ymn ∧ x ≤ g/d ∧ y ≤
+
+a/b ∧ g/d ≥ xmn ∧ a/b ≥ ymn ∧ a > 0 ∧ b > 0 ∧ d > 0 ∧ g > 0 to demonstrate the inductiveness of Angel’s strategy over many iterations, and the exists right rule with a correct expression for Angel’s choice of x add and y add . Identifying and applying these rules requires both an understanding of the high-level solution   
+
+> 7Fig. 6 in Appendix E lists all the rules referenced in this discussion; the intent is not to dwell on their individual details, but to highlight that the proof requires a sequence of complex rule applications that resist straightforward (traditional) automation. 8Authors Suppressed Due to Excessive Length
+
+strategy of the problem as well as dGL ’s proof rules, leading to difficulties in automation using traditional techniques which lack the former and need careful, case-by-case encoding of the latter. Proofs can be expressed succinctly as tactic scripts, which are sequences of proof rules with their relevant parameters that when applied in order, complete the proof. Our pipeline was able to automatically generate a 49 line tactic script that completed the proof for this case study, listed in Appendix C. 
+
+# 4 Synthesis 
+
+Verifying Model 1 shows there exists some way for Angel to play to win the game. Synthesis is instead about constructing a concrete policy that the user desires, which is useful for developing controllers and runtime monitors/supervisors that ensure control remains compliant with a verified nondeterministic policy. The user provides the game and describes their desired solution informally, and the tool computes the corresponding formal nondeterministic policy, verified to be correct (never lose the game or get stuck). 
+
+4.1 Subvalue Maps 
+
+In this paper, we represent nondeterministic policies as subvalue maps [12], a symbolic equivalent of value functions in reinforcement learning or value tables in dynamic programming. dGL games consist of subgames , that compose together with operators like sequential composition ( ; ). An Angelic subvalue map delin-eates a nondeterministic policy for Angel by mapping each subgame to a formula ,and constraining Angel to only make choices that result in her entering the next subgame in a state where its mapped formula is true. Fig. 3 shows a subvalue map for the running example the induces the policy of setting populations to the equilibrium point. Here, the subgame ? x add ≥ 0, that follows Angel’s choice of 
+
+x add , is mapped to formula ϕx ≡ · · · ∧ d · (x + x add ) = g ∧ x add ≥ 0, con-straining Angel in the preceding subgame x add := ∗ to only choose nonnegative 
+
+x add values set the dynamics to their equilibrium point. Once the LLM guesses a policy (subvalue map), we can verify if it is correct (non-losing, never stuck) by checking some dGL formulas identified by existing frameworks [12,11]. For example, in the subvalue map of Fig. 3, to check that the subvalue of the loop, ϕinv , is correct, we make sure ϕinv → ϕcontract ∧ ϕx holds, that is, Angel won’t lose regardless of whether Demon continues the loop or not. If he continues the loop, Angel will win into ϕcontract , and if he repeats the loop, Angel will still win because ϕx holds, which inductively tells us that she has a winning strategy from the start of the loop body x := ∗. While this check was simple (no modalities), for other subgames, checks can involve modal dGL 
+
+formulas, for which we use the verification tool of Section 3. For synthesis, the same five case studies are used but with some initial as-sumptions missing (it will be the task of the synthesis pipeline to come up with Title Suppressed Due to Excessive Length 9                                                                                                                                                                                                   
+
+> 1. Input : Model 1 Angel freely chooses x add
+> and y add .
+> 3. Control policy derived from subvalue map
+> In state σ:1. At subgame x add := ∗,
+> x:= epermitted iff
+> σ(x7→e)|=ϕx.2. At subgame y add := ∗,
+> y:= epermitted iff
+> σ(y7→e)|=ϕy.where σ(φ7→e) is the state obtained by updating σto map variable φto value e.
+> 2. Synthesized subvalue map (some subgames unexpanded)
+> ϕinv ×
+> ϕx;
+> ϕx;
+> ϕx;
+> ϕx;
+> ϕxx add := ∗ϕx∗?x add ≥0
+> ϕx∗;
+> ϕyy add := ∗ϕy∗?y add ≥0
+> ϕequ +ctrl line 4
+> ϕequ plant
+> ϕcontract end
+> where ϕconst ≡a > 0∧b > 0∧d > 0∧g > 0, ϕpre ≡xmn d≤g∧ymn b≤a,
+> ϕcontract ≡x≥xmn ∧y≥ymn ,ϕequ ≡ϕconst ∧ϕpre ∧dx=g∧by=a,
+> ϕinv ≡ϕconst ∧ϕcontract ∧ϕpre ∧dx≤g∧by≤a∧x>0∧y>0,
+> ϕequ +≡ϕconst ∧ϕpre ∧d·(x+x add ) = g∧b·(y+y add ) = a,
+> ϕy∗ ≡ ϕequ +∧y add ≥0, ϕy≡ϕconst ∧ϕpre ∧d·(x+x add ) = g∧by≤a,
+> ϕx∗ ≡ ϕy∧x add ≥0, ϕx≡ϕconst ∧ϕpre ∧dx≤g∧by≤a.
+> ctrl line 4 and plant refer to the corresponding parts of Model 1, and end is the special node rep-resenting the end of the game. ϕcontract is the same correct control condition from Model 2, that is,
+> disch ≤dmax ∧(deadline ≤0→absbd ≥amin ). The other formulas are synthesized by the pipeline.
+
+Fig. 3: A subvalue map for the running example. all conditions necessary to make a strategy succeed). Additionally, each is as-sociated with an informal natural language description of which of the many possible control solutions to synthesize (listed in Appendix D). Given the run-ning example and a request to synthesize the solution that sets the system to an equilibrium point as soon as possible, our tool automatically identifies the corresponding subvalue map. It computes that Angel must pick x add and y add 
+
+such that x + x add = g/d and y + y add = a/b , and that this policy only works when, initially, x ≤ g/d , y ≤ a/b , g/d ≥ xmn , and a/b ≥ ymn .
+
+4.2 Pipeline Description 
+
+Weakest precondition calculus for normal programs [5] starts at the end of the game and works backwards, requiring loop invariant guesses and retrospective checks at loops. Similarly, our pipeline executes a precondition calculus for sub-value maps [12] on the game backwards from end to start, computing subvalues as preconditions. Some subgames, such as simple assignments, are easy to symboli-cally execute. Computing the precondition of others: loops, continuous dynamics, and nondeterministic choices, is expensive or undecidable in general. For these, the LLM is prompted to guess subvalue map entries which encode Angel’s win-ning strategy. A retrospective check using Z3 [21] when possible and KeYmaera X when necessary recovers soundness. Fig. 4 shows the synthesis pipeline. Initially, the LLM analyzes the game, identifying player actions and control modes, and comes up with a detailed strategy for Angel based on the informal guideline provided by the user. The strategy is expressed as a sequence of steps that Angel will take, stored to provide context in later steps. In the main subvalue map computation phase, the Next Subvalue step goes backwards to the next unprocessed subgame, and either symbolically computes the subvalue if it is easy, or prompts the LLM to guess it otherwise. In the latter case, the subvalue 10 Authors Suppressed Due to Excessive Length Analyze Game               
+
+> •What decisions does Angel make?
+> •What decisions does Demon make?
+> •What are the control modes?
+> analysis
+> Next Subvalue
+> If next subgame is “hard” (loop |
+> free assignment | ODE):
+> Else if subgame easy:
+> Compute subvalue .
+> Else is all subgames solved:
+> Return Success
+> (partial)
+> subvalue
+> map
+> Z3 or
+> KeYmaera XDecide Next
+> Move
+> •Backtrack to previous
+> subgame
+> •Try tactic proof
+> feedback
+> Check
+> succeeded?
+> LLM
+> Queries
+> Plan Control Strategies
+> •What assumptions hold initially?
+> •What sequence of control actions
+> does Angel take?
+> Propose subvalue
+> •Quantifer and modality
+> free formula
+> Verification
+> Pipeline
+> try
+> proof
+> backtrack
+> history input
+> formula
+> guideline
+> Else if all subgames solved:
+> Return Success
+
+Fig. 4: Synthesis Pipeline. Appendix G shows prompts. is checked using Z3 or KeYmaera X with existing, LLM-free automation. Guesses and their outcomes are stored to provide context for future guesses 8. If the check succeeds, the pipeline continues to the next unprocessed subgame. Otherwise, there are two possible recovery strategies, that the LLM chooses between. If the lemma was too complicated to verify using existing automation, it should try using the automatic theorem proving system from Section 3. Otherwise, the subvalue may be genuinely incorrect. The incorrectness may lie at the current subgame, or result from a bad earlier subvalue guess that makes the current subgame unsolvable (e.g., a non-inductive loop invariant causing problems in the loop body subvalues). The LLM should choose to backtrack to the subgame where the bad guess was made, and subvalue computation resumes from there. 
+
+4.3 Outcomes 
+
+Table 2 summarizes the results of our experiments. A case study is solved when one of four runs of the synthesis tool produces a correct subvalue map within a total budget of ten dollars for LLM calls. As a baseline, we compare to the tool associated with the only previous work general enough to synthesize control envelopes for our problems [12]. It fails, although it could succeed if extended with the right custom heuristics on a case-by-case basis. In contrast, our pipeline is very general, free of the need for case-by-case encoding of heuristics, and solves four out of five case studies. We also perform an ablation experiment where we do not allow the LLM to use the proving system from Section 3 or perform custom  
+
+> 8
+
+Control flow is more complicated for the special case of loops, where the loop invari-ant is guessed first, then the subvalue map of the loop body is computed assuming the invariant holds at the end of the body, and finally the loop invariant is retro-spectively checked for inductiveness given the computed subvalue map of the body. Previous Work Without Recovery and LLM-Assisted Proving Full Pipeline 0/5 2/5 4/5 
+
+Table 2: Synthesis: ablation shows the benefit of the recovery segment of the pipeline (detailed proving and custom backtracking). Title Suppressed Due to Excessive Length 11 
+
+backtracking. Instead, upon failure, we simply repeat LLM call points until the proof succeeds. Appendix B shows further details. 
+
+# References 
+
+1. Althoff, M.: Guaranteed state estimation in CORA 2021. In: Frehse, G., Althoff, M. (eds.) 8th International Workshop on Applied Verification of Continuous and Hybrid Systems (ARCH21), Brussels, Belgium, July 9, 2021. EPiC Series in Com-puting, vol. 80, pp. 161–175. EasyChair (2021). https://doi.org/10.29007/7M2K 
+
+2. Bogomolov, S., Forets, M., Frehse, G., Potomkin, K., Schilling, C.: Juliareach: a toolbox for set-based reachability. In: Ozay, N., Prabhakar, P. (eds.) Proceedings of the 22nd ACM International Conference on Hybrid Systems: Computation and Control, HSCC 2019, Montreal, QC, Canada, April 16-18, 2019. pp. 39–44. ACM (2019). https://doi.org/10.1145/3302504.3311804 
+
+3. Bohrer, R.: Chemical case studies in keymaera x. In: Formal Methods for Industrial Critical Systems: 27th International Conference, FMICS 2022, Warsaw, Poland, September 14-15, 2022, Proceedings. pp. 103–120. Springer-Verlag, Berlin, Heidel-berg (2022). https://doi.org/10.1007/978-3-031-15008-1_8 
+
+4. Bu, L., Li, Y., Wang, L., Li, X.: Bach: Bounded reachability checker for linear hybrid automata. In: Proceedings of the 2008 International Conference on Formal Methods in Computer-Aided Design. FMCAD ’08, IEEE Press (2008) 5. Dijkstra, E.W.: Guarded commands, nondeterminacy and formal derivation of pro-grams. Commun. ACM 18 (8), 453–457 (Aug 1975). https://doi.org/10.1145/ 360933.360975 
+
+6. Fulton, N., Mitsch, S., Bohrer, R., Platzer, A.: Bellerophon: Tactical theorem proving for hybrid systems. In: Ayala-Rinc´ on, M., Mu˜ noz, C.A. (eds.) ITP. LNCS, vol. 10499, pp. 207–224. Springer (2017). https://doi.org/10.1007/ 978-3-319-66107-0_14 
+
+7. Fulton, N., Mitsch, S., Quesel, J.D., V¨ olp, M., Platzer, A.: KeYmaera X: An ax-iomatic tactical theorem prover for hybrid systems. In: CADE. pp. 527–538 (2015). 
+
+https://doi.org/10.1007/978-3-319-21401-6_36 
+
+8. Geretti, L., Sandretto, J.A.D., Althoff, M., Benet, L., Collins, P., Forets, M., Mitsch, S., Patel, I., Perschl, M., Schilling, C., Tillet, J.: Arch-comp25 category report: Continuous and hybrid systems with nonlinear dynamics. In: Frehse, G., Althoff, M. (eds.) Proceedings of 12th Int. Workshop on Applied Verification for Continuous and Hybrid Systems. EPiC Series in Computing, vol. 108, pp. 39–70. EasyChair (2025). https://doi.org/10.29007/7br2 
+
+9. Ghorbal, K., Platzer, A.: Characterizing algebraic invariants by differential radical invariants. In: ´Abrah´ am, E., Havelund, K. (eds.) TACAS. LNCS, vol. 8413, pp. 279–294. Springer (2014). https://doi.org/10.1007/978-3-642-54862-8_19 
+
+10. Ghorbal, K., Sogokon, A., Platzer, A.: Invariance of conjunctions of polynomial equalities for algebraic differential equations. In: M¨ uller-Olm, M., Seidl, H. (eds.) SAS. LNCS, vol. 8723, pp. 151–167. Springer (2014). https://doi.org/10.1007/ 978-3-319-10936-7_10 
+
+11. Kabra, A., Laurent, J., Mitsch, S., Platzer, A.: CESAR: Control envelope synthesis via angelic refinements. In: Finkbeiner, B., Kov´ acs, L. (eds.) Tools and Algorithms for the Construction and Analysis of Systems. LNCS, vol. 14570, pp. 144–164. Springer (2024). https://doi.org/10.1007/978-3-031-57246-3_9 12 Authors Suppressed Due to Excessive Length 12. Kabra, A., Laurent, J., Mitsch, S., Platzer, A.: Hybrid game control envelope syn-thesis (2025). https://doi.org/10.48550/arXiv.2508.05997 , arXiv:2508.05997 13. Kabra, A., Mitsch, S., Platzer, A.: Verified train controllers for the federal rail-road administration train kinematics model: Balancing competing brake and track forces. IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems 41 (11), 4409–4420 (2022). https://doi.org/10.1109/TCAD.2022. 3197690 
+
+14. Kundu, A., Das, S., Ray, R.: Sat-reach: A bounded model checker for affine hybrid systems. ACM Trans. Embed. Comput. Syst. 22 (2) (Jan 2023). https://doi.org/ 10.1145/3567425 
+
+15. Lattuada, A., Hance, T., Cho, C., Brun, M., Subasinghe, I., Zhou, Y., Howell, J., Parno, B., Hawblitzel, C.: Verus: Verifying rust programs using linear ghost types. Proc. ACM Program. Lang. 7(OOPSLA1), 286–315 (2023). https://doi.org/10. 1145/3586037 , https://doi.org/10.1145/3586037 
+
+16. Laurent, J., Platzer, A.: Oracular programming: A modular foundation for building llm-enabled software. arXiv preprint arXiv:2502.05310 (2025) 17. Leino, K.R.M.: Dafny: An automatic program verifier for functional correctness. In: Clarke, E.M., Voronkov, A. (eds.) Logic for Programming, Artificial Intelli-gence, and Reasoning - 16th International Conference, LPAR-16, Dakar, Sene-gal, April 25-May 1, 2010, Revised Selected Papers. Lecture Notes in Com-puter Science, vol. 6355, pp. 348–370. Springer (2010). https://doi.org/10.1007/ 978-3-642-17511-4_20 , https://doi.org/10.1007/978-3-642-17511-4_20 
+
+18. Mitsch, S., Gario, M., Budnik, C.J., Golm, M., Platzer, A.: Formal verification of train control with air pressure brakes. In: Fantechi, A., Lecomte, T., Romanovsky, A. (eds.) RSSRail. LNCS, vol. 10598, pp. 173–191. Springer (2017). https://doi. org/10.1007/978-3-319-68499-4_12 
+
+19. Mitsch, S., Patel, I., Kannan, H.H.S., Jin, X., Zhan, B., Wang, S.: Arch-comp25 category report: Hybrid systems theorem proving. In: Frehse, G., Althoff, M. (eds.) Proceedings of 12th Int. Workshop on Applied Verification for Continuous and Hybrid Systems. EPiC Series in Computing, vol. 108, pp. 152–168. EasyChair (2025). https://doi.org/10.29007/pd1w , /publications/paper/ZlZZ 
+
+20. Mitsch, S., Sheng, H., Zhan, B., Wang, S., Foster, S., Munive, J.J.H.Y.: Arch-comp23 category report: Hybrid systems theorem proving. In: Frehse, G., Al-thoff, M. (eds.) Proceedings of 10th International Workshop on Applied Verifi-cation of Continuous and Hybrid Systems (ARCH23). EPiC Series in Comput-ing, vol. 96, pp. 170–188. EasyChair (2023). https://doi.org/10.29007/57g4 ,
+
+/publications/paper/TtcQ 
+
+21. de Moura, L., Bjørner, N.: Z3: An efficient SMT solver. In: Ramakrishnan, C.R., Rehof, J. (eds.) Tools and Algorithms for the Construction and Analysis of Sys-tems. pp. 337–340. Springer, Berlin, Heidelberg (2008) 22. y Munive, J.J.H., Foster, S., Gleirscher, M., Struth, G., Laursen, C.P., Hickman, T.: Isavodes: Interactive verification of cyber-physical systems at scale. J. Au-tom. Reason. 68 (4), 21 (2024). https://doi.org/10.1007/S10817-024-09709-2 ,
+
+https://doi.org/10.1007/s10817-024-09709-2 
+
+23. Paulson, L.C., Blanchette, J.C.: Three years of experience with sledgehammer, a practical link between automatic and interactive theorem provers. In: Sutcliffe, G., Schulz, S., Ternovska, E. (eds.) The 8th International Workshop on the Implemen-tation of Logics, IWIL 2010, Yogyakarta, Indonesia, October 9, 2011. EPiC Series in Computing, vol. 2, pp. 1–11. EasyChair (2010). https://doi.org/10.29007/36DT 
+
+24. Platzer, A.: Logics of dynamical systems. In: LICS. pp. 13–24. IEEE (2012). https: //doi.org/10.1109/LICS.2012.13 Title Suppressed Due to Excessive Length 13 25. Platzer, A.: Differential game logic. ACM Trans. Comput. Log. 17 (1), 1:1–1:51 (2015). https://doi.org/10.1145/2817824 
+
+26. Platzer, A.: Logical Foundations of Cyber-Physical Systems. Springer, Cham (2018). https://doi.org/10.1007/978-3-319-63588-0 
+
+27. Polu, S., Sutskever, I.: Generative language modeling for automated theorem prov-ing. ArXiv abs/2009.03393 (2020) 28. Qin, J., Du, A., Zhang, D., Lentz, M., Zhuo, D.: Can large language models verify system software? a case study using fscq as a benchmark. In: Proceed-ings of the 2025 Workshop on Hot Topics in Operating Systems. p. 34–41. Ho-tOS ’25, Association for Computing Machinery, New York, NY, USA (2025). 
+
+https://doi.org/10.1145/3713082.3730382 
+
+29. Ray, R., Gurung, A., Das, B., Bartocci, E., Bogomolov, S., Grosu, R.: Xspeed: Accelerating reachability analysis on multi-core processors. In: Piterman, N. (ed.) Hardware and Software: Verification and Testing - 11th International Haifa Ver-ification Conference, HVC 2015, Haifa, Israel, November 17-19, 2015, Proceed-ings. Lecture Notes in Computer Science, vol. 9434, pp. 3–18. Springer (2015). 
+
+https://doi.org/10.1007/978-3-319-26287-1_1 
+
+30. Sheng, H., Bentkamp, A., Zhan, B.: Hhlpy: Practical verification of hybrid sys-tems using hoare logic. In: Chechik, M., Katoen, J., Leucker, M. (eds.) Formal Methods - 25th International Symposium, FM 2023, L¨ ubeck, Germany, March 6-10, 2023, Proceedings. Lecture Notes in Computer Science, vol. 14000, pp. 160– 178. Springer (2023). https://doi.org/10.1007/978-3-031-27481-7_11 , https: //doi.org/10.1007/978-3-031-27481-7_11 
+
+31. Slagel, J.T., Moscato, M.M., White, L.M., Mu˜ noz, C.A., Balachandran, S., Dutle, A.: Embedding differential dynamic logic in PVS. In: Kutsia, T., Ventura, D., Monniaux, D., Morales, J.F. (eds.) Proceedings 18th International Workshop on Logical and Semantic Frameworks, with Applications and 10th Workshop on Horn Clauses for Verification and Synthesis, LSFA/HCVS 2023, and 10th Workshop on Horn Clauses for Verification and SynthesisRome, Italy & Paris, France, 1-2 July, 2023 & 23rd April 2023. EPTCS, vol. 402, pp. 43–62 (2023). https://doi.org/ 10.4204/EPTCS.402.7 , https://doi.org/10.4204/EPTCS.402.7 
+
+32. Sogokon, A., Mitsch, S., Tan, Y.K., Cordwell, K., Platzer, A.: Pegasus: Sound continuous invariant generation. Form. Methods Syst. Des. 58 (1), 5–41 (2022). 
+
+https://doi.org/10.1007/s10703-020-00355-z , special issue for selected papers from FM’19 33. Varambally, S., Voice, T., Sun, Y., Chen, Z., Yu, R., Ye, K.: Hilbert: Recursively building formal proofs with informal reasoning. In: NeurIPS Workshop (2025), 
+
+https://arxiv.org/abs/2509.22819 
+
+34. Wang, S., Zhan, N., Zou, L.: An improved HHL prover: An interactive theorem prover for hybrid systems. In: Butler, M.J., Conchon, S., Za¨ ıdi, F. (eds.) For-mal Methods and Software Engineering - 17th International Conference on Formal Engineering Methods, ICFEM 2015, Paris, France, November 3-5, 2015, Proceed-ings. Lecture Notes in Computer Science, vol. 9407, pp. 382–399. Springer (2015). 
+
+https://doi.org/10.1007/978-3-319-25423-4_25 
+
+35. Zhou, C., Wang, J., Ravn, A.P.: A formal description of hybrid systems. In: Alur, R., Henzinger, T.A., Sontag, E.D. (eds.) Hybrid Systems III: Verification and Con-trol, Proceedings of the DIMACS/SYCON Workshop on Verification and Control of Hybrid Systems, October 22-25, 1995, Ruttgers University, New Brunswick, NJ, USA. Lecture Notes in Computer Science, vol. 1066, pp. 511–530. Springer (1995). 
+
+https://doi.org/10.1007/BFB0020972 14 Authors Suppressed Due to Excessive Length 
+
+# A Details of Verification Experiments 
+
+We report further details on the verification experiments. All experiments con-sist of two sets of four parallel, independent pipeline runs (where each pipeline run consists of many iterations of the inner verification loop). These four parallel runs terminate only when any one of them succeeds, or when they collectively run out of a twelve dollar budget. The choice of twelve dollars is because beyond this point, we find reasoning to diverge, suggesting limited benefit to further it-erations of the proving loop. Thus for each case study the verification experiment allows eight attempts with a total budget of twenty four dollars. Summing over the eight runs, we list the number of LLM calls made and the dollar budget consumed for LLM calls in Table 3. Smaller numbers indicate that the proof was reached early. The 12.00 in the Lotka Volterra case study indicates that the proof was only reached in the second set of runs. We found that the time taken to run was dominated by LLM reasoning model response time.                 
+
+> Model Number of LLM Calls Dollar Cost Time (minutes)
+> Coolant 89 + 64 6.9 + 5.8 47.0+39.9 Train 87 + 63 7.0 + 5.2 43.9+31.4 Lotka Volterra 176 + 57 12.0 + 3.6 93.0+27.5 Chemical Reaction 31 + 49 2.0 + 3.7 16.7+31.7 Van der Pol 44 + 59 3.3 + 5.5 26.9+41.3
+
+Table 3: Verification experiments: Number of LLM calls, time to run, and dollar cost for two sets of four parallel runs per case study. In the ablation where we disable the summary step, only the Chemical Reac-tion and Van der Pol case studies complete successfully. For Chemical Reaction, the number of LLM calls actually decreases, while for Van der Pol, it increases (Table 4).      
+
+> Model Number of LLM Calls Dollar Cost
+> Chemical Reaction 28 + 24 2.7 + 2.4 Van der Pol 51 + 99 4.9 + 10.3
+
+Table 4: Verification experiments without summary step: Number of LLM calls and dollar cost for two sets of four parallel runs per case study. The costs for all other case studies exceeds the budget. 
+
+# B Details of Synthesis Experiments 
+
+We discuss further details on the synthesis experiments. All experiments consist of four parallel pipeline runs that terminate when any one of them succeeds, or Title Suppressed Due to Excessive Length 15 
+
+when they collectively run out of a ten dollar budget for LLM calls. The ten dollar budget, again, is chosen because of diminishing returns beyond this point. In addition to the ablation discussed in the main text, we also tried an ablation with the initial analysis and control strategy planning step removed. The result was that three out of the five case studies received a verified subvalue map, but one of these was different than the desired solution per the provided guideline. In either case, this is lower than the four problems solved by the full pipeline, indicating that the initial analysis segment is helpful. Like in Appendix A, we next report the number of LLM calls, dollar cost, and time taken for each case study by the full pipeline in Table 5.                 
+
+> Model Number of LLM Calls Dollar Cost Time (minutes)
+> Coolant 115 10.0 83.8 Chemical Reaction 16 0.7 6.8 Van der Pol 26 0.7 6.3 Lotka Volterra 58 2.8 23.7 Train 89 5.5 41.4
+
+Table 5: Synthesis experiments: Number of LLM calls, time to run, and dollar cost for each case study. In the ablation without proving or backtracking (recovery choice), as the LLM does not guide backtracking, we need a separate search policy to decide how to do retries. We use depth-first search with a maximum branching factor of three. That is, when a subvalue check fails, we first retry it twice, and if both fail, we backtrack to the second most recent subvalue guess and retry it, and so on. The two benchmarks that succeed in this ablation are Chemical Reaction and Van der Pol, with the number of LLM calls and dollar costs listed in Table 6.      
+
+> Model Number of LLM Calls Dollar Cost
+> Chemical Reaction 17 0.9 Van der Pol 22 0.7
+
+Table 6: Synthesis experiments without recovery choice: Number of LLM calls and dollar cost for each case study. The costs for all other case studies exceeds the budget. 
+
+# C Tactic for Model 1 
+
+The tactic that the LLM discovers to prove Model 1 is as follows: 16 Authors Suppressed Due to Excessive Length 
+
+unfold; loop("x>=xmin & y>=ymin & x<=g/d & y<=a/b & g/d>=xmin & a/b>=ymin & a>0 & b>0 & d>0 & g>0", 1); <( /* init */ auto; print("Init subgoal after auto"), /* step */ unfold; unfold; print("Step: after exposing existentials/diamond"); /* witness for xadd and discharge ?xadd>=0 */ existsR(1, "g/d - x"); unfold; <( QE("Z3"); print("Step: discharged ?xadd>=0"), /* continue with yadd */ unfold; existsR(1, "a/b - y"); unfold; <( QE("Z3"); print("Step: discharged ?yadd>=0"), /* push deterministic assignments into box over ODE */ unfold; unfold; print("Step: after pushing assignments"); /* split post x>=xmin & y>=ymin */ boxAnd(1); andR(1); <( /* prove [ODE] x>=xmin */ dC("x=g/d & y=a/b", 1); <( /* use: with equality in domain, finish */ cut("1=1"); <( dW(1); QE("Z3"), QE("Z3") using "1=1" ), /* show: [{LV}](x=g/d & y=a/b) via dRI */ dC("d*x - g = 0 & a - b*y = 0", 1); <( /* use: from q1=0 & q2=0 derive result */ cut("1=1"); <( dW(1); QE("Z3"), QE("Z3") using "1=1" ), /* show: [{LV}](q1=0 & q2=0) */ boxAnd(1); andR(1); <( dRI(1); QE("Z3"), dRI(1); QE("Z3") ))), /* prove [ODE] y>=ymin: symmetric */ dC("x=g/d & y=a/b", 1); <( cut("1=1"); <( Title Suppressed Due to Excessive Length 17 
+
+dW(1); QE("Z3"), QE("Z3") using "1=1" ), /* same fix for the show branch here */ dC("d*x - g = 0 & a - b*y = 0", 1); <( cut("1=1"); <( dW(1); QE("Z3"), QE("Z3") using "1=1" ), boxAnd(1); andR(1); <( dRI(1); QE("Z3"), dRI(1); QE("Z3") )))))), /* post */ auto; print("Post subgoal after auto") )
+
+Here, the seemingly redundant cut("1=1") steps are a workaround to a bug in KeYmaera X that incorrectly prevents application of dW on certain subgoal shapes. The print statements are for the LLM to track progress and get informa-tion about the proof state in case of failure. The use of QE("Z3") indicates that the Z3 SMT solver is used to discharge the corresponding proof obligation. In the prompt, the LLM is encouraged to break down the proof rather than using auto so that the proof remains stable despite changes to the automation and quicker to check. 
+
+# D Other Case Studies 
+
+Case Study: Coolant. Consider a coolant system in a nuclear power plant that must achieve the control objective of absorbing at least amin units of heat while expending at most dmax units of coolant in a given time frame. The coolant system controller chooses how much coolant to send through the system, and then goes to sleep for some amount of time bounded by maximum latency T ,repeatedly polling in a control loop 9. Model 2 shows the formula modeling this system, that we must prove valid. We must reason directly in terms of sym-bolic parameters such as required absorption amin and maximum flow rate F .The system has different control modes, can run for arbitrarily long (because of        
+
+> 9We use the typographic convention of monospaced font for variables that change over the course of a game and math font for each symbolic parameter Pthat can represent any real number which remains constant over the course of a game. 18 Authors Suppressed Due to Excessive Length
+
+Model 2 Case study: Coolant System. ϕinit is a long formula listed in Fig. 5. It is not provided in the synthesis variant of the problem, and must be computed.                                                                               
+
+> assume 1ϕinit ∧T > 0∧F > 0∧amin >0∧dmax >0∧c1>0∧c2>0→
+> ctrl 2⟨((? absbd < a dmin ;flow := F)∩(absbd ≥admin ;flow := 0) ;
+> plant 3t:= 0;
+> 
+> absbd ′=flow ·c1·temp diff ,
+> disch ′=flow ,
+> temp diff ′=−flow ·c2·temp diff +g,
+> t′= 1,
+> deadline ′=−1 & t≤T
+> 
+> d
+> contract 4)×⟩(disch ≤dmax ∧(deadline ≤0→absbd ≥amin ))
+
+loop iterations), and dynamical behavior qualitatively changes depending on the initial temperature, all of which our reasoning will precisely account for. 
+
+Model 2 Explanation. We provide an explanation of the dGL model for this case study. Line 1 shows initial assumptions expressing physical constraints, e.g., that the maximum flow rate F is positive. Formula ϕinit is a complex formula listed in Fig. 5 representing initial conditions that make safe control possible: the dis-charge limit should not already have been exceeded, and if the heat absorption quota is not already met, then there is enough time and discharge capacity left to still meet it. At Line 2, the control loop begins. The controller assigns a coolant flow rate. The choice flow := F is chosen in states where the absorption quota has not yet been met ( absbd < a min ), and the choice flow := 0 is chosen otherwise. At Line 3, the controller goes to sleep and the state evolves per the physical dynamics, where the heat absorbed is proportional to temperature difference between the coolant and the system, total coolant discharged is tracked by variable disch , the system generates heat at rate 
+
+g, and the auxiliary deadline variable counts down to when the system must have met its absorption obligations. The controller stays asleep for at most T
+
+time units, though it may wake up earlier, with variable t tracking time elapsed. Finally, at Line 4, the control loop closes, with the syntax ( α)×. The control loop repeats arbitrarily many times, and we must verify that all possible number of iterations are safe. The modal formula ⟨α⟩ϕ is true when all possible runs result in a state satisfying postcondition ϕ. Therefore, the overall formula of Model 2 is valid when, given the assumptions of Line 1, all executions lead to a state where the control objective is satisfied, that is, disch ≤ dmax ∧ (deadline ≤ 0 →
+
+absbd ≥ amin ) holds. This case study is an example of a hybrid system , since there is no adversarial game play. 
+
+Case Study: Train. A train must stop before its end of motion authority e,beyond which may lie other trains. The train can brake using two mechanisms: a normal brake that decelerates at most at rate b0, and an air brake that ramps Title Suppressed Due to Excessive Length 19 
+
+ϕinv ≡
+
+> discharge within limit
+
+disch ≤ dmax ∧
+
+> physics constraints
+
+F > 0 ∧ c1 > 0 ∧ c2 > 0 ∧ T > 0 ∧ (
+
+> already absorbed enough
+
+z }| {
+
+absbd ≥ amin ∨(
+
+> there’s time left
+
+z }| {
+
+deadline ≥ 0 ∧ (Current 
+
+temp diff 
+
+lower bounds all future 
+
+temp diff 
+
+( 
+
+> temp diff only increases
+
+z }| {
+
+temp diff ≤ g/ (F · c2) ∧ 
+
+> can absorb enough · · ·
+
+z }| {
+
+c1 · temp diff · (dmax − 
+
+> · · · without exceeding discharge budget
+
+z }| {
+
+disch − F · T ) ≥ amin − absbd ∧
+
+> can absorb enough before deadline
+
+z }| {
+
+deadline · c1 · temp diff · F ≥ amin − absbd )∨
+
+gF · c2
+
+lower bounds 
+
+temp diff 
+
+( 
+
+> temp diff bound
+
+z }| {
+
+temp diff > g/ (F · c2) ∧ 
+
+> can absorb enough · · ·
+
+z }| {
+
+c1 · (g/ (F · c2)) · 
+
+> · · · without exceeding discharge budget
+
+z }| {
+
+(dmax − disch − F · T ) ≥ amin − absbd ∧
+
+> can absorb enough before deadline
+
+z }| {
+
+deadline · c1 · g/c 2 ≥ amin − absbd )))) (3) 
+
+Fig. 5: Formula ϕinit for the Coolant case study. up deceleration gradually, as pressure leaks from brake pipes, at rate p until it reaches maximum deceleration Apb . This case study is inspired by a previous case study on verification of trains with air brakes [18], but with the addition of air brakes [13] and adversarial game dynamics. 
+
+Model 3 Explanation. Model 3 shows the dGL formula modeling the train control problem via a game between Angel (the train controller) and Demon (environ-mental uncertainties). Angel chooses between the control modes of normal op-eration and air brake application (Line 5). In normal operation, she may choose any acceleration between −b0 and a0. Then, Demon chooses how long the train will run before Angel gets to re-evaluate her decision, bounded by a maximum time latency T (Line 7 and 8). The physical dynamics operate in two modes, depending on whether the air brakes are ramping up (Line 7) or have stabilized at their maximum (Line 8). This is modeled by ODEs for each mode within an inner loop that allows switching between them. Demon controls the number of it-erations of the outer control loop (Line 3 to 8), forcing Angel to maintain safety for arbitrarily long. The overall modal formula of form ⟨α⟩ϕ is true in states where Angel has a strategy to play so that regardless of how Demon plays, she will win, that is, the train controller has a way to maintain safety (Line 9). To reason correctly about this problem we must again reason over the nonlinear dynamics of the train, and ensure safety over unbounded time horizons. The mode switching inner-loop structure adds a further layer of complexity. 20 Authors Suppressed Due to Excessive Length 
+
+Model 3 Case study: Train Control. Gray parts are not included in the synthesis variant of the problem, and must be computed. Brown text is not a part of the verification problem, but added to the synthesis problem.                                                                                                                                 
+
+> assume 1e−trainPos −vel 2
+> 2·b0
+> >0∧a0>0∧b0>0∧a1<0∧a2<0∧T > 0
+> 2∧Apb <0∧p < 0∧vel ≥0∧brakeSlope = 0 ∧airBrake = 0 →
+> ctrl
+> 3⟨(t:= 0 ;
+> 4( ( trainAcc := ∗; ? −b0≤trainAcc < a 0;
+> 5brakeSlope := 0 ; airBrake := 0) ∪
+> 6(trainAcc := −b0;brakeSlope := p) ) d;
+> plant
+> 7
+> 
+> trainPos ′=vel ,
+> vel ′=trainAcc +a1·vel +a2·vel 2+airBrake ,
+> airBrake ′=brakeSlope ,
+> t′= 1 & t≤T∧vel ≥0∧airBrake ≥Apb
+> 
+> d
+> ∩
+> 8
+> 
+> trainPos ′=vel ,
+> vel ′=trainAcc +a1·vel +a2·vel 2+airBrake ,
+> airBrake ′= 0,
+> t′= 1 & t≤T∧vel ≥0∧airBrake ≤Apb
+> 
+> d
+> ×
+> contract 9)×⟩(e−trainPos >0)
+
+Case Study: Van der Pol. A pair of coupled Van der Pol oscillators must be set so that the sum of their positions x1 and x2 never exceeds a given bound 
+
+xmax . The system dynamics are governed by parameters m and b. The oscil-lators can run arbitrarily long, and safety must be ensured throughout. This case study requires reasoning about nonlinear dynamics over unbounded time horizons. Model 4 shows the full control formula. Angel sets initial conditions at Line 2 and Line 3, then Demon chooses how long the oscillators run at Line 4, after which safety is checked at Line 5. Then Demon chooses how long to run the oscillators at Line 4, and whether to repeatedly further run them in the loop at Line 5. Angel wins in the end if the sum of the positions never exceeds xmax 
+
+(Line 5). This case study is inspired by one appearing in ARCH-COMP [8], but is modified to add adversarial game dynamics and a loop structure that makes formal reasoning more challenging. 
+
+Case Study: Chemical Reaction. An exothermic chemical reaction A + B → C
+
+is taking place. The reaction rates depend on the temperature of the reactor 
+
+Temp , which increases in proportion to the reaction rate. The reaction rate also depends on the concentrations of the reactants A and B. The safety requirement is that the temperature never exceeds a maximum safe temperature Tmax . A time-triggered controller can turn the reaction on and off, getting to revise its decision in at most every T time units. However, we do not have direct access to Title Suppressed Due to Excessive Length 21 
+
+Model 4 Case study: Coupled Van der Pol Oscillators. Gray parts are not included in the synthesis variant of the problem, and must be computed.                                                                         
+
+> assume |1xmax >0→
+> ctrl 2⟨x1 := ∗;x2 := ∗;y1 := ∗;y2 := ∗;
+> 3?m > 0∧b > 0d; (
+> plant 4
+> 
+> x1 ′=y1 ,
+> y1 ′=m·(1 −x1 2)·y1 +b·(x2 −x1 )−x1 ,
+> x2 ′=y2 ,
+> y2 ′=m·(1 −x2 2)·y2 −b·(x2 −x1 )−x2
+> 
+> d
+> contract 5)×⟩(x1 +x2 ≤xmax )
+
+the controller, and instead conservatively safeguard the system by not putting in too much reactant to begin with. The verification challenge is to check whether regardless of what the controller does, safety is always ensured. The physical reactor setup in this case study is similar to one from the literature [3], but with an important change in setup: the controller is not directly accessible, and we want to verify safety for all possible controller actions. Model 5 shows the full control formula. We make some initial assumptions about the quantities of reactant and signs of the rate constants at Line 1 and Line 2. Then Demon chooses whether to turn the reaction on or off at Line 4 in a time-triggered control loop, also controlled by Demon. In the end, Angel wins if the temperature never exceeds Tmax (Line 6). This system again requires reason-ing about complex dynamics over different, arbitrarily alternating control modes over unbounded iterations. The solution to the dynamics lies outside the decid-able (polynomial) fragment of real arithmetic, requiring non-trivial deductive reasoning about differential equations via invariants. 
+
+Note: In the synthesis variants of problems, assumptions are written not in the form assumptions → ⟨ α⟩postcondition, but rather as 
+
+⟨?assumptions (excluding gray parts) d ; α⟩postcondition. This does not make a semantic difference, but allows subvalue map computation to account for these assumptions as it passes over the assumptions subgame, and produce a subvalue for the overall game that does not redundantly include the assumptions. In the synthesis variants of the problems, the following guidelines are used: 
+
+– For Lotka Volterra : Set the system to its equilibrium point as soon as possi-ble, and assume what you must so that the equilibrium point is good enough to maintain the post condition. 22 Authors Suppressed Due to Excessive Length 
+
+Model 5 Case study: Chemical Reaction Control. Gray parts are not included in the synthesis variant of the problem, and must be computed. 
+
+assume  
+
+> 1
+
+kA > 0 ∧ kB > 0 ∧ kC > 0 ∧ kT ≥ 0 ∧ T > 0 ∧ A ≥ 0 ∧ B ≥ 0∧C ≥ 0 
+
+> 2
+
+∧Temp ≥ 0 ∧ (kB · A ≤ kA · B ∧ kA · Temp + kT · A ≤ kA · Tmax  
+
+> 3
+
+∨kA · B ≤ kB · A ∧ kB · Temp + kT · B ≤ kB · Tmax ) →
+
+ctrl 4 ⟨( ( isOn := 0 ∩ isOn := 1 ) ; t := 0 ; 
+
+plant 5
+
+
+
+A′ = −A · B · Temp · isOn · kA,
+
+B′ = −A · B · Temp · isOn · kB ,
+
+C′ = A · B · Temp · isOn · kC ,
+
+Temp ′ = A · B · Temp · isOn · kT ,
+
+t′ = 1 & t ≤ T ∧ A ≥ 0 ∧ B ≥ 0 ∧ C ≥ 0 ∧ Temp ≥ 0
+
+
+
+> d
+
+contract 6 )×⟩(Temp ≤ Tmax )
+
+– For train : Find the control solution for when the train can stop by braking continuously, even conservatively ignoring rolling resistance and air brakes. 
+
+– For chemical reaction : Find the control solution for the situation where the reactant runs out before temperature can become too large. 
+
+– For coolant : Find the solution where initially enough heat has not been absorbed, but over time, enough is absorbed before the timer requirement or discharge capacity can be exceeded. 
+
+– For Van der Pol : Keep the two oscillators in antiphase, maintaining the postcondition this way. 
+
+# E Differential Game Logic 
+
+This appendix recalls the syntax and semantics of differential game logic ( dGL )[26]. Fig. 7 summarizes the axioms and proof rules of dGL . A full explanation is in [26]. The dual operator αd switches the role of players in α. ( α ∪ β)d, for example, is the same as αd ∩ βd.The set of dGL formulas is generated by the following grammar (where 
+
+∼ ∈ { <, ≤, =, ≥, >} and θ1, θ2 are arithmetic expressions in +, −, ·, / over the reals, x is a variable, α is a hybrid game): 
+
+ϕ := θ1 ∼ θ2 | ¬ ϕ | ϕ ∧ ψ | ϕ ∨ ψ | ϕ → ψ | ∀ x ϕ | ∃ x ϕ | [α]ϕ | ⟨ α⟩ϕ
+
+The syntax for games is as follows. 
+
+α ≡ x := e | α; β |?Q | α∗ | α ∪ β | x := ∗ | { x′ = f (x)& Q}|!Q | α× | α ∩ β | x := ⊗ | { x′ = f (x)& Q}d (4) The semantics [26] of dGL is as follows. Title Suppressed Due to Excessive Length 23 
+
+Definition 1 ( dGL semantics). The semantics of a dGL formula ϕ is the subset 
+
+ϕϕ [[ ϕ]] ⊆ S of states in which ϕ is true. It is defined inductively as follows 1. ϕϕ [[ p(θ1, . . . , θk)]] = {ϕϕ ∈ S : (ϕϕ [[ θ1]], . . . , ϕϕ [[ θk]]) ∈ ϕϕ (p)}
+
+2. ϕϕ [[ θ1 ∼ θ2]] = {ϕϕ ∈ S : ϕϕ [[ θ1]] ∼ ϕϕ [[ θ2]] } where ∼ ∈ { <, ≤, =, ≥, >}
+
+3. ϕϕ [[ ¬ϕ]] = ( ϕϕ [[ ϕ]]) ∁
+
+4. ϕϕ [[ ϕ ∧ ψ]] = ϕϕ [[ ϕ]] ∩ ϕϕ [[ ψ]] 
+
+5. ϕϕ [[ ∃x ϕ ]] = {ϕϕ ∈ S : ϕϕ rxrx ∈ ϕϕ [[ ϕ]] for some r ∈ R}
+
+6. ϕϕ [[ ⟨α⟩ϕ]] = ςα(ϕϕ [[ ϕ]]) 
+
+7. ϕϕ [[[ α]ϕ]] = δα(ϕϕ [[ ϕ]]) 
+
+A dGL formula ϕ is valid , written ⊨ ϕ, iff it is true in all states, i.e. ϕϕ [[ ϕ]] = S.
+
+Definition 2 (Semantics of hybrid games). The semantics of a hybrid game 
+
+α is a function ςα(·) that, for each set of Angel’s winning states X ⊆ S , gives the winning region , i.e. the set of states ςα(X) from which Angel has a winning strategy to achieve X in α (whatever strategy Demon chooses). It is defined inductively as follows 1. ςx:= θ (X) = {ϕϕ ∈ S : ϕϕ ϕϕ [[ θ]]  
+
+> x
+
+∈ X}
+
+2. ςx′=f (x) & Q(X) = {φ(0) ∈ S : φ(r) ∈ X for some r ∈ R≥0 and (differen-tiable) φ : [0, r] → S such that φ(ζ) ∈ ϕϕ [[ Q]] and d φ (t)( x) 
+
+> dt
+
+(ζ) = ϕϕφ (ζ)[[ f (x)]] 
+
+for all 0 ≤ ζ ≤ r}
+
+3. ς?Q(X) = ϕϕ [[ Q]] ∩ X
+
+4. ςα∪β (X) = ςα(X) ∪ ςβ (X)
+
+5. ςα;β (X) = ςα(ςβ (X)) 
+
+6. ςα∗ (X) = T{Z ⊆ S : X ∪ ςα(Z) ⊆ Z}
+
+7. ςαd (X) = ( ςα(X∁)) ∁
+
+The winning region of Demon, i.e. the set of states δα(X) from which Demon has a winning strategy to achieve X in α (whatever strategy Angel chooses) is defined inductively as follows 1. δx:= θ (X) = {ϕϕ ∈ S : ϕϕ ϕϕ [[ θ]]  
+
+> x
+
+∈ X}
+
+2. δx′=f (x) & Q(X) = {φ(0) ∈ S : φ(r) ∈ X for all r ∈ R≥0 and (differentiable) 
+
+φ : [0, r] → S such that φ(ζ) ∈ ϕϕ [[ Q]] and d φ (t)( x) 
+
+> dt
+
+(ζ) = ϕϕφ (ζ)[[ θ]] for all 
+
+0 ≤ ζ ≤ r}
+
+3. δ?Q(X) = ( ϕϕ [[ Q]]) ∁ ∪ X
+
+4. δα∪β (X) = δα(X) ∩ δβ (X)
+
+5. δα;β (X) = δα(δβ (X)) 
+
+6. δα∗ (X) = S{Z ⊆ S : Z ⊆ X ∩ δα(Z)}
+
+7. δαd (X) = ( δα(X∁)) ∁24 Authors Suppressed Due to Excessive Length (loop) Γ ⊢ J, ∆ J ⊢ [α]J J ⊢ PΓ ⊢ [α∗]P , ∆ (∃R) Γ ⊢ p(e), ∆Γ ⊢ ∃ x p (x), ∆ (arbitrary term e)(dC) Γ ⊢ [x′ = f (x) & Q]C, ∆ Γ ⊢ [x′ = f (x) & ( Q ∧ C)] P , ∆Γ ⊢ [x′ = f (x) & Q]P , ∆           
+
+> (dI) Q⊢[x′:= f(x)]( F)′
+> F⊢[x′=f(x) & Q]F
+
+Fig. 6: dGL Proof Rules and Axioms relevant to the proof of Model 1. The rules are as follows: differential invariant (dI), differential cut (dC), loop (loop), and exists right (existsr). 
+
+# F Verification Prompts 
+
+This section lists all the prompts used for the verification case studies. The prompts use the OpenAI api format with system and user queries, and sometimes include few-shot prompts. Here we have shown the queries for the chemical reac-tion case study as an example. Some Unicode characters have been replaced with LaTeX commands and line breaks have been added for compilation. Prompts are listed in the order in which they are called in the verification progress, and have a one-to-one correspondence with the LLM queries depicted in Fig. 2. 1. AnalyzeGame is the first query in the pipeline that produces an analysis of the game used as context in later prompts. One example is shown as a few-shot example. 
+
+role: system content: "Your task is to analyze a game and identify which actions are taken by the Angel (controllable player) versus the Demon (adversarial player). ## Background Information In differential game logic (dGL), there are two players: - **Angel**: The controllable player who makes choices we can control. Angel constructs include: - Angel choices: ‘a ++ b‘ (we choose between a and b) - Angel loops: ‘{a}*‘ (we choose how many iterations) - Angel tests: ‘?P‘ (we can proceed if P holds, otherwise we immediately lose) - Angel ODEs: ‘{x’=f(x) & Q}‘ (we control the duration) - Angel nondeterministic assignments: ‘x := *‘ (we choose the value) There is the dual operator ‘^@‘ that switches Angel and Demon roles in a game construct. Title Suppressed Due to Excessive Length 25 ([ ·]) [ α]P ↔ ¬⟨ α⟩¬ P
+
+(⟨:= ⟩) ⟨x := e⟩p(x) ↔ p(e)(⟨′⟩) ⟨x′ = f (x)⟩p(x) ↔ ∃ t≥0 ⟨x := y(t)⟩p(x) (y′(t) = f (y)) (⟨?⟩) ⟨?Q⟩P ↔ Q ∧ P
+
+(⟨∪⟩ ) ⟨α ∪ β⟩P ↔ ⟨ α⟩P ∨ ⟨ β⟩P
+
+(⟨;⟩) ⟨α; β⟩P ↔ ⟨ α⟩⟨ β⟩P
+
+(⟨∗⟩) ⟨α∗⟩P ↔ P ∨ ⟨ α⟩⟨ α∗⟩P
+
+(⟨d⟩) ⟨αd⟩P ↔ ¬⟨ α⟩¬ P
+
+(⟨∩⟩ ) ⟨α ∩ β⟩P ↔ ⟨ α⟩P ∧ ⟨ β⟩P
+
+(⟨×⟩) ⟨α×⟩P ↔ P ∧ ⟨ α⟩⟨ α×⟩P
+
+([:=]) [ x := e]p(x) ↔ p(e)([ ′]) [ x′ = f (x)] p(x) ↔ ∀ t≥0 [ x := y(t)] p(x) (y′(t) = f (y)) ([?]) [? Q]P ↔ (Q → P )([ ∪]) [ α ∪ β]P ↔ [α]P ∧ [β]P
+
+([;]) [ α; β]P ↔ [α][ β]P
+
+([ ∗]) [ α∗]P ↔ P ∧ [α][ α∗]P
+
+([ d]) [ αd]P ↔ ¬ [α]¬P
+
+([ ∩]) [ α ∩ β]P ↔ [α]P ∨ [β]P
+
+([ ×]) [ α×]P ↔ P ∨ [α][ α×]P
+
+(loop) Γ ⊢ J, ∆ J ⊢ [α]J J ⊢ PΓ ⊢ [α∗]P , ∆
+
+(M) P → Q
+
+⟨α⟩P → ⟨ α⟩Q
+
+(M[ ·]) P → Q
+
+[α]P → [α]Q
+
+(ind) P → [α]PP → [α∗]P
+
+(FP) P ∨ ⟨ α⟩Q → Q
+
+⟨α∗⟩P → Q
+
+(FP ×) P ∨ [α]Q → Q
+
+[α×]P → Q
+
+Fig. 7: dGL axiomatization and derived axioms and rules 26 Authors Suppressed Due to Excessive Length 
+
+Duals can be nested arbitrarily, so carefully check nesting levels to determine which player controls each action. Being within an odd number of ‘^@‘ operators indicates Demon control, while an even number (including zero) indicates Angel control. For example, in the game ‘{(a ++ b)^@; (c++d)}^@‘, the choice between ‘a‘ and ‘b‘ is controlled by Angel, being within two ‘^@‘ operators, while the choice between ‘c‘ and ‘d‘ is controlled by Demon. Using this notation, we go over the Demon constructs below, indicating that they are Demon-controlled by wrapping them in a single ‘^@‘ operator. - **Demon**: The adversarial player who makes choices we cannot control. Demon has all the same constructs as Angel. - Demon choices: ‘{a ++ b}^@‘ (adversary chooses between a and b) - Demon loops: ‘{a*}^@‘ (adversary chooses how many iterations) - Demon tests: ‘{?P}^@‘ (adversary can proceed if P holds, and immediately loses otherwise. So Angel can *assume* in subsequent game play that P held at this point; otherwise she would already have won.) - Demon ODEs: ‘{x’=f(x) & Q}^@‘ (adversary controls the duration) - Demon nondeterministic assignments: ‘{x := *}^@‘ (adversary chooses the value) Additionally, the non-controlled operations are: - Assignment: ‘x := e‘ (deterministic assignment like in regular programs) - Sequential composition: ‘a; b‘ (first play a, then b) ## Notes - ODEs can sometimes introduce unmatched single quotes, so account for that when parsing. - In syntax such as { a++b; x:=* }*^@, the ‘^@‘ applies to the entire loop including its body. In this example, Demon controls the choice within the loop between a and b, as well as the assignment to x, because both are inside one ‘^@‘. Some subgames are labeled with unique identifiers with the following syntax: <subgame_id>: <subgame> These subgame ids will help make your answers more specific. Title Suppressed Due to Excessive Length 27 
+
+## Input You will be provided a dGL game. ## Output Your analysis should identify: 1. What actions or decisions are under Angel’s control in the game. 2. What actions or decisions are under Demon’s control in the game. 3. The control modes in the game, that is, regions of different qualitative behavior (e.g. growth vs. oscillation vs. decay vs. equilibrium). The modes are typically defined by two things: (1) initial conditions inducing different qualitative behavior in the dynamics, and (2) control actions leading to different possible values of variables. Comment about the asymptotes or polynomial invariants of each mode, when relevant. 4. The overall control pattern in the game. ## Further Instructions Provide your analysis as clear, readable text describing the Angel and Demon actions, and control modes. Be specific about what choices each player makes and how they might interact. Structure it into the sections corresponding to the points above. Be as concise as possible while still being clear, with no superfluous or filler text or hedging. - Carefully consider the differential equation. There can be coupling between variables that affects your reasoning. - Based on the dynamics, you may some times need to come up with upper/lower bounds of quantities and use that to derive sound preconditions. It’s best to use simplistic, polynomial bounds so that they verify more easily. You will now be provided with 0 or more examples of games and their analysis, followed by a new game that you must analyze." - role: user content: |-Game to analyze: {? x >= 0 & g > 0 & air > 0 & parachute > air & T > 0 & m > 0;^@}; 28 Authors Suppressed Due to Excessive Length 
+
+{{subgame_c: {{{{{r := air;} ++ {r := parachute;}}^@}; {t := 0;}}; {subgame_j: {x’ = v, v’ = r * v ^ 2 - g, t’ = 1 & x >= 0 & v < 0 & t <= T} }}*}^@} Please analyze this game and identify the requested items (Angel vs. Demon control actions, control modes, overall control pattern). - role: assistant answer: mode: null content: | 1) Angel-controlled actions - Choice {{{r := air;} ++ {r := parachute;}}^@ | Angel chooses drag coefficient r each iteration, either r := air (low drag) or r := parachute (high drag). 2) Demon-controlled actions - Initial test {? x >= 0 & g > 0 & air > 0 & parachute > air & T > 0 & m > 0}^@ | Demon test. Angel can assume these preconditions hold initially; otherwise, play won’t proceed. - Looping subgame_c | Demon chooses how many iterations of subgame_c to perform (including possibly zero; finite but unbounded). He chooses whether to repeat for one more cycle or stop at the end of each iteration. - ODE duration: subgame_j - Demon controls how long to flow along the ODE x’ = v, v’ = r v^2 - g, t’ = 1 within the evolution domain x >= 0, v < 0, t <= T. He may stop at any time before the domain boundary is reached, including zero time; he cannot continue past any boundary (for example x cannot go below 0). Since t is reset to 0 at the start of each iteration, the duration is always capped by T (though the other boundary conditions may force an earlier stop). 3) Control modes (qualitative behaviors) - Mode AIR HIGH VEL (Angel chose r = air, low drag, v<-(g/air)^(1/2)): - air * v^2 > g, so v’ > 0. Velocity increases (becomes less negative) over time, approaching terminal velocity -((g / air)^(1/2)) from below. Will not cross it. - Mode PARACHUTE HIGH VEL (Angel chose r = parachute, high drag, v<-(g/parachute)^(1/2)): - parachute * v^2 > g, so v’ > 0. Velocity increases (becomes less negative) over time, approaching terminal velocity -((g / parachute)^(1/2)) from below, which is a higher (less Title Suppressed Due to Excessive Length 29 
+
+negative) terminal velocity than in AIR mode. - Mode AIR EQU VEL (Angel chose r = air, low drag, and v is terminal velocity -((g / air)^(1/2))): - v’ = air * v^2 - g = 0, so velocity remains constant at terminal velocity. - Mode PARACHUTE EQU VEL (Angel chose r = parachute, high drag, and v is terminal velocity -((g / parachute)^(1/2))): - v’ = parachute * v^2 - g = 0, so velocity remains constant at terminal velocity, slower than in AIR mode. - Mode AIR LOW VEL (Angel chose r = air, low drag, and 0 > v > -((g / air)^(1/2))): - air * v^2 < g, so v’ < 0. Velocity decreases (becomes more negative) over time. It approaches terminal velocity -((g / air)^(1/2)) from above but will not cross it. - Mode PARACHUTE LOW VEL (Angel chose r = parachute, high drag, and 0 > v > -((g / parachute)^(1/2))): - parachute * v^2 < g, so v’ < 0. Velocity decreases (becomes more negative) over time, approaching terminal velocity -((g / parachute)^(1/2)) from above, but will not cross it. 4) Overall control pattern - Some global preconditions hold initially (x >= 0, g > 0, air > 0, parachute > air, T > 0, m > 0). - Per iteration: 1) Demon decides whether to continue for another iteration or stop (Demon loop). 2) Angel picks drag coefficient r \in {air, parachute} (Angel choice). 3) Reset timer t := 0 (deterministic assignment). 4) Demon chooses ODE flow duration within domain (Demon ODE). - Across iterations: Demon decides how many iterations to perform and length of evolution per iteration. Angel’s control lever is her binary choice of drag coefficient. - role: user content: |-Game to analyze: (kA > 0 & kB > 0 & kC > 0 & kT >= 0 & T > 0 & A >= 0 & B >= 0 & C >= 0 & Temp >= 0 & (kB*A <= kA*B & kA*Temp + kT*A <= kA*Tmax | kA*B <= kB*A & kB*Temp + kT*B <= kB*Tmax)) -> < { { { isOn:=0; ++ isOn:=1; }; t:=0; { A’ = - A*B*Temp*isOn*kA, B’ = - A*B*Temp *isOn*kB, C’ = A*B*Temp*isOn*kC, Temp’ = A*B*Temp*isOn*kT, t’ = 1 & t<=T & A>=0 & B>=0 & C>=0 & Temp>=0 }; }* }^@ > Temp<=Tmax Please analyze this game and identify the requested items (Angel vs. Demon control actions, control modes, overall control 30 Authors Suppressed Due to Excessive Length 
+
+pattern). 
+
+2. GetTactic is the second prompt in the pipeline (first in the proof loop). It gets a Bellerophon proof tactic from the LLM. 
+
+- role: system content: | You are trying to prove a differential game logic (dGL) theorem in KeYmaera X. You must provide a Bellerophon tactic to complete the proof. ## Background Information Here is some information about dGL. In differential game logic (dGL), there are two players: - **Angel**: The controllable player who makes choices we can control. Angel constructs include: - Angel choices: ‘a ++ b‘ (we choose between a and b) - Angel loops: ‘{a}*‘ (we choose how many iterations) - Angel tests: ‘?P‘ (we can proceed if P holds, otherwise we immediately lose) - Angel ODEs: ‘{x’=f(x) & Q}‘ (we control the duration) - Angel nondeterministic assignments: ‘x := *‘ (we choose the value) There is the dual operator ‘^@‘ that switches Angel and Demon roles in a game construct. Duals can be nested arbitrarily, so carefully check nesting levels to determine which player controls each action. Being within an odd number of ‘^@‘ operators indicates Demon control, while an even number (including zero) indicates Angel control. For example, in the game ‘{(a ++ b)^@; (c++d)}^@‘, the choice between ‘a‘ and ‘b‘ is controlled by Angel, being within two ‘^@‘ operators, while the choice between ‘c‘ and ‘d‘ is controlled by Demon. Using this notation, we go over the Demon constructs below, indicating that they are Demon-controlled by wrapping them in a single ‘^@‘ operator. - **Demon**: The adversarial player who makes choices we cannot control. Demon has all the same constructs as Angel. Title Suppressed Due to Excessive Length 31 
+
+- Demon choices: ‘{a ++ b}^@‘ (adversary chooses between a and b) - Demon loops: ‘{a*}^@‘ (adversary chooses how many iterations) - Demon tests: ‘{?P}^@‘ (adversary can proceed if P holds, and immediately loses otherwise. So Angel can *assume* in subsequent game play that P held at this point; otherwise she would already have won.) - Demon ODEs: ‘{x’=f(x) & Q}^@‘ (adversary controls the duration) - Demon nondeterministic assignments: ‘{x := *}^@‘ (adversary chooses the value) Additionally, the non-controlled operations are: - Assignment: ‘x := e‘ (deterministic assignment like in regular programs) - Sequential composition: ‘a; b‘ (first play a, then b) ## Notes - ODEs can sometimes introduce unmatched single quotes, so account for that when parsing. - In syntax such as { a++b; x:=* }*^@, the ‘^@‘ applies to the entire loop including its body. In this example, Demon controls the choice within the loop between a and b, as well as the assignment to x, because both are inside one ‘^@‘. Here is some information about Bellerophon, the tactic language in which you must output. # Bellerophon Tactic Guide (KeYmaera X 5.1) ## 1. Overview **KeYmaera X** proves properties of hybrid systems using differential dynamic logic (dL) or hybrid games using differential game logic (dGL). A **tactic** is a small program that automatically applies proof rules. **Bellerophon** is the language for writing these tactics. The following are instructions to write one Bellerophon script, ideally that closes the proof in one run, or at least provides new information to write such a tactic later. ---32 Authors Suppressed Due to Excessive Length 
+
+## 2. Proof State Basics To write good tactics, you should internally keep track of proof state. A tactic maps one proof state to another. A proof state consists of zero or more goals (subgoals). Each goal is a sequent consisting of an antecedent (assumptions) and a succedent (formulas to prove). ### 2.1 Sequents and Antecedents in the KeYmaera X CLI A **sequent** in the CLI is written as: ‘‘‘ -1: x>=0 GreaterEqual -2: y=0 Equal ==> 1: x>=0 GreaterEqual ‘‘‘ which corresponds to the following sequent in mathematical notation: ‘‘‘ x>=0, y=0 |- x>=0 ‘‘‘ Formulas are indexed. Negative indices indicate antecedent formulas, and positive indices indicate succedent formulas. The antecedent lists assumptions. The succedent lists formulas to prove. We can assume all antecedent formulas are true and must use them to prove at least one succedent formula. You just need to prove one succedent formula to close the goal. ### 2.2 Goals and Subgoals Tactics transform the current goal into zero or more subgoals. You apply tactics until no subgoals remain, which would indicate the theorem is proved. ### 2.3 Formula Indexing Title Suppressed Due to Excessive Length 33 
+
+Many tactics require a formula index. A common failure mode is using the wrong index. Use printing (Section 3.2) to inspect the state and indices while debugging. ---## 3. Proving Interactions ### 3.1 Branches (Multiple Goals) When a tactic creates multiple goals (e.g., from orL), the proof state has separate branches inside one printed block. Example pattern: ===== State of Hard Cases ==== ElidingProvable(Provable{ -1: <formula for case 1> Or -2: <assumption> Greater ... ==> 1: <modal or post-condition> Box from -1: <formula for first disjunct> And ... ==> 1: <some goal 1> Box with -1: <formula for remaining disjuncts> Or ... ==> 1: <some goal 2> Box}) ===== print done (no progress, 1s) Done . Here: 
+
+• The from part shows the first branch (e.g., first disjunct, such as a>=0 & ...). 
+
+• The with part shows the other branch. 
+
+• Each branch has its own sequent (==> line) with indexed formulas. Each branch is a separate goal that must be closed. You should check if a subgoal is closed by printing it. If the subgoal is proved, you should see something like: 34 Authors Suppressed Due to Excessive Length 
+
+===== subgoal state ==== ElidingProvable(Provable{ -1: x>0 Greater ==> 1: x>=0 GreaterEqual proved}) ===== print done (proved, 1s) ### 3.2 Running and Rerunning Tactics; Printing State If you know of a tactic that you want to slightly modify, simply reuse the same text, and edit it as needed. To inspect the current proof state at any point, use the tactic: print("State of Hard Cases") This prints the current provable state (all goals and their indexed formulas) at the point where the tactic is invoked. Multiple print statements can be used in one tactic, to print the state at different points in the proof. The print message helps identify which part of the script produced that state. ### 3.3 Printing for Debugging For debugging, when the proof state has been reduced to one or more purely arithmetic subgoals, you can: 1. Use print to display the current arithmetic constraints. 2. Copy these constraints into an external tool such as Z3 to search for counterexamples by checking if the formula (AND of all antecedent constraints) -> (OR of all succedent constraints) is valid (i.e., its negation is unsatisfiable). ---## 4. Bellerophon Essentials 
+
+• A script is a sequence of tactic expressions. 
+
+• t1 ; t2 runs t1 then t2. 
+
+• <(t1, t2) applies t1 to the first branch and t2 to the second branch. Note the absence of a closing angle bracket. 
+
+• A tactic either: Title Suppressed Due to Excessive Length 35 
+
+• succeeds and may produce subgoals, 
+
+• fails, or 
+
+• closes the current goal. ---## 5. Primitive Tactics ### 5.1 Logical Tactics Common examples (indices refer to formulas in the sequent): - Implication: implyR(i) This transforms a goal of form |- A -> B into A |- B. - Conjunction: andR(i), This transforms a goal of form |- A & B into two subgoals: |- A and |- B. - andL(i) This transforms a goal of form A & B, \Gamma |- \Delta into A, B, \Gamma |- \Delta, where the i-th antecedent formula in the original subgoal was A & B. - Disjunction: orR This transforms a goal of form |- A | B into two subgoals: |- A and |- B. - orL(i) This transforms a goal of form A | B, \Gamma |- \Delta into two subgoals: A, \Gamma |- \Delta and B, \Gamma |- \Delta, where the i-th antecedent formula in the original subgoal was A | B. - Universal: allR This transforms a goal of form |- \forallx. P(x) into |- P(y) for a fresh variable y. - allL(i): This transforms a goal of form \forallx. P(x), \Gamma |- \Delta into P(t), \Gamma |- \Delta for a term t, where the i-th antecedent formula in the original subgoal was \forallx. P(x). - allL2R(i) This transforms a goal of form x=e, \Gamma |- \Delta, \forallx. 36 Authors Suppressed Due to Excessive Length 
+
+P(x) into \Gamma |- \Delta, P(e), where the i-th antecedent formula in the original subgoal was x=e. - cut(formula) This introduces formula as an intermediate lemma to prove. It transforms a goal of form \Gamma |- \Delta into two subgoals: (1) Use subgoal: formula, \Gamma |- \Delta (2) Show subgoal: \Gamma |- formula. ### 5.2 Program / Modal Tactics For modal formulas like [\alpha]\varphi and 〈\alpha 〉\varphi, tactics handle: - assignments, - tests, - nondeterministic choice, - sequential composition, - duals. These reduce program structure to simpler logical or arithmetic goals. You will almost never need to use these low-level tactics directly, as they are all handled by the high-level ‘unfold‘ tactic. A structure not handled by unfold, that you will need to handle directly is loops. Usually this needs the loop rule, ‘loop("invariant", i)‘, which transforms a goal of form \Gamma |- [\alpha*]\varphi, \Delta where [\alpha*]\varphi is at index i into three subgoals: 1. init subgoal: \Gamma |- invariant, \Delta 2. step subgoal: invariant |- [\alpha]invariant 3. post subgoal: invariant |- \varphi Here, invariant is the (literal) formula you provide as a loop invariant. There is a second class of modality tactics used to simplify not the program inside the modality, but the postcondition after the modality or otherwise modify the modality. The most common are: - boxAnd(i) Transforms a goal of form [a](P&Q) to [a]P & [a]Q. Usually followed by andR(i) to split into two subgoals. Title Suppressed Due to Excessive Length 37 
+
+- GV(i) Transforms a goal of form \Gamma |- [a]P, \Delta to \Gammaconst |- P, \Deltaconst, where \Gammaconst and \Deltaconst are the subsets of \Gamma and \Delta that contain only formulas with constants (no variables). - discreteGhost("x", "x0", i) Adds a new variable x0 and the antecedent formula x = x0. The position, i, should be that of the modality formula (usually 1). ### 5.3 Differential Equation Tactics For goals involving differential equations of the form: ‘‘‘ [{x’ = f(x) & Q}] P ‘‘‘ you can use the following high-level ODE tactics: - dIRule(i) (Differential Invariant) Applies a differential invariant rule to the ODE formula at index i. This proves formulas like [ODE] P where P may contain any comparison operator (<, <=, =, >=, >). The rule generates two proof obligations: 1. The postcondition P holds initially, and 2. The derivative condition P’ satisfies the correct sign constraint (depending on the operator) throughout the ODE. For example, if in ‘[{x’ = f(x) & Q}] P‘, P is p <= 0, the check is ‘Q |= [x’:=f(x)] p’ <= 0‘; if P is p > 0, the check is ‘Q |= [x’:=f(x)] p’ > 0‘; and similarly for the other operators. Along with Q, any assumptions from the antecedents that had only constants (no variables) are also kept. Note that you cannot use the invariant that you are trying to prove as an assumption in this subgoal, that is, you will not be able to assume p > 0 to prove p’ > 0. If these obligations are proved, the ODE is handled without solving it explicitly. 38 Authors Suppressed Due to Excessive Length 
+
+Note how to be able to prove subgoal 2, we may want to strengthen the domain constraint Q using dC first before applying dIRule. - dC(\\varphi", i) (Differential Cut) Adds an additional domain constraint \varphi to the ODE at index i. This transforms a goal with ‘[{x’=f(x) & Q}] P‘ at position i into two subgoals: 1. Use: The formula at position i becomes ‘[{x’=f(x) & Q & \varphi}] P‘ 2. Show: The formula at position i becomes ‘[{x’=f(x) & Q}] \varphi‘ - dW(i) (Differential Weakening) Applies weakening to an ODE goal at index i. If the formula at index i was ‘[{x’=f(x) & Q}] P‘, the new goal becomes ‘Q |- P‘, which removes the ODE entirely. Along with Q, any assumptions from the antecedents that had only constants (no variables) are also kept. It makes sense to apply dW only after sufficiently strengthening the domain constraint Q using dC first. These tactics reduce ODE proof obligations to simpler goals. A common pattern is to cut in *solutions* or *bounds* of the variables involved in the ODE and postcondition using dC. In the branch where we need to show that the bound holds, it is common to use dIRule. In the other, "use" branch, we typically apply further dC cuts to accumulate more bounds. Then after accumulating sufficiently many such cuts, we apply dW followed by QE to finish the proof. Sometimes the order of cuts really matters, as earlier cuts may become important to closing the dIRule obligations of later cuts. Often, bounds are best expressed in terms of the initial values of variables before the ODE starts, e.g., x <= x0 + v*t for a variable x with initial value x0 and constant velocity v over time t. Title Suppressed Due to Excessive Length 39 
+
+In this case, if x0 does not already exist, a useful tactic is ‘discreteGhost("x", "x0", i)‘, which adds a new variable x0 and the antecedent formula x = x0. The position, i, should be that of the ODE formula (usually 1). Besides dIRule, another useful tactic that is especially useful for ODEs with exponential solutions, is the Darboux tactic: ‘dbx("g", 1)‘. Given a goal of form ‘A |- [x’=f(x) & Q] p>=0‘, this tactic generates two subgoals: ‘A |- p>=0‘ and ‘Q |- p’ >= g*p‘, where p’ is the Lie derivative of p along the ODE x’=f(x). Here, >= can be replaced by any comparison operator. dbx is usually the way to go when we want to prove something about a variable whose derivative is dependent on itself. In cases where you are trying to prove, e.g., p’>=0 and it is not immediate that p’>0, but it is true that p’ >= g*p, you should use Darboux and not dIRule (here >= and > can be replaced by the other comparison operators). Unlike dIRule, dbx does not create further subgoals, and is itself a terminal tactic. ---### 5.4 Arithmetic Tactics When there are no modalities left, the goal is purely arithmetic. Then, it is possible to use the ‘QE‘ tactic to close the goal. It is recommended to use ‘QE("Z3")‘ which runs QE with the Z3 SMT solver backend, as it is generally most effective. If QE times out, try hiding irrelevant formulas using ‘hide(i)‘ to remove formula with index i from the subgoal permanently. It can also sometimes help to use the ‘fullSimplify‘ tactic to make expressions simpler. If QE fails, there is likely an error in the proof or the theorem is not valid. It can help to look for a 40 Authors Suppressed Due to Excessive Length 
+
+counterexample as described in Section 3.3. ---## 6. Working With Indices ### 6.1 Index Semantics Indices refer to the current goal only: 
+
+• 1 is the first succedent formula. 
+
+• 2 is the second succedent formula, etc. 
+
+• -1 is the first antecedent formula. 
+
+• -2 is the second antecedent formula, etc. After some tactics, the sequent may change, so indices may point to different formulas. ### 6.2 Common Failure: Incorrect Positions A common reason for tactic failure is incorrect indices, e.g.: 
+
+• the index no longer refers to the formula you expect, or 
+
+• the selected formula does not match the rule (e.g., andL on a non-& formula). Debugging pattern: 1. Insert print before the failing step. 2. Check the exact index and formula. 3. Update the index or tactic accordingly. ---## 7. Combinators Useful control constructs: 
+
+• Sequential composition: ‘t1 ; t2‘ Run t1 then t2 on the resulting goals. 
+
+• Branching ‘<(t1, t2)‘ Apply t1 to the first branch and t2 to the second, after a rule that splits the goal. Combining these is generally enough to express proofs. ---Title Suppressed Due to Excessive Length 41 
+
+## 8. High-Level Tactics High-level tactics: 
+
+• perform several logical steps at once, 
+
+• handle common patterns in hybrid programs, 
+
+• push the proof toward arithmetic goals. The two most common ones are: - unfold Unfolds simpler constructs (assignments, tests, choices, sequences, antecedent conjunctions, dual, implication). Often changes sequent structure and might create multiple branches. - auto Applies a library of rules to try to automatically prove the goal. Generally succeeds on simpler goals. You can use these to make the tactic shorter, but the tradeoff is less control and harder debugging. ---## 9. Debugging Common debugging workflows: 1. Insert print between suspicious steps to see the goal after each one. This can help identify where the proof diverges from expectations. 2. Remove steps until the error disappears. Once behavior is as expected, add more steps. _____ ## 10. Additional Tips: ### 10.1 Syntactic: - Comments in Bellerophon are written using the syntax ‘/* This is a comment */‘. - Do not use a concluding semicolon after the last tactic in your script. The semicolon is only a separator, not a terminator. Write ‘t1 ; t2‘, not ‘t1 ; t2 ;‘. - The branching combinator ‘<( ... )‘ does not have a 42 Authors Suppressed Due to Excessive Length 
+
+closing angle bracket. Write ‘<(t1, t2)‘, not ‘<(t1, t2)>‘. - When using branching tactics like dC or cut, further development should be nested inside the branches using ‘<( ..., ... )‘ syntax. Write ‘dC("formula", pos); <(t1; dC("formula", pos); <(t2, t3), t4)‘, not ‘dC("formula", pos); <(t1, t4) ; dC("formula", pos); <(t2 ; t3)‘. Here, the first dC splits the goal into two branches. On the first branch we apply t1 followed by dC that further splits into two branches where we apply t2 and t3 respectively. On the second branch of the first dC, we apply t4. - Output along the lines of "Exception in thread "main" 6:2 Lexer 6:2 Lexer does not recognize input at ..." indicates that there is a syntax error in the Bellerophon tactic. There can still be syntax errors that do not get caught by the lexer, though. - The Bellerophon parser supports only ASCII characters. - You can apply tactics like andL and orL only to formulas that have the corresponding logical connective at the top level. For example, andL would not apply to a | b & c because the top-level connective is |, since & binds more tightly. A good pattern is to use unfold to split up all top-level conjunctions at once, and then apply orL as needed. ### 10.2 Common Proof Patterns: - Sometimes, it is helpful to split out disjunctive cases in the antecedent using orL, because the disjuncts correspond to different control modes requiring different reasoning. - When there are top-level conjunctions in the antecedent, you can either split them one-by-one using andL, or use unfold to split all at once. The latter is often more concise, while the former gives more control. It is often necessary to split conjunctions to expose individual underlying assumptions to which further rules apply, e.g., disjunctions for orL case splitting, or equations on which to apply allL2R. - When you see errors about inapplicability of a tactic due to formula shape mismatch, try to work around by using a different tactic or by introducing cuts to reshape the goal into a more convenient form. - For time-triggered controllers, ‘t>=0‘ is often a useful invariant to cut in using dC, as it ensures we Title Suppressed Due to Excessive Length 43 
+
+only have to reason about ODE properties after nonnegative time durations. ### 10.3 Other Advice: - Do not assume a branch is closed until you print and verify that it shows "proved". Therefore, after applying a terminal tactic like auto or QE, it is good practice to print the state right after to check that the tactic indeed closed the goal. - ‘unfold‘ steps are important and should not be forgotten. They often change the shape of the subgoal, and their can lead subsequent tactics to fail because the positions of sequents they expect are no longer present. It is a good idea to start tactic scripts with ‘unfold‘ to normalize the formula first. - For the full list of tactics, see https://github.com /LS-Lab/KeYmaeraX-release/tree/master/keymaerax-webui /src/main/resources/help/axiomsrules. - Duals are usually handled by ‘unfold‘, which generally eliminates the outermost dual by flipping the modality (box to diamond or vice versa). Otherwise the individual tactics are ‘duald(i)‘ that handles diamond modality containing a dual game at position i and similarly and ‘dualb(i)‘ for box modality. - unfold generally handles implications, so implyR(1) is usually not necessary after unfold. - dbx is strict about the shape it allows: the postcondition formula after the box must be a single inequality or equation with 0 on the RHS. Rewrite the goal using a differential cut if needed to get it into this shape. - When you have two subsequent formulas, e.g., \Gamma |-[\alpha1*]\varphi, [\alpha2*]\varphi, (i.e., [\alpha1*]\varphi at position 1 and [\alpha2*]\varphi at position 2), remember that you only need to prove one of the subsequents. You can think carefully about which one is more promising to prove, and get rid of the other using hide(2) or hide(1) as appropriate. But don’t eliminate options too early: if you have a disjunction ‘f1 | f2‘ in your assumptions, it may be that [\alpha1*]\varphi is provable when f1 holds, and [\alpha2*]\varphi is provable when f2 holds, so you need to keep both options until you have split on the disjunction 44 Authors Suppressed Due to Excessive Length 
+
+using orL. - If an arithmetic proof obligation times out on auto or QE, it is a good idea ot check if the goal is even valid by internally checking if a solver like Z3 can find a counterexample within some small timeout. ### 10.4 On Loop Invariants: identifying the right loop invariant for proving properties of loops (using tactic ‘loop("invariant", i)‘) can be tricky, yet critical to allowing the subsequent proof branches succeed. A common pattern is to start with an invariant, and then strengthen or weaken it as required as one encounters counterexamples or difficulties in closing the subgoals, init, step and post, out of which step is usually the hardest to close. The invariant can be no stronger than the initial assumptions, that is, ‘\Gamma1 & \Gamma2‘ in ‘\Gamma1, \Gamma2 |- [\alpha*]\varphi‘. Anything stronger than ‘\Gamma1 & \Gamma2‘ would not allow the init subgoal to close. The invariant cannot be weaker than \varphi, the postcondition. Anything weaker than \varphi would not allow the post subgoal to close. The challenge is then to weaken the assumptions enough, or strengthen the postcondition enough, that the resulting invariant is *inductive*, allowing the step subgoal to close. For example, consider the simple loop goal ‘x=1 |- [{?x>=1;^@; {x’=1}}*]x>=0‘. x=1 is too strong as an invariant because as time elapses, x becomes larger than 1, so it is not true that x=1 |- [?x>=1;^@; {x’=1}]x=1. x>=0 is too weak as an invariant because Demon loses within the loop at the test when, e.g., x=0, so it is not true that x>=0 |- [?x>=1;^@; {x’=1}]x>=0. A suitable invariant is x>=1, which is weaker than the assumptions, stronger than the postcondition, and inductive in that if it holds initially, after running one iteration of the loop, it will continue to hold. Other advice for identifying an invariant: - A good heuristic is to start with the initial assumptions as the invariant, and then weaken them as Title Suppressed Due to Excessive Length 45 
+
+needed, or start with the postcondition \varphi and strengthen it. Ask yourself: do the initial assumptions already look inductive? Does the postcondition already look inductive? - It is usually a good idea to retain all assumptions on signs of constants. These often end up being critical to inductiveness. You lose nothing by including assumptions in the invariant, unless they are non-inductive and stop holding after some time. - It is easy to get the invariant subtly wrong because of small inaccuracies or missing edge cases. But in the course of doing the proof, if you carefully analyze proof failures, you will discover the missing requirements, so do not hesitate to modify the invariant accordingly. - Finding the right invariant is the only way to do proofs about Angel loops in Demon modality games or Dually, Demon loops in Angel games (i.e. ‘[\alpha*]\varphi‘ or ‘<\alpha*>\varphi‘). The only way to prove the latter is to first convert to ‘[\alpha*]\varphi‘ form, e.g. using unfold, and then apply the loop tactic. ### 10.5 On proving Angel choices in Angel games: This section applies dually also to Demon choices in Demon games. Consider an Angel choice in an Angel game, e.g., ‘x=1 | x=-1 |- <{ {v:=1; ++ v:=-1;}^@; {x’=v}}^@>(x>=1 | x<=-1)‘. After applying ‘unfold‘, we get a two subsequents: ‘x = 1 | x = -1 |- [{x’=1}](x >= 1 | x <= -1), [{x’=-1}](x >= 1 | x <= -1)‘ This reflects how we can choose which subsequent to prove based on which choice Angel would have strategically made. In this case, Angel would choose the first branch if x=1 initially, and the second branch if x=-1 initially. Thus we could apply the following tactic to complete the proof, with the orL splitting on initial conditions and hideR choosing the right subsequent to then prove: ‘‘‘ unfold; orL(-1); <( hideR(2); dC("x>=1", 1); <( dW(1); QE, 46 Authors Suppressed Due to Excessive Length 
+
+dIRule(1); <( QE, unfold; QE )), hideR(1); dC("x<=-1", 1); <( dW(1); QE, dIRule(1); <( QE, unfold; QE )))‘‘‘ ### 10.6 Common Error Messages: #### Subgoal mismatch. Error messages of the form "<(e)(v) is only defined when len(e) = len(v), but 2!=0 subgoals (v)" indicates a branching combinator ‘<( ... )‘ has the wrong number of branches. In this example, a branching combinator for two branches was used, but the goal was actually already closed (0 subgoals), and the fix is to remove the branching combinator since the subgoal is already proved. Sometimes, this error message is also reached by auto. This is a bug in the implementation of auto that is triggered on some formula shapes. If this happens, since you cannot control auto, just try to work around by using a different tactic or breaking down the proof into smaller steps. #### dW Bug. Sometimes, dW fails with an error message like ‘‘‘ Not found: locator ’R=="a&b->c" of position tactic ... does not match anywhere in succedent of ... from ==> 1: a -> c ‘‘‘ where typically a is the domain constraint of the ODE to which we are applying dW, c is the postcondition, and b consists of some formulas from the antecedent with only constants. Title Suppressed Due to Excessive Length 47 
+
+This is a bug in KeYmaera X. A trick that often works around this bug is cutting in "1=1". Replace ‘dW(i); *subsequent tactic*‘ with ‘cut("1=1"); <(dW(i); *subsequent tactic*, QE("Z3") using "1=1")‘. The syntax "using "1=1"" tells QE to ignore all antecedent and consequent formulas in this subgoal except "1=1". If the error persists, you can try first removing antecedent formulas with only constants that are appearing in the error message, and only then apply dW. Use hide(i) to hide the formula at position i. ---End of Bellerophon Tactic Guide ---## Output Instructions ### Output Format In your response, first briefly summarize you reasoning. Then write a newline. Then, in a code block, write the new Bellerophon tactic you want KeYmaera X to try. ### Advice If you are not sure what to how to complete the proof, you can provide some initial steps. KeYmaera X will run these and you can review the open branches to complete the proof in later steps. Remember to use the print tactic at the end of branches to find out what their state is for future reference. Tactics can be sequentially combined using semicolons (e.g., ‘unfold; auto‘. Note that there is no semicolon after the last tactic in a sequence). If the proof branches, e.g., after dC, then use the combinator ‘<(,)‘, e.g., ‘dC; <( print("this is branch one."); print("this is a second print still in branch one."), print("this is branch two.") )‘. Common mistakes to avoid: 48 Authors Suppressed Due to Excessive Length 
+
+- When expanding on a previous tactic script, do not forget the initial ‘unfold‘ tactic because this can lead to subsequent tactic failing. You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack. - Do not modify the old tactic any more than strictly necessary. Tactics can be fragile and a single misplaced andL can break the proof. - Tactics should almost always begin with unfold to normalize the formula first. - Do not try more than one or two proof steps at once without checking if the proof state is like you expect. Do not try to solve more than one branch at a time because the complexity can quickly become unmanageable. - Do not forget to print the state of branches after QE or auto to confirm that they are indeed closed. - No unicode. Only ascii characters are allowed. You will next be shown 0 or more examples of how to answer such a prompt, which you can learn from, followed by the current question which you should answer. - role: user content: |-The formula that you are trying to prove is: (t <= T & v = 0 & w = 0 & !(x = 0 & y = 0)) -> <{x’ = v, y’ = w, v’ = om * w, w’ = - om * v, t’ = 1 & t <= T}^@>(!(x = 0 & y = 0) & (!x*w - y*v = 0 | (v = 0 & w = 0))) Now, please provide a Bellerophon tactic to try next. You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack. In your response, first briefly summarize your reasoning. Then write a newline. Then, in a code block, write the entire Bellerophon tactic you want KeYmaera X to try. - role: assistant answer: mode: null content: | Intuitively we expect this formula to be valid because if initially v=w=0, then v and w remain 0, so x and y remain constant, so if we start not at the origin we stay not at the origin. In this way, it should in the Title Suppressed Due to Excessive Length 49 
+
+end hold that !(x = 0 & y = 0) & (v = 0 & w = 0) which implies the postcondition. First lets unfold and differential-cut in the invariant v=0 & w=0. We can then print the state of the second branch to check that things look right so far. ‘‘‘ unfold; dC("v = 0 & w = 0", 1) <( label("Use cut"), label("Show cut"); print("Show branch state.") )‘‘‘ - role: user content: |-The formula that you are trying to prove is: (t <= T & v = 0 & w = 0 & !(x = 0 & y = 0)) -> <{x’ = v, y’ = w, v’ = om * w, w’ = - om * v, t’ = 1 & t <= T}^@>(!(x = 0 & y = 0) & (!x*w - y*v = 0 | (v = 0 & w = 0))) This is what you have been trying so far and the results. Pay careful attention to not repeat past mistakes and make progress based on what you have learned. We expect this formula to be valid because if initially v=w=0, then v and w remain 0, so x and y remain constant, so if we start not at the origin we stay not at the origin. In this way, it should in the end hold that !(x = 0 & y = 0) & (v = 0 & w = 0) which implies the postcondition. We have differential-cut in the invariant v=0 & w=0 and shown that is holds using the tactic below. We have printed the proof state of the "Show cut" branch and it was successfully closed. unfold; dC("w=0&v=0", 1); <( label("Use cut"); print("Use branch state."), label("Show cut"); dC("v^2+w^2=0", 1); <( label("Use second cut"); dW(1) ; QE, label("Show second cut"); dIRule(1); <( 50 Authors Suppressed Due to Excessive Length 
+
+unfold; QE("Z3"); print("Show branch of dC, dI init. State after QE."), unfold; QE("Z3"); print("Show branch of dC, dI inductiveness subgoal. State after QE.") )))Both dIRule branches are proved. The proof state corresponding to the "Use cut" branch is: -1: t<=T LessEqual -2: v=0 Equal -3: w=0 Equal -4: !(x=0&y=0) Not ==> 1: [{x’=v,y’=w,v’=om*w,w’=-om*v,t’=1&t<=T&w=0&v=0}] (!(x=0&y=0)&(!x*w-y*v=0|v=0&w=0)) Box}) So it remains to prove this goal. Now, please provide a Bellerophon tactic to try next. You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack. In your response, first briefly summarize your reasoning. Then write a newline. Then, in a code block, write the entire Bellerophon tactic you want KeYmaera X to try. - role: assistant answer: mode: null content: | We want to show that after the ODE, !(x = 0 & y = 0) & (v = 0 & w = 0) and already have v=0&w=0 in the domain constraint. Intuitively, !(x = 0 & y = 0) because this is true initially neither x nor y changes. To cut in the fact that x and y do not change, lets dC in (x=x0 & y=y0) where x0 and y0 are the initial values of x and y, which we can introduce via discreteGhost (which should also automatically change the initial assumption !(x = 0 & y = 0) into !(x0 = 0 & y0 = 0)). Later, we can then show the "show" branch by dIRule because x and y do not change, and the "use" branch by dW followed by QE because x=x0, y=y0 and v=0 & w=0 should be in the antecedents from the domain constraint and !(x0=0 & y0=0) should be in the antecedents because Title Suppressed Due to Excessive Length 51 
+
+it has only free variables x0 and y0 which are not changed by the ODE. But first, lets print to make sure the subgoals look as expected. ‘‘‘ unfold; dC("w=0&v=0", 1); <( "Use": discreteGhost("x", "x0", 1); discreteGhost("y", "y0", 1); dC("x=x0&y=y0", 1); <( "Use-use": print("State of the use-use branch dW."), "Use-Show": print("State of use-show branch.") ), "Show": dC("v^2+w^2=0", 1); <( "Use": dW(1) ; QE, "Show": dIRule(1); <( unfold; QE("Z3"), unfold; QE("Z3") ))‘‘‘ - role: user content: |-The formula that you are trying to prove is: (((a >= 0 & a >= (-v)/T & end - (p + v*(T - t) + 1/2*a* (T - t)^2 + (v + a*(T - t))^2/(2*B)) >= 0) | (a < 0 & a >= (-B) & end - (p - v^2/(2*a)) >= 0) | (a < (-B) & end - (p + v^2/(2*B)) >= 0)) & A > 0 & B > 0 & T > 0 & v >= 0) -> <{p’ = v, v’ = a, t’ = 1 & t <= T & v >= 0}^@> (end - (p + v^2/(2*B)) >= 0 & A > 0 & B > 0 & T > 0 & v >= 0) This is what you have been trying so far and the results. Pay careful attention to not repeat past mistakes and make progress based on what you have learned. Proposed Tactic: unfold; 52 Authors Suppressed Due to Excessive Length 
+
+boxAnd(1); andR(1); print("State") .Outcome: ===== State ==== ElidingProvable(Provable{ ==> 1: (a>=0&a>=(-v)/T&end-(p+v*(T-t)+1/2*a*(T-t)^2+ (v+a*(T-t))^2/(2*B))>=0|a < 0&a>=-B&end-(p-v^2/ (2*a))>=0|a < -B&end-(p+v^2/(2*B))>=0)&A>0&B>0& T>0&v>=0-><{{p’=v,v’=a,t’=1&t<=T&v>=0}}^@> (end-(p+v^2/(2*B))>=0&A>0&B>0&T>0&v>=0) Imply from -1: a>=0&a>=(-v)/T&end-(p+v*(T-t)+1/2*a*(T-t)^2+ (v+a*(T-t))^2/(2*B))>=0|a < 0&a>=-B&end-(p-v^2/ (2*a))>=0|a < -B&end-(p+v^2/(2*B))>=0 Or -2: A>0 Greater -3: B>0 Greater -4: T>0 Greater -5: v>=0 GreaterEqual ==> 1: [{p’=v,v’=a,t’=1&t<=T&v>=0}]end-(p+v^2/(2*B))>=0 Box with -1: a>=0&a>=(-v)/T&end-(p+v*(T-t)+1/2*a*(T-t)^2+ (v+a*(T-t))^2/(2*B))>=0|a < 0&a>=-B&end-(p-v^2/ (2*a))>=0|a < -B&end-(p+v^2/(2*B))>=0 Or -2: A>0 Greater -3: B>0 Greater -4: T>0 Greater -5: v>=0 GreaterEqual ==> 1: [{p’=v,v’=a,t’=1&t<=T&v>=0}](A>0&B>0&T>0&v>=0) Box}) ===== print done (no progress, 1s) Done . Now, please provide a Bellerophon tactic to try next. You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack. In your response, first briefly summarize your reasoning. Then write a newline. Then, in a code block, write the entire Bellerophon tactic you want KeYmaera X to try. - role: assistant answer: mode: null content: | We see the proof has split into two goals, the first Title Suppressed Due to Excessive Length 53 
+
+with consequent ‘[{p’=v,v’=a,t’=1&t<=T&v>=0}]end-(p+v^2/ (2*B))>=0‘ and the second with consequent ‘[{p’=v,v’=a,t’=1&t<=T&v>=0}](A>0&B>0&T>0&v>=0)‘. The second one should be easy to prove, so we will try that first with the auto tactic. We will print the state after trying auto to see if it was successful, or if more work is required. We should also print the state of the harder branch so that we can plan our next steps there. Our tactic will carefully retain the initial ‘unfold; boxAnd(1); andR(1)‘ to ensure we don’t lose the progress we have already made. ‘‘‘ unfold; boxAnd(1); andR(1) <( label("harder"); print("State in harder branch"), label("easier"); auto; print("State after auto on easier branch") )‘‘‘ - role: user content: |-The formula that you are trying to prove is: (kA > 0 & kB > 0 & kC > 0 & kT >= 0 & T > 0 & A >= 0 & B >= 0 & C >= 0 & Temp >= 0 & (kB*A <= kA*B & kA*Temp + kT*A <= kA*Tmax | kA*B <= kB*A & kB*Temp + kT*B <= kB* Tmax)) -> < { { { isOn:=0; ++ isOn:=1; }; t:=0; { A’ = - A*B*Temp*isOn*kA, B’ = - A*B*Temp*isOn*kB, C’ = A*B*Temp*isOn*kC, Temp’ = A*B*Temp*isOn*kT, t’ = 1 & t<=T & A>=0 & B>=0 & C>=0 & Temp>=0 }; }* }^@ > Temp<=Tmax Now, please provide a Bellerophon tactic to try next. You should retain the entire previous tactic and expand on it, unless there is an error requiring you to backtrack. In your response, first briefly summarize your reasoning. Then write a newline. Then, in a code block, write the entire Bellerophon tactic you want KeYmaera X to try. 
+
+3. Summarize summarizes the proof state in preparation for the next iteration of the verification loop. 
+
+- role: system 54 Authors Suppressed Due to Excessive Length 
+
+content: | You are given a step in an attempt to prove a differential game logic (dGL) formula in KeYmaera X, along with context about the previous state of the proof before the step, including the global plan and the things we have tried so far. Your task is to provide a new summary of the current state of the proof that now accounts for the latest step towards completing the proof and its outcome. Your proof summary will be used to then decide what the next step in the proof should be (if you decide to continue the proof) or how to change the formula (if you choose to revise the formula). Therefore it should remember all relevant information: previous mistakes and how you resolved them, location of sequents in subgoals that currently remain open, counterexamples discovered at the end of previous proof directions, etc. Expect that after many steps, the summary will be long. Be sure to include all relevant information. ## Input: 1. The dGL formula that you are trying to prove. 2. The summary of the proof state before this step. 3. The proof tactic that you then ran this time to get one step closer to completing the proof. 4. The outcome of running that tactic. Here, "step" means not a literal single step in the proof, but rather a new tactic that you applied that modifies the last one that was applied, either resolving errors or making progress towards completing the proof. ## More information: Here is more information about dGL: [This section is the same as in the GetTactic query.] Here is more information about KeYmaera X tactics: [This section is that same as in the Bellerophon Tactic guide in the GetTactic query.] ## Output Shape: You should return a detailed summary of the proof state. Title Suppressed Due to Excessive Length 55 
+
+In the summary, you should include the following sections, many of which should carry over from the previous summary provided to you. 1. The global proof plan so far. Mostly carries over from previous summary unless the latest step surfaced an issue or new insight. 2. (New) Previous Tactic (that is, the currently applied tactic in the latest step). Just copies over from input item 3. Do not make any changes or omissions. 3. The current open subgoals with exact sequent locations if we know them. Copies over from input item 4. 4. Any mistakes made so far and how we fixed them. This is important to avoid repeating the same mistakes in future steps. Guide the reader so they know what they must do to avoid repeating these mistakes. Partly carries over from previous summary. Might need to add new information if the latest step surfaced a new mistake or insight on how to fix a mistake. Remember to include all relevant context, such as the tactic leading up to the issue, the reason for the problem, and how to avoid it in the future. 5. Previous proof directions that failed, if any, along with details such as the counterexamples discovered at the end of those directions. Mostly carries over from previous summary unless the latest step surfaced a new issue or insight. 6. Any other relevant information about the proof state that will let a reader work on the proof from here assuming no other information besides the original formula to prove is provided to them. Partly carries over from previous summary. Might need to add new information if the latest step surfaced new relevant information. Remember that your summary and the original formula will be all the reader has to work from to proceed with the proof, so do not omit useful details. Some of these sections may be empty if the proof is still in early stages, but you should still include the section headers for completeness." - role: user content: | The formula that you are trying to prove is: (kA > 0 & kB > 0 & kC > 0 & kT >= 0 & T > 0 & A >= 0 & 56 Authors Suppressed Due to Excessive Length 
+
+B >= 0 & C >= 0 & Temp >= 0 & (kB*A <= kA*B & kA*Temp + kT*A <= kA*Tmax | kA*B <= kB*A & kB*Temp + kT*B <= kB* Tmax)) -> < { { { isOn:=0; ++ isOn:=1; }; t:=0; { A’ = - A*B*Temp*isOn*kA, B’ = - A*B*Temp*isOn*kB, C’ = A*B*Temp*isOn*kC, Temp’ = A*B*Temp*isOn*kT, t’ = 1 & t<=T & A>=0 & B>=0 & C>=0 & Temp>=0 }; }* }^@ > Temp<=Tmax Remember that nested duals alternate control back. For example, in the game ‘{(a ++ b)^@; (c++d);}^@‘, the choice between ‘a‘ and ‘b‘ is controlled by Angel, while the choice between ‘c‘ and ‘d‘ is controlled by Demon. Here is an analysis of the formula, discussing what Angel vs. Demon controls and the game’s control modes. 1) Angel-controlled actions - None within the game body. The entire loop is dualized, so all otherwise-Angel constructs inside it are under Demon control. 2) Demon-controlled actions - Looping: { ... }*^@ | Demon chooses how many iterations to execute (including zero; any finite number). - Discrete choice each iteration: { isOn := 0; ++ isOn := 1; } | Within the single ^@, Demon chooses whether to set isOn to 0 (OFF) or 1 (ON) for that iteration. - ODE duration each iteration: { A’ = -A B Temp isOn kA, B’ = -A B Temp isOn kB, C’ = A B Temp isOn kC, Temp’ = A B Temp isOn kT, t’ = 1 & t <= T & A >= 0 & B >= 0 & C >= 0 & Temp >= 0 } | Demon controls how long to flow, subject to the evolution domain. He may stop immediately or at any time before hitting t = T or a state-constraint boundary (he cannot cross A,B,C,Temp < 0 or t > T). - Non-controlled deterministic assignments - t := 0 at the start of each iteration (resets the per-iteration clock; not a choice). - The chosen isOn := 0 or 1 is a deterministic assignment after Demon picks the branch. 3) Control modes (qualitative behaviors) The per-iteration discrete choice creates two qualitative modes; Demon may switch modes between iterations by Title Suppressed Due to Excessive Length 57 
+
+choosing isOn. - OFF mode (isOn = 0) - Dynamics: A’ = B’ = C’ = Temp’ = 0, t’ = 1. - Behavior: State (A,B,C,Temp) is frozen; only the timer t increases up to T. This is an equilibrium for the chemistry/temperature. - Invariants: All polynomial combinations below remain constant (trivially, since derivatives are zero). - ON mode (isOn = 1) - Dynamics: A’ = -kA A B Temp <= 0, B’ = -kB A B Temp <= 0, C’ = kC A B Temp >= 0, Temp’ = kT A B Temp >= 0, with t’ = 1 and domain t <= T, A,B,C,Temp >= 0. - Monotonicity: A(t), B(t) are nonincreasing; C(t), Temp(t) are nondecreasing. If any of A, B, or Temp is zero, all chemical rates are zero (equilibrium subset). - Polynomial invariants (valid in both modes because every derivative carries the common factor A B Temp isOn): - Stoichiometry: kB A - kA B = const (so the sign of kB A - kA B never changes; the \limiting reagent" relation stays fixed). - Thermal-reagent invariants: - kA Temp + kT A = const - kB Temp + kT B = const - Yield invariants (optional but useful): kC A + kA C = const and kC B + kB C = const. - Bounds from invariants (safety envelopes chosen by initial branch): - If initially kB A <= kA B and kA Temp + kT A <= kA Tmax, then for all future time Temp <= Tmax because A >= 0 and kA Temp + kT A stays constant. - If initially kA B <= kB A and kB Temp + kT B <= kB Tmax, then likewise Temp <= Tmax from the second invariant. - These two cases are disjoint branches selected by the initial stoichiometric ordering; the ordering is preserved by kB A - kA B = const. - Asymptotes/equilibria: Trajectories move along invariant manifolds until one reagent depletes (A → 0 or B → 0), then all rates drop to zero. Temperature approaches a finite limit bounded by the corresponding invariant, never exceeding Tmax under the given initial branch. If kT = 0, Temp is constant. 4) Overall control pattern 58 Authors Suppressed Due to Excessive Length 
+
+- Preconditions (outside the game) ensure positivity and pick one of two invariant safety envelopes: either kA Temp + kT A <= kA Tmax when kB A <= kA B, or kB Temp + kT B <= kB Tmax when kA B <= kB A. The stoichiometric ordering is invariant, so the chosen envelope remains applicable. - Iteration (repeats a Demon-chosen finite number of times): 1) Demon picks isOn \in {0, 1} (OFF or ON for this iteration). 2) Deterministic reset t := 0. 3) Demon chooses how long to flow within the ODE domain (0 <= duration <= T). - OFF: no state change except t. - ON: A,B decay; C,Temp grow; all along the invariant manifolds keeping Temp within the selected bound. - Demon controls both switching (isOn) and dwell time (ODE duration) as well as the number of repetitions; Angel has no in-game choices. The qualitative modes are OFF (equilibrium) and ON (reaction with monotone decay/growth along invariant manifolds), with safety enforced by the polynomial invariants regardless of Demon’s switching and timing. Carefully account for who controls which choice while constructing any counterexamples. The counterexample cannot, e.g., require Demon to make a choice that Angel controls. Then you performed the following proof attempt: We need an inductive invariant for the Demon loop. A natural invariant is the conserved linear bounds: either kA*Temp+kT*A<=kA*Tmax when kB*A<=kA*B, or kB*Temp+kT*B<=kB*Tmax when kA*B<=kB*A. Together with sign assumptions kA>0,kB>0,kT>=0 and A>=0,B>=0, this invariant implies Temp<=Tmax for the post branch. We set up the loop with this invariant, automatically discharge the init and post branches (splitting the disjunction in the post), and print the step branch after unfolding so we can handle ODE preservation next. ‘‘‘ unfold; loop("kA>0 & kB>0 & kT>=0 & A>=0 & B>=0 & ( (kB*A <= kA*B & kA*Temp + kT*A <= kA*Tmax) | (kA*B <= kB*A & kB*Temp + kT*B <= kB*Tmax) )", 1); <( /* init: assumptions imply invariant */ unfold; auto; print("Init branch after auto." Title Suppressed Due to Excessive Length 59 
+
+), /* step: unfold body, we will handle preservation next */ unfold; print(" Step branch after unfolding body."), /* post: invariant implies Temp<=Tmax */ andL(-1); andL(-1); andL(-1); andL(-1); andL(-1); orL(-1); <( andL(-1); QE(" Z3"); print("Post branch case 1 closed (from kA*Temp + kT*A <= kA*Tmax)."), andL(-1); QE("Z3"); print("Post branch case 2 closed (from kB*Temp + kT*B <= kB*Tmax)." )))‘‘‘ The outcome was: Tactic andL applied at -1 on a non-matching expression in ElidingProvable(Provable{ -1: kA>0&kB>0&kT>=0&A>=0&B>=0&(kB*A<=kA*B&kA*Temp+kT*A<= kA*Tmax|kA*B<=kB*A&kB*Temp+kT*B<=kB*Tmax) And -2: kA>0 Greater -3: kB>0 Greater -4: kC>0 Greater -5: kT>=0 GreaterEqual -6: T>0 Greater ==> 1: [{isOn:=0;++isOn:=1;}t:=0;{A’=-A*B*Temp*isOn*kA, B’=-A*B*Temp*isOn*kB,C’=A*B*Temp*isOn*kC,Temp’=A*B*Temp* isOn*kT,t’=1&t<=T&A>=0&B>=0&C>=0&Temp>=0}](kA>0&kB>0&kT >=0&A>=0&B>=0&%28kB*A<=kA*B&kA*Temp+kT*A<=kA*Tmax|kA*B <=kB*A&kB*Temp+kT*B<=kB*Tmax%29) Box from -1: kA>0 Greater -2: kB>0 Greater -3: kC>0 Greater -4: kT>=0 GreaterEqual -5: T>0 Greater -6: kA>0 Greater -7: kB>0&kT>=0&A>=0&B>=0&(kB*A<=kA*B&kA*Temp+kT*A<=kA* Tmax|kA*B<=kB*A&kB*Temp+kT*B<=kB*Tmax) And 60 Authors Suppressed Due to Excessive Length 
+
+==> 1: [{isOn:=0;++isOn:=1;}t:=0;{A’=-A*B*Temp*isOn*kA, B’=-A*B*Temp*isOn*kB,C’=A*B*Temp*isOn*kC,Temp’=A*B*Temp *isOn*kT,t’=1&t<=T&A>=0&B>=0&C>=0&Temp>=0}](kA>0&kB>0& kT>=0&A>=0&B>=0&%28kB*A<=kA*B&kA*Temp+kT*A<=kA*Tmax|kA* B<=kB*A&kB*Temp+kT*B<=kB*Tmax%29) Box}) in <( (unfold;auto;print("Init branch after auto.")), (unfold;print("Step branch after unfolding body.")), >>_<< ) (Failed on branch (andL(-1);andL(-1);andL(-1);andL(-1); andL(-1);orL(-1);<( (andL(-1);QE("Z3"); print("Post branch case 1 closed (from kA*Temp + kT*A <= kA*Tmax)." )), (andL(-1);QE("Z3"); print("Post branch case 2 closed (from kB*Temp + kT*B <= kB*Tmax)." )) ))) in <( (unfold;auto;print("Init branch after auto.")), (unfold;print("Step branch after unfolding body.")), >>_<< ) [Full trace elided] at edu.cmu.cs.ls.keymaerax.bellerophon.CoreLeftTactic. computeResult(BellerophonSyntax.scala:623) t... 40 more [launcher] Restarting KeYmaera X with sufficient stack space /usr/lib/jvm/java-17-openjdk-amd64/bin/java -Xss20M -da -jar /home/.../keymaerax.jar -launch -prove /home/.../keymaerax_conjectures/kA0.kyx -tactic unfold; loop("kA>0 & kB>0 & kT>=0 & A>=0 & B>=0 & ( (kB*A <= kA*B & kA*Temp + kT*A <= kA*Tmax) | (kA*B <= kB*A & kB*Temp + kT*B <= kB*Tmax) )", 1); <( /* init: assumptions imply invariant */ unfold; auto; print("Init branch after auto." ), /* step: unfold body, we will handle preservation next */ unfold; print(" Step branch after unfolding body."), /* post: invariant implies Temp<=Tmax */ andL(-1); andL(-1); andL(-1); andL(-1); andL(-1); orL(-1); <( Title Suppressed Due to Excessive Length 61 
+
+andL(-1); QE(" Z3"); print("Post branch case 1 closed (from kA*Temp + kT*A <= kA*Tmax)."), andL(-1); QE("Z3"); print("Post branch case 2 closed (from kB*Temp + kT*B <= kB*Tmax)." )))-verbose -timeout 30 KeYmaera X Prover 5.1.2 Use option -help for usage and license information Proving entries from 1 files Proving /home/.../keymaerax_conjectures/kA0.kyx#Delphyne/kA0 ... unfold... unfold done (transformed goal(s), 44ms) loop("kA>0&kB>0&kT>=0&A>=0&B>=0&(kB*A<=kA*B&kA*Temp+kT*A<= kA*Tmax|kA*B<=kB*A&kB*Temp+kT*B<=kB*Tmax)" , 1)... loop done (added 2 goal(s), 60ms) unfold... unfold done (no progress, 2ms) auto... auto done (proved, 16ms) print("Init branch after auto.")... INFO ===== Init branch after auto. ==== ElidingProvable(Provable{ -1: kA>0 Greater -2: kB>0 Greater -3: kC>0 Greater -4: kT>=0 GreaterEqual -5: T>0 Greater -6: A>=0 GreaterEqual -7: B>=0 GreaterEqual -8: C>=0 GreaterEqual -9: Temp>=0 GreaterEqual -10: kB*A<=kA*B&kA*Temp+kT*A<=kA*Tmax|kA*B<=kB*A&kB*Temp+kT*B <=kB*Tmax Or ==> 1: kA>0&kB>0&kT>=0&A>=0&B>=0&(kB*A<=kA*B&kA*Temp+kT*A <=kA*Tmax|kA*B<=kB*A&kB*Temp+kT*B<=kB*Tmax) And proved}) ===== print done (proved, 4ms) INFO ===== Step branch after unfolding body. ==== ElidingProvable(Provable{ -1: kA>0&kB>0&kT>=0&A>=0&B>=0&(kB*A<=kA*B&kA*Temp+kT*A <=kA*Tmax|kA*B<=kB*A&kB*Temp+kT*B<=kB*Tmax) And -2: kA>0 Greater -3: kB>0 Greater 62 Authors Suppressed Due to Excessive Length 
+
+-4: kC>0 Greater -5: kT>=0 GreaterEqual -6: T>0 Greater ==> 1: Temp<=Tmax LessEqual from -1: kA>0 Greater -2: kB>0 Greater -3: kC>0 Greater -4: kT>=0 GreaterEqual -5: T>0 Greater -6: kA>0 Greater -7: kB>0 Greater -8: kT>=0 GreaterEqual -9: A>=0 GreaterEqual -10: B>=0 GreaterEqual -11: kB*A<=kA*B&kA*Temp+kT*A<=kA*Tmax|kA*B<=kB*A&kB* Temp+kT*B<=kB*Tmax Or ==> 1: Temp<=Tmax LessEqual}) ===== Done /home/.../keymaerax_conjectures/kA0.kyx#Delphyne/kA0 (failed) FAILED Delphyne/kA0: tactic=user,tacticsize=-1,budget=30[s], duration=-1[ms],qe=-1[ms],rcf=-1,steps=-1 Now please provide your summary. 
+
+This ends the listing of the Verification Prompts. 
+
+# G Synthesis Prompts 
+
+Similarly to Appendix F, this section lists the synthesis prompts. Again prompts are listed in the order in which they are called during the synthesis process. 1. AnalyzeGameLoop is the same as in Appendix F. 2. PlanControlStrategy uses the analysis so far and the provided informal guide-line to come upw ith a strategy that Angel should play. 
+
+- role: system content: | You are given a differential game logic (dGL) loop and a desired postcondition that Angel (the controller) aims to maintain. Title Suppressed Due to Excessive Length 63 
+
+Your task is to propose a succinct plan describing the Angel’s control strategy to guarantee the postcondition. You just need to find one control strategy that works, not necessarily the optimal or most general one. You may be provided guidelines about what kind of control solution to find. If so, the chose strategy should be in accordance with those guidelines. Background on dGL: [Identical to the dGL syntax guide of AnalyzeGameLoop followed by the Bellerophon Tactic guide of GetTactic.] You are given: - The full loop. - The postcondition that Angel aims to maintain. - A prior analysis of Angel vs. Demon controls and control modes. - Optionally, guidelines about what kind of control solution to find. Goal: Produce a strategy that maintains safety. If the control involves a Demon controlled loop, carefully account for infinite iterations. Keep the strategy simple and minimalist. Avoid unnecessarily long or involved control strategies. It is OK if your strategy requires special initial conditions or assumptions to work, such as starting at specific equilibrium point or assuming the sign of some constants. Just be clear about what these assumptions are. Requirements for the plan: - State any initial conditions/assumptions the plan relies on, and what control mode it starts in. You must choose exactly one control mode to start in so as to make subsequent analysis easier. If the control mode requires specific initial conditions, this should be part of your assumptions. - After this, list Angel’s strategy as a sequence of steps, corresponding to control modes. * Each step should start with an action word (e.g., 64 Authors Suppressed Due to Excessive Length 
+
+"Choose", "Set", "Switch to"), possibly with a conditional clause (e.g., "When X holds"). End with a temporal indicator (e.g., "repeatedly", "until Y", "forever"). * Each step should focus on Angel’s actions. Mention Demon only when necessary to motivate Angel’s tactics, or when he forces a mode change. * Expect to transition between modes mainly by using Angel’s controllable actions and choices. * Use clear English, no mathematical notation unless necessary for clarity. This will later be translated into formal constraints. * Produce a numbered list of Angel’s decisions. * Be as concise as possible without superfluous words. Aim for no more than ~120 words. * Avoid hedging or verbose meta-commentary; write only Angel’s action steps. The input includes the game and a prior analysis identifying Angel vs. Demon controls. Use that analysis to ensure that the plan accounts for any possible adversarial behavior. - Carefully consider the differential equation. There can be coupling between variables that affects your reasoning. - Based on the dynamics, you may some times need to come up with upper/lower bounds of quantities and use that to derive sound preconditions. It’s best to use simplistic, polynomial bounds so that they verify more easily. Output Structure: - Start with a one-line comment on what new region the strategy is trying to cover. - Then write section per the requirements listed above. * Write a description of initial conditions/assumptions, and mode. * Then proceed with the plan steps. You will be shown zero or more examples of how to answer, followed by a new question to answer. - role: user content: |-Full Game: Title Suppressed Due to Excessive Length 65 
+
+{? A > 0 & B > 0 & kA > 0 & kB > 0 & kC > 0 & kT >= 0 & T > 0;^@}; {subgame_c: {{{{{isOn := 0;} ++ {isOn := 1;}}}; {t := 0;}}; {subgame_j: {A’ = - A * B * Temp * isOn * kA, B’ = - A * B * Temp * isOn * kB, C’ = A * B * Temp * isOn * kC, Temp’ = A * B * Temp * isOn * kT, t’ = 1 & t <= T & A >= 0 & B >= 0 & C >= 0 & Temp >= 0} }}*^@} Postcondition Angel aims to maintain after the loop: Temp <= Tmax Prior control analysis: 1) Angel-controlled actions - None. The only potentially Angelic constructs (the choice isOn := 0 ++ isOn := 1 and the ODE duration) are inside a loop that is wrapped by a single dual ^@, so they are Demon-controlled. 2) Demon-controlled actions - Initial test {? A > 0 & B > 0 & kA > 0 & kB > 0 & kC > 0 & kT >= 0 & T > 0}^@ (subsequent play assumes these hold; otherwise Demon would have lost). - Loop count {subgame_c: {...}*}^@: Demon chooses how many iterations (including zero). - Inside each iteration (because the whole loop is under one ^@): - Branch choice {{{isOn := 0;} ++ {isOn := 1;}}: Demon chooses whether the reaction is Off or On for that iteration’s flow. - ODE duration in subgame_j: Demon controls how long to flow along A’ = - A B Temp isOn kA, B’ = - A B Temp isOn kB, C’ = A B Temp isOn kC, Temp’ = A B Temp isOn kT, t’ = 1 subject to the evolution domain t <= T, A >= 0, B >= 0, C >= 0, Temp >= 0. He may stop anytime before hitting the domain boundary; he cannot exceed it. - Deterministic assignment t := 0 is not a choice (it always executes). 3) Control modes (qualitative behaviors and invariants) - OFF mode (isOn = 0, or equivalently any boundary where A = 0 or B = 0 or Temp = 0 makes the vector field zero): 66 Authors Suppressed Due to Excessive Length 
+
+- A’ = B’ = C’ = Temp’ = 0, t’ = 1. Chemical state (A,B,C,Temp) is frozen; only the timer t increases until t = T. - Equilibrium for the chemical variables. - ON mode (isOn = 1, with A,B,Temp > 0): - Monotonicity: A’ = -kA A B Temp <= 0, B’ = -kB A B Temp <= 0, C’ = kC A B Temp >= 0, Temp’ = kT A B Temp >= 0 (Temp’ = 0 when kT = 0). Thus A,B decrease; C increases; Temp is nondecreasing. - Domain bounds: A,B,C,Temp remain nonnegative; 0 <= t <= T within each flow. - Polynomial invariants (valid in both ON and OFF, hence globally): - kB A - kA B = const. - C + (kC/kA) A = const and C + (kC/kB) B = const. - Temp + (kT/kA) A = const and Temp + (kT/kB) B = const (these degenerate correctly when kT = 0). - Equilibria within ON: if A = 0 or B = 0 or Temp = 0 is reached, the system becomes stationary (same as OFF for the chemical variables). - Asymptotic/terminal behavior: Trajectories move along the invariant line kB A - kA B = const toward the nonnegative axes; one reactant may be exhausted (A=0 or B=0) while the other remains positive. C accumulates according to the invariants; Temp can only increase (if kT>0) or remain constant (if kT=0). Special parameter submode: - Isothermal ON (kT = 0): Same as ON but Temp’ = 0, so Temp is constant; other invariants and monotonicity still hold. 4) Overall control pattern - Start with a Demon test ensuring A > 0, B > 0, kA,kB,kC > 0, kT >= 0, T > 0 (Angel may assume these). - Then repeat zero or more iterations (Demon loop): 1) Demon chooses isOn \in {0,1}. 2) Deterministically reset t := 0. 3) Demon evolves the ODE for any duration up to the domain boundary (notably t <= T), stopping at will. - By sequencing iterations, Demon effectively applies a piecewise-constant ON/OFF control with segment durations at most T, steering the monotone reaction dynamics (consume A,B and produce C, increase Temp if kT>0) or freezing them when OFF. Title Suppressed Due to Excessive Length 67 
+
+More information from previous proof attempts: Find the control solution for the situation where the reactant runs out before temperature can become too large. Provide the control strategy now. 
+
+3. The next query, which gets the LLM to guess a subvalue for a subgame, has three variants, one each for loops, nondeterministic assignments, and ODEs. We show the loop variant, GuessLoopInvControl, but the others are similar. 
+
+- role: system content: | Your task is to guess a loop invariant for a game loop given the loop body and the postcondition. A loop of the form {\alpha}*^@ executes the body \alpha zero or more times (and we must account for every possibility). A loop invariant I is a property that: 1. Holds before the loop starts (precondition implies I) 2. Is preserved by each iteration of the loop body (if I holds before \alpha, then I holds after \alpha) 3. Combined with loop termination, implies the postcondition A loop of the form {\alpha}* executes the body \alpha zero or more times, and how many times is our choice. In this case, the invariant should be such if we run the loop enough (finite) times, the postcondition will be satisfied. While choosing the precondition/invariant, you need to consider the essential properties that remain true throughout all possible iterations of the loop body, considering both angel and demon choices. The loop invariant should be typically involves bounds, safety properties, or relationships between variables Return your answer as a logical formula in KeYmaera X syntax: - Use & for logical AND - Use | for logical OR - Use ! for logical NOT - Use = for equality - Use <, <=, >, >= for comparisons - Use parentheses for grouping 68 Authors Suppressed Due to Excessive Length 
+
+Use only variables you see in the problem. For example, if the problem has ‘x‘, use ‘x‘, not ‘x(0)‘. Provide up to 4 lines describing your reasoning. Then after a blank line, write a code block with the loop invariant in KeYmaera X syntax. Some syntax instructions to keep in mind are: - Do not add comments to your code blocks, as this may cause parsing issues. Some information about dGL: "@" is the dual symbol that flips who controls the action between Angel and Demon. For example: In game "x := *", Angel gets to choose what value is assigned. The weakest precondition for such an assignment with postcondition P is the formula that holds *for some* value that could be assigned to x. In game "{x := *;}^@", any real number can be assigned, per Demon’s decision. The weakest precondition for such an assignment with postcondition P is the formula that holds *for all* possible values that could be assigned to x. In game "{{ x:= *;}^@}^@" the control flips twice, so Angel gets to choose the assignment to x. - Carefully consider the differential equation. There can be coupling between variables that affects your reasoning. - Based on the dynamics, you may some times need to come up with upper/lower bounds of quantities and use that to derive sound preconditions. It’s best to use simplistic, polynomial bounds so that they verify more easily. - role: user content: | Loop body: {isOn := 0; ++ isOn := 1;}^@; t := 0; {A’ = - A * B * Temp * isOn * kA, B’ = - A * B * Temp * isOn * kB, C’ = A * B * Temp * Title Suppressed Due to Excessive Length 69 
+
+isOn * kC, Temp’ = A * B * Temp * isOn * kT, t’ = 1 & t <= T & A >= 0 & B >= 0 & C >= 0 & Temp >= 0}^@ Postcondition: Temp <= Tmax Overall game in which this loop appears (for context): ? A > 0 & B > 0 & kA > 0 & kB > 0 & kC > 0 & kT >= 0 & T > 0;^@; {{isOn := 0; ++ isOn := 1;}; t := 0; {A’ = - A * B * Temp * isOn * kA, B’ = - A * B * Temp * isOn * kB, C’ = A * B * Temp * isOn * kC, Temp’ = A * B * Temp * isOn * kT, t’ = 1 & t <= T & A >= 0 & B >= 0 & C >= 0 & Temp >= 0}}*^@ Here is an analysis of the game, the strategy that Angel is trying to play, and a log of things that you have already tried in the past. Carefully consider this information. Analysis of game: 1) Angel-controlled actions - None. All controllable constructs in the body lie inside a single ^@ (the outer loop dual), so their control is flipped to Demon. There are no remaining Angel decisions. 2) Demon-controlled actions - Initial test {? A > 0 & B > 0 & kA > 0 & kB > 0 & kC > 0 & kT >= 0 & T > 0}^@: Demon test. Angel may assume these hold initially; otherwise she already wins. - Loop {subgame_c; subgame_j}*^@: Demon loop. Demon decides how many iterations to execute (including zero). - Within each iteration: - Choice isOn := 0 ++ isOn := 1: Demon chooses whether the reaction is off or on during this iteration’s flow (the ++ is inside the loop’s ^@). - ODE duration in subgame_j: Demon controls how long to flow subject to the evolution domain (t <= T, A,B,C,Temp >= 0). He may stop immediately or any time before hitting the boundary. - Deterministic assignments (no player control once chosen to execute): - t := 0 each iteration (resets the local clock) 70 Authors Suppressed Due to Excessive Length 
+
+- The chosen assignment to isOn is deterministic once the branch is selected. 3) Control modes (qualitative behavior) - OFF mode (isOn = 0): - Dynamics: A’ = B’ = C’ = Temp’ = 0, t’ = 1. State (A,B,C,Temp) is constant while time advances to at most T. - Equilibria: Entire state subspace is an equilibrium for the state variables. - ON mode (isOn = 1): - Dynamics: A’ = -kA A B Temp <= 0, B’ = -kB A B Temp <= 0, C’ = kC A B Temp >= 0, Temp’ = kT A B Temp >= 0 (with kT >= 0). If any of A=0 or B=0 or Temp=0, then A’=B’=C’=Temp’=0 (equilibrium). - Monotonicity (when A,B,Temp > 0): A and B strictly decrease; C and Temp strictly increase (Temp is constant if kT = 0). - Global linear invariants (valid in both ON and OFF, since OFF has zero derivatives): - kC A + kA C = const - kC B + kB C = const - Temp - (kT/kC) C = const - Bounds and asymptotes: - A(t), B(t) remain >= 0 and decrease to 0 at most. - From invariants, C is bounded above by C <= min(C0 + (kC/kA) A0, C0 + (kC/kB) B0). - Temp follows Temp = Temp0 + (kT/kC)(C - C0), hence Temp <= min(Temp0 + (kT/kA) A0, Temp0 + (kT/kB) B0). - Reaction effectively ceases upon reaching any equilibrium surface A=0 or B=0 or Temp=0; otherwise Demon may stop earlier at t = T. There are no oscillations; trajectories move toward these saturating bounds. - One-dimensional reduction: Using the invariants, C’ becomes a cubic polynomial in C with roots at the limiting values where A or B hits zero (and a nonphysical root at negative C from Temp - (kT/kC)C if kT>0), confirming growth of C to a finite saturation. Special sub-modes: - Temperature-constant case (kT = 0): Temp’ = 0; Temp is Title Suppressed Due to Excessive Length 71 
+
+invariant. A,B decrease and C increases until A=0 or B=0 or Demon stops at t=T. 4) Overall control pattern - Initial Demon test enforces positive parameters and T > 0. - The game proceeds through Demon-controlled iterations: 1) Demon sets isOn \in {0,1}. 2) Reset t := 0. 3) Demon lets the ODE evolve for some duration up to T within the nonnegativity domain (or stops immediately). - Demon also decides how many such iterations occur. - Angel has no direct control; Demon’s only lever is to toggle the reaction ON/OFF and pick durations/number of pulses. The state evolves along the linear invariant manifolds, with OFF holding the state and ON pushing it monotonically toward reagent depletion (A or B) with bounded increases in C and Temp. Angel control strategy: Covering the region where reactant depletion caps temperature growth before hitting Tmax. Initial conditions/assumptions and starting mode: - Assume Demon’s test holds: A>0, B>0, kA,kB,kC>0, kT>=0, T>0. - Start in ON mode (isOn=1) for worst-case analysis of Temp growth. - Safety margin: Temp0 + min((kT/kA).A0, (kT/kB).B0) <= Tmax. (Special case: if kT=0, it suffices that Temp0 <= Tmax.) Angel’s strategy: 1) Do nothing; permit any Demon choices of ON/OFF, durations, and iterations, forever. The invariants cap Temp by Temp0 + min((kT/kA)A0, (kT/kB)B0), and reagent depletion (A or B →0) stops further increase, ensuring Temp <= Tmax throughout. Starting precondition computation. What is a suitable loop invariant for this loop? 72 Authors Suppressed Due to Excessive Length 
+
+4. GetNextActionCtrl is the query that decides what to do next: prove the current guess with the verification pipeline, or backtrack, and if so, to where? 
+
+- role: system content: |-You are trying to assign the preconditions of a differential game logic game. You have been proposing preconditions using backwards reasoning where you first proposed something for subgames closest to the end and then worked backwards recursively. Now you have reached a cross-roads and must choose a next action. You are given the original program, a log of what you were doing last, and the options of actions available to you. Reply with a brief explanation, followed by a newline, followed by a code block containing only the word for the action. ## Background information Here is some information about dGL. In differential game logic (dGL), there are two players: - **Angel**: The controllable player who makes choices we can control. Angel constructs include: - Angel choices: ‘a ++ b‘ (we choose between a and b) - Angel loops: ‘{a}*‘ (we choose how many iterations) - Angel tests: ‘?P‘ (we can proceed if P holds, otherwise we immediately lose) - Angel ODEs: ‘{x’=f(x) & Q}‘ (we control the duration) - Angel nondeterministic assignments: ‘x := *‘ (we choose the value) There is the dual operator ‘^@‘ that switches Angel and Demon roles in a game construct. Duals can be nested arbitrarily, so carefully check nesting levels to determine which player controls each action. Being within an odd number of ‘^@‘ operators indicates Demon control, while an even number (including zero) indicates Angel control. For example, in the game ‘{(a ++ b)^@; (c++d)}^@‘, the choice between ‘a‘ and ‘b‘ is controlled by Angel, being within two ‘^@‘ operators, while the choice between ‘c‘ and ‘d‘ is controlled by Demon. Title Suppressed Due to Excessive Length 73 
+
+Using this notation, we go over the Demon constructs below, indicating that they are Demon-controlled by wrapping them in a single ‘^@‘ operator. - **Demon**: The adversarial player who makes choices we cannot control. Demon has all the same constructs as Angel. - Demon choices: ‘{a ++ b}^@‘ (adversary chooses between a and b) - Demon loops: ‘{a*}^@‘ (adversary chooses how many iterations) - Demon tests: ‘{?P}^@‘ (adversary can proceed if P holds, and immediately loses otherwise. So Angel can *assume* in subsequent game play that P held at this point; otherwise she would already have won.) - Demon ODEs: ‘{x’=f(x) & Q}^@‘ (adversary controls the duration) - Demon nondeterministic assignments: ‘{x := *}^@‘ (adversary chooses the value) Additionally, the non-controlled operations are: - Assignment: ‘x := e‘ (deterministic assignment like in regular programs) - Sequential composition: ‘a; b‘ (first play a, then b) ## Notes - ODEs can sometimes introduce unmatched single quotes, so account for that when parsing. - In syntax such as { a++b; x:=* }*^@, the ‘^@‘ applies to the entire loop including its body. In this example, Demon controls the choice within the loop between a and b, as well as the assignment to x, because both are inside one ‘^@‘. Some subgames are labeled with unique identifiers with the following syntax: <subgame_id>: <subgame> These subgame ids will help make your answers more specific. A *precondition* for a given game is a logical formula that, when it is true before the game starts, there exists a strategy for Angel to ensure that the *postcondition* holds after the game ends, regardless of how Demon plays. 74 Authors Suppressed Due to Excessive Length 
+
+## Input 1. The current subgame for which you were trying to propose preconditions. 2. overall_game: The overall game in which the current subgame appears. 3. Analysis of the game and the control strategy Angel is trying to execute that the chosen preconditions should support. This is followed by a log of previous attempts at identifying preconditions for subgames and verifying whether they hold by stepping through the game and checking if the preconditions compose to ensure the postcondition is satisfied. Examine this history to figure out what just happened. Did you propose a bad ODE precondition? Did the precondition you proposed end up not being compatible with an earlier chosen loop invariant? Did you come up with a good invariant but you think it can be improved upon? 4. The options you can choose for your next action. ## Possible Actions The preconditions that you proposed most recently didn’t check out. Either it was not provably a precondition of the current subgame, or if part of a loop, your provided preconditions led to a precondition for the loop body that was not implied by the loop invariant. The error could lie in the most recent condition, or earlier in the process where you may have made a choice previously that backed you into a corner for this subgame, or maybe the condition is correct but too difficult for the automatic theorem prover to check. Now you must decide till what point to backtrack, or whether to try harder to prove the current subgame result using a tactic with KeYmaera X. You are given the original program, in which some points in the game are labeled as subgame_id. - ‘backtrack-to:id‘: Backtrack to the subgame with the given id and propose a new precondition there. If you choose this option, in your reply, write ‘backtrack-to:id‘ where id is the id of the subgame you Title Suppressed Due to Excessive Length 75 
+
+want to backtrack to. When backtracking, you can even choose the current subgame to retry. Loops are considered to occur "later" than their body, so if you backtrack to a subgame inside a loop, you won’t be asked for a new loop invariant and the existing invariant will be used. - ‘try-proof‘: Try to prove the current subgame using KeYmaera X with the precondition you proposed most recently. If you aren’t sure why the most recent precondition was bad, this could be a good option because the manual proof attempt can give you feedback on what’s wrong with the precondition. ## Output Write a few lines of explanation, followed by a newline, and then a code block containing the action you choose. For example, a valid code block is: ‘‘‘ try-proof ‘‘‘ I will now show you zero of more examples of how to respond, followed by the current case. - role: user content: |-The current subgame is: subgame_p: {x’ = a * x - b * x * y, y’ = d * x * y - g * y}^@ The overall game with labels is: {? x > 0 & y > 0 & a > 0 & b > 0 & d > 0 & g > 0 & x >= xmin & y >= ymin;^@}; {subgame_c: {{{{{{{subgame_j: xadd := *;^@ }; {? xadd >= 0;^@}}; {subgame_l: yadd := *;^@ }}; {? yadd >= 0;^@}}; {x := x + xadd;}}; {y := y + yadd;}}; {subgame_p: {x’ = a * x - b * x * y, y’ = d * x * y - g * y} }}*^@} Here is an analysis of the game followed by logs of precondition computation and checking so far: Analysis of game: 76 Authors Suppressed Due to Excessive Length 
+
+1) Angel-controlled actions - ODE duration (subgame_p): In each iteration, Angel controls how long to flow along x’ = a x - b x y, y’ = d x y - g y (no evolution domain constraint, so any nonnegative duration, including 0). 2) Demon-controlled actions - Initial test: {? x > 0 & y > 0 & a > 0 & b > 0 & d > 0 & g > 0 & x >= xmin & y >= ymin}^@. Angel may assume these hold initially; otherwise Demon would have already lost. - Looping: {...}*^@. Demon chooses how many iterations to perform (finite but unbounded, including zero). - Nondeterministic increments with constraints: - subgame_j: {xadd := *}^@ followed by {? xadd >= 0}^@: Demon chooses xadd and must satisfy xadd >= 0. - subgame_l: {yadd := *}^@ followed by {? yadd >= 0}^@: Demon chooses yadd and must satisfy yadd >= 0. - Deterministic updates x := x + xadd; y := y + yadd then apply each iteration. 3) Control modes (qualitative dynamics) The hybrid iteration has two distinct phases per round: A. Discrete jump (Demon): x := x + xadd, y := y + yadd with xadd,yadd >= 0 - Monotone, upward-only resets of both coordinates. Demon can make x,y arbitrarily large in a single iteration. - Effect on the continuous invariant (see below): H(x,y) = g ln x - d x + a ln y - b y has gradient - \delta H/\delta x = g/x - d, positive if x < g/d and negative if x > g/d. - \delta H/\delta y = a/y - b, positive if y < a/b and negative if y > a/b. So increasing a coordinate raises H when that coordinate is below its nullcline threshold, and lowers H when above. Demon’s nonnegative jumps can thus move the state to higher or lower H-level sets depending on where (x,y) is relative to (g/d, a/b). B. Continuous Lotka{Volterra flow (Angel-controlled duration): - Nullclines: - x’ = 0 when y = a/b (horizontal line). - y’ = 0 when x = g/d (vertical line). - Unique interior equilibrium: E* = (g/d, a/b). Title Suppressed Due to Excessive Length 77 
+
+- First integral (conserved along the ODE): H(x,y) = g ln x - d x + a ln y - b y = constant. Orbits are closed, encircling E*; no asymptotic convergence or divergence within the ODE phase. - Sign structure by regions (x>0,y>0 always preserved): - y < a/b, x > g/d: x’ > 0, y’ > 0 (both grow). - y > a/b, x > g/d: x’ < 0, y’ > 0. - y > a/b, x < g/d: x’ < 0, y’ < 0 (both decay). - y < a/b, x < g/d: x’ > 0, y’ < 0. Angel can stop the flow at any point on the current H-level set (including immediately with 0 time). - Simple bounds during any flow (using positivity and a,b,d,g>0): - x’ = x(a - b y) <= a x \implies x(t) <= x0 e^{a t}. - y’ = y(d x - g) >= -g y \implies y(t) >= y0 e^{-g t}. Positivity is invariant: x(t), y(t) stay > 0 for all flow times. Special submodes within the ODE: - Exact equilibrium: If (x,y) = (g/d, a/b), then x’ = y’ = 0 (rest). - Oscillation: Otherwise, neutral cycles on H-level sets around E*; Angel chooses how far to traverse each cycle segment by choosing the duration. 4) Overall control pattern - Start: Demon test establishes initial positivity and parameter bounds. - Iteration (repeats a Demon-chosen number of times): 1) Demon picks xadd >= 0 (subgame_j) and yadd >= 0 (subgame_l) and applies the discrete increases to x,y. 2) Angel chooses a duration to flow along the Lotka{Volterra ODE (subgame_p), moving along the current closed orbit (conserved H). - Interaction: - Demon’s lever: choose when to repeat and how large the nonnegative jumps are, thereby reselecting the H-level set before each flow. - Angel’s lever: select the stopping point along the chosen H-level set each iteration (including skipping the flow by choosing zero duration). - Because Demon can pick unbounded xadd,yadd in any iteration, x and/or y can be made arbitrarily large; the ODE phase then oscillates around E* on the newly determined level set until Angel stops. 78 Authors Suppressed Due to Excessive Length 
+
+Angel control strategy: Covering the \freeze the flow" region so Demon’s nonnegative jumps alone preserve safety. Initial conditions/assumptions and start mode: - Assume the initial test holds: x>0, y>0, a,b,d,g>0, and x>=xmin, y>=ymin. - Start and remain in Immediate-stop ODE mode (Angel always ends the flow instantly). Angel’s strategy: 1) Choose zero ODE duration immediately whenever the Lotka{Volterra flow is offered, ending the continuous phase instantly, repeatedly. 2) Repeat step 1 after every Demon discrete increment and update, forever (or until Demon stops the loop). Rationale: Discrete steps only increase x and y (xadd,yadd >= 0). By never flowing, x and y never decrease. Since the initial test ensures x>=xmin and y>=ymin, these inequalities remain true throughout all iterations. Starting precondition computation. Proposed the following loop invariant for loop {xadd := *;^@; ? xadd >= 0;^@; yadd := *;^@; ? yadd >= 0;^@; x := x + xadd; y := y + yadd; {x’ = a * x - b * x * y, y’ = d * x * y - g * y}}*^@. x >= xmin & y >= ymin Attempting to check invariant by precondition computation on loop body. Proposed precondition for subgame {x’ = a * x - b * x * y, y’ = d * x * y - g * y}^@ and postcondition x >= xmin & y >= ymin. Precondition or invariant: x >= xmin & y >= ymin. Check succeeded: False. Feedback: The formula check failed, indicating it is wrong, or too complex for the current level of automation. Please revise your guess or try a more detailed proof tactic. The options you can choose are: [’try-proof’, ’backtrack-to:p’, ’backtrack-to:c’]

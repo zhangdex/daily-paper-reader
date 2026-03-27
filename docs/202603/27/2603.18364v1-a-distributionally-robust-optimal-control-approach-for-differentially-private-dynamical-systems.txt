@@ -1,0 +1,824 @@
+Title: A Distributionally Robust Optimal Control Approach for Differentially Private Dynamical Systems
+
+URL Source: https://arxiv.org/pdf/2603.18364v1
+
+Published Time: Fri, 20 Mar 2026 00:31:40 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# A Distributionally Robust Optimal Control Approach for Differentially Private Dynamical Systems 
+
+Yeongjun Jang, Kaoru Teranishi, and Junsoo Kim 
+
+Abstract —In this paper, we develop a distributionally robust optimal control approach for differentially private dynamical systems, enabling a plant to securely outsource control compu-tation to an untrusted remote server. We consider a plant that ensures differential privacy of its state trajectory by injecting calibrated noise into its output measurements. Unlike prior works, we assume that the server only has access to an ambiguity set consisting of admissible noise distributions, rather than the exact distribution. To account for this uncertainty, the server formulates a distributionally robust optimal control problem to minimize the worst-case expected cost over all admissible noise distributions. However, the formulated problem is computation-ally intractable due to the nonconvexity of the ambiguity set. To overcome this, we relax it into a convex Kullback–Leibler divergence ball, so that the reformulated problem admits atractable closed-form solution. 
+
+I. I NTRODUCTION 
+
+The advancement of cloud computing has enabled resource-limited devices to outsource computationally intensive tasks to remote servers, thereby improving scalability and efficiency [1]–[3]. However, such delegation requires transmitting data that may contain sensitive information (e.g., current state or model parameters), leading to privacy concerns. In particular, the data sent over communication channels are vulnerable to eavesdropping and the server may be semi-honest, meaning that it correctly executes the assigned protocol while attempt-ing to infer sensitive information. Therefore, the problem of preserving data utility while providing formal privacy guaran-tees has attracted significant interest. Recently, differential privacy (DP) has emerged as a pow-erful tool for preserving both data utility and privacy [4], [5]. Rather than releasing raw data, DP adds calibrated noise, so that adversaries cannot accurately infer the input data from the noisy (privatized) output data. It has been widely adopted across various applications due to several appealing features. In particular, its immunity to post-processing and resilience to side information ensures that the privacy guarantees are preserved under arbitrary manipulation of the released output and when an adversary possesses auxiliary knowledge [5]. In the control literature, DP has typically been utilized to privatize a plant’s state trajectory by injecting artificial noise                 
+
+> *This work was supported by the National Research Foundation of Ko-rea (NRF) grant funded by the Korea government (MSIT) (No. RS-2024-00353032). Y. Jang is with ASRI, Department of Electrical and Computer Engineering, Seoul National University, Seoul, 08826, Korea (email: jangyj0512@snu.ac.kr). K. Teranishi is with the Department of Information and Physical Sciences, Graduate School of Information Science and Technology, The University of Osaka, Osaka, 565-0871, Japan (email: k-teranishi@ist.osaka-u.ac.jp). J. Kim is with the Department of Electrical and Information Engineering, Seoul National University of Science and Technology, Seoul, 01811, Korea (email: junsookim@seoultech.ac.kr).
+
+into the input and/or output, followed by the synthesis of an optimal filter [6]–[8] or an optimal controller [9]–[11] to mitigate the effect of noise. In particular, the aforementioned works restrict their attention to injecting Gaussian noise, allowing them to directly apply the standard Kalman filter or linear quadratic Gaussian (LQG) control. This setting, how-ever, entails two key limitations. First, injecting Gaussian noise can only guarantee a weaker notion of DP (see Section II-A), which may be inadequate in privacy-sensitive applications. While a stronger notion can be achieved by employing suitable non-Gaussian noises (e.g., Laplace noise), doing so makes the Kalman filter or LQG control fundamentally inapplicable. Second, the Kalman filter or LQG control require exact knowledge of the noise statistics. This can be particularly problematic in cloud based control settings, in which the plant may be unwilling to disclose these parameters to the server due to privacy concerns. To overcome these limitations, we develop a distribution-ally robust optimal control approach for differentially private dynamical systems. We consider a cloud based control setting in which the plant ensures DP of its state trajectory by adding either Gaussian or Laplace noise to its output, and the server only has access to an admissible range of the noise parameters. To guarantee robust performance, the server formulates a distributionally robust optimal control problem to synthesize an output feedback controller that minimizes the worst-case expected cost over all admissible noise distributions. The resulting problem, however, is computationally in-tractable as the underlying ambiguity set formed by the union of Gaussian and Laplace distributions is nonconvex. To address this, we construct a convex Kullback-Leibler divergence ball that contains all admissible noise distributions and relax the original ambiguity set. This relaxation allows for a refor-mulation into a risk-sensitive control problem that admits a computationally tractable closed-form solution at the cost of suboptimality. To the best of our knowledge, this is the first result to synthesize an optimal controller for differentially private dynamical systems while accounting for both non-Gaussian noise and distributional ambiguity. Notations: Let R and N denote the sets of real numbers and positive integers. For a sequence v1, . . . , v n of scalars or vectors, we define v1: n := [ v⊤ 
+
+> 1
+
+, . . . , v ⊤ 
+
+> n
+
+]⊤. The identity and the zero matrices are denoted by I and 0, respectively, with their dimensions indicated as subscripts when necessary. For a probability distribution P (or a random variable X ∼ P ), we denote its probability density function by πP (or πX ).We write X ∼ N (μ, Σ) to denote that a random variable 
+
+X follows a multivariate Gaussian distribution with mean μ
+
+and covariance matrix Σ. Similarly, we use X ∼ Lap (b, h )
+
+to denote an Rh-valued random vector whose elements each 1
+
+> arXiv:2603.18364v1 [eess.SY] 19 Mar 2026
+
+independently follows a zero-mean Laplace distribution with the scale parameter b > 0.II. P RELIMINARIES AND PROBLEM FORMULATION 
+
+A. Differential privacy of dynamical systems 
+
+We introduce the basic notions of differential privacy (DP), specifically adapted to dynamical systems. The core idea is to inject calibrated measurement noise such that the output tra-jectories generated from adjacent state trajectories are nearly indistinguishable, thereby preventing accurate inference of the underlying state based on the observed output. To formalize this, consider a discrete-time plant written by 
+
+x(k + 1) = Ax (k) + Bu (k) + w(k), (1) 
+
+y(k) = Cx (k),
+
+where x(k) ∈ Rn is the state, y(k) ∈ Rp is the output, u(k) ∈
+
+Rm is the input, and w(k) ∈ Rn is the process noise. To privatize its state trajectory x0: N over a fixed horizon 
+
+N ∈ N, the plant conceals the raw output y(k). Instead, it publishes a privatized output 
+
+˜y(k) = y(k) + v(k)
+
+by injecting an artificial measurement noise v(k) ∈ Rp at each time step k. Accordingly, the plant can be modeled as a randomized mechanism M, defined as 
+
+M(x0: N ) := ˜ y0: N ∈ RL, (2) where the randomness arises from v0: N and L = p(N + 1) .Let D := Rn(N +1) denote the set of all state trajectories of length N + 1 . The set of all adjacent state trajectory pairs is defined as 
+
+Adj := {(x0: N , x ′ 
+
+> 0: N
+
+) ∈ D × D | ∥ x0: N − x′ 
+
+> 0: N
+
+∥1 ≤ γ} (3) for some tunable parameter γ > 0. This definition is natural in the sense that two state trajectories are considered adjacent if their ℓ1-distance is less than or equal to γ.Based on these, (ϵ, δ )-DP and ϵ-DP are defined as follows. 
+
+Definition 1. Let the plant (1) be modeled as a randomized mechanism M as defined in (2). For given ϵ ≥ 0 and δ ∈
+
+[0 , 1) , the plant satisfies (ϵ, δ )-DP if 
+
+P [M(x0: N ) ∈ S] ≤ exp( ϵ) · P [M(x′ 
+
+> 0: N
+
+) ∈ S] + δ
+
+for all S ⊆ RL and (x0: N , x ′ 
+
+> 0: N
+
+) ∈ Adj . If δ = 0 , the plant is said to satisfy ϵ-DP. The parameter ϵ, often referred to as the privacy bud-get , governs the maximum allowable change in the output probability distribution for adjacent inputs, with smaller ϵ
+
+corresponding to stronger privacy. The parameter δ relaxes this by allowing a failure probability of at most δ. Consequently, 
+
+ϵ-DP is a stronger notion and implies (ϵ, δ )-DP for any δ ≥ 0.An appealing feature of DP is its immunity to post-processing. That is, applying any transformation on the mecha-nism’s output, such as for feedback control or state estimation, does not degrade the established privacy level. Additionally, DP admits an additive composition rule that facilitates the characterization of cumulative privacy loss incurred over time. For a comprehensive treatment of these properties and other aspects of DP, we refer the reader to [5]. In what follows, we introduce two representative and widely used mechanisms for ensuring DP; the Gaussian and Laplace mechanisms. The Gaussian mechanism ensures (ϵ, δ )-DP by drawing v(k) from a multivariate Gaussian distribution. While it is limited to (ϵ, δ )-DP, the Laplace mechanism can ensure the stronger ϵ-DP by using the Laplace distribution. 
+
+Lemma 1. Let the plant (1) be modeled as a randomized mechanism M as defined in (2). 1) For given ϵ ∈ (0 , 1) and δ ∈ (0 , 1) , if v0: N ∼ N (0, σ 2I)
+
+with 
+
+σ2 ≥ 2 ln(1 .25 /δ )
+
+ϵ2 ∥C∥22 γ2,
+
+then the plant satisfies (ϵ, δ )-DP. 2) For given ϵ > 0, if v0: N ∼ Lap (b, L ) with 
+
+b ≥ ∥C∥1 γϵ ,
+
+then the plant satisfies ϵ-DP. 
+
+Proof. See Appendix A. ■
+
+The derived lower bounds for the variance σ2 and the scale parameter b are inversely proportional to ϵ2 and ϵ, respectively. This implies that achieving stronger privacy necessitates inject-ing noise with larger variance or scale. Also, observe that the lower bounds scale with γ, indicating that protecting privacy across a larger Adj requires noise with larger variance or scale. Conversely, these bounds decrease as the gain ∥C∥1 decreases, which suggests that systems with lower sensor sensitivity inherently render the output trajectories harder to distinguish. 
+
+B. Problem formulation 
+
+We consider a cloud based control architecture in which the plant (1) transmits the privatized output ˜y(k) to a semi-honest remote server. Based on the received output history, the server computes and returns the control input u(k), while simultaneously attempting to infer the underlying state tra-jectory x0: N . To protect its state trajectory, the plant designs the noise sequence v0: N using either the Gaussian or Laplace mechanism to satisfy a desired (ϵ, δ )-DP guarantee. Crucially, unlike prior works [6]–[11], we assume that nei-ther the specific mechanism nor the noise parameters chosen by the plant are known to the server, as the plant may be unwilling to share such information due to privacy concerns. Instead, we assume that the server has access to an ambiguity set Ξ consisting of admissible noise distributions, defined as 
+
+Ξ := N (0, σ 2I) | σ2 ∈ [σ2, σ 2] ∪ Lap (b, L ) | b ∈ [b, b ] .
+
+That is, the server only knows that v0: N ∼ P for some unknown P ∈ Ξ. Here, the lower bounds σ2 > 0 and b > 0
+
+are chosen to satisfy the conditions in Lemma 1, and σ2 > 0
+
+and b > 0 are empirical upper bounds introduced to prevent the noise parameters from being chosen excessively large. 2Given Ξ, the server aims to synthesize an optimal controller from the set of admissible controllers Λ, defined as 
+
+Λ ⊆
+
+n
+
+K = {K k}N −1 
+
+> k=0
+
+| K k : Rp(k+1) → Rmo
+
+.
+
+That is, any K ∈ Λ is a causal output feedback controller that generates the control input as u(k) = Kk(˜ y0: k). Since the exact distribution of v0: N remains unknown, standard optimal control methods, such as LQG, are fundamentally inapplicable. To overcome this challenge, the server formulates a dis-tributionally robust optimal control problem. Specifically, the goal is to find a controller K ∈ Λ that minimizes the worst-case expected cost functional over Ξ, thus guaranteeing robust performance against any admissible noise distribution. The problem of interest is formally stated as follows. 
+
+Problem 1. For the plant (1), assume that the initial state satisfies x(0) ∼ N (xini , Σini ) for some xini ∈ Rn and Σini ≻ 0,and that the process noise is white Gaussian with w(k) ∼N (0, Σw), where Σw ≻ 0.Given the parameters {A, B, C, x ini , Σini , Σw, N } and the ambiguity set Ξ, design a controller K ∈ Λ by solving the following distributionally robust optimal control problem: 
+
+inf  
+
+> K∈ Λ
+
+sup  
+
+> P∈Ξ
+
+Ev0: N ∼P [J(K)] , (4) where the expectation is taken jointly 1 over x(0) , w0: N −1, and 
+
+v0: N , and the finite-horizon cost J(K) is defined as 
+
+J(K) := 12 x(N )⊤QN x(N )+ 12 
+
+> N−1
+
+X
+
+> k=0
+
+ x(k)⊤Qx (k) + u(k)⊤Ru (k)
+
+with QN ⪰ 0, Q ⪰ 0, and R ≻ 0.Before proceeding, we impose the following assumption on 
+
+Λ, which has also been made in [12, Assumption 3.2]. 
+
+Assumption 1. For any admissible controller K ∈ Λ,
+
+sup  
+
+> P∈P (RL)
+
+Ev0: N ∼P [J(K)] = ∞,
+
+where P(RL) is the set of all probability distributions on RL.Assumption 1 implies that for any admissible controller K ∈ 
+
+Λ, the associated expected cost can be made arbitrarily large by suitably choosing the distribution of v0: N to sufficiently corrupt ˜y0: N . Hence, Λ excludes degenerate controllers that ignore the output history, for example, constant controllers. III. M AIN RESULTS 
+
+A. Tractable reformulation of the optimization problem 
+
+Directly solving the minimax optimization problem (4) is computationally intractable due to the nonconvex nature of the ambiguity set Ξ, which is formed as a union of Gaussian and Laplace distributions. Indeed, a convex combination of a Gaussian and a Laplace distribution is generally neither Gaussian nor Laplace. To address this, we relax the ambiguity      
+
+> 1For notational brevity, the dependency on x0and w0: N−1is omitted.
+
+set Ξ into a convex Kullback-Leibler (KL) divergence ball, which results in a tractable reformulation of (4). Formally, the KL divergence is defined as follows. 
+
+Definition 2. Let P and Q be two probability distributions on 
+
+RL. The KL divergence of P from Q is defined as 
+
+DKL (P ∥Q) := 
+
+Z
+
+> RL
+
+πP (x) log 
+
+ πP (x)
+
+πQ(x)
+
+
+
+dx. 
+
+If there exists x ∈ RL such that πP (x) > 0 but πQ(x) = 0 ,we define DKL (P ∥Q) = ∞. □
+
+Let us fix Pnom := N (0, σ 2I) ∈ Ξ as our nominal 
+
+probability distribution. We first derive an explicit closed-form expression for the KL divergence between a Laplace distribution and Pnom .
+
+Lemma 2. The KL divergence of P ∼ Lap (b, L ) from Pnom 
+
+is given by 
+
+DKL (P ∥Pnom ) = L
+
+2
+
+
+
+log σ2
+
+2b2 + 2b2
+
+σ2 − 2 + log π
+
+
+
+. (5) 
+
+Proof. The KL divergence can be alternatively expressed as the difference between the expected log-likelihoods, as 
+
+DKL (P ∥Pnom ) = Ex∼P [log πP (x)] − Ex∼P [log πPnom (x)] .
+
+The first term is the negative entropy of the Laplace distribu-tion P , which is given by [13, Chapter 2.1] 
+
+Ex∼P [log πP (x)] = L
+
+
+
+−1 + log 12b
+
+
+
+. (6) For the second term, expanding the log-likelihood of the nominal Gaussian density πPnom yields 
+
+−Ex∼P [log πPnom (x)] = L
+
+2 log π + L
+
+2 log(2 σ2) (7) 
+
++ 12σ2 Ex∼P
+
+x⊤x .
+
+To evaluate the expectation of the quadratic term, we utilize the fact that Ex∼P [x] = 0 and Ex∼P [xx ⊤] = 2 b2IL [13, Chapter 2.1], which leads to 
+
+Ex∼P
+
+x⊤x = Tr  Ex∼P
+
+xx ⊤ = Tr  2b2IL
+
+ = 2 b2L, 
+
+where Tr (·) is the trace operator. Combining this with (7) and (6) results in (5), and this concludes the proof. ■
+
+Building on Lemma 2, the following theorem establishes a KL divergence ball centered at Pnom that contains all admissible noise distributions in Ξ.
+
+Theorem 1. For any P ∈ Ξ, the KL divergence of P from 
+
+Pnom is bounded as 
+
+DKL (P ∥Pnom ) ≤ L
+
+2 max {η1, η 2} =: η > 0, (8) where 
+
+η1 := g(σ2) − 1 ∈ R,η2 := max 
+
+n
+
+g(2 b2), g (2 b2)
+
+o
+
+− 2 + log π ∈ R
+
+with g(x) = log( σ2/x ) + x/σ 2.3Proof. First, suppose P = N (0, σ 2IL) with σ2 ∈ [σ2, σ 2].Using the standard closed-form expression for the KL diver-gence between two Gaussian distributions [14], we have 
+
+DKL (P ∥Pnom ) (9) 
+
+= 12
+
+
+
+log 
+
+ det( σ2IL)det( σ2IL)
+
+
+
++ Tr 
+
+ σ2
+
+σ2 IL
+
+
+
+− L
+
+
+
+= 12
+
+
+
+L log 
+
+ σ2
+
+σ2
+
+
+
++ L σ2
+
+σ2 − L
+
+
+
+= L
+
+2
+
+ g(σ2) − 1 ≤ L
+
+2 η1,
+
+where the last inequality follows from the fact that g(x) is increasing for x ≥ σ2.Next, suppose that P = Lap (b, L ) with b ∈ [b, b ]. By applying Lemma 2, it is obtained that 
+
+DKL (P ∥Pnom ) = L
+
+2
+
+ g(2 b2) − 2 + log π . (10) Observe that g(x) is strictly convex on (0 , ∞) and attains a unique global minimum at x = σ2. Therefore, the right-hand-side of (10) is maximized at one of the boundary points of 
+
+[b, b ], and thus, DKL (P ∥Pnom ) ≤ Lη 2/2. Combining this with (9) leads to (8). Moreover, since g(σ2) = 1 , it holds that 
+
+η2 ≥ log π − 1 > 0, implying η > 0. This concludes the proof. ■
+
+Based on Theorem 1, we construct an ambiguity set Bη as the KL divergence ball of radius η centered at Pnom :
+
+Bη := P ∈ P (RL) | DKL (P ∥Pnom ) ≤ η .
+
+Since Ξ ⊂ B η by construction, we can relax (4) by replacing the ambiguity set Ξ with Bη , leading to the reformulated problem 
+
+inf  
+
+> K∈ Λ
+
+sup  
+
+> P∈B η
+
+Ev0: N ∼P [J(K)] . (11) While (11) provides a suboptimal solution to (4), we empha-size that its inner maximization is now a convex optimization problem in P for any fixed K ∈ Λ. This is because Bη is convex [15, Chapter 3] and the expected cost is affine in P .In the following subsection, we show that the reformulated problem (11) is closely related to the risk-sensitive optimal control problem, for which well-established solutions exist. 
+
+Remark 1. Our specific choice of Pnom is for analytical con-venience, and theoretically, it may be chosen as any alternative distribution. Selecting a different Pnom might yield a tighter radius η, thereby reducing the conservatism of the synthesized controller. However, optimizing the choice of Pnom is beyond the scope of this work. 
+
+B. Control design 
+
+The following theorem establishes an equivalent representa-tion of (11) whose inner optimization problem reduces to the standard risk-sensitive optimal control problem [16], [17]. 
+
+Theorem 2. Under Assumption 1, the minimax optimal con-trol problem (11) is equivalent to 
+
+inf  
+
+> τ > 0
+
+τ (η + Wτ ) , (12) where Wτ denotes the optimal value of a risk-sensitive optimal control problem, given by 
+
+Wτ = inf  
+
+> K∈ Λ
+
+log Ev0: N ∼Pnom 
+
+
+
+exp 
+
+ J(K)
+
+τ
+
+ 
+
+. (13) 
+
+Proof. For any fixed K ∈ Λ, consider the inner maximization problem of (11), which is a convex optimization problem. Since Pnom ∈ B η is strictly feasible, i.e., DKL (Pnom ∥Pnom ) = 0 < η , strong duality holds by Slater’s condition [15, Chap-ter 5], and thus, 
+
+sup  
+
+> P∈B η
+
+Ev0: N ∼P [J(K)] (14) 
+
+= inf   
+
+> τ≥0
+
+sup  
+
+> P∈P (RL)
+
+Ev0: N ∼P [J(K) − τ (DKL (P ∥Pnom ) − η)] = inf  
+
+> τ > 0
+
+sup  
+
+> P∈P (RL)
+
+Ev0: N ∼P [J(K) − τ (DKL (P ∥Pnom ) − η)] ,
+
+where the second equality follows from Assumption 1. For any 
+
+τ > 0, the inner maximization problem of the right-hand-side of (14) can be rewritten as 
+
+sup  
+
+> P∈P (RL)
+
+Ev0: N ∼P [J(K) − τ (DKL (P ∥Pnom ) − η)] = τ η + τ sup  
+
+> P∈P (RL)
+
+
+
+Ev0: N ∼P
+
+ J(K)
+
+τ
+
+
+
+− DKL (P ∥Pnom )
+
+
+
+= τ η + τ log Ev0: N ∼Pnom 
+
+
+
+exp 
+
+ J(K)
+
+τ
+
+ 
+
+,
+
+where the last equality follows from the Donsker-Varadhan variational formula [18]. Substituting this into (14) concludes the proof. ■
+
+In the literature, (13) is widely recognized as the risk-sensitive optimal control problem, where θ := 1 /τ represents the risk-sensitivity parameter. Since τ > 0, we have θ > 0,which corresponds to a risk-averse regime. That is, the expo-nential transformation in (13) assigns heavier weight to tail outcomes with high cost, enforcing robustness against worst-case noise realizations. For a fixed τ > 0, the optimal control policy for (13) admits an LQG-like structure [16], [17]. Specifically, it consists of a state estimator and a feedback policy that are coupled through the parameter τ . Since existing results typically account for distributional ambiguity across the initial state, process noise, and measurement noise, we adapt them to our setting in which the ambiguity is confined to the measurement noise. The state estimator is characterized by the forward Riccati equation written by 
+
+Σk+1 = Σ w + AP −1 
+
+> k
+
+A⊤, Pk := Σ −1 
+
+> k
+
++ C⊤Cσ2 − Qτ ,
+
+initialized at Σ0 = Σ ini , provided that Pk ≻ 0 and Σk ≻ 0 for 
+
+k = 0 , . . . , N − 1. Intuitively, this condition could fail when τ
+
+is sufficiently small, i.e., when θ is sufficiently large, implying a maximum threshold on the achievable risk-sensitivity. The dynamics of the state estimate ˆx(k) ∈ Rn is then given by 
+
+ˆx(k + 1) = Aˆx(k) + Bu (k) + Kk (˜ y(k) − C ˆx(k)) + AP −1 
+
+> k
+
+Qτ ˆx(k), ˆx(0) = xini ,
+
+420 40 60 80 100              
+
+> 100
+> 200
+> τ∗
+> τ
+> τ (η + Wτ )
+> Fig. 1. Plot of τ(η+Wτ)versus τ, with the optimal value τ∗= 28 .1392
+> indicated in red.
+
+where the gain is defined as Kk = AP −1 
+
+> k
+
+C⊤/σ 2.The feedback policy is determined by the backward Riccati equation written by 
+
+Πk = Q + A⊤L−1
+
+> k+1
+
+A, Lk+1 := Π −1 
+
+> k+1
+
++ BR −1B⊤ − Σw
+
+τ ,
+
+initialized at ΠN = QN . To ensure the existence of astabilizing feedback gain, the solution is required to satisfy 
+
+Π−1 
+
+> k+1
+
+−Σw/τ ≻ 0 and Π−1 
+
+> k
+
+−Σk/τ ≻ 0 for k = 0 , . . . , N −1,similar to the conditions implied on the state estimator. The following proposition provides closed-form expressions for the optimal value and the associated optimal policy of (13). The proof can be obtained by adapting the results of [16], [17], and is therefore omitted here due to space limitations. 
+
+Proposition 1. For a fixed τ > 0, let Kτ ∈ Λ denote the optimal policy for the risk-sensitive optimal control problem (13). The optimal value Wτ is given by (15) and the optimal control input u(k) = Kτk (˜ y0: k) is given by 
+
+u(k) = −R−1B⊤L−1
+
+> k+1
+
+A
+
+
+
+I − ΣkΠk
+
+τ
+
+−1
+
+ˆx(k)
+
+for k = 0 , . . . , N − 1.This proposition enables us to reduce (12) to an outer optimization over τ > 0. Since a closed-form expression for the optimal τ ∗ is generally unavailable, it is standard in practice to determine it by evaluating the objective in (12) over feasible τ by utilizing the closed-form expression for Wτ [12], [19], as illustrated in Fig. 1. 
+
+Remark 2. Unlike related works [9], [10], deriving an explicit tradeoff between privacy and control performance is nontrivial in our setting due to the minimax formulation. In standard LQG, certainty equivalence ensures that noise statistics only affect the state estimator. In contrast, the privacy budget 
+
+ϵ influences our proposed controller in a coupled manner. Specifically, ϵ determines the lower bounds of σ2 and b,which affects η. This directly alters the optimal τ ∗ to (12), thereby impacting both the estimator and the feedback policy. A rigorous analysis on these effects is left for future work. IV. S IMULATION RESULTS 
+
+This section provides simulation results 2 to demonstrate the effectiveness of the proposed method through a numerical example. Consider the plant (1) given as 
+
+A =
+
+1.15 0.10 1.05 
+
+
+
+, B =
+
+ 10.5
+
+
+
+, C = 1 0, 5 ,
+
+with xini = [1 , −1] ⊤, Σini = 0 .2I2, and Σw = 0 .05 I2. We set the horizon length to N = 20 and the weight matrices to 
+
+Q = QN = I2 and R = 0 .3.We chose the DP and adjacency parameters as (ϵ, δ ) = (ln(2) , 0.5) and γ = 0 .5, respectively. The lower bounds for the noise parameters are set as σ2 = 1 .1920 and b = 0 .7213 to satisfy the conditions derived in Lemma 1. We empirically set the corresponding upper bounds to σ2 = 1 .2σ2, and b = 1 .2b,and these parameter choices yield η = 1.8170 according to Theorem 1. Fig. 1 depicts the value of τ (η + Wτ ) for different values of τ > 0. From this plot, we chose its optimal value as τ ∗ = 28 .1392 , with which the proposed controller is constructed based on Proposition 1. We compared the performance of the proposed method against a standard LQG controller designed under the assump-tion that v0: N ∼ Pnom . We selected the true noise parameter from a uniform grid over the admissible interval— [σ2, σ 2] or 
+
+[b, b ] depending on the mechanism—containing 12 points, and repeated the simulation 10000 times for each chosen param-eter. As shown in Fig. 2, the proposed method reduces both the 95 th percentile and the worst-case values of J(K). This can be thought of as a direct consequence of the risk-sensitive formulation derived in Theorem 2, which inherently assigns higher penalties to tail events. These results suggest that the proposed method effectively achieves robustness against severe noise mismatches at the expense of a slight degradation in average-case performance. Fig. 3 illustrates the cost J(K) of the proposed method under varying privacy parameters (ϵ, δ ), averaged over 10000 
+
+simulations. For a fair comparison, σ2 and b are set as the lower bounds derived in Lemma 1, and the ratio σ2/σ 2 =
+
+b/b = 1 .2 was fixed across all parameter sets. The results demonstrate a trend of performance degradation as privacy requirements increase, i.e., as ϵ decreases or δ decreases. However, it is not monotonic, possibly due to the coupled effects of privacy parameters discussed in Remark 2. 
+
+> 2Code fully available at https://github.com/yj-jang-98/DRO-DP
+
+Wτ = 12τ x⊤
+
+> ini
+
+
+
+Π−10 − Σini 
+
+τ
+
+−1
+
+xini − 12 logdet(Σ ini ) − 12 
+
+> N−1
+
+X
+
+> k=0
+
+log 
+
+
+
+det (Σ k+1 ) det 
+
+
+
+Pk − C⊤Cσ2
+
+ 
+
+(15) 
+
+− 12 
+
+> N−1
+
+X
+
+> k=0
+
+logdet 
+
+I −
+
+Kk
+
+
+
+σ2Ip + C
+
+
+
+Pk − C⊤Cσ2
+
+−1
+
+C⊤
+
+
+
+K⊤
+
+> k
+
+
+
+Π−1 
+
+> k+1
+
+− Σk+1 
+
+> τ
+
+−1
+
+τ
+
+ − 12 logdet 
+
+
+
+Σ−1 
+
+> N
+
+− QN
+
+τ
+
+
+
+5200 
+
+250 
+
+300 
+
+Mean (Proposed) 95th (Proposed) Worst (Proposed) 
+
+Mean (LQG) 95th (LQG) Worst (LQG) 
+
+90 
+
+100 
+
+> J(K)
+
+1.2 1.25 1.3 1.35 1.4 1.45 
+
+40 
+
+50 
+
+σ2
+
+(a) Gaussian Mechanism 
+
+200 
+
+250 
+
+300 
+
+90 
+
+100 
+
+> J(K)
+
+0.72 0.74 0.76 0.78 0.8 0.82 0.84 0.86 0.88 
+
+40 
+
+50 
+
+b
+
+(b) Laplace Mechanism 
+
+Fig. 2. Performance comparison of the proposed method and standard LQG over 10000 simulations. The mean, 95 th percentile, and worst-case values of the cost J(K) are plotted, while varying the noise parameters σ2 and b for (a) the Gaussian and (b) the Laplace mechanisms, respectively. 
+
+V. C ONCLUSION 
+
+In this paper, we have developed a distributionally robust optimal control approach for differentially private dynamical systems in which only an ambiguity set consisting of admis-sible noise distributions is known to the server. Accordingly, we formulated a minimax optimization problem to guarantee robust performance over the ambiguity set. At the expense of suboptimality, we relaxed this ambiguity set into a convex KL divergence ball, so that the reformulated problem admits a tractable closed-form solution. Simulation results demonstrate that the proposed method achieves robust control performance against severe noise mismatches while ensuring DP. REFERENCES [1] H. C. Lim, S. Babu, J. S. Chase, and S. S. Parekh, “Automated control in cloud computing: Challenges and opportunities,” in Proc. 1st Workshop Autom. Control Data Centers Clouds , 2009, pp. 13–18. [2] T. Hegazy and M. Hefeeda, “Industrial automation as a cloud service,” 
+
+IEEE Trans. Parallel Distrib. Syst. , vol. 26, no. 10, pp. 2750–2763, 2015. [3] G. P. Liu, “Predictive control of networked multiagent systems via cloud computing,” IEEE Trans. Cybern. , vol. 47, no. 8, pp. 1852–1859, 2017. [4] C. Dwork, F. McSherry, K. Nissim, and A. Smith, “Calibrating noise to sensitivity in private data analysis,” in Proc. 3rd Theory Cryptogr. Conf. ,2006, pp. 265–284. [5] C. Dwork and A. Roth, “The algorithmic foundations of differential privacy,” Found. Trends Theor. Comput. Sci. , vol. 9, no. 3-4, pp. 211– 487, 2014. 
+
+0.8 0.9 1
+
+50 
+
+60 
+
+70 
+
+80 
+
+ln(2) 
+
+ϵ
+
+(a) Gaussian Mechanism 
+
+> J(K)
+
+δ = 0 .01 δ = 0 .1 δ = 0 .5
+
+0.8 0.9 1
+
+45 
+
+50 
+
+55 
+
+ln(2) 
+
+ϵ
+
+(b) Laplace Mechanism Fig. 3. The cost J(K) for different privacy parameters (ϵ, δ ), averaged over 
+
+10000 simulations. The ratio σ2/σ 2 = b/b = 1 .2 is fixed for both the (a) Gaussian and (b) Laplace mechanisms. [6] J. Le Ny and G. J. Pappas, “Differentially private filtering,” IEEE Trans. Autom. Control , vol. 59, no. 2, pp. 341–354, 2014. [7] J. Cort´ es, G. E. Dullerud, S. Han, J. Le Ny, S. Mitra, and G. J. Pappas, “Differential privacy in control and network systems,” in Proc. 55th IEEE Conf. Decision Control , 2016, pp. 4252–4272. [8] K. H. Degue and J. Le Ny, “Differentially private Kalman filtering with signal aggregation,” IEEE Trans. Autom. Control , vol. 68, no. 10, pp. 6240–6246, 2023. [9] M. Hale, A. Jones, and K. Leahy, “Privacy in feedback: The differentially private LQG,” in Proc. 2018 Amer. Control Conf. , 2018, pp. 3386–3391. [10] K. Yazdani, A. Jones, K. Leahy, and M. Hale, “Differentially private LQ control,” IEEE Trans. Autom. Control , vol. 68, no. 2, pp. 1061–1068, 2023. [11] K. H. Degue and J. Le Ny, “Cooperative differentially private LQG control with measurement aggregation,” IEEE Control Syst. Lett. , vol. 7, pp. 1093–1098, 2023. [12] I. R. Petersen, M. R. James, and P. Dupuis, “Minimax optimal control of stochastic uncertain systems with relative entropy constraints,” IEEE Trans. Autom. Control , vol. 45, no. 3, pp. 398–412, 2000. [13] S. Kotz, T. Kozubowski, and K. Podgorski, The Laplace Distribution and Generalizations: A Revisit with Applications to Communications, Economics, Engineering, and Finance . Boston, MA, USA: Birkh¨ asuer, 2012. [14] M. Gil, F. Alajaji, and T. Linder, “R´ enyi divergence measures for commonly used univariate continuous distributions,” Inf. Sci. , vol. 249, pp. 124–131, 2013. [15] S. Boyd and L. Vandenberghe, Convex Optimization . New York, NY, USA: Cambridge Univ. Press, 2004. [16] P. Whittle, “Risk-sensitive linear/quadratic/Gaussian control,” Adv. Appl. Probab. , vol. 13, no. 4, pp. 764–777, 1981. [17] I. B. Collings, M. R. James, and J. B. Moore, “An information-state approach to risk-sensitive tracking problems,” J. Math. Syst. Estim. Control , vol. 6, no. 3, pp. 343–346, 1996. [18] P. Dupuis and R. S. Ellis, A Weak Convergence Approach to the Theory of Large Deviations . New York, NY, USA: Wiley, 1997. [19] I. R. Petersen, “Minimax LQG control,” Int. J. Appl. Math. Comput. Sci. , vol. 16, no. 3, pp. 309–323, 2006. 
+
+APPENDIX 
+
+A. Proof of Lemma 1 
+
+It follows from [5, Theorem A.1] that the Gaussian mech-anism satisfies (ϵ, δ )-DP if σ2 ≥ 2 ln(1 .25 /δ )∆ 22/ϵ 2, where 
+
+∆2 := sup (x0: N ,x ′  
+
+> 0: N)∈Adj
+
+∥y0: N − y′ 
+
+> 0: N
+
+∥2. Here y0: N and 
+
+y′ 
+
+> 0: N
+
+correspond to the true output trajectories generated by 
+
+x0: N and x′ 
+
+> 0: N
+
+, respectively. Similarly, the Laplace mecha-nism satisfies ϵ-DP if b ≥ ∆1/ϵ [5, Theorem 3.6], where 
+
+∆1 := sup (x0: N ,x ′  
+
+> 0: N)∈Adj
+
+∥y0: N − y′ 
+
+> 0: N
+
+∥1. Using the standard norm inequality ∥ · ∥ 2 ≤ ∥ · ∥ 1 and (3), we have 
+
+∥y0: N − y′ 
+
+> 0: N
+
+∥2 ≤ ∥ C∥2 ∥x0: N − x′ 
+
+> 0: N
+
+∥2 ≤ ∥ C∥2 γ, 
+
+∥y0: N − y′ 
+
+> 0: N
+
+∥1 ≤ ∥ C∥1 γ. 
+
+Substituting these concludes the proof. 6

@@ -1,0 +1,860 @@
+Title: From Singleton Obstacles to Clutter: Translation Invariant Compositional Avoid Sets
+
+URL Source: https://arxiv.org/pdf/2603.22146v1
+
+Published Time: Tue, 24 Mar 2026 02:36:46 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+> JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 1
+
+# From Singleton Obstacles to Clutter: Translation Invariant Compositional Avoid Sets 
+
+Prashant Solanki, Jasper Van Beers, Coen De Visser 
+
+Abstract —This paper studies obstacle avoidance under transla-tion invariant dynamics using an avoid-side travel cost Hamilton Jacobi formulation. For running costs that are zero outside an obstacle and strictly negative inside it, we prove that the value function is non-positive everywhere, equals zero exactly outside the avoid set, and is strictly negative exactly on it. Under translation invariance, this yields a reuse principle: the value of any translated obstacle is obtained by translating a single template value function. We show that the pointwise minimum of translated template values exactly characterizes the union of the translated single-obstacle avoid sets and provides a conservative inner certificate of unavoidable collision in clutter. To reduce conservatism, we introduce a blockwise composition framework in which subsets of obstacles are merged and solved jointly. This yields a hierarchy of conservative certificates from singleton reuse to the exact clutter value, together with monotonicity under block merging and an exactness criterion based on the existence of a common clutter avoiding control. The framework is illustrated on a Dubins car example in a repeated clutter field. 
+
+Index Terms —Hamilton Jacobi reachability, avoid sets, safety certification, cluttered environments, translation invariance 
+
+I. I NTRODUCTION 
+
+Hamilton Jacobi (HJ) reachability provides a rigorous framework for safety verification and control synthesis in nonlinear dynamical systems [1], [4]. By characterizing reachc avoid and avoid problems as viscosity solutions of HJ partial differential equations, it yields both a certified safe/unsafe set and an associated feedback law. However, classical grid-based solvers suffer from the curse of dimensionality, which limits their direct use in repeated or large-scale cluttered environments [1], [4]. To address this limitation, prior work has developed de-composition methods, warm start and initialization techniques, and learning based approximations of HJ value functions [2], [3], [8]–[10]. Recent work has also formalized links between HJ reachability and reinforcement learning (RL), showing that suitably defined travel cost value functions preserve HJ safety semantics while admitting Bellman style updates [7], [11]. Related ideas also appear in local value function patching and other compositional HJ frameworks [5], [6], [12]. These developments broaden the computational reach of HJ methods, but they do not directly explain how a single learned or 
+
+> This work was supported in part by the European Research Council under ERC Consolidator Grant. Prashant Solanki is with the Delft University of Technology, Netherlands (e-mail: P.solanki@tudelft.nl). Jasper Van Beers is with the Delft University of Technology, Netherlands (e-mail: J.J.vanBeers@tudelft.nl). Coen De Visser is with the Delft University of Technology, Netherlands (e-mail: C.C.deVisser@tudelft.nl).
+
+computed obstacle avoidance value function can be rigorously reused across repeated clutter configurations. This paper studies that question for deterministic obstacle avoidance under translation invariant dynamics. Our starting point is an avoid side travel cost HJ formulation in which the running cost is zero outside an obstacle and strictly negative inside it. A key consequence of this formulation is that the resulting value function is non positive everywhere, equals zero exactly outside the avoid set, and is strictly negative exactly on the avoid set. This zero outside structure is what enables the reuse principle developed in this paper: outside the unavoidable region of a given obstacle copy, the translated value contributes exactly zero and therefore does not distort the composition. Under translation invariance, we show that the value function of any translated obstacle is obtained by translating a single template value function. This translation property yields a natural composition rule for cluttered environments: translate the singleton template value to each obstacle location and take the pointwise min-imum. We prove that the negative set of this singleton-composed value is exactly the union of the translated single obstacle avoid sets. In general, this union need not equal the true clutter avoid set, because individually feasible single obstacle avoidance maneuvers may be mutually incompatible when several obstacles are present simultaneously. Accord-ingly, singleton composition is not an exact replacement for the full clutter solve, but a conservative inner certificate of the true clutter avoid set. To reduce this conservatism, we introduce a blockwise re-finement framework in which subsets of obstacles are merged and solved jointly, and the resulting block values are again composed by pointwise minimum. This yields a hierarchy of conservative certificates ranging from fully reusable singleton composition to the exact clutter value, together with monotonic tightening under block merging and an exactness criterion based on the existence of a common clutter-avoiding control. The contributions of the paper are as follows: 1) We establish the exact sign characterization of the avoid side travel cost value function: its zero set is the com-plement of the avoid set, and its negative set is exactly the avoid set. 2) Under translation invariant dynamics, we prove that translated obstacles inherit translated value functions and translated avoid sets from a single template problem. 3) We show that singleton min composition exactly recov-ers the union of translated singleton avoid sets and yields a conservative certificate for the true clutter avoid set. 4) We introduce a blockwise composition framework that interpolates between singleton reuse and the exact clutter 0000–0000/00$00.00 © 2021 IEEE  
+
+> arXiv:2603.22146v1 [eess.SY] 23 Mar 2026 JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 2
+
+solution, and we prove both monotonicity under block merging and a common-avoidance exactness criterion. Finally, we illustrate the framework on a Dubins car exam-ple. A single obstacle avoid value is learned once on a template region of interest, then translated across a repeated clutter field and used online as a safety filter around a nominal controller. II. P ROBLEM FORMULATION 
+
+We consider obstacle avoidance for a deterministic control system and study how a single obstacle travel cost value func-tion can be reused in cluttered environments under translation invariance. Throughout the paper, let T > 0 be a fixed terminal time and let λ ≥ 0 be a fixed discount factor. For notational simplicity, the dependence on λ is suppressed unless needed explicitly. 
+
+A. Controlled dynamics 
+
+Consider the control system 
+
+˙x(s) = f (x(s), u (s)) , s ∈ [t, T ], x(t) = x ∈ Rn,
+
+(1) where the control takes values in a set U ⊂ Rm.For each t ∈ [0 , T ], define the admissible control class 
+
+U[t, T ] := {u : [ t, T ] → U | u(·) is measurable }.
+
+We impose the following assumptions. 
+
+Assumption 1 (Control set): The set U ⊂ Rm is nonempty and compact. 
+
+Assumption 2 (Regularity of the dynamics): The map f :
+
+Rn × U → Rn is continuous, uniformly Lipschitz in the state variable, and of linear growth in x; that is, there exist constants 
+
+Lf , C f > 0 such that for all x, y ∈ Rn and all u ∈ U ,
+
+∥f (x, u )−f (y, u )∥ ≤ Lf ∥x−y∥, ∥f (x, u )∥ ≤ Cf (1+ ∥x∥).
+
+Under Assumptions 1–2, for every (t, x ) ∈ [0 , T ] × Rn and every u(·) ∈ U [t, T ], the system (1) admits a unique trajectory on [t, T ], denoted by xut,x (·).
+
+B. Template obstacle and translated copies 
+
+Let O ⊂ Rn be a fixed open set, called the template obstacle. We assume that obstacle placement occurs through translations in a prescribed subspace. Let E ∈ Rn×d be a fixed embedding matrix and, for each c ∈ Rd, define the translated obstacle 
+
+O c := {x ∈ Rn | x − Ec ∈ O} . (2) Thus, O c is the copy of the template obstacle translated by the vector Ec .A clutter configuration is a finite collection 
+
+c = ( c1, . . . , c N ) ∈ (Rd)N .
+
+The corresponding cluttered obstacle region is 
+
+Oc := 
+
+> N
+
+[
+
+> i=1
+
+O ci . (3) 
+
+C. Running cost and translation structure 
+
+Let 
+
+h : [0 , T ] × Rn × U → R
+
+be a running cost associated with the template obstacle. We impose the following assumptions on h.
+
+Assumption 3 (Regularity of the running cost): The function 
+
+h is continuous, bounded, and uniformly Lipschitz in the state variable. That is, there exist constants Mh, L h > 0 such that for all s ∈ [0 , T ], all x, y ∈ Rn, and all u ∈ U ,
+
+|h(s, x, u )| ≤ Mh, |h(s, x, u ) − h(s, y, u )| ≤ Lh∥x − y∥.
+
+Assumption 4 (Avoid calibrated sign structure): The running cost vanishes outside the template obstacle and is strictly negative inside it, uniformly over controls: 
+
+h(s, x, u ) = 0 , ∀(s, x, u ) ∈ [0 , T ] × (Rn \ O ) × U, 
+
+(4) 
+
+sup 
+
+> u∈U
+
+h(s, x, u ) < 0, ∀(s, x ) ∈ [0 , T ] × O . (5) For a translated obstacle O c, define the translated running cost 
+
+h c(s, x, u ) := h(s, x − Ec, u ). (6) By construction, h c vanishes outside O c and is strictly nega-tive inside O c.We now state the translation invariance assumption on the dynamics. 
+
+Assumption 5 (Translation invariance): For every c ∈ Rd,
+
+f (x + Ec, u ) = f (x, u ), ∀x ∈ Rn, ∀u ∈ U. (7) Assumption 5 means that the dynamics are equivariant with respect to translations in the coordinates along which obstacles are shifted. 
+
+D. Template, clutter, and composed value functions 
+
+The discounted travel-cost functional associated with the template obstacle is 
+
+J(t, x ; u(·)) := 
+
+Z Tt
+
+e−λ(s−t) h s, x ut,x (s), u (s) ds, (8) and the associated template value function is 
+
+V (t, x ) := sup  
+
+> u(·)∈U [t,T ]
+
+J(t, x ; u(·)) . (9) The corresponding template avoid set is 
+
+A(t) := {x ∈ Rn | ∀ u(·) ∈ U [t, T ], ∃s ∈ [t, T )
+
+such that xut,x (s) ∈ O} . (10) Let c = ( c1, . . . , c N ) be a clutter configuration. Define the clutter running cost 
+
+hc(s, x, u ) := min  
+
+> i=1 ,...,N
+
+h ci (s, x, u ). (11) Since each h ci is zero outside O ci and strictly negative inside 
+
+O ci , the function hc satisfies 
+
+hc(s, x, u ) = 0 , x / ∈ O c, (12) 
+
+sup 
+
+> u∈U
+
+hc(s, x, u ) < 0, x ∈ O c. (13) JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 3
+
+The true clutter value function is 
+
+Vc(t, x ) := sup  
+
+> u(·)∈U [t,T ]
+
+Z Tt
+
+e−λ(s−t)hc
+
+ s, x ut,x (s), u (s) ds, 
+
+(14) and the associated clutter avoid set is 
+
+Ac(t) := {x ∈ Rn | ∀ u(·) ∈ U [t, T ], ∃s ∈ [t, T )
+
+such that xut,x (s) ∈ O c}. (15) Independently of the true clutter value (14), define the singleton composed value 
+
+V c(t, x ) := min  
+
+> i=1 ,...,N
+
+V (t, x − Ec i). (16) This is obtained by translating the single obstacle template value function and taking the pointwise minimum over all translated copies. III. T RANSLATION AND SINGLETON COMPOSITION OF 
+
+AVOID VALUE FUNCTIONS 
+
+We now establish four facts. First, the template travel-cost value has an exact sign characterization with respect to the avoid set. Second, under translation invariance, the value function for a translated obstacle is obtained by translating the template value. Third, the pointwise minimum of translated template values exactly encodes the union of the translated single-obstacle avoid sets. Fourth, this singleton composition is in general only conservative for the true clutter avoid problem. 
+
+A. Sign characterization of the template value Proposition 1 (Negative sublevel and zero level of V ): For every t ∈ [0 , T ),
+
+A(t) = {x ∈ Rn | V (t, x ) < 0}, (17) and 
+
+A(t)c = {x ∈ Rn | V (t, x ) = 0 }. (18) In particular, V (t, x ) ≤ 0 for all (t, x ) ∈ [0 , T ] × Rn.
+
+Proof 1: The result is the avoid-side analogue of the sign-characterization results proved for the travel-cost formulation in Propositions 1–2 and Propositions 3–4 of [11]. In particular, Remark 1 of [11] states that the avoid case is obtained by replacing the minimizing control with a maximizing one, and that the statements and proofs carry over verbatim. A full proof is provided in the arXiv version [cite arXiv/full version here] .
+
+B. Translation of values and avoid sets 
+
+For each c ∈ Rd, define the value functional associated with the translated obstacle O c by 
+
+J c(t, x ; u(·)) := 
+
+Z Tt
+
+e−λ(s−t)h c s, x ut,x (s), u (s) ds, (19) and the corresponding optimal value by 
+
+V c(t, x ) := sup  
+
+> u(·)∈U [t,T ]
+
+J c(t, x ; u(·)) . (20) We also define the translated single-obstacle avoid set 
+
+A c(t) := {x ∈ Rn | ∀ u(·) ∈ U [t, T ], ∃s ∈ [t, T )
+
+such that xut,x (s) ∈ O c}. (21) 
+
+Theorem 1 (Translation of single-obstacle value and avoid set): For every c ∈ Rd and every (t, x ) ∈ [0 , T ] × Rn,
+
+V c(t, x ) = V (t, x − Ec ). (22) Moreover, for every t ∈ [0 , T ),
+
+A c(t) = Ec + A(t) = {x ∈ Rn | V (t, x − Ec ) < 0}. (23) 
+
+Proof 2: Fix c ∈ Rd, (t, x ), and u(·) ∈ U[t, T ]. By Assumption 5 and uniqueness of solutions, 
+
+xut,x (s) − Ec = xut,x −Ec (s), ∀s ∈ [t, T ].
+
+Using this identity and (6), 
+
+J c(t, x ; u(·)) = 
+
+Z Tt
+
+e−λ(s−t)h c s, x ut,x (s), u (s) ds 
+
+=
+
+Z Tt
+
+e−λ(s−t)h s, x ut,x (s) − Ec, u (s) ds 
+
+=
+
+Z Tt
+
+e−λ(s−t)h s, x ut,x −Ec (s), u (s) ds 
+
+= J(t, x − Ec ; u(·)) .
+
+Taking the supremum over u(·) proves (22). For the avoid-set identity, let x ∈ Rn. Then 
+
+x ∈ A c(t) ⇐⇒ ∀ u(·) ∈ U [t, T ], ∃s ∈ [t, T ) : xut,x (s) ∈ O c
+
+⇐⇒ ∀ u(·) ∈ U [t, T ], ∃s ∈ [t, T ) : xut,x (s) − Ec ∈ O ⇐⇒ ∀ u(·) ∈ U [t, T ], ∃s ∈ [t, T ) : xut,x −Ec (s) ∈ O ⇐⇒ x − Ec ∈ A (t)
+
+⇐⇒ x ∈ Ec + A(t).
+
+The final characterization by the sign of V follows from Proposition 1. 
+
+C. Singleton obstacle min-composition 
+
+We now turn to the clutter configuration c = ( c1, . . . , c N ) ∈
+
+(Rd)N and the singleton-composed value 
+
+V c(t, x ) := min  
+
+> i=1 ,...,N
+
+V (t, x − Ec i).
+
+Theorem 2 (Exact sign characterization of the composed value): For every t ∈ [0 , T ),
+
+{x ∈ Rn | V c(t, x ) < 0} =
+
+> N
+
+[
+
+> i=1
+
+A ci (t), (24) and 
+
+{x ∈ Rn | V c(t, x ) = 0 } =
+
+> N
+
+[
+
+> i=1
+
+A ci (t)
+
+!c
+
+. (25) 
+
+Proof 3: Fix t ∈ [0 , T ) and x ∈ Rn. By Theorem 1, 
+
+V (t, x − Ec i) < 0 ⇐⇒ x ∈ A ci (t), i = 1 , . . . , N. JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 4
+
+Therefore, 
+
+V c(t, x ) < 0 ⇐⇒ min  
+
+> i=1 ,...,N
+
+V (t, x − Ec i) < 0
+
+⇐⇒ ∃ i ∈ { 1, . . . , N } such that 
+
+V (t, x − Ec i) < 0
+
+⇐⇒ ∃ i ∈ { 1, . . . , N } such that x ∈ A ci (t)
+
+⇐⇒ x ∈
+
+> N
+
+[
+
+> i=1
+
+A ci (t).
+
+This proves (24). Since V (t, x − Ec i) ≤ 0 for all i by Proposition 1, 
+
+V c(t, x ) = 0 ⇐⇒ V (t, x − Ec i) = 0 , ∀i = 1 , . . . , N 
+
+⇐⇒ x / ∈ A ci (t), ∀i = 1 , . . . , N 
+
+⇐⇒ x / ∈
+
+> N
+
+[
+
+> i=1
+
+A ci (t),
+
+which proves (25). 
+
+D. Comparison with the true clutter value 
+
+We now compare the singleton-composed value V c with the true clutter value Vc.
+
+Corollary 1 (Sign characterization of the true clutter value): 
+
+For every t ∈ [0 , T ),
+
+Ac(t) = {x ∈ Rn | Vc(t, x ) < 0},
+
+Ac(t)c = {x ∈ Rn | Vc(t, x ) = 0 }. (26) In particular, 
+
+Vc(t, x ) ≤ 0, ∀(t, x ) ∈ [0 , T ] × Rn.
+
+Proof 4: Since 
+
+hc(s, x, u ) = min  
+
+> i=1 ,...,N
+
+h ci (s, x, u ),
+
+and each h ci is continuous, bounded, and uniformly Lipschitz in the state variable, the same holds for hc. By construction, 
+
+hc vanishes outside Oc and is strictly negative inside Oc,uniformly over controls. Therefore, the same sign argument as in Proposition 1 applies with h replaced by hc and O replaced by Oc, yielding (26) and the inequality Vc(t, x ) ≤ 0.
+
+Proposition 2 (Conservatism of the composed value): For every clutter configuration c, every t ∈ [0 , T ], and every x ∈
+
+Rn,
+
+Vc(t, x ) ≤ V c(t, x ). (27) Consequently, N[
+
+> i=1
+
+A ci (t) ⊆ A c(t). (28) 
+
+Proof 5: Fix (t, x ) and an admissible control u(·) ∈ U [t, T ].Since 
+
+hc(s, ξ, v ) = min  
+
+> i=1 ,...,N
+
+h ci (s, ξ, v ) ≤ h cj (s, ξ, v ),
+
+∀j ∈ { 1, . . . , N },
+
+we obtain, for every fixed j,
+
+Z Tt
+
+e−λ(s−t)hc
+
+ s, x ut,x (s), u (s) ds ≤
+
+Z Tt
+
+e−λ(s−t)h cj  s, x ut,x (s), u (s) ds. 
+
+Taking the supremum over u(·) yields 
+
+Vc(t, x ) ≤ V cj (t, x ) = V (t, x − Ec j ), ∀j = 1 , . . . , N, 
+
+where the equality follows from Theorem 1. Therefore, 
+
+Vc(t, x ) ≤ min  
+
+> j=1 ,...,N
+
+V (t, x − Ec j ) = V c(t, x ),
+
+which proves (27). If x ∈ SNi=1 A ci (t), then by Theorem 2, 
+
+V c(t, x ) < 0.
+
+Hence (27) gives 
+
+Vc(t, x ) ≤ V c(t, x ) < 0.
+
+By (26), we conclude that x ∈ A c(t).IV. H IERARCHICAL BLOCKWISE COMPOSITION FOR 
+
+CLUTTER AVOIDANCE 
+
+The singleton construction of Section III is computationally attractive, since it reuses translated copies of a single template value function. However, it can be conservative when distinct single-obstacle avoidance maneuvers are mutually incompati-ble. We now introduce a hierarchical blockwise construction that interpolates between singleton reuse and the exact clutter value. 
+
+A. Partitions of the obstacle set and induced block values 
+
+Fix a clutter configuration 
+
+c = ( c1, . . . , c N ) ∈ (Rd)N .
+
+A partition of the index set {1, . . . , N } is a family 
+
+P = {B1, . . . , B M },
+
+such that each Bk ⊆ { 1, . . . , N } is nonempty, 
+
+Bk ∩ Bℓ = ∅ for k̸ = ℓ, 
+
+> M
+
+[
+
+> k=1
+
+Bk = {1, . . . , N }.
+
+For each block Bk, define the merged obstacle region 
+
+OBk := [
+
+> i∈Bk
+
+O ci , (29) the associated running cost 
+
+hBk (s, x, u ) := min 
+
+> i∈Bk
+
+h ci (s, x, u ), (30) the corresponding value function 
+
+VBk (t, x ) := sup  
+
+> u(·)∈U [t,T ]
+
+Z Tt
+
+e−λ(s−t)hBk
+
+ s, x ut,x (s), u (s) ds, 
+
+(31) JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 5
+
+and the block avoid set 
+
+ABk (t) := {x ∈ Rn | ∀ u(·) ∈ U [t, T ], ∃s ∈ [t, T )
+
+such that xut,x (s) ∈ O Bk }. (32) Define the blockwise composed value 
+
+V P (t, x ) := min  
+
+> k=1 ,...,M
+
+VBk (t, x ). (33) 
+
+B. Exact sign characterization of blockwise composition Theorem 3 (Sign characterization of block composition): Let 
+
+P = {B1, . . . , B M } be any partition of {1, . . . , N }. Then, for every t ∈ [0 , T ),
+
+{x ∈ Rn | V P (t, x ) < 0} =
+
+> M
+
+[
+
+> k=1
+
+ABk (t), (34) and 
+
+{x ∈ Rn | V P (t, x ) = 0 } =
+
+> M
+
+[
+
+> k=1
+
+ABk (t)
+
+!c
+
+. (35) 
+
+Proof 6: For each block Bk, the function hBk is continu-ous, bounded, and uniformly Lipschitz in the state variable, since it is the pointwise minimum of finitely many func-tions {h ci }i∈Bk with these properties. By construction, hBk
+
+vanishes outside OBk and is strictly negative inside OBk ,uniformly over controls. Hence the same sign argument as in Proposition 1 yields 
+
+ABk (t) = {x ∈ Rn | VBk (t, x ) < 0},
+
+ABk (t)c = {x ∈ Rn | VBk (t, x ) = 0 },
+
+and in particular VBk (t, x ) ≤ 0 for all k.Therefore, 
+
+V P (t, x ) < 0 ⇐⇒ min  
+
+> k=1 ,...,M
+
+VBk (t, x ) < 0
+
+⇐⇒ ∃ k ∈ { 1, . . . , M } such that VBk (t, x ) < 0
+
+⇐⇒ ∃ k ∈ { 1, . . . , M } such that x ∈ A Bk (t)
+
+⇐⇒ x ∈
+
+> M
+
+[
+
+> k=1
+
+ABk (t),
+
+which proves (34). Since every VBk (t, x ) ≤ 0,
+
+V P (t, x ) = 0 ⇐⇒ VBk (t, x ) = 0 , ∀k = 1 , . . . , M 
+
+⇐⇒ x / ∈ A Bk (t), ∀k = 1 , . . . , M 
+
+⇐⇒ x / ∈
+
+> M
+
+[
+
+> k=1
+
+ABk (t),
+
+which proves (35). 
+
+C. Conservatism with respect to the true clutter value Proposition 3 (Conservatism of blockwise composition): For every partition P = {B1, . . . , B M }, every t ∈ [0 , T ], and every x ∈ Rn,
+
+Vc(t, x ) ≤ V P (t, x ). (36) Consequently, for every t ∈ [0 , T ),
+
+> M
+
+[
+
+> k=1
+
+ABk (t) ⊆ A c(t). (37) 
+
+Proof 7: The proof is the blockwise analogue of Propo-sition 2. A full proof is provided in the arXiv version [cite arXiv/full version here] .The singleton partition 
+
+Psg = {1}, . . . , {N }
+
+recovers the singleton-composed value V c, whereas the one-block partition 
+
+Pall = {1, . . . , N }
+
+recovers the true clutter value Vc.
+
+D. Monotonicity under block merging Proposition 4 (Monotonicity under coarsening): Let P and 
+
+Q be two partitions of {1, . . . , N }, and suppose that Q is a coarsening of P, i.e., every block B ∈ P is contained in some block C ∈ Q . Then, for every (t, x ) ∈ [0 , T ] × Rn,
+
+V Q(t, x ) ≤ V P (t, x ). (38) Consequently, for every t ∈ [0 , T ),
+
+[
+
+> B∈P
+
+AB (t) ⊆ [
+
+> C∈Q
+
+AC (t) ⊆ A c(t). (39) 
+
+Proof 8: Fix (t, x ). Since Q is a coarsening of P, for every block B ∈ P there exists a block C(B) ∈ Q such that B ⊆
+
+C(B). Hence 
+
+hC(B)(s, ξ, v ) = min  
+
+> i∈C(B)
+
+h ci (s, ξ, v ) ≤ min  
+
+> i∈B
+
+h ci (s, ξ, v )= hB (s, ξ, v ),
+
+for all (s, ξ, v ). Therefore, 
+
+VC(B)(t, x ) ≤ VB (t, x ).
+
+Since this holds for every block B ∈ P ,
+
+V Q(t, x ) = min  
+
+> C∈Q
+
+VC (t, x ) ≤ VC(B)(t, x )
+
+≤ VB (t, x ), ∀B ∈ P .
+
+Taking the minimum over all B ∈ P yields 
+
+V Q(t, x ) ≤ V P (t, x ),
+
+which proves (38). If x ∈ S 
+
+> B∈P
+
+AB (t), then by Theorem 3, 
+
+V P (t, x ) < 0.
+
+Then (38) gives 
+
+V Q(t, x ) ≤ V P (t, x ) < 0.JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 6
+
+Applying Theorem 3 again yields 
+
+x ∈ [
+
+> C∈Q
+
+AC (t).
+
+The second inclusion in (39) is precisely (37). 
+
+E. Exactness criterion for a given partition Proposition 5 (Block common-avoidance criterion): Fix t ∈
+
+[0 , T ) and a partition P = {B1, . . . , B M }. The following are equivalent: 1) 
+
+Ac(t) = 
+
+> M
+
+[
+
+> k=1
+
+ABk (t). (40) 2) For every 
+
+x / ∈
+
+> M
+
+[
+
+> k=1
+
+ABk (t),
+
+there exists a control u(·) ∈ U [t, T ] such that 
+
+xut,x (s) /∈ O c, ∀s ∈ [t, T ). (41) Under either of these equivalent conditions, 
+
+{x ∈ Rn | V P (t, x ) < 0} = Ac(t). (42) 
+
+Proof 9: We first prove that (1) implies (2). Assume (40), and let 
+
+x / ∈
+
+> M
+
+[
+
+> k=1
+
+ABk (t).
+
+Then by (40), x / ∈ A c(t). By definition of Ac(t), there exists 
+
+u(·) ∈ U [t, T ] such that 
+
+xut,x (s) /∈ O c, ∀s ∈ [t, T ),
+
+which is (41). Next we prove that (2) implies (1). Suppose (41) holds. By Proposition 3, M[
+
+> k=1
+
+ABk (t) ⊆ A c(t).
+
+It remains to prove the reverse inclusion. Let 
+
+x / ∈
+
+> M
+
+[
+
+> k=1
+
+ABk (t).
+
+Then by (41), there exists u(·) ∈ U [t, T ] such that 
+
+xut,x (s) /∈ O c, ∀s ∈ [t, T ).
+
+Hence x / ∈ A c(t). Therefore, 
+
+Ac(t) ⊆
+
+> M
+
+[
+
+> k=1
+
+ABk (t),
+
+and equality follows. Under (40), combine Theorem 3 with (26) to obtain 
+
+{x | V P (t, x ) < 0} =
+
+> M
+
+[
+
+> k=1
+
+ABk (t) = Ac(t),
+
+which proves (42). The singleton-composition exactness criterion is recovered by applying Proposition 5 to the singleton partition Psg ={1}, . . . , {N } .
+
+Remark 1 (Practical block selection and scope): Proposi-tion 5 shows that the theorem-level condition for exactness is the existence of a common clutter-avoiding control outside the union of the block avoid sets. In practice, overlap or strong interaction among singleton avoid sets may be used as a heuristic rule for deciding which obstacles should be merged into a common block. However, nonempty intersection of singleton avoid sets is neither necessary nor sufficient for exactness of singleton composition; the fundamental issue is compatibility of the corresponding safe control strategies. Except in the exact cases identified above, the composed values V c and V P are generally not the viscosity solutions of the HJB equation associated with the full clutter running cost hc. Rather, they are conservative certificates constructed from simpler subproblems. V. E XAMPLE : D UBINS CAR IN A REPEATED CLUTTER 
+
+FIELD 
+
+We illustrate the proposed construction on a Dubins car with constant unit speed and bang-bang turning control. First, a single-obstacle avoid value function is learned offline on a fixed region of interest (ROI). Second, this ROI is replicated on a square lattice, and the learned template value is reused over the resulting cluttered environment by translation and pointwise minimum. 
+
+A. Single-obstacle template problem 
+
+Let the state be 
+
+z = ( x, y, θ ) ∈ R2 × [−π, π ],
+
+and consider the Dubins-car dynamics 
+
+˙x = cos θ, ˙y = sin θ, ˙θ = u, u ∈ {− 1, 1},
+
+(43) where the forward speed is fixed to v = 1 .The template obstacle is a cylinder in (x, y, θ ), i.e., a circle in the (x, y ) plane extruded over the full heading range: 
+
+O := (x, y, θ ) ∈ R2 × [−π, π ] x2 + y2 < r 2 , r = 0 .5.
+
+(44) The single-obstacle value function is learned on the ROI 
+
+Q0 := [ −2.5, 2.5] × [−2.5, 2.5] × [−π, π ]. (45) Its planar footprint is therefore a square of side length 
+
+L = 5 .
+
+We denote the learned template value by 
+
+V (z) = V (x, y, θ ).JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 7
+
+B. ROI tiling and reused value construction 
+
+We tile the planar ROI on a 10 × 10 square lattice. Since the obstacle is centered at the origin in the template problem, translating the ROI is equivalent to translating the obstacle to the center of each cell. Let 
+
+i, j ∈ { 0, 1, . . . , 9},
+
+and define the cell centers by 
+
+cij :=  (i − 4.5) L, (j − 4.5) L ∈ R2, L = 5 . (46) The translation acts only in the (x, y ) coordinates, so 
+
+E := 
+
+
+
+1 00 10 0
+
+ . (47) The reused singleton-composed value over the tiled clutter field is 
+
+V grid (x, y, θ ) := min  
+
+> i,j ∈{ 0,..., 9}
+
+V  x − c(1)  
+
+> ij
+
+, y − c(2)  
+
+> ij
+
+, θ , (48) where c(1)  
+
+> ij
+
+and c(2)  
+
+> ij
+
+denote the coordinates of cij . By Theo-rem 2, the negative set of V grid is exactly the union of the translated single-obstacle avoid sets, and by Proposition 2 it is a conservative certificate for the true clutter avoid set. 
+
+C. Nominal guidance and safety override 
+
+The vehicle is guided toward the central free-space goal region around (0 , 0) . In the tiled configuration, the obstacle centers are given by (46), so (0 , 0) lies at the center of the free region between the four middle obstacle cells. The simulation is terminated once the vehicle enters a prescribed neighborhood of this point. Let 
+
+ψgoal (x, y ) := atan2( −y, −x) (49) be the desired heading toward the goal region center. A nominal steering command is computed from the heading error and quantized to the discrete action set: 
+
+unom ∈ {− 1, 1}. (50) To enforce safety, we use the learned value as a one-step look-ahead filter. Let 
+
+Φ∆t(z, u )
+
+denote one numerical integration step of (43) with step size 
+
+∆t. Given the current state z and the nominal action unom ,define the predicted next state 
+
+z+nom := Φ ∆t(z, u nom ).
+
+The safety override is activated whenever 
+
+V grid (z+nom ) < 0. (51) When (51) is not satisfied, the nominal input is applied. Otherwise, it is replaced by the greedy safety action 
+
+usafe (z) ∈ arg max  
+
+> u∈{− 1,1}
+
+V grid 
+
+ Φ∆t(z, u ). (52) Hence the implemented control law is 
+
+u(z) = 
+
+(unom , V grid (z+nom ) ≥ 0,usafe (z), V grid (z+nom ) < 0. (53)                
+
+> Fig. 1. Translated template value on the 1×2tiled configuration at the slice
+> θ=π.
+> Fig. 2. Value learned directly on the corresponding 1×2two-obstacle configuration at the slice θ=π.
+
+D. Comparison with direct training on a two-obstacle tile 
+
+To assess how well translation-based reuse matches a di-rectly learned multi-obstacle value, we also consider a 1 × 2
+
+tiled configuration consisting of two horizontally adjacent ob-stacle cells. For this configuration, we compare the translated template value obtained by pointwise min-composition with a value learned directly on the corresponding two-obstacle environment. Figures 1, 2, and 3 show the translated template value, the directly trained 1 × 2 value, and their absolute pointwise difference at the slice θ = π. The two value fields are visually very similar, with discrepancies localized near the obstacle influence regions. This indicates that, in this example, the translation-based construction provides a close approximation to the directly trained two-obstacle solution. This comparison is empirical rather than theorem-level: it does not claim exactness of singleton composition in general clutter, but it supports the practical usefulness of translation-based reuse. JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2021 8
+
+Fig. 3. Absolute pointwise error between the translated template value and the directly trained 1 × 2 value at the slice θ = π.
+
+Fig. 4. Hybrid closed-loop rollout for the Dubins-car example in a tiled clutter field. Circular obstacles are centered at the lattice points (46). The blue marker denotes the initial state and the orange marker denotes the terminal state at which the goal region is reached. 
+
+E. Closed-loop rollout in the tiled clutter field 
+
+Figure 4 illustrates a representative hybrid closed-loop roll-out in the repeated clutter field. The vehicle is initialized near the boundary of the tiled environment and is guided toward the central goal region. In free space, the nominal controller is applied directly. As the vehicle approaches obstacle-rich regions, the one-step look-ahead condition (51) is evaluated using the translated singleton-composed value V grid . When-ever the predicted next state has negative value, the nominal command is overridden by the greedy safety action (52). This rollout illustrates the intended role of the reused value function. The translated singleton composition is computed once from the learned template value and then evaluated online across the repeated clutter field. In this example, it acts as a lightweight safety certificate around the nominal controller, steering the vehicle away from regions certified as unavoidable by the composed value. 
+
+F. Example conclusion 
+
+The Dubins-car example highlights the practical message of the paper. A single-obstacle avoid value learned once on a template ROI can be translated and reused in a repeated clutter field, both as an offline approximation tool for multi-obstacle value construction and as an online safety certificate around a nominal controller. The 1 × 2 comparison shows that translation-based reuse can closely match a directly trained multi-obstacle value in a simple tiled setting, while the closed-loop rollout shows that the same construction can be deployed online as a lightweight safety filter. These results support the usefulness of the proposed translation-based framework and motivate blockwise refinement when obstacle interactions become stronger. REFERENCES [1] Somil Bansal, Mo Chen, Sylvia Herbert, and Claire J Tomlin. Hamilton-jacobi reachability: A brief overview and recent advances. In 2017 IEEE 56th annual conference on decision and control (CDC) , pages 2242– 2253. IEEE, 2017. [2] Somil Bansal and Claire J Tomlin. Deepreach: A deep learning approach to high-dimensional reachability. In 2021 IEEE International Conference on Robotics and Automation (ICRA) , pages 1817–1824. IEEE, 2021. [3] Mo Chen, Sylvia L Herbert, Mahesh S Vashishtha, Somil Bansal, and Claire J Tomlin. Decomposition of reachable sets and tubes for a class of nonlinear systems. IEEE Transactions on Automatic Control ,63(11):3675–3688, 2018. [4] Mo Chen and Claire J Tomlin. Hamilton–jacobi reachability: Some recent theoretical advances and applications in unmanned airspace management. Annual Review of Control, Robotics, and Autonomous Systems , 1(1):333–358, 2018. [5] Yu Chen, Shaoyuan Li, and Xiang Yin. Control synthesis for multiple reach-avoid tasks via hamilton-jacobi reachability analysis. In 2025 IEEE 64th Conference on Decision and Control (CDC) , pages 5980– 5985. IEEE, 2025. [6] Jason J Choi, Donggun Lee, Koushil Sreenath, Claire J Tomlin, and Sylvia L Herbert. Robust control barrier–value functions for safety-critical control. In 2021 60th IEEE Conference on Decision and Control (CDC) , pages 6814–6821. IEEE, 2021. [7] Milan Ganai, Sicun Gao, and Sylvia L Herbert. Hamilton-jacobi reachability in reinforcement learning: A survey. IEEE Open Journal of Control Systems , 3:310–324, 2024. [8] Granthik Halder, Rudrashis Majumder, Rahi Shah, Suresh Sundaram, et al. Neurohjr: Hamilton-jacobi reachability-based obstacle avoidance in complex environments with physics-informed neural networks. arXiv preprint arXiv:2512.01897 , 2025. [9] Sylvia L Herbert, Somil Bansal, Shromona Ghosh, and Claire J Tomlin. Reachability-based safety guarantees using efficient initializations. In 
+
+2019 IEEE 58th Conference on Decision and Control (CDC) , pages 4810–4816. IEEE, 2019. [10] Yankai Li and Mo Chen. Hjrno: Hamilton-jacobi reachability with neural operators. arXiv preprint arXiv:2504.19989 , 2025. [11] Prashant Solanki, Isabelle El-Hajj, Jasper van Beers, Erik-Jan van Kampen, and Coen de Visser. Formalizing the relationship between hamilton-jacobi reachability and reinforcement learning. arXiv preprint arXiv:2601.08050 , 2026. [12] Sander Tonkens, Alex Toofanian, Zhizhen Qin, Sicun Gao, and Sylvia Herbert. Patching approximately safe value functions leveraging local hamilton-jacobi reachability analysis. In 2024 IEEE 63rd Conference on Decision and Control (CDC) , pages 3577–3584. IEEE, 2024.
