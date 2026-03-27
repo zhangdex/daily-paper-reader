@@ -25,3 +25,118 @@ subscriptions:
     stage: A
     diff_threshold_pct: 15
   keyword_recall_mode: or
+  intent_profiles:
+    - tag: Space-Defense
+      description: 面向空间站与太空维修站护卫的小集群任务—防卫一体化决策相关论文追踪
+      enabled: true
+      keywords:
+        - keyword: task allocation
+          keyword_cn: ''
+          query: task allocation
+        - keyword: differential game
+          keyword_cn: ''
+          query: differential game
+        - keyword: orbital game
+          keyword_cn: ''
+          query: orbital game
+        - keyword: cluster defense
+          keyword_cn: ''
+          query: cluster defense
+        - keyword: spacecraft escort
+          keyword_cn: ''
+          query: spacecraft escort
+        - keyword: spacecraft defense
+          keyword_cn: ''
+          query: spacecraft defense
+      intent_queries:
+        - query: distributed MPC and CBF for multi spacecraft safety and defense
+          query_cn: ''
+          enabled: true
+          source: manual
+          note: ''
+        - query: orbital game and task allocation for spacecraft defense
+          query_cn: ''
+          enabled: true
+          source: manual
+          note: ''
+        - query: small satellite cluster defense for space station protection
+          query_cn: ''
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-03-27T13:18:25.642Z'
+    - tag: RA-RL-PE
+      description: 可达集、Reach-Avoid 与强化学习追逃博弈相关论文追踪
+      enabled: true
+      keywords:
+        - keyword: differential game
+          keyword_cn: ''
+          query: differential game
+        - keyword: constrained control
+          keyword_cn: ''
+          query: constrained control
+        - keyword: safe reinforcement learning
+          keyword_cn: ''
+          query: safe reinforcement learning
+        - keyword: pursuit-evasion
+          keyword_cn: ''
+          query: pursuit-evasion
+        - keyword: reach-avoid
+          keyword_cn: ''
+          query: reach-avoid
+      intent_queries:
+        - query: Hamilton Jacobi reachability and RL for pursuit evasion
+          query_cn: ''
+          enabled: true
+          source: manual
+          note: ''
+        - query: safe RL for constrained pursuit evasion games
+          query_cn: ''
+          enabled: true
+          source: manual
+          note: ''
+        - query: reinforcement learning for reach avoid pursuit evasion
+          query_cn: ''
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-03-27T13:19:51.949Z'
+    - tag: Robot-Planning
+      description: 机器人规划方向最新研究热点追踪
+      enabled: true
+      keywords:
+        - keyword: multi-robot planning
+          keyword_cn: ''
+          query: multi-robot planning
+        - keyword: embodied planning
+          keyword_cn: ''
+          query: embodied planning
+        - keyword: trajectory optimization
+          keyword_cn: ''
+          query: trajectory optimization
+        - keyword: task and motion planning
+          keyword_cn: ''
+          query: task and motion planning
+        - keyword: motion planning
+          keyword_cn: ''
+          query: motion planning
+        - keyword: robot planning
+          keyword_cn: ''
+          query: robot planning
+      intent_queries:
+        - query: embodied intelligence and planning for robots
+          query_cn: ''
+          enabled: true
+          source: manual
+          note: ''
+        - query: recent papers on task and motion planning in robotics
+          query_cn: ''
+          enabled: true
+          source: manual
+          note: ''
+        - query: latest advances in robot motion planning
+          query_cn: ''
+          enabled: true
+          source: manual
+          note: ''
+      updated_at: '2026-03-27T13:21:13.303Z'
