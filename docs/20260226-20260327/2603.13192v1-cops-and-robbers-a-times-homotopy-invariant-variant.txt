@@ -1,0 +1,728 @@
+Title: Cops and Robbers: A $\times$-homotopy Invariant Variant
+
+URL Source: https://arxiv.org/pdf/2603.13192v1
+
+Published Time: Mon, 16 Mar 2026 01:25:04 GMT
+
+Number of Pages: 25
+
+Markdown Content:
+COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 
+
+T. CHIH AND L. SCULL 
+
+Abstract. Cops and Robbers is a pursuit-evasion game played on graphs, of which many variants have been developed and studied. We introduce a variant of this game, ”Sneaky-Active Cops and Robbers”, where all cops and robber must move on their turn, and where the robber is allowed to move onto a cop position without being captured. We show that for reflexive graphs, this game is equivalent to the classical cops and robbers and that the cop number for a graph is invariant under ×-homotopy equivalence. We then develop further properties of this game, computing cop numbers for a number of graph families and developing results about the behavior of categorical and box products of graphs. 
+
+Contents 
+
+1. Introduction 12. Background 23. The basics of Sneaky-Active Cops and Robbers 44. Cop numbers for particular graph families 95. The Categorical Product 12 6. The Box Product 15 7. Future Directions 24 References 24 1. Introduction 
+
+The game of cops and robbers is a pursuit-evasion game played on discrete graphs, introduced independently by Quillot [23] and Nowakowski and Winkler [22]. The game has two players, one controlling a group of cops and the other controlling a robber. The players take turns moving the pieces under their control, either moving to an adjacent vertex or staying in the same place. The cops win by having a cop occupy the same vertex as the robber, and the robber wins by indefinitely evading the cops. Numerous variants have been developed and studied. In particular, Aigner and Fromme [1] and Neufeld and Nowakowski [21] considered an “active” variant where each player must move at least one piece to an adjacent vertex on each turn, and Gromovikov, Kinnersley and Simone [12] considered a “fully active” modification where all pieces must move on every turn.  
+
+> 1
+> arXiv:2603.13192v1 [math.CO] 13 Mar 2026 2T. CHIH AND L. SCULL
+
+Independent from this, the development of discrete homotopy theories defined on graphs have been an ongoing area of inquiry. There are two prominent theories of homotopies for graphs in the literature: A-homotopy [2, 4, 18, 20] and ×-homotopy [3, 7–11, 14, 14–16]. We will focus on ×-homotopy, in which two finite graphs X, Y 
+
+are homotopy equivalent when we may transform one to another via a sequence of “fold” moves. For reflexive graphs, this folding process is equivalent to the disman-tling operation studied in in the Cops and Robber literature [5]. It is known that dismantling preserves the cop number of a graph. Inspired by this, we construct a variant of Cops and Robbers which is ×-homotopy invariant for all graphs. The active and fully active variants are not ×-homotopy invariant, so we define a related “sneaky-active” version of the game, where all pieces must move on their respective turns, and the robber is allowed to move onto a cop position without being captured, so that capture only occurs when the cop moves onto the robber. The goal of this paper is to study this new sneaky-active variant of Cops and Robbers. In partic-ular, we will show that this variant generalizes the classic game and agrees with it on reflexive graphs (Proposition 3.7), and is ×-homotopy equivalent for any graph (Theorem 3.4). The paper is organized as follows. In Section 2, we introduce the requisite back-ground for both ×-homotopy and Cops and Robbers. In Section 3, we define the “Sneaky-Active Cops and Robbers” game variant, show that this generalizes the classic game and is ×-homtopy invariant, and give some comparisons to previously studied variants. In Section 4, we compute the sneaky-active cop numbers for a va-riety of graph families. In Section 5, we show that the sneaky-active cop number for the categorical product of graphs is determined completely by the cop number of the factor graphs. Finally in Section 6, we find bounds for the sneaky-active cop number of box products of graphs, both generally and in some specific graph families. 2. Background 
+
+In this section, we summarize background material regarding ×-homotopy and Cops and Robbers. More details on ×-homotopy be found in [7], and more on Cops and Robbers may be found in [5, 12]. We work in the category Gph of undirected graphs, without multiple edges and where loops are allowed. Moreover, throughout this paper, we will assume that graphs are finite and contain no isolated vertices. Graph theory terminology and notation follows [6] and category theory terminology and notation follows [24]. 2.1. Background on ×-Homomotopy. Definition 2.1. [13] The category of finite graphs Gph is defined by: COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 3
+
+• An object is a graph X, consisting of a finite set of vertices V (X) and a set 
+
+E(X) of edges connecting them. Each edge is given by an unordered pair of vertices. Any pair of vertices has at most one edge connecting them, and loops are allowed but isolated vertices are not: each vertex must be connected to at least one other (possibly itself). A connecting edge will be notated by 
+
+v1 ∼ v2.
+
+• A morphism in the category Gph is a graph homomorphism f : X → Y ,given by a set map f : V (X) → V (Y ) such that for v1, v 2 ∈ V (X), if 
+
+v1 ∼ v2 ∈ E(X) then f (v1) ∼ f (v2) ∈ E(Y ). Throughout this paper, we will assume that ‘graph’ always refers to an object in 
+
+Gph .To define ×-homotopy, we use the looped path graph. 
+
+Definition 2.2. [6,10] Let Iℓn be the looped path graph with n+1 vertices {0, 1, . . . , n }
+
+such that i ∼ i and i ∼ i + 1 for i = 0 , . . . , n − 1. 
+
+Iℓn =0 1 2 · · · n
+
+Homotopies are defined using the product graph X × Iℓn.
+
+Definition 2.3. [13] For graphs X and Y , the (categorical) product graph X × Y
+
+is defined by: 
+
+• A vertex is a pair ( v, w ) where v ∈ V (X) and w ∈ V (Y ). 
+
+• An edge is defined by ( v1, w 1) ∼ (v2, w 2) ∈ E(X × Y ) whenever v1 ∼ v2 ∈
+
+E(X) and w1 ∼ w2 ∈ E(Y ). 
+
+Definition 2.4. [10] Given f, g : X → Y , we say that f is ×-homotopic to g,written f ≃ g, if there is a map Γ : X × Iℓn → Y such that Γ |X×{ 0} = f and Γ|X×{ n} = g.
+
+Definition 2.5. Let f : X → Y and g : Y → X. If gf ≃ id X and f g ≃ id Y , we say that f, g are ×- homotopy equivalences and that X, Y are ×-homotopy equivalent, denoted X ≃ Y .There are several definitions of homotopy for graphs in the literature. In this work, we focus exclusively on ×-homotopy for this paper and thus ‘homotopy’ will always refer to ×-homotopy. For finite graphs, we have a concrete interpretation of homotopy equivalence via fold maps. 
+
+Definition 2.6. Let X be a graph with x, x ′ ∈ V (X) such that N (x) ⊆ N (x′). Define X′ = X\{ x}. The map ρ : X → X′ such that ρ(x) = x′ and ρ(y) = y for all 
+
+y ∈ V (X), y ̸ = x is a fold map, and the inclusion X′ → X is an unfold map. 4 T. CHIH AND L. SCULL 
+
+Observation 2.7 ([7]) . Any fold map is a homotopy equivalence. Moreover, for finite graphs X, Y , Φ : X → Y is a homotopy equivalence if and only if it can be written as a composition φ1φ2 · · · φn = Φ where each φi is a fold or unfold. 2.2. Background on Cops and Robbers. Next we recall the game of Cops and Robbers, originally defined in [22, 23] and thoroughly discussed in [5]. 
+
+Definition 2.8. Cops and Robbers is a game played on a finite graph with two players, the cop player and the robber player. The cop player begins by placing a number of cops c1, . . . c m on the vertices of the graph, after which the robber players places a robber R on a vertex. The two players then take turns, with the cop player going first. On the cop turn, each cop may either remain in place or move to an adjacent vertex. The robber on their turn has the same choices. If after any move any cop is on the same vertex as the robber, we say that the cop player has captured the robber. The objective of the cop player is to capture the robber player, and the goal of the robber player is to evade capture indefinitely. If the cop player with k cops has a strategy which always results in a capture of the robber no matter how the robber moves, we say that the cop player has a winning strategy for k cops. Given a graph X, we define the cop number of X (denoted 
+
+c(X)) to be the minimum number of cops needed for the cops to have a winning strategy on X.Numerous papers have been written on this game, and many variants defined. One variant of particular interest for this work is the Fully Active Cops and Robbers of [12]. 
+
+Definition 2.9. Fully Active Cops and Robbers is a game with similar rules to the original, except that on each player’s turn, all pieces under the player’s control 
+
+must move to an adjacent vertex. We define the fully active cop number of X
+
+(denoted cA(X)) to be the minimum number of cops needed for the cops to have a winning strategy on X with this variant. In the classic Cops and Robbers, there is no difference between a looped and unlooped vertex in terms of possible moves. However, in the fully active variant, a piece on an unlooped vertex must move to a different adjacent vertex, whereas a piece on a looped vertex may traverse the loop and stay on the same vertex, as the vertex is adjacent to itself via the loop. 3. The basics of Sneaky-Active Cops and Robbers 
+
+We begin by introducing our variant of the classic Cops and Robbers game: 
+
+Sneaky-Active Cops and Robbers .COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 5
+
+Definition 3.1. Sneaky-Active Cops and Robbers is a game played on a finite graph, with two players, the cop player and the robber player. The cop player begins by placing cops c1, . . . c m on the vertices of the graph, after which the robber players places a robber R on a vertex. Then in each turn, starting with the cop player, each player moves the pieces under their control to an adjacent vertex. The objective of the cop player is to capture the robber player by moving onto the vertex occupied by the robber, and the goal of the robber player is to evade capture indefinitely. Specifically, the game differs from the classic game in the following way: 
+
+• Each piece must move to an adjacent vertex at each turn, so a cop or robber may only retain its position if the vertex it occupies has a loop, making it adjacent to itself. 
+
+• A cop captures the robber ONLY if during the cop turn, a cop moves onto the vertex occupied by the robber. If the robber moves onto a vertex occupied by a cop, this is NOT a capture. Because every piece must move at every turn, as in the fully active variant of [12], we call this variant active. And since the robber may move onto a vertex occupied by a cop without being captured, we imagine that the robber is able to ‘sneak’ by the cops, and call this variant sneaky. Given a graph X, we let cSA (X) denote the minimum number of cops needed for the cops to have a winning strategy in Sneaky-Active Cops and Robbers. Thus there is a strategy that allows the cop player to always capture the robber with k cops, but if there are only k − 1 cops the robber can evade capture indefinitely. 
+
+Example 3.2. Consider P5:    
+
+> 12345
+
+Suppose there were one cop c. Wherever the cop player places c, the robber player places the robber R on the same vertex. When the cop moves, the robber follows them and moves onto the same vertex. Thus the robber has a strategy to evade capture indefinitely. However, suppose there were two cops c1, c 2 placed on vertices 1 , 2 respectively. If the robber starts on 1 or 3, c2 may capture them on the cop turn. If the robber starts on 2, c1 may capture them on the cop turn. If the robber starts on 4, c1 has odd distance from the robber, and by moving to the right on each turn, they will eventually capture the robber. Similarly if the robber starts on 5, c2 may capture the robber by moving right each turn. Thus cSA (P5) = 2. The discussion in Example 3.2 leads to the following observation. 6 T. CHIH AND L. SCULL 
+
+Observation 3.3. If X has no loops, then cSA (X) ≥ 2, since if there is only one cop the robber can evade capture indefinitely by starting and remaining on the same vertex as the cop as in Example 3.2. The result that motivated our interest in this version of the game is that the cop number cSA (X) is a ×-homotopy invariant. 
+
+Theorem 3.4. If X, Y are ×-homotopy equivalent,then cSA (X) = cSA (Y ).Proof. By Observation 2.7, graphs X, Y are ×-homotopy equivalent if and only if one may be transformed into the other via a sequence of folds and unfolds. Thus it suffices to show that cSA is invariant under a fold map. Let X be a graph and X′ = X\{ x} = ρ(X) where ρ is a fold map which takes 
+
+x 7 → x′. We first suppose that if k cops can win on X and show that k cops may win on X′ as well. For any starting vertex for the robber R on X′, place a shadow robber on any vertex in the fiber φ−1(R) in X. Then for any move the robber makes in X′, we can lift this to a move of the shadow robber in X since φ is surjective on neighborhoods (if there is a choice, pick one arbitrarily). Then the cops in X have a winning strategy by assumption which they deploy, responding to the moves of shadow robber in X, and the cops in X′ move to φ of the cop positions in X. The shadow cops eventually capture the shadow robber on X, and when they do so, they cops capture the robber in X′ as well. Now suppose that k cops can win on X′. Then k cops can win in X according to the following strategy: the cops are placed and move only in the subgraph X′
+
+of X, and follow their winning strategy in X′ if the robber is not on vertex x. If the robber moves onto the vertex x, the cops proceed as if the robber moved onto vertex x′ instead. In the next turn, any move by the robber from x′ is also a move that could have been made from vertex x, and so the game proceeds. Eventually the cops create a winning capture condition in X′. If the robber is on the vertex x but the cops have moved onto the vertex x′ in X′, then in the next move the robber is forced onto a vertex which is a neighbor of the vertex x, and thus the cop currently on vertex x makes the capture in the next turn. 
+
+□
+
+Example 3.5. There is a fold map ρ : C4 → P3 defined by 4 7 → 2, i 7 → i for i ≤ 3:      
+
+> 12
+> 34
+> 123COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 7
+
+In each graph, starting two cops on vertices 1 and 2 results in an immediate cop win, since any starting position for the robber is connected to a cop. Thus 
+
+cSA (C4) = cSA (P3) = 2. Note that the classic cops and robbers game, as well as the fully active variant, are not homotopy invariant. 
+
+Example 3.6. Consider P3, C 4 which are homotopy equivalent as seen in Example 3.5. In both the classic and fully-active game, the cops have a winning strategy with one cop on P3, but not on C4.In the case of reflexive graphs, Sneaky-Active Cops and Robbers is an equivalent game to the classic Cops and Robbers. 
+
+Proposition 3.7. If X is a reflexive graph, then cSA (X) = c(X).Proof. If the graph X is reflexive, then in Sneaky-Active Cops and Robbers the players always have the option to remain on the same vertex by traversing the loop on that vertex, and so the allowed moves are identical to the allowed moves for the classic Cops and Robbers game. Furthermore, the robbers achieve a capture condition in the classic game either by moving onto the robber or by having the robber move onto them. The second case is not a capture in the sneaky-active variant, but if the robber moves onto a vertex occupied by a cop, the cop can capture them in the next turn by traversing the loop. Thus the capture conditions are also equivalent in a reflexive graph. Therefore on a reflexive graph the games are identical and cSA (X) = c(X). 
+
+□
+
+For reflexive graphs, the folding operation corresponds to the dismantling of graphs described in [5]. Thus the homotopy-invariance of the sneaky-active cop number of Theorem 3.4 is equivalent to the invariance of the cop number under dismantling in the classic game [5] Theorem 2.3 for reflexive graphs. 
+
+Example 3.8. Consider the looped path graph Iℓ
+
+> 4
+
+:    
+
+> 01234
+
+Since c(Iℓ
+
+> 4
+
+) = 1 , c SA (Iℓ
+
+> 4
+
+) = 1 as well by Proposition 3.7. We can use the similarities between our sneaky-active variant and the classic and fully active games to establish some bounds for the sneaky-active cop number relative to the cop number for these other games. 
+
+Lemma 3.9. For any graph X, cA(X) ≤ cSA (X) and c(X) − 1 ≤ cSA (X) ≤ 2c(X).8 T. CHIH AND L. SCULL 
+
+Proof. We begin by comparing our game to the fully active variant: the moves avail-able are exactly the same, but the capture condition in the sneaky-active game is more stringent than the fully active variant, and so cA(X) ≤ cSA (X). This also gives us a comparison to the classic game, since c(X) − 1 ≤ cA(X) by [12], Theorem 3.1. So c(X) − 1 ≤ cSA (X) as well. Lastly, if k cops have a winning strategy in the classic game, then 2 k cops have a winning strategy in the sneaky-active game, since we may place the cops in pairs: if c1, . . . , c k are the cop positions in the classic game, then we place another k cops on c′
+
+> 1
+
+, . . . , c ′ 
+
+> m
+
+for c′ 
+
+> i
+
+adjacent to ci. Have the cops on ci play according to the classic strategy, and have their partners c′ 
+
+> i
+
+move with them to remain adjacent. If the strategy in the classic game requires the cop to remain stationary on a vertex, then in the sneaky-active game we switch the pair of cops ci, c ′
+
+> i
+
+. Eventually the cops achieve a capture in the classic game. If this capture in the classic game is made by having the robber move onto a cop vertex ci, then the partner cop on c′ 
+
+> i
+
+will achieve capture in the sneaky-active game in the following turn. Therefore 2 k cops is sufficient in the sneaky-active game and cSA (X) ≤ 2c(X). □
+
+We conclude this section with some general observations about Sneaky-Active Cops and Robbers. Firstly, for the sneaky-active variant there are some differences in behavior between bipartite and non-bipartite graphs. 
+
+Observation 3.10. On a connected non-bipartite graph X, if k cops c1, . . . c k have a winning strategy where ci starts on vertex wi, then they also have one where ci
+
+starts on vertex vi, so the start positions of the cops is irrelevant: since X is not bipartite, there is always an even length walk from vi to wi. By appending walks of the form wixw ix · · · xw i, we may these walks have the same length for all i, say ℓ.Thus, after ℓ turns, we can move the cops from vi to wi. Since they have a winning strategy from this position regardless of where the robber starts or has moved to, they may capture the robber. This does not hold if X is bipartite. If a cop C starts on a vertex that is in the same partite set as the robber R chooses to start on, then this cop can never capture the robber, since d(C, R ) will always be odd after a cop move. Thus as soon as the robber chooses a starting vertex, we may disregard any cops that are on vertices of the same partite set. Thus the partite set that the cops start on matters. Within this partite set the starting position does not matter, since the cops can move from one initial configu-ration to another in an even number of moves as in the non-bipartite case, at which point the robber is still in their partite set. 
+
+Lemma 3.11. If X is connected and bipartite, then in the winning strategy for 
+
+cSA (X) cops, the cops must start with cSA (X)/2 cops in each partite set. COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 9
+
+Proof. Suppose that there is a winning strategy for k cops placed in one partite set provided that the robber starts on a vertex in the other partite set. Then k cops placed in the opposite partite set will also have a winning strategy for when the robber chooses the other partite set as a starting point, since after the first move, both robber and cops have swapped partite sets and the cops can play their original winning strategy. Thus if k is the minimal number of cops needed for a winning strategy in one partite set, then cSA (X) = 2 k.
+
+□
+
+Finally, we address non-connectivity of graphs. 
+
+Observation 3.12. If X is disconnected with m components X1, . . . X m, once a robber is placed on component Xi then only the cops placed on component Xi can capture. Thus cSA (X) = Pmi=1 cSA (Xi). 4. Cop numbers for particular graph families 
+
+We now compute the sneaky-active cop numbers for a variety of graph families, starting with cycles. 
+
+Proposition 4.1. If a graph is an odd cycle C2n+1 , then cSA (C2n+1 ) = 2 .Proof. By Observation 3.3, cSA (C2n+1 ) ≥ 2. To show that two cops have a winning strategy, suppose we start the cops on vertices 1 and 2. Consider the paths from each cop away from each other to the initial robber position; these paths are either both even or both odd. If these lengths are both odd, the cops can capture the robber by moving along these paths towards the robber. After each cop turn the distance from the robber is even, and so the robber cannot sneak by either cop by moving onto their position and remains stuck between the two and eventually captured. If the lengths of the paths are both even, the cops switch places on their first turn, making the distance both odd after the robber’s first move, and then enact the previously described strategy. 
+
+□
+
+We now consider even cycles. We have already seen in Example 3.5 that cSA (C4) = 2 so we consider larger even cycles. 
+
+Proposition 4.2. If a graph is an even cycle C2n with n ≥ 3, then cSA (C2n) = 4 .Proof. Since C2n is bipartite, know by By Lemma 3.11 that the winning cop strategy requires half the cops to be placed in each partite set. If we have only two cops and place one in each partite set, the robber may evade the relevant cop indefinitely by moving around the circle away from her. Thus cSA (C2n) is at least 4. Then by [5], 10 T. CHIH AND L. SCULL 
+
+the classic cop number c(C2n) = 2 and so by Lemma 3.9, cSA (C2n) ≤ 2 · 2 = 4. Thus 
+
+cSA (C2n) = 4. □
+
+Example 4.3. Consider the bipartite graph C8. With 4 cops, we can place them adjacent to each other as shown: 
+
+> c1
+> c2
+> c3
+> c4
+> R
+
+No matter where the robber starts, there will be two cops which have odd distance from the robber’s initial position who can move around the cycle in opposite direc-tions and capture the robber. Next we consider complete graphs. 
+
+Proposition 4.4. For a complete graph Kn with n ≥ 2, we have cSA (Kn) = 2 .Proof. By Observation 3.3, cSA (Kn) ≥ 2. If we start two cops on distinct vertices, then any starting robber position is a neighbor of at least one of the cops and the robber is immediately captured. □
+
+Corollary 4.5. If a graph is a tree T , then cSA (T ) = 2 .Proof. Any tree may be folded down to K2, starting with its leaves, and so T ≃ K2.By Theorem 3.4 we have that cSA (T ) = cSA (K2) = 2. □
+
+Lastly we look at Kneser graphs. 
+
+Definition 4.6 ([6]) . A Kneser graph denoted K(n, m ) has vertex set V (K(n, m )) = 
+
+{S ⊆ [n] : |S| = m}, i.e. subsets of {1, . . . , n } of size m. We have that S1 ∼ S2 when 
+
+S1 ∩ S2.Recall that the Petersen graph is the Kneser graph K(5 , 2). 
+
+Theorem 4.7. The sneaky-active cop number of the Peterson graph cSA (K(5 , 2)) = 3.Proof. We first show that cSA (K(5 , 2)) ≤ 3. Place cops on {a, b }, {c, d }, {a, d } where 
+
+a, b, c, d, e ∈ [5] are distinct. To avoid immediate capture, the robber must start on either {a, c }, {a, d }, or {b, d }.Suppose the robber begins on {a, c }. Then the {a, b }, {c, d } cops switch and {a, d }
+
+moves to {c, e }. The robber’s neighbors are {b, e }, {b, d }, and {d, e } all of whom are COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 11 
+
+neighbors of one of the cops and they are caught. Similarly if the robber starts on 
+
+{b, d }, they are caught. If the robber starts on {a, d }, move the {a, d } cop to {c, e } and have the {a, b }, {c, d }
+
+cops switch. The robber then has to move to {b, c }. Then, have the {a, b }, {c, e }
+
+cops switch and have the {c, d } cop move to {a, b }. The robber has to move to {a, e }.Finally switch {a, b }, {c, e } with one of the {a, b } cops and move the other to {d, e }.The robber’s neighbors are {b, c }, {b, d }, and {c, d }, all of whom are neighbors of a cop and thus the robber is captured. We next show that cSA (K(5 , 2)) > 2. For any cop on vertex c and robber on vertex 
+
+R, we note that |N (c) ∩ N (R)| ≤ 2 with equality holding if and only if c = R. So suppose there are two cops on vertices c1, c 2. Note that on any robber turn we have that that c1, c 2̸ = R, there can be at most 2 neighbors of R that are also neighbors of either cop. Since d(R) = 3, there is a position the robber may move to in order to evade capture in the following cop turn. □
+
+Proposition 4.8. For a Kneser graph K(n, 2) with n ≥ 6, we have cSA (K(n, 2)) = 3 .Proof. We first show that 2 cops c1, c 2 do not suffice. There are two possible initial cop positions up to symmetry: either the cops are adjacent or they are not. In the first case the cops are adjacent, that is they are on vertices {a, b }, {c, d }, and the robber may place themself on a vertex non-adjacent to both. If the cops are not adjacent and are on {a, b }, {b, c }, the robber may likewise place themself non-adjacent to both. Now after each robber move, we suppose that neither cop has captured the robber, so |ci ∩ R| ≤ 1. If the cops are adjacent, then there is a vertex non-adjacent to both cops but also adjacent to the robber that the robber may move to in order to evade capture. If the cops are not adjacent, then they occupy vertices 
+
+{a, b }, {b, c }, then either the b ∈ R, and the robber may move to {a, c } or b̸ ∈ R and the robber may move to {b, d } evading capture. On the other hand, if 3 cops start on {1, 2}, {3, 4}, {5, 6}, then no matter where the robber starts and moves, they will be adjacent to at least one cop and be captured. 
+
+□
+
+We may summarize these findings in Figure 1. 
+
+X C2k+1 C2k Trees Kn K(n, 2) , n ≥ 5
+
+cSA (X) 2 4 2 2 3
+
+Figure 1. A table of cop numbers. 12 T. CHIH AND L. SCULL 
+
+5. The Categorical Product 
+
+In this section, we consider the categorical product of graphs of Definition 2.3, and relate the sneaky-active cop number of a product graph X × Y to the cop numbers of the graphs X and Y . We have already seen results in which bipartiteness plays a factor in the behavior of the sneaky-active cop number in Section 3, and this section will show this phenomena continuing; our results will depend on the bipartiteness of the various graphs involved. To set the stage for the arguments which follow, recall that the vertices of X × Y
+
+are defined by the product of sets V (X) × V (Y ), and edges are defined between (x1, y 1) and ( x2, y 2) whenever there are edges x1 ∼ x2 in E(X) and y1 ∼ y2 in E(Y ). Thus any position of a cop or robber in X × Y is given by a position in X and a position in Y , and a move in X × Y is given by a move in X and a move in Y .Hence a strategy in the product X × Y is given by two simultaneous strategies in the component graphs X, Y .With this in mind, we begin by considering our first case, where none of the graphs involved are bipartite. 
+
+Theorem 5.1. Suppose X, Y are both connected and not bipartite. Then cSA (X ×
+
+Y ) = cSA (X) + cSA (Y ) − 1.Proof. Suppose we have cSA (X) + cSA (Y ) − 1 cops. We place our cops arbitrarily. By Observation 3.10, we know that we have winning strategies in both X and Y
+
+regardless of initial placement. Phase 1: we start with all cops playing a winning strategy in both X and Y . This will lead to a cop win in either X or Y , meaning that we have a cop that moves onto a position with the same x or y coordinate as the robber. If this cop ’captures’ in X, we move her into Team Y ; if she ’captures’ in Y , she is moved to Team X.After this reassignment, we begin again: all Team Y cops will now follow the robber in X, while the Team Y and unassigned cops together play a winning strategy Y ,and all Team X cops will follow the robber in Y while Team X and unassigned cops together play a winning strategy X.If a cop from Team X makes a capture in X, then the robber has lost, since that cop also shares the robber’s Y coordinate; similarly if a cop from Team Y makes the capture in Y , the robber loses. We continue until either the robber is captured in X × Y or until we do not have enough cops left in one of the groups to have a winning strategy. This second case will happen when we drop to cSA (X) − 1 cops in the combined Team X and unassigned groups, or cSA (Y ) − 1 cops in the combined Team Y and unassigned groups. At this point we move to Phase 2. Phase 2: Assume without loss of generality that we have only cSA (X) − 1 cops remaining in the combined Team X and unassigned groups, and so the remaining COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 13 
+
+cops have been assigned to Team Y , giving us cSA (Y ) cops in Team Y . These cops can now capture the robber by playing a winning strategy in Y while shadowing the robber’s position in X.Thus the cop player can always win with cSA (X) + cSA (Y ) − 1 cops. To show that the robber can win if there are fewer cops, suppose there are at most cSA (X) − 1 + 
+
+cSA (Y ) − 1 cops. The robber has a strategy to avoid cSA (X) − 1 cops in X, and a strategy to avoid cSA (Y ) − 1 cops in Y . Thus the robber can avoid all cops by arbitrarily dividing them into cSA (X) − 1 ‘avoid in X’ cops and cSA (Y ) − 1 ‘avoid in Y ’ cops and playing the avoidance strategy in each graph, hence avoiding all cops in X × Y . □
+
+Example 5.2. Consider cycle graphs Ci, C j where i, j are both odd, i, j ≥ 3. Then 
+
+cSA (X) = cSA (Y ) = 2 and so cSA (X × Y ) = 3. We illustrate the strategy of Theorem 5.1 in this example.  
+
+> c1
+> c2c3
+> R
+
+At the beginning, all three cops play a winning strategy in both X and Y . If Cop 1 captures the robber in X, she gets reassigned to Team Y and begins shadowing the robber in X. Cop 2 and Cop 3 play their winning strategy in X, while all three cops play as a team in Y . Suppose next that Cop 2 captures the robber in Y , and is assigned to Team X, while only Cop 3 remains unassigned. Now we have Cops 1 and 3 playing to win in Y , Cops 2 and 3 playing to win in X, while Cop 1 shadows the robber in X and Cop 2 shadows him in Y . When the next cop makes a capture in either X or Y , we move into Phase 2: if Cop 3 captures the robber in X, we now have Cop 1 and Cop 3 on the same X coordinate as the robber and these two cops can play to win in Y while continuing to shadow in X. When one of them achieves a capture in Y , it results in a win in X × Y .If there are only two cops, the robber can choose one to avoid in X while avoiding the other in Y . Since one cop is insufficient to capture the robber in a cycle graph, the robber can evade these two cops in X × Y indefinitely. Since Sneaky-Active Cops and Robbers is equivalent to the classic Cops and Rob-bers for reflexive graphs (Proposition 3.7), reflexive graphs are not bipartite and the categorical and strong products are equivalent for reflexive graphs, we recover the following result for the classic game. 
+
+Corollary 5.3. For the classic cops and robbers game, c(X ⊠ Y ) = c(X) + c(Y ) − 1.14 T. CHIH AND L. SCULL 
+
+When one of the graphs X or Y is bipartite, we must split the cops into two groups, one for each partite set. Otherwise the strategy unfolds in a similar way to the non-bipartite case. 
+
+Theorem 5.4. Suppose X is not bipartite and Y is bipartite. Then cSA (X × Y ) = 2cSA (X) + cSA (Y ) − 2.Proof. Since Y is bipartite, we know by Lemma 3.11 that in order to win in Y ,the cop player needs to start with cSA (Y )/2 cops placed in each partite set. Now 
+
+X × Y is bipartite, so with 2 cSA (X) + cSA (Y ) − 2 the cop player can choose a starting placement with cSA (X) + cSA (Y )/2 − 1 cops in each partite set. Once the robber chooses a start in one partite set then half of the cops are irrelevant by Observation 3.10, and we have cSA (X) + cSA (Y )/2 − 1 cops who are placed in the correct partite set and can potentially capture the robber. These cops have a winning strategy similar to the non-bipartite case. Phase 1 is to have the relevant cops play winning strategies in X and Y , moving them into Team X and Team Y as they reach a position with a matching y or x
+
+coordinate, and then having Team X cops shadow in Y while continuing to play a winning strategy in X, while Team Y cops shadow in X and play in Y . This continues until the cops capture the robber or have too few cops to have a winning strategy, which only happens when we have reached cSA (X) cops in Team X or 
+
+cSA (Y )/2 cops in Team Y . At this stage we enter Phase 2 and either Team X cops can win in X while shadowing in Y , or cSA (Y )/2 cops of Team Y (who are positioned in the relevant partite set) can win in Y while shadowing in X.To show that 2 cSA (X) + cSA (Y ) − 3 are not sufficient, observe that since X × Y is bipartite, once the robber chooses a start position, then all cops who are currently in the same partite set as the robber’s initial position are irrelevant. Have the robber start on whichever partite set has more cops, hence fewer cops who can potentially make a capture after moving. Then there are at most cSA (X) − 1 + cSA (Y )/2 − 1cops in play, and the robber can divide them into ones to be avoided in X and ones to be avoided in Y as in the non-bipartite case. □
+
+Example 5.5. Consider cycle graphs Ci, C j for i is odd, i ≥ 3 and j even, j ≥ 6. Then cSA (Ci × Cj ) = 6. In order for 6 cops to win, we place 3 of them on each partite set of V (Ci × Cj ). Once the robber places himself, we have 3 cops who are positioned to make a potential capture. As in Example 5.2, the cops play in both 
+
+Ci and Cj until one captures in Ci; then this cop shadows in Ci while the other cops continue to play, and all three play in Cj . Eventually we have two cops who have captured the robber in one of the cycles, say Ci, who then play to win in Cj while remaining shadowing the robber in Ci.With at most 5 cops, the robber places themselves in the partite set which contains only two cops, and proceeds to evade one in Ci and the other in Cj .COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 15 
+
+Lastly, we consider the following case. 
+
+Theorem 5.6. Suppose X, Y are both bipartite. Then cSA (X × Y ) = 2 cSA (X) + 2cSA (Y ) − 4.Proof. In this case, X × Y is a disconnected graph with two components, each of which is bipartite. Thus we have 4 partite sets to consider, two for each component of the graph. We place cSA (X) + cSA (Y ) − 1 cops on each of these partite sets. Once the robber has chosen a start position, only one out of these four groups of cops remains in play, and those cops have a winning strategy with the two phase strategy outlined in the proofs of Theorems 5.1, 5.4. To see that 2 cSA (X) + 2 cSA (Y ) − 5 cops are insufficient, we note that the robber can always choose an initial placement in the component and partite set which has at most cSA (X)/2 − 1 + cSA (Y )/2 − 1 cops, and avoid cSA (X)/2 − 1 of them in X
+
+and the others in Y . □
+
+Example 5.7. If i, j are both even and i, j ≥ 6, then cSA (Ci × Cj ) = 12. The graph Ci × Cj consists of two disconnected bipartite components, and we place 3 cops on each partite set of each component. With fewer cops, the robber can select the partite set of the component that contains at most 2 cops and avoid one in each coordinate. 6. The Box Product 
+
+In this section, we turn to the box product. We establish bounds on the sneaky-active cop number for box products of graphs, and compute some examples. 
+
+Definition 6.1. For graphs X and Y , the box product graph X□Y is defined by: 
+
+• A vertex is a pair ( v, w ) where v ∈ V (X) and w ∈ V (Y ). 
+
+• An edge is defined by ( v1, w 1) ∼ (v2, w 2) ∈ E(X × Y ) whenever either 
+
+– v1 = v2 ∈ V (X) and w1 ∼ w2 ∈ E(Y ) or 
+
+– v1 ∼ v2 ∈ E(X) and w1 = w2 ∈ V (Y )Hence a move in the box product X□Y will correspond to a move in X or a move in Y , but not both; and at every step, each cop or robber will choose which direction to move in, either X or Y .We begin with the case where both graphs are not bipartite. 
+
+Theorem 6.2. If X and Y are not bipartite graphs then cSA (X□Y ) ≤ cSA (X) + 
+
+cSA (Y ).Proof. Suppose we have cSA (X) + cSA (Y ) cops. The cops have a winning strategy as follows. 16 T. CHIH AND L. SCULL 
+
+Phase 1: During this phase, the cops always move in the same direction as the robber does. So if the robber makes a move in X, then all cops move in X, and similarly for Y . To begin, all cops are unassigned and play together as a team following winning strategies for X and Y respectively. When a cop ’captures’ the robber in X by moving onto a vertex with the same X coordinate as the robber, the cop is moved onto Team Y . From then on, they shadow the robber in X and continue playing with the Team X and unassigned cops in Y . Similarly cops who ’capture’ the robber in Y are moved onto Team X.The cops continue this strategy, reassigning cops as they ’capture’ in one coordi-nate, until we reach cSA (X) cops in Team X or cSA (Y ) cops assigned to Team Y .At this point, the strategy changes. Phase 2: The Team X cops continue playing a winning strategy in X and shad-owing in Y , and a capture in X results in a cop win in X□Y . Hence the robber can only make a finite number of moves in X from this point on. The Team Y cops shadow the robber in X and move randomly in Y when the robber moves in Y . The unassigned cops, however, move ONLY in X during this phase: no matter what the robber does, they move towards the robber’s X position in X until they match it and join Team Y .Phase 3: Once all remaining unassigned cops have joined Team Y , we now have 
+
+cSA (X) cops in Team X whose Y -coordinate matches the robber, and cSA (Y ) cops in Team Y whose X-coordinate matches the robber. At this point the cops revert to the strategy of the first phase, where all cops move in the same coordinate as the robber does and Team X plays to win in X and shadows the robber in Y , and Team 
+
+Y plays to win in Y and shadows in X. Since each team has a winning strategy in their respective factor, the robber is captured in a finite number of turns. 
+
+□
+
+When both graphs are bipartite, then the strategy of Theorem 6.2 still works provided we are careful about our initial placement of our cops. 
+
+Theorem 6.3. If X and Y are both bipartite graphs then cSA (X□Y ) ≤ cSA (X) + 
+
+cSA (Y ).Proof. In this case, we know by Lemma 3.11 that the winning strategy in both X
+
+and Y consist of placing the cops as two equal groups of size cSA (X)/2 and cSA (Y )/2respectively in each partite set of V (X) and V (Y ). Now X□Y is also bipartite, so with cSA (X) + cSA (Y ) cops we can place cSA (X)/2 + cSA (Y )/2 cops in each partite set of X□Y . Once the robber chooses their initial position only the cops in the opposite partite set are relevant. We enact the strategy of the proof of Theorem 6.2 using the relevant cops. Note that as the cops join Team X and Y , they will automatically wind up in the relevant partite set of V (X) or V (Y ) when they match the other coordinate. □COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 17 
+
+Interestingly, when X is bipartite but Y is not, we can improve the bound. In this case X□Y is not bipartite. We may still mimic the arguments made in the proofs of Theorems 6.2, 6.3, using only the cSA (X)/2 to capture the robber in X and using the non-bipartiteness of Y to maneuver them into the right partite set in X.
+
+Theorem 6.4. If X is bipartite and Y is not, then cSA (X□Y ) ≤ cSA (X)/2+ cSA (Y ).Proof. Suppose we have cSA (X)/2 + cSA (Y ) cops. We will follow the same basic strategy as in the earlier cases, but we need to ensure that the cops who are assigned to Team X wind up in the correct partite set of V (X) to play their strategy there once their Y coordinates match the robber. Phase 0: We again start with all cops unassigned. This time, on the first turn once the robber has placed, we look at the X-coordinate of each cop. If the coordinate is in the opposite (the ‘correct’) partite set of V (X) as that of the robber, the cop moves in X; if they are in the ‘wrong’ partite set, the cop makes their initial move in Y . Thus at the end of the turn, all cops have an X coordinate matching that of the robber. Phase 1: All cops always move in the same direction as the robber does, either in 
+
+X or Y . When a cop matches the X-coordinate of the robber, they move to Team 
+
+Y and begin shadowing in X, and when they match the Y -coordinate they move to Team X and shadow in Y . The Team X and unassigned groups play together in X
+
+when the robber moves in X, and the Team Y and unassigned groups play together in Y when the robber moves in Y . Note that when a cop ’wins’ in Y and is moved into Team X, their X coordinate will be in the correct partite set of V (X) because of the Phase 0 move. This phase continues until there are either cSA (X)/2 cops in Team X or cSA (Y )cops in Team Y ; up to this point, there will always be enough cops playing together in X and in Y to force a win, so we can keep moving cops from the unassigned group into either Team X or Y .Phase 2: We need to consider two cases here. Case 1: There are cSA (X)/2 cops in Team X and thus we have cSA (Y ) other cops either in Team Y or unassigned. Because of the first move of Phase 0 and the fact that all cop moved in X exactly when the robber did during Phase 1, these cSA (X)/2 cops all have X coordinates that are in the relevant partite set of V (X). The Team X cops continue playing a winning strategy in X
+
+and shadowing in Y , and a capture in X results in a cop win in X□Y , and so the robber can only make a finite number of moves in X from this point on without being captured, and is forced to eventually move in Y . The Team 
+
+Y cops shadow the robber in X and move arbitrarily in Y when the robber moves in Y . The unassigned cops move only in X during this phase: no 18 T. CHIH AND L. SCULL 
+
+matter what the robber does, they move towards the robber’s X position in 
+
+X until they match it and join Team Y .Case 2: There are cSA (Y ) cops in Team Y and the rest either in Team X, with match-ing Y coordinates and in the relevant partite set of V (X), or are unassigned. In this scenario, the Team Y cops have a winning strategy and so the robber is forced to move in X after a finite number of moves. We move the unas-signed cops into Team X when they have a matching Y coordinate as the robber and are in the relevant partite set of V (X). These cops therefore move to reduce the distance from the robber in Y , regardless of how the robber moves, and after finite moves, match the robber’s Y coordinate. If they are also in the correct V (X) partite set, they are now assigned to be partite set of Team X. If they are not, they traverse an odd length circuit in Y and return to the same coordinate, and then continue to move towards the robber’s new 
+
+Y position. Phase 3: In either case, we now have cSA (X)/2 cops in Team X with matching Y -coordinate to the robber and in the correct partite set of V (X), and cSA (Y ) cops in Team Y with matching X-coordinate to the robber. So as in the proofs of Theorems 6.2, 6.3, when the robber moves in X, Team X plays their winning strategy in X
+
+and Y shadows the robber and vice versa, ensuring a capture. □
+
+The next examples are graphs in which the bounds of Theorems 6.2, 6.3 and 6.4 are realized. 
+
+Example 6.5. For two non-bipartite graphs as in Theorem 6.2, consider the graph 
+
+Kℓ
+
+> 3
+
+, a looped K3 where each vertex is adjacent to each vertex including itself; a single cop can move to any vertex, including the one it is on, and so cSA (Kℓ
+
+> 3
+
+) = 1. Then 
+
+Kℓ
+
+> 3
+
+□Kℓ 
+
+> 3
+
+is depicted below: 
+
+Kℓ 
+
+> 3
+
+Kℓ
+
+> 3
+
+□Kℓ
+
+> 3
+
+By Proposition 3.7, playing the sneaky-active game on this reflexive graph is equiv-alent to playing the classic game on K3□K3. One cop is insufficient here, as the robber can always move away from the cop. Two cops can win, since cops placed at COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 19 
+
+(1 , 1) , (2 , 2) can move to any vertex on their first move. Thus cSA (Kℓ
+
+> 3
+
+□Kℓ
+
+> 3
+
+) = 2 = 
+
+cSA (Kℓ
+
+> 3
+
+) + cSA (Kℓ
+
+> 3
+
+). 
+
+Example 6.6. For the bipartite case of Theorem 6.3, consider K2□C4 and recall that cSA (K2) = cSA (C4) = 2. Since C4 ∼= K2□K2, the box product is isomorphic the hypercube □3
+
+> i=1
+
+K2:                
+
+> (0 ,0,0)
+> (0 ,0,1)
+> (1 ,0,0)
+> (1 ,0,1)
+> (0 ,1,0)
+> (0 ,1,1)
+> (1 ,1,0)
+> (1 ,1,1)
+
+K2□C4 ∼= K32
+
+Placing 4 cops on (0 , 0, 0) , (0 , 1, 0) , (1 , 0, 0) , (1 , 1, 0) ensures capture of the robber on the first cop move no matter what the robber initial position is. If we have only 3 cops, one of the partite sets contains at most 1 cop and the robber can evade them by placing themselves on top of this cop and then following them around. Thus 
+
+cSA (□3
+
+> i=1
+
+K2) = 4 = cSA (K2) + cSA (C4). 
+
+Example 6.7. For the case where one graph is bipartite as in Theorem 6.4, consider 
+
+T □C4 where T represents the terminal graph with one vertex and one loop. Then 
+
+cSA (T ) = 1 , c SA (C4) = 2, and T □C4 ∼= Cℓ
+
+> 4
+
+, the reflexive 4-cycle, and playing the sneaky-active game on T □C4 is equivalent to playing the classic game on C4. So 
+
+cSA (T □C4) = c(C4) = 2 = cSA (T ) + cSA (C4)/2. 
+
+T □C4 ∼= Cℓ
+
+> 4
+
+We next use the bound of Theorem 6.3 and the homotopy invariance of Theorem 3.4 to compute the sneaky-active cop number for the box product of trees. We begin with a result on homotopy equivalence. 
+
+Theorem 6.8. If T1, T 2 are trees then T1□T2 is homotopy equivalent to K2.20 T. CHIH AND L. SCULL 
+
+Proof. Our argument rests on the following result: if x is a leaf of of T1 and we define ˆT1 to be the tree T1\{ x} created by deleting the vertex x, then T1□T2 ≃ ˆT1□T2. We do this by defining a sequence of folds that sequentially delete all vertices ( x, y ) in 
+
+T1□T2 for y ∈ V (T2). To define these folds, root tree T2 and assume it has height 
+
+m. We start with vertices ym of level m in T2. Since both x and ym are leaves of their respective trees, there is a fold map that takes ( x, y m) to (ˆ x, ˆym) where ˆ x, ˆym
+
+are the parents of vertices x, y m respectively. Once all vertices ( x, y m) for ym of level 
+
+m are deleted, we then fold vertices ( x, y m−1) for all level m − 1 vertices ym−1 of T2.The only remaining neighbors of vertices ( x, y m−1) are (ˆ x, y m−1) and ( x, ˆym−1), and so ( x, y m−1) can now be folded to (ˆ x, ˆym−1). We continue to delete vertices ( x, y j )via the fold ( x, y j ) 7 → (ˆ x, ˆyj ), working through the levels m ≥ j ≥ 1 in T2 until all vertices of the form ( x, y ) have been deleted, leaving us with ˆT1□T2.This result forms the basis for an inductive argument that T1□T2 ≃ K2, inducting on the number of vertices of the tree T1: if |V (T1)| = 2 then ˆT1□T2 = T2 and any tree is homotopy equivalent to K2, and if |V (T1)| = k + 1 then when we delete a leaf, 
+
+|V ( ˆT1)| = k and so we get T1□T2 ≃ ˆT1□T2 ≃ K2 by our inductive hypothesis. □
+
+Corollary 6.9. If T1, T 2 are trees then cSA (T1□T2) = 2 .
+
+We extend this result to an arbitrary box product of trees. 
+
+Theorem 6.10. If X is a box product of 2n trees, then cSA (X) = 2 n. Similarly, if 
+
+X is a box product of 2n − 1 trees, then cSA (X) = 2 n.Proof. Suppose that X = □2ni=1 Ti, n ≥ 1 where Ti is a tree. By Theorem 6.8, 
+
+cSA (□2
+
+> i=1
+
+Ti) = 2 and so by Theorem 6.3 and induction we have cSA (□2ni=1 Ti) = 
+
+cSA (( □2n−2 
+
+> i=1
+
+Ti)□(□2
+
+> i=1
+
+Ti)) ≤ 2n.Now suppose we have only 2 n − 1 cops. Since X is bipartite, we may place the robber so that at most n − 1 cops in the relevant partite set to make a capture. The robber is either on top of a cop, in which case they share at most 2 neighbors with that cop, or away from the cop, giving at most 1 shared neighbors; so in total there can be at most 2 n − 2 positions which the robber cannot move to. Since the degree of each vertex δ(X) ≥ 2n, there is always a neighbor of the robber they may move to in order to avoid capture in the following turn. The argument for the odd case is similar, as Theorem 6.3 and induction give 
+
+cSA (□2n−1 
+
+> i=1
+
+Ti) = cSA (( □2n−3 
+
+> i=1
+
+Ti)□(□2
+
+> i=1
+
+Ti)) ≤ 2n and the degree of each vertex is 2n − 1, which is still larger than 2 n − 2. □
+
+Example 6.11. Recall that Example 6.6 showed that cSA (□3
+
+> i=1
+
+K2) = 4, which is exactly Theorem 6.10 when n = 2. We can utilize some results from [12] and [21] to exhibit some bounds about the box product of cycles for the sneaky-active variant. COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 21 
+
+We begin with a list of results we will use. 
+
+Lemma 6.12 ([12] Lemma 4.5) . Let X be a bipartite graph. Let k = c(X), and consider the fully active game on X with k cops. If, after the initial placement by both players, all cops and the robber occupy the same partite set of X, then the cops can ensure capture of the robber. 
+
+We note here that in the case where all cops occupy the same partite set of X as the robber after a cop move, then there is no distinction between the sneaky-active game and the active game since the robber is not adjacent to any cops and thus may not “sneak” onto any cop. Thus Lemma 6.12 applies to the sneaky-active game as well. We also utilize active cop numbers of the box product of cycles from [12] and [21]. 
+
+Theorem 6.13 ([12] Theorem 4.8) . Let X = Cn1 □Cn2 □ · · · □Cnk . If any of the ni
+
+are odd then ca(X) ≤ k + 1 .
+
+Theorem 6.14 ([21] Theorem 2.6) . Let X = □ni=1 Ci where Ci is a cycle of length at least 4. Then c(X) = n + 1 .
+
+We use these results to find bounds for the cop number of box products of cycles in our sneaky-active case. 
+
+Theorem 6.15. Consider a box product of cycles □ki=1 Cni . If any of the ni are odd, then k ≤ cSA (□ki=1 Cni ) ≤ k + 1 .Proof. We first show that k ≤ cSA (□ki=1 Cni ). Without loss of generality, let the position of the robber be r = (0 , 0, . . . , 0). If the robber r and cop ci share a vertex as a neighbor, then d(r, c i) = 2, and there is either a coordinate where ci = (0 , . . . , ±2, 0) or a pair of coordinates where ci = (0 , . . . , ±1, . . . , ±1, . . . , 0). Since each neighbor of r has the form (0 , . . . , ±1, . . . , 0), we have that |N (r, c i)| ≤ 2. Since □ki=1 Cni is a regular graph with degree 2 k, at least k cops are needed to cover all neighbors of r,else the robber may move to a neighbor and avoid capture in the following turn. For the upper bound, observe that cSA (□ki=1 Cni ) ≤ cA(□ki=1 Cni ) ≤ k +1 by Lemma 3.9 and Theorem 6.13. □
+
+Theorem 6.16. Consider a box product of even cycles □ki=1 C2ni . We have that 
+
+cSA (□ki=1 C2ni ) ∈ { 2k, 2k + 2 }.Proof. Since □ki=1 C2ni is bipartite, it suffices to show that the number of cops needed in each partite set is k or k + 1. The degree argument from the proof of Theorem 6.15 shows that we need at least k cops per partite set. Then by Lemma 6.12 and Theorem 6.14, we have that k + 1 cops in each partite set is sufficient to capture the robber. Thus cSA (□ki=1 C2ni ) = 2 k or 2 k + 2. □22 T. CHIH AND L. SCULL 
+
+We now consider box products of complete graphs. 
+
+Lemma 6.17. Let Kn, K m be complete graphs. Then cSA (Km□Kn) ≤ min( m, n ).Proof. Without loss of generality, suppose m ≤ n, then place cops initially on (1 , 1) , (2 , 1) , . . . , (m, 1) . For any initial robber position, there is a cop adjacent to this position. □
+
+Proposition 6.18. Let Km, K n be complete graphs with m, n ≥ 3. Then cSA (Km□Kn)
+
+≥ 3.Proof. We begin with the case where n, m = 3. Suppose there are two cops c1, c 2.We consider the three possible initial configurations for two cops relative to each other: they are either on the same vertex (I), connected (II) or disconnected (III). In each case, we place the robber as shown in the diagram below; in the grid shown, any vertices in the same row or the same column are connected in K3□K3, and any others are not. From here, no matter how the cops move, the robber can move back to the positions shown: if the cops move into configurations (A)-(F) (shown up to symmetry), the robber moves back into a desired configuration (I)-(III) as indicated by the arrows in the diagram below. 
+
+c1
+
+c2 R
+
+> (A)
+
+c1 c2 R
+
+> (B)
+
+c1 c2
+
+R
+
+> (C)
+
+c1 c2
+
+R
+
+> (D)
+
+c1
+
+c2 R
+
+> (E)
+
+c1
+
+c2
+
+R
+
+> (F)
+
+c1
+
+c2 R (I) c1 c2
+
+R 
+
+> (II)
+
+c1
+
+c2 R
+
+> (III)
+
+c1
+
+c2
+
+R 
+
+> (X)
+
+c1
+
+c2
+
+R
+
+> (Y)
+
+The cops cannot move from configurations (I)-(III) to either (X) or (Y). For con-figurations (I) and (III), the cop c2 must share a coordinate with the robber after moving. From configuration (II), any movement where the cops end sharing 0 or 2 COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 23 
+
+coordinates forces at least one of them to share a coordinate with the robber as well, and thus (II) may not move to (X) or (Y). For n > 3 or m > 3, note that the cops and the robber lie on some K3□K3
+
+subgraph. We then consider possible configurations on this subgraph. The argument here now follows as above, except that now all configurations can now be reached from our initial configurations (I)-(V) but that we may use the extra vertices to move back from any of these configurations back into (I)-(V), possibly on a different 
+
+K3□K3 subgraph. 
+
+c1
+
+c2 R
+
+> (A)
+
+c1 c2 R
+
+> (B)
+
+c1 c2
+
+R
+
+> (C)
+
+c1 c2
+
+R
+
+> (D)
+
+c1
+
+c2 R
+
+> (E)
+
+c1
+
+c2
+
+R
+
+> (F)
+
+c1
+
+c2
+
+R
+
+> (Y)
+
+c1
+
+c2
+
+R
+
+> (X)
+
+c1
+
+c2 R (I) c1 c2
+
+R 
+
+> (II)
+
+c1
+
+c2 R 
+
+> (III)
+
+c1
+
+c2
+
+R
+
+> (IV)
+
+c1
+
+c2
+
+R
+
+> (V)
+
+□
+
+Theorem 6.19. Let Km, K n be complete graphs with m, n ≥ 3. Then cSA (Km□Kn) = 3.Proof. By Proposition 6.18, it suffices to show that three cops are sufficient. Without loss of generality, suppose that 3 ≤ n ≤ m. If n = 3, then by Lemma 6.17, three cops are sufficient. Suppose that n > 3. To show that three cops are sufficient, place the cops on 
+
+c1 = (1 , 1), c2 = (2 , 2), c3 = (3 , 3). The robbers initial placement must either be on one of these cop positions or on ( x, y ) where x, y ̸ ∈ { 1, 2, 3} to avoid capture in the next turn. In the first case, suppose without loss of generality the robber starts on (3 , 3). Then move c1 to (1 , 3), c2 to (1 , 2) and c3 to (3 , 2). Then any move made by the robber results in capture on the next turn. In the second case, if the robber starts on ( x, y ) where x, y ̸ ∈ { 1, 2, 3}, move c1
+
+to ( x, 1), c2 to (2 , y ) and c3 to (3 , y ) To avoid immediate capture, the robber must 24 T. CHIH AND L. SCULL 
+
+move to ( x, 1). Then move c1 to (1 , 1), c2 to (1 , y ) and c3 to ( x, y ). Like in the first case, all valid robber moves lead to capture in the following cop turn. 
+
+□
+
+7. Future Directions 
+
+While we have some box product results from Section 6, these bounds could po-tentially be further tightened. In particular, when considering Theorem 6.15, ob-servational evidence suggests that cSA (□ki=1 )Cni = k + 1, but this is not proven in this paper. Moreover, while we have results for the box products of arbitrarily many trees or cycles, the results for complete graphs is restricted to the product of a pair of graphs and so the sneaky-active cop number for a general box product of complete graphs is still open. While this paper focuses on ×-homotopy, there are numerous other discrete homo-topies defined on graphs, such as A-homotopy, equivalence via neighborhood complex [19], digital homtopy [17] and more. All of these homotopy theories result in their own notions of homotopy equivalence, and developing Cops and Robber variants which are invariant under these homotopies could shed light on the behavior of these different theories. 
+
+References 
+
+[1] M. Aigner and M. Fromme, A game of cops and robbers , Discrete Appl. Math. 8 (1984), 1–12. [2] E. Babson, H. Barcelo, M. de Longueville, and R. Laubenbacher, Homotopy theory of graphs ,J. Algebraic Combin. 24 (2006), 31–44. [3] E. Babson and Dmitry N. Kozlov, Complexes of graph homomorphisms , Israel J. Math. 152 
+
+(2006), 285–312. [4] H. Barcelo, X. Kramer, R. Laubenbacher, and C. Weaver, Foundations of a connectivity theory for simplicial complexes , Adv. Appl. Math. 26 (2001), 97–128. [5] A. Bonato and R.J. Nowakowski, The game of cops and robbers on graphs , Student mathemat-ical library, American Mathematical Society, 2010. [6] JA Bondy and USR Murty, Graph theory. 2008 , Grad. Texts Math, Springer, 2008. [7] T. Chih and L. Scull, A homotopy category for graphs , J. Algebraic Combin. 53 (2021), 1231– 1251. [8] , Fundamental groupoids for graphs , Categ. Gen. Algebr. Struct. Appl. 16 (2022), 221– 248. [9] , Homotopy covers of graphs , EJGTA 14 (2026), 1–18. [10] A. Dochtermann, Hom complexes and homotopy theory in the category of graphs , European Journal of Combinatorics 30 (2009), 490–509. [11] , Homotopy groups of hom complexes of graphs , J. Combin. Theory Ser. A 116 (2009), 180–194. [12] I. Gromovikov, B. Kinnersley, and B. Seamone, Fully active cops and robbers , Australas. J Comb. 76 (2018), 248–265. COPS AND ROBBERS: A ×-HOMOTOPY INVARIANT VARIANT 25 
+
+[13] P. Hell and J. Neˇ setˇ ril, Graphs and homomorphisms , Oxford Lecture Series in Mathematics and its Applications, vol. 28, Oxford University Press, Oxford, 2004. [14] D. N. Kozlov, Chromatic numbers, morphism complexes, and Stiefel-Whitney characteristic classes , Geometric Combinatorics, IAS/Park City Mathematics Series 14 (2005). [15] , Simple homotopy types of Hom-complexes, neighborhood complexes, Lov` asz complexes, and atom crosscut complexes , Topology Appl. 14 (2006), 2445–2454. [16] , A simple proof for folds on both sides in complexes of graph homomorphisms , Proc. Amer. Math. Soc. 134 (2006), 1265–1270. [17] G. Lupton, J. Oprea, and N.A. Scoville, Homotopy theory in digital topology , Discrete Comput Geom 67 (2017), no. 3, 321–353. [18] T. Matsushita, Box complexes and homotopy theory of graphs , Homology Homotopy Appl. 19 
+
+(2017), 175–197. [19] , Fundamental groups of neighborhood complexes , J. Math. Sci. Univ. Tokyo 24 (2022), 112–165. [20] R. Hardeman Morrill, The lifting properties of A-homotopy theory , Contrib. Discrete Math. 19 
+
+(2024), 36–67. [21] S. Neufeld and R. Nowakowski, A game of cops and robbers played on products of graphs ,Discrete Mathematics 186 (1998), 253–268. [22] R. Nowakowski and P. Winkler, Vertex-to-vertex pursuit in a graph , Discrete Math. 43 (1983), 235–239. [23] A. Quilliot, Jeux et points fixes sur les graphes, Th´ ese de 3´ eme cycle , Universit´ e de Paris VI, 1978. [24] E. Riehl, Category theory in context , Aurora: Dover Modern Math Originals, Dover Publica-tions, 2017.

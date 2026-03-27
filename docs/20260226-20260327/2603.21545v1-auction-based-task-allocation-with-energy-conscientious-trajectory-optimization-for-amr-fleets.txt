@@ -1,0 +1,653 @@
+Title: Auction-Based Task Allocation with Energy-Conscientious Trajectory Optimization for AMR Fleets
+
+URL Source: https://arxiv.org/pdf/2603.21545v1
+
+Published Time: Tue, 24 Mar 2026 01:46:05 GMT
+
+Number of Pages: 7
+
+Markdown Content:
+# Auction-Based Task Allocation with Energy-Conscientious Trajectory Optimization for AMR Fleets 
+
+Jiachen Li 1, Soovadeep Bakshi 1, Jian Chu 1, Shihao Li 1, and Dongmei Chen 1
+
+Abstract — This paper presents a hierarchical two-stage framework for multi-robot task allocation and trajectory op-timization in asymmetric task spaces: (1) a sequential auction allocates tasks using closed-form bid functions, and (2) each robot independently solves an optimal control problem for energy-minimal trajectories with a physics-based battery model, followed by a collision avoidance refinement step using pairwise proximity penalties. Event-triggered warm-start rescheduling with bounded trigger frequency handles robot faults, priority arrivals, and energy deviations. Across 505 scenarios with 2–20 robots and up to 100 tasks on three factory layouts, both energy-and distance-based auction variants achieve 11.8% average energy savings over nearest-task allocation, with rescheduling latency under 10 ms. The central finding is that bid-metric per-formance is regime-dependent: in uniform workspaces, distance bids outperform energy bids by 3.5% ( p < 0.05 , Wilcoxon) because a 15.7% closed-form approximation error degrades bid ranking accuracy to 87%; however, when workspace friction heterogeneity is sufficient ( r < 0.85 energy-distance correlation), a zone-aware energy bid outperforms distance bids by 2–2.4%. These results provide practitioner guidance: use distance bids in near-uniform terrain and energy-aware bids when friction variation is significant. 
+
+I. I NTRODUCTION 
+
+Autonomous mobile robots (AMRs) are increasingly de-ployed in manufacturing and warehouse environments for material transport. As fleet sizes grow, minimizing total energy consumption becomes critical for reducing opera-tional costs, extending battery life, and decreasing charging downtime [1], [2]. In multi-robot fleets, total energy is determined jointly by two coupled decisions: which robot executes each task (allocation) and how each robot traverses its route (trajectory optimization). The current approach is to handle these two aspects separately: first, tasks are assigned based on distance or time, and then a path is planned for each robot. This approach overlooks the interaction between the quality of task assignment and energy consumption at the path planning level. The multi-robot task allocation (MRTA) problem as-signs tasks to robots to optimize a fleet-level objective [3]. Auction-based approaches, including sequential single-item auctions [4] and distributed algorithms [5], offer tractable solutions with approximation guaranties, yet they almost universally adopt Euclidean distance or completion time as the bid metric. Nunes et al. [6] comprehensively survey allo-cation strategies and note the absence of physics-based cost                  
+
+> 1All authors are with the Department of Mechanical Engineering, The University of Texas at Austin, Austin, TX 78712, USA.
+
+{jiachenli, soovadeepbakshi, jian chu, shihaoli01301 }@utexas.edu, dmchen@me.utexas.edu 
+
+models in auction mechanisms. This reliance on geometric proxies assumes that energy cost is monotonically related to distance—an assumption that breaks down in asymmetric task spaces , where traversal cost depends on payload mass, travel direction, velocity boundary conditions, and spatially varying terrain friction. Physics-based energy modeling for mobile robots has received growing attention [2], [7]. Bakshi et al. [8] for-mulated an optimal control problem (OCP) for a single AMR that minimizes a cost functional accounting for rolling friction, acceleration dynamics, motor efficiency, and battery electrochemistry in asymmetric task spaces. At the fleet level, energy-aware scheduling has been addressed through meta-heuristic optimization [7] and consensus protocols [6], while dynamic rescheduling has been tackled via multi-agent reinforcement learning [9], event-driven evolution-ary methods [10], and the FLEET framework [11]. How-ever, these fleet-level approaches rely on simplified energy surrogates—typically distance-proportional or battery-level approximations—that discard the direction-, payload-, and velocity-dependent cost structure of physics-based models. A fundamental question therefore remains: does embed-ding a physics-based energy model into the allocation mechanism yield measurable fleet-level savings, or does the surrogate approximation error negate the richer cost infor-mation? No prior work simultaneously integrates (a) physics-based AMR energy models as auction bid functions with (b) asymmetric, direction-dependent cost preservation and (c) event-triggered warm-start rescheduling with bounded trigger frequency. Nor does any existing study provide a controlled comparison of energy-based versus distance-based bids within a single framework, identifying when each dom-inates. This paper addresses these gaps with a hierarchical two-stage framework . A sequential auction first allocates tasks us-ing closed-form energy bid functions; each robot then solves the full nonlinear OCP for its assigned sequence, followed by pairwise collision avoidance refinement. An event-triggered rescheduling layer handles robot faults, priority arrivals, and energy deviations. Across 505 scenarios on three factory layouts with 2–20 robots and up to 100 tasks, we characterize when energy bids outperform distance metrics. The contributions are: (i) a hierarchical framework inte-grating the physics-based formulation of [8] into fleet-level allocation with post-allocation collision avoidance via prox-imity penalties; (ii) 11.8% fleet energy savings over nearest-task allocation with event-triggered rescheduling under 10 ms latency; and (iii) an empirical characterization of the bid- 
+
+> arXiv:2603.21545v1 [cs.RO] 23 Mar 2026 Fig. 1. Overview of the proposed two-stage auction-plus-OCP framework with collision avoidance refinement and event-triggered rescheduling.
+
+metric crossover, identifying friction heterogeneity ( r ≈
+
+0.85 energy–distance correlation) as the decisive variable: distance bids dominate in uniform terrain due to 15.7% approximation error degrading ranking accuracy, while zone-aware energy bids recover 2–2.4% savings when friction variation is sufficient. Fig. 1 provides a schematic overview. II. P ROBLEM FORMULATION 
+
+A. Notation 
+
+Consider a fleet of n AMRs, N = {1, . . . , n }, assigned to execute m transport tasks, T = {1, . . . , m }. Each task t ∈ T 
+
+is an ordered pair (pt, d t) where pt is the pickup location and dt is the dropoff location. Let σi = ( ti, 1, t i, 2, . . . , t i,k i )
+
+denote the ordered task sequence assigned to robot i, and let Ei(σi) denote the total energy consumed by robot i
+
+while executing that sequence. The workspace is asymmetric because the transition cost from one task to the next depends jointly on unloaded versus loaded motion, travel direction, and velocity boundary conditions inherited from the previous and next phases. For robot i, the state is 
+
+xi = [ Xi, Y i, ψ i, v x,i , SOC i]⊤ ∈ R5 (1) and the control is 
+
+ui = [ δf,i , V m,i , τ b,i ]⊤ ∈ R3. (2) 
+
+B. Inherited Single-Robot Optimal Control Formulation 
+
+The revised formulation preserves the single-robot math-ematical structure and uses it as the continuous layer of the fleet framework. The task schedule for each AMR is assumed to be known within the single-robot subproblem; the kinematic model is taken to be sufficiently accurate in the operating regime, and Dubins geometry is used to define the nominal segment timing between boundary waypoints. The simplified kinematic bicycle model (Fig. 2) is 
+
+˙X = vx cos( ψ) (3) 
+
+˙Y = vx sin( ψ) (4) 
+
+˙ψ = vx
+
+L tan( δf ) (5) 
+
+˙vx = Fx
+
+m . (6) The electric drive model is written as 
+
+i = Vm − Km vx
+
+> rw
+
+Rm
+
+(7) 
+
+τm = Kmi (8) 
+
+˙vx = τm − τb
+
+mr w
+
+
+
+1 + Jm
+
+> mr 2
+> w
+
+ . (9) The battery model is 
+
+OCV = a1eb1SOC + a2eb2SOC + c SOC 2 (10) 
+
+Pbattery = OCV · ibattery = Pdemand + Ploss (11) 
+
+˙SOC = − ibattery 
+
+Q (12) 
+
+Pbattery = Pdemand 
+
+η(1 + e−Pdemand ) + Pdemand η
+
+1 + ePdemand 
+
+. (13) Equations (3)–(13) define the nonlinear physics model used throughout the paper. Let the single-robot state be x = [ X, Y, ψ, v x, SOC] ⊤
+
+and control be u = [ δf , V m, τ b]⊤. The inherited energy-aware single-robot objective is 
+
+J(1) (x, u ) = 
+
+Z tf
+
+> 0
+
+
+
+w1Pbatt + w2(SOC max − SOC) 2 + w3 ˙ψ 2
+
+dt. 
+
+(14) The corresponding multiphase single-robot optimal control problem is 
+
+min  
+
+> x(·),u (·),{tℓ}
+
+J(1) (x, u ) (15) s.t. ˙x = f (x, u ), (16) 
+
+Xmin ≤ X(t) ≤ Xmax ,Ymin ≤ Y (t) ≤ Ymax , (17) 
+
+hmin ≤ h(X(t), Y (t)) ≤ hmax , (18) 
+
+0 ≤ vx(t) ≤ vmax ,
+
+SOC min ≤ SOC( t) ≤ SOC max , (19) 
+
+0 ≤ Vm(t) ≤ Vm, max ,
+
+0 ≤ τb(t) ≤ τb, max , (20) 
+
+− δf, max ≤ δf (t) ≤ δf, max , (21) 
+
+x(0) = [ Xd, Y d, 0, 0, SOC max ]⊤, (22) 
+
+x(tℓ) = [ Xℓ, Y ℓ, ψ ℓ, 0, SOC ℓ]⊤,ℓ = 1 , . . . , 2nt, (23) 
+
+x(tf ) = x(t2nt+1 )= [ Xd, Y d, 0, 0, SOC f ]⊤, (24) 
+
+tℓ = tℓ−1
+
++ DL([ X, Y, ψ ]ℓ−1, [X, Y, ψ ]ℓ)
+
+vavg ,ℓ 
+
+,ℓ = 1 , . . . , 2nt +1 . (25) Here nt denotes the number of assigned tasks for the single robot, and each waypoint is either a pickup or a dropoff boundary. Equation (25) is the inherited timing law that binds the multiphase boundary conditions to the average-speed constraint. The reduced notation used later in the paper Fig. 2. Bicycle Model for AMR. 
+
+is unchanged: 
+
+min 
+
+> u(t)
+
+Z T
+
+> 0
+
+P (x(t), u (t)) dt (26) subject to robot dynamics ˙x = f (x, u ) and boundary conditions at task pickup and dropoff locations. 
+
+C. Formal Multi-Agent Extension 
+
+The fleet-level problem introduces one copy of the inher-ited single-robot dynamics per robot and couples those copies through assignment, ordering, and coordination constraints. Let 
+
+Y = [ yit ] ∈ { 0, 1}n×m,yit = 1 ⇐⇒ task t is assigned to robot i. (27) The partition constraints are 
+
+> n
+
+X
+
+> i=1
+
+yit = 1 , t = 1 , . . . , m (28) 
+
+yit ∈ { 0, 1}, i = 1 , . . . , n, t = 1 , . . . , m. (29) For each robot i, let πi be an ordering of the tasks assigned to that robot, so that πi is a permutation of the set {t ∈T : yit = 1 }. The multiphase waypoint list induced by πi is denoted 
+
+Wi(πi) = 
+
+
+
+q0 
+
+> i
+
+, p πi(1) , d πi(1) , . . . , p πi(ki), d πi(ki), q fi
+
+
+
+,
+
+(30) where q0 
+
+> i
+
+and qfi are the depot states. The exact fleet-level problem is 
+
+min 
+
+> Y, {πi},
+> {xi(·),u i(·)}ni=1
+
+Jfleet := 
+
+> n
+
+X
+
+> i=1
+
+Ji
+
+ xi, u i; Wi(πi)
+
++ λc
+
+X
+
+> 1≤i<j ≤n
+
+Z Tf
+
+> 0
+
+ϕij (xi, x j ) dt (31) s.t. ˙xi = fi(xi, u i),i = 1 , . . . , n, (32) 
+
+xi(·), u i(·) satisfy (17)–(25) on Wi(πi), (33) (28) , (29) hold. (34) The function ϕij is a nonnegative proximity penalty that enforces inter-robot collision avoidance. We adopt a soft barrier formulation: 
+
+ϕij (xi, x j ) = max 
+
+
+
+0, 1 − ∥[Xi, Y i]⊤ − [Xj , Y j ]⊤∥
+
+dsafe 
+
+2
+
+(35) where dsafe is the minimum safe separation distance. This penalty is zero whenever robots are farther apart than dsafe 
+
+and grows quadratically as they approach. In the hierarchi-cal decomposition used in this paper, collision avoidance is enforced in a post-allocation refinement step: after the auction assigns tasks and each robot solves its independent OCP, a pairwise check identifies temporal–spatial conflicts, and conflicting trajectory segments are re-solved with the 
+
+ϕij coupling active ( λc > 0). This hierarchical approach preserves the O(nm 2) auction scalability while handling physical inter-robot interactions at the trajectory level. Note that allocation decisions do not internalize downstream in-teraction costs exactly; the collision penalty is resolved only after task assignment, so the framework is a hierarchical decomposition rather than a jointly optimal fleet coordination scheme. 
+
+D. Asymmetric Cost Matrix with Payload and Velocity Boundary Conditions 
+
+The asymmetry of the task space is formalized by the transition matrix induced by the inherited single-robot OCP. The per-segment energy for a robot of mass M carrying payload w traversing distance s is 
+
+Eseg (s, w ) = 1
+
+η
+
+h
+
+μ(M +w)g s 
+
++ 12 (M +w) v2 
+
+> f
+
+− v20
+
+i (36) where μ is the rolling friction coefficient, g is gravita-tional acceleration, η is motor efficiency, and v0, v f are initial and final velocities. Whenever boundary-speed depen-dence must be emphasized, the same quantity is written as 
+
+Eseg (s, w ; v0, v f ).When regenerative braking is active, a fraction ηr of kinetic energy is recovered during deceleration, and Eseg can become negative for segments where deceleration dominates. When regenerative braking is disabled, we enforce Eseg =max( Eraw seg , 0) .The total per-robot energy is 
+
+Ei(σi) = 
+
+> ki
+
+X
+
+> j=1
+
+h
+
+Eseg 
+
+ ∥dti,j −1 − pti,j ∥, 0
+
++ Eseg 
+
+ ∥pti,j − dti,j ∥, w ti,j 
+
+ i
+
+(37) where the first term is unloaded transit ( w = 0 ) from the previous dropoff to the next pickup, and the second is loaded 
+
+task execution with payload w = wti,j . This asymmetric structure—different payload masses and different distances for the two legs of each task—captures why the total energy of a route is not invariant under reversal. To make the dependence on payload and velocity boundary conditions explicit at the OCP level, define the ordered-pair transition cost for robot i as 
+
+Ci(a, b ; w, v −, v +) := min  
+
+> xi,u i,T ≥0
+
+Z T
+
+> 0
+
+ℓi dt, ℓi = w1Pbatt ,i + w2(SOC i, max − SOC i)2 + w3 ˙ψ 2
+
+> i
+
+(38) subject to (16)–(21) with 
+
+[Xi(0) , Y i(0)] ⊤ = a, vx,i (0) = v−,
+
+[Xi(T ), Y i(T )] ⊤ = b, vx,i (T ) = v+, (39) and payload parameter w embedded in the demand power and mass terms. The asymmetric transition matrix between tasks ta and tb is then 
+
+Ai(ta, t b) := Ci
+
+ dta , p tb ; 0 , v + 
+
+> a
+
+, v −
+
+> b
+
++Ci
+
+ ptb , d tb ; wtb , v − 
+
+> b
+
+, v +
+
+> b
+
+ .
+
+(40) Because the payload argument and boundary velocities change with direction and task identity, one generally has 
+
+Ai(ta, t b)̸ = Ai(tb, t a). (41) Equation (40) is the fleet-level asymmetric cost matrix used conceptually by the assignment layer. The sequential auction replaces the expensive exact cost (40) with the tractable approximation introduced next. 
+
+E. Closed-Form Bid Approximation 
+
+This problem is a variant of the multi-vehicle asymmet-ric routing problem with energy objectives, which is NP-hard [12]. We solve it via a two-stage hierarchical decom-position. For candidate task t and robot i with current end posi-tion qi, the bid consists of unloaded transit energy (payload 
+
+w = 0 ) plus loaded task-execution energy (payload w = wt): 
+
+bi(t) = Eapprox (qi, p t, 0) + Eapprox (pt, d t, w t) (42) where Eapprox is the closed-form energy approximation from (36): 
+
+Eapprox (a, b, w ) = 1
+
+η
+
+h
+
+μ(M +w)g ∥b − a∥
+
++ 12 (M +w) v2 
+
+> f
+
+− v20
+
++i (43) where (x)+ = max(0 , x ). Note that unloaded transit uses 
+
+w = 0 while loaded execution uses w = wt, the task payload mass. Each bid computation is O(1) .III. S EQUENTIAL AUCTION ALLOCATION 
+
+The allocation stage uses a centralized sequential single-item auction [4]. In each round, one unassigned task is awarded to the robot with the lowest energy bid. Algorithm 1 details the procedure. The auction runs m rounds, each evaluating n bids across the remaining tasks, yielding O(n · m2) total complexity. By construction, each bid bi(t) equals the marginal cost of a feasible appended schedule under the closed-form model (43), so the winning robot is never assigned a task whose declared cost exceeds that of the feasible continuation 
+
+Algorithm 1 Energy-Aware Sequential Auction 
+
+Require: Robots N , tasks T , energy params θ
+
+Ensure: Assignment {σi}i∈N  
+
+> 1:
+
+Initialize σi ← () , qi ← depot i for all i 
+
+> 2:
+
+U ← T  
+
+> 3:
+
+while U̸ = ∅ do  
+
+> 4:
+
+b∗ ← ∞ , i∗ ← null , t∗ ← null  
+
+> 5:
+
+for each task t ∈ U do  
+
+> 6:
+
+for each robot i ∈ N do  
+
+> 7:
+
+bi(t) ← Eapprox (qi, p t, 0; θ) +
+
+Eapprox (pt, d t, w t; θ) 
+
+> 8:
+
+if bi(t) < b ∗ then  
+
+> 9:
+
+b∗ ← bi(t), i∗ ← i, t∗ ← t 
+
+> 10:
+
+end if  
+
+> 11:
+
+end for  
+
+> 12:
+
+end for  
+
+> 13:
+
+Append t∗ to σi∗ 
+
+> 14:
+
+qi∗ ← dt∗ 
+
+> 15:
+
+U ← U \ { t∗} 
+
+> 16:
+
+end while  
+
+> 17:
+
+return {σi}i∈N 
+
+used to compute the bid. The auction is also monotone: low-ering a winning bid while holding all competing bids fixed cannot reverse the outcome. If the per-bid approximation error is bounded by ¯ε, the auction’s total fleet cost is within 
+
+2m¯ε of any feasible sequential allocation. In practice this worst-case additive bound is loose—the empirical mean per-bid error is 15.7%, yielding a relative bound of roughly 82% for m = 50 tasks—but the tighter 4.5% worst-case empirical gap observed at small scale indicates that bid errors partially cancel across rounds. IV. P ER -R OBOT TRAJECTORY GENERATION AND 
+
+EVENT -T RIGGERED RESCHEDULING 
+
+A. Stage 2: Per-Robot Trajectory Generation 
+
+After allocation, each robot independently solves the op-timal control problem (OCP) from [8] for its assigned task sequence. This second stage is precisely the continuous op-timization problem in (15)–(25), or equivalently the reduced statement in (26) when only the trajectory generation stage is emphasized. The output is the true energy-optimal state-control trajectory for the allocated sequence. 
+
+B. Hybrid Trigger Logic 
+
+Three event types trigger partial rescheduling. Let tk
+
+denote the kth rescheduling instant and let t+ 
+
+> k
+
+denote the state immediately after the corresponding reallocation is committed. For each robot i and each newly arriving priority TABLE I RESCHEDULING EVENT TYPES                  
+
+> Event Trigger Action
+> Robot fault Robot iunavailable Re-auction σiunstarted Priority task New task tnew Auction tnew
+> Energy dev. |Eact −Epred |/E pred > δ Re-auction deviant robot
+
+task tp, define the indicator signals 
+
+1fault  
+
+> i
+
+(t) = 
+
+(
+
+1, if robot i becomes unavailable at time t
+
+0, otherwise (44) 
+
+1prio  
+
+> tp
+
+(t) = 
+
+(
+
+1, if priority task tp arrives at time t
+
+0, otherwise (45) 
+
+1dev  
+
+> i
+
+(t) = 
+
+
+
+1, if |Eact  
+
+> i
+
+(t) − Epred  
+
+> i
+
+(t)|
+
+Epred  
+
+> i
+
+(t) > δ 
+
+and t − tk∗(i) ≥ ∆tmin ,
+
+0, otherwise. (46) where k∗(i) is the index of the most recent energy-deviation reschedule involving robot i. The global switching signal is 
+
+Γ( t) = 1
+
+n
+
+max  
+
+> i
+
+1fault  
+
+> i
+
+(t) ∨ max  
+
+> tp
+
+1prio  
+
+> tp
+
+(t) ∨ max  
+
+> i
+
+1dev  
+
+> i
+
+(t) = 1 
+
+o
+
+.
+
+(47) Whenever Γ( t) = 1 , only the unstarted tasks of the affected robots, together with any newly inserted priority tasks, are re-auctioned using current robot states as the new initial conditions. Table I summarizes the trigger semantics without changing the hybrid law in (44)–(47). The trigger thresholds are fixed across all 505 scenarios: 
+
+δ = 0 .10 (10% energy deviation) and ∆tmin = 5 s (minimum inter-event interval for energy-deviation triggers). These val-ues were selected once via preliminary sensitivity analysis on a held-out configuration set and held constant throughout all experiments; no per-scenario tuning was performed. The minimum inter-event interval ∆tmin in (46) ensures that the total number of rescheduling events on any finite horizon 
+
+[0 , T ] is bounded: each fault or priority-task arrival triggers at most one reschedule, and each robot can produce at most 
+
+⌊T / ∆tmin ⌋ + 1 energy-deviation triggers. Thus infinitely many rescheduling events cannot accumulate in finite time (i.e., Zeno behavior is excluded by design). 
+
+C. Warm-Start Feasibility and Practical Cost-to-Go Bound 
+
+Let Uk denote the set of unstarted tasks immediately be-fore the kth rescheduling event, and let Σ− 
+
+> k
+
+be the pre-event schedule truncated to those unstarted tasks. Let Ξk collect the robot states at the trigger time. Define the predicted remaining cost-to-go 
+
+Vk := 
+
+> n
+
+X
+
+> i=1
+
+bJi, rem (Σ k, Ξk) + ρ|U k|, (48) where bJi, rem is the warm-start prediction of remaining trajec-tory energy and ρ ≥ 0 is a bookkeeping weight for pending tasks. The warm start is the feasible schedule obtained by retaining completed task prefixes and using Σ− 
+
+> k
+
+as the initial guess for the local trajectory solver on the remaining suffix. As long as at least one robot remains capable of executing each remaining task, the truncated pre-event schedule Σ−
+
+> k
+
+is feasible for the post-event problem, so the warm-started rescheduling problem is always initialized from a feasible point. Furthermore, assuming the warm-start trajectory solver is descent preserving (i.e., the post-reschedule plan has predicted remaining cost no greater than its initialization) and that bJi, rem is locally Lipschitz in Ξk with constant LJ , the cost-to-go sequence satisfies the practical descent inequality 
+
+Vk+1 ≤ Vk + LJ ∥Ξk+1 − Ξ+ 
+
+> k
+
+∥ − ρ ∆Nk, (49) where ∆Nk is the number of tasks completed between consecutive rescheduling instants and Ξ+ 
+
+> k
+
+is the immediately post-reschedule state. This is a practical descent condi-tion , not a formal closed-loop stability proof. It provides a sufficient condition under which warm-start rescheduling preserves feasibility and prevents uncontrolled growth of the predicted remaining cost. It does not constitute a stability guaranty or a worst-case performance bound for the overall fleet trajectory. V. S IMULATION RESULTS 
+
+We implemented the framework in Python 3.12 on an Intel i7-12700H processor (single-threaded) and evaluated it across 505 simulation runs (101 configurations × 5 random seeds). The workspace is a 20 m × 20 m factory floor with three layout types: grid (regular stations), random (uniformly distributed), and clustered (3–5 manufacturing cells). Robot parameters follow the nominal values in [8]: M = 50 kg, 
+
+vmax = 1 .5 m/s, η = 0 .85 , μ = 0 .02 , wmax = 20 kg. Results are conditioned on these calibration assumptions; hardware transfer requires platform-specific parameter identification. We compare against four baselines of increasing strength: B1 (nearest-task heuristic with OCP trajectories [8])—a lightweight operational heuristic commonly used in practice; B2 (nearest-robot with constant-velocity paths)—isolating the value of trajectory optimization; B3 (same sequential auc-tion with Euclidean distance bids)—the primary diagnostic comparison for bid-metric selection; and B4 (exhaustive nm
+
+assignment enumeration at small scale, n ≤ 3, m ≤ 8, fixed task ordering). Fig. 3 illustrates a representative scenario with 4 AMRs and 50 tasks on a clustered layout. Robot R3 undergoes a mid-route charging event, triggering the rescheduling of its remaining tasks to R1 and R4. 
+
+Fleet energy savings. Table II reports energy savings across fleet sizes (proposed vs. B1 significant at p < 0.01 for 
+
+n ≥ 5; proposed vs. B3 significant deficit at p < 0.05 for all sizes, Wilcoxon signed-rank). Both auction variants achieve 11.8% average savings over the nearest-task heuristic (B1), scaling from 2.7% at n = 5 to 25.4% at n = 20 as Fig. 3. Fleet trajectory for 4 AMRs and 50 tasks on a clustered layout. TABLE II FLEET ENERGY SAVINGS (%) Fleet Energy vs. B1 vs. B2 vs. B3 Size (kJ) Nearest Short-path Dist. Auc. 2 1.18 −3.3 ± 1.8 +17 .9 ± 2.4 −4.1 ± 1.2                                            
+
+> 52.45 +2 .7±2.1+10 .3±1.9−4.0±1.4
+> 10 3.82 +10 .3±2.6+9 .2±2.2−3.9±1.1
+> 15 4.96 +23 .7±3.1+11 .6±2.5−2.7±0.9
+> 20 5.71 +25 .4±3.4+9 .2±2.0−2.6±0.8
+> Avg. —+11 .8+11 .6−3.5
+
+larger fleets offer more reallocation flexibility. The B1 com-parison demonstrates the value of auction-based allocation over a simple operational heuristic. Against B2 (nearest-robot, constant-velocity), savings are 9–18%, isolating the additional benefit of OCP trajectory optimization. 
+
+Energy vs. distance bids. In the uniform-friction workspaces tested, the energy-based method performs 2.6– 4.1% worse than B3. The closed-form approximation (43) introduces 15.7% mean error relative to the full OCP, yield-ing 87% winner identification accuracy (91% grid, 86% random, 84% clustered). Ranking errors concentrate on short segments ( s < 2 m) and near-tied bids ( |bi − bj | < 5% ). The causal mechanism is: in uniform-friction workspaces, energy is nearly proportional to distance ( r > 0.95 ), so distance captures the correct bid ranking with zero approximation error, while the closed-form surrogate (43) introduces rank-order inversions in 13% of auction rounds that accumulate across rounds. 
+
+Friction heterogeneity crossover. Table III isolates the effect of workspace friction variation on bid-metric selection. In uniform terrain ( μ = 0.02 , r = 0.98 ), distance bids outperform energy bids by 3.7%, as the closed-form surro-                                                                      
+
+> TABLE III ENERGY VS . D ISTANCE BIDS UNDER FRICTION HETEROGENEITY
+> Friction Range rGap (%) Bid Acc. Winner Uniform ( μ= 0 .02 )0.98 +3 .7±3.289% Distance
+> μ∈[0 .015 ,0.03] 0.93 +2 .5±2.987% Distance
+> μ∈[0 .01 ,0.04] 0.84 +0 .7±4.488% Tie
+> μ∈[0 .005 ,0.06] 0.75 −2.1±6.391% Energy
+> μ∈[0 .005 ,0.08] 0.74 −2.4±6.692% Energy TABLE IV COMPUTATION TIME BREAKDOWN (n= 10 )Tasks ( m)Auction (ms) OCP (ms) Total (ms) 10 1.7 48.3 52.1 20 6.3 124.7 136.8 50 43.3 387.2 448.9 100 405.2 1241.6 1699.1
+
+gate’s approximation error degrades ranking accuracy while distance captures the correct ordering with no model error. As friction heterogeneity increases, the energy–distance cor-relation r drops and distance loses its ranking fidelity: at 
+
+μ ∈ [0 .01 , 0.04] (r = 0 .84 ) the two metrics are statistically tied, and for μ ∈ [0 .005 , 0.06] (r = 0 .75 ) the zone-aware energy bid yields 2.1% savings with 91% bid accuracy. The widest friction range ( μ ∈ [0 .005 , 0.08] , r = 0 .74 )extends the energy-bid advantage to 2.4% at 92% accuracy. The crossover occurs near r ≈ 0.85 , providing a practical decision rule: practitioners should measure or estimate the energy–distance correlation for their workspace and select the bid metric accordingly. The central result is that both auction variants substantially outperform B1 and B2, demon-strating the value of the auction-plus-OCP structure itself, while the choice between energy and distance bids is a regime-dependent design decision. 
+
+Computation and rescheduling. Table IV breaks down the pipeline: auction allocation scales as O(nm 2), while per-robot OCP dominates total time (e.g., 1.2 s of 1.7 s total for m = 100 ). Rescheduling latency (Table V) averages 5.6 ms with only 6% energy overhead versus cold-start full re-auction, offering a favorable speed–quality tradeoff for real-time operation. 
+
+Gap to enumerated assignment benchmark. At a small scale ( n ≤ 3, m ≤ 8), the auction achieves a worst-case gap of 4.5% (average 2.1%) relative to B4, which exhaustively enumerates all nm robot-to-task assignments but uses a fixed task ordering within each robot. Because B4 does not search over task orderings, its cost is an upper bound on the global combinatorial optimum; consequently, the measured gaps are a lower bound on the true optimality gap over both assignment and sequencing. VI. C ONCLUSION 
+
+We presented a hierarchical framework coupling auction-based task allocation with per-robot energy-conscious trajec-tory optimization for AMR fleets in asymmetric task spaces. Both auction variants achieve 11.8% average energy savings TABLE V RESCHEDULING PERFORMANCE BY DISRUPTION TYPE 
+
+Disruption Mean Max Tasks Overhead Type (ms) (ms) Reassgn. vs. Cold (%) Robot fault 4.2 7.8 6.3 +8 .2
+
+Priority task 7.1 9.0 1.0 +3 .1
+
+Energy deviation 3.5 6.2 3.8 +5 .7
+
+Combined 6.7 7.3 5.1 +6 .9
+
+Overall 5.6 9.0 4.1 +6 .0
+
+over nearest-task allocation (up to 25.4% at 20 robots), with event-triggered rescheduling under 10 ms and a 4.5% worst-case gap to the enumerated benchmark. The central finding is regime-dependent bid-metric perfor-mance. In uniform terrain, distance bids outperform energy bids by 3.5% ( p < 0.05 , Wilcoxon) because the 15.7% closed-form approximation error inverts bid rankings in 13% of rounds while energy and distance remain highly correlated (r > 0.95 ). When friction heterogeneity is sufficient ( r < 
+
+0.85 ), a zone-aware energy bid recovers 2–2.4% savings with ranking accuracy rising to 92%, as detailed in Table III. Practitioner guidance: use distance bids in near-uniform terrain and energy-aware bids when friction variation is significant. Future work will address hardware validation and collision-aware allocation. ACKNOWLEDGMENT 
+
+Claude was used to assist with the language editing of this manuscript. REFERENCES [1] S. Bakshi, T. Feng, Z. Yan, and D. Chen, “Fast scheduling of au-tonomous mobile robots under task space constraints with priorities,” 
+
+Journal of Dynamic Systems, Measurement, and Control , vol. 141, no. 7, p. 071009, 2019. [2] Y. Mei, Y.-H. Lu, C. G. Lee, and Y. C. Hu, “Energy-efficient mobile robot exploration,” in Proceedings 2006 IEEE International Conference on Robotics and Automation, 2006. ICRA 2006. IEEE, 2006, pp. 505–511. [3] G. A. Korsah, A. Stentz, and M. B. Dias, “A comprehensive taxonomy for multi-robot task allocation,” The International journal of robotics research , vol. 32, no. 12, pp. 1495–1512, 2013. [4] S. Koenig, C. Tovey, M. Lagoudakis, V. Markakis, D. Kempe, P. Ke-skinocak, A. Kleywegt, A. Meyerson, and S. Jain, “The power of sequential single-item auctions for agent coordination,” in proceedings of the 21st national conference on Artificial intelligence-Volume 2 ,2006, pp. 1625–1629. [5] L. Luo, N. Chakraborty, and K. Sycara, “Distributed algorithm design for multi-robot task assignment with deadlines for tasks,” in 2013 IEEE International Conference on Robotics and Automation . IEEE, 2013, pp. 3007–3013. [6] E. Nunes, M. Manner, H. Mitiche, and M. Gini, “A taxonomy for task allocation problems with temporal and ordering constraints,” Robotics and Autonomous Systems , vol. 90, pp. 55–70, 2017. [7] E. Latif, Y. Gui, A. Munir, and R. Parasuraman, “Energy-aware multi-robot task allocation in persistent tasks,” arXiv preprint arXiv:2112.15282 , 2021. [8] S. Bakshi, T. Feng, Z. Yan, Z. Ma, and D. Chen, “Energy-conscientious trajectory planning for an autonomous mobile robot in an asymmetric task space,” Journal of Intelligent & Robotic Systems , vol. 101, no. 1, p. 18, 2021. [9] J. Orr and A. Dutta, “Multi-agent deep reinforcement learning for multi-robot applications: A survey,” Sensors , vol. 23, no. 7, p. 3625, 2023. [10] F. Aznar, M. Pujol, and ´A. D´ ıez, “Event-triggered adaptive consen-sus for multi-robot task allocation,” Computer Communications , p. 108499, 2026. [11] G. Fan and Z. Jiang, “Hybrid scheduling method for automatic guided vehicles in intelligent warehouses considering power management,” 
+
+The International Journal of Advanced Manufacturing Technology ,vol. 130, no. 7, pp. 3685–3695, 2024. [12] P. Toth and D. Vigo, The vehicle routing problem . SIAM, 2002.

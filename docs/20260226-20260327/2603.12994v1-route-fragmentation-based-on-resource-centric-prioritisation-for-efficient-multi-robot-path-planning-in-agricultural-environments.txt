@@ -1,0 +1,612 @@
+Title: Route Fragmentation Based on Resource-centric Prioritisation for Efficient Multi-Robot Path Planning in Agricultural Environments
+
+URL Source: https://arxiv.org/pdf/2603.12994v1
+
+Published Time: Mon, 16 Mar 2026 01:19:03 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Route Fragmentation Based on Resource-centric Prioritisation for Efficient Multi-Robot Path Planning in Agricultural Environments 
+
+James R. Heselden 1,2,3, and Gautham P. Das 1,2,4,∗
+
+Abstract — Agricultural environments present high propor-tions of spatially dense navigation bottlenecks for long-term navigation and operational planning of agricultural mobile robots. The existing agent-centric multi-robot path planning (MRPP) approaches resolve conflicts from the perspective of agents, rather than from the resources under contention. Further, the density of such contentions limits the capabilities of spatial interleaving, a concept that many planners rely on to achieve high throughput. In this work, two variants of the priority-based Fragment Planner (FP) are presented as resource-centric MRPP algorithms that leverage route fragmen-tation to enable partial route progression and limit the impact of binary-based waiting. These approaches are evaluated in lifelong simulation over a 3.6km topological map representing a commercial polytunnel environment. Their performances are contrasted against 5 baseline algorithms with varying robotic fleet sizes. The Fragment Planners achieved significant gains in throughput compared with Prioritised Planning (PP) and Priority-Based Search (PBS) algorithms. They further demon-strated a task throughput of 95% of the optimal task through-put over the same time period. This work shows that, for long-term deployment of agricultural robots in corridor-dominant agricultural environments, resource-centric MRPP approaches are a necessity for high-efficacy operational planning. 
+
+Index Terms — Path Planning for Multiple Mobile Robots or Agents; Robotics and Automation in Agriculture and Forestry; Multi-Robot Systems. 
+
+I. I NTRODUCTION 
+
+Lifelong MRPP remains challenging for long-term au-tonomous deployments. Much of the work in this domain focuses on well-structured warehouse environments or free-space navigation. Agricultural environments, present a less well-explored set of environmental arrangements and in turn unique coordination challenges as a result of dense spatial bottlenecks that limit agent-centric path planning approaches. Handling these bottlenecks is a core challenge in MRPP approaches as their impact within agent-centric planning increases as fleet sizes scales [1]. To address this, many agricultural MRS deployments utilise small fleet sizes with spatial segmentation in order to guarantee fleet safety. Whilst this is reliable for small fleets, the lack of shared opera-tional space prevents systems from achieving full potential and results in cost-inefficiencies. To improve efficiency and throughput, it is critical that robots are able to both share their operational environment and scale to larger fleet sizes. It is well-established in the literature that coupled MRPP approaches suffer from scaling due to exponential state space   
+
+> 1Lincoln Centre for Autonomous Systems, University of Lincoln, UK.
+> 2Lincoln Institute for Agri-food Technology, University of Lincoln, UK.
+> 3ORCiD: James R. Heselden (0000-0001-6494-4981). 4ORCiD: Gautham P. Das (0000-0001-5351-9533) ∗Corresponding Author (gdas@lincoln.ac.uk).
+
+exploration [2]. As such, decoupled MRPP approaches are more widely adopted in practice. However, many approaches assume full spatial flexibility, open grids, and alternate-path availability [3, 4]. Many decoupled approaches operate with the use of predetermined forced global agent-centric orders. Prioritised Planning (PP) [5] is a clear example of this, utilising fixed robot ordering to prevent conflicts in the planning stage, and as such, operating in linear time. Priority-Based Search (PBS) is an approach which loosens the enforcement of predetermined global orders, instead building partial orders dynamically over space-time expanded contention and performing repeat replans to couple priority orderings to contention resolution [6]. The PBS approach, despite loosening the enforcement of fixed global orders, still relies on agent-centric priorities. Agent-centric orders are reliable when collisions are sparse and interleaving is available. However, in agricultural envi-ronments, interleaving is not always a viable option. Agricul-tural environments, e.g., polytunnels and open-fields, often have strict navigational constraints more closely modelling corridor-like topologies. These prevent temporal interleaving and worsen agent-centric approaches as the collisions are often bottlenecks which are being resolved at the agent-level, rather than locally. To ensure planning is reliable without coupled planning in these environmental arrangements, it is thus necessary for planners to focus on resource-centric priority owner-ship rather than agent-centric orderings. To this end, this work presents two variants (space-only-aware and space-time-aware) of the Fragment Planner (FP), a decoupled approach which uses priority-orderings over resources to resolve contention with a single pass. The approach further utilises fragment-level route execution to enable continuous route execution towards contested bottlenecks rather than utilising binary-based waiting for full-path availability. II. P ROBLEM DEFINITION 
+
+A. Topological Representation 
+
+To effectively manage a fleet of robots in real time, it is important that the system is able to scale with the number of robots and with the size of the environment. As the joint state space increases exponentially with this complexity, it is important to be able to discretise the environment in a way that minimises the state space without reducing the operation of the fleet. In this work, a topological map is utilised to represent the traversable paths through the environment. Presented in [7], the topological map acts as a unified rep-resentation of the environment as a network graph in which 
+
+> arXiv:2603.12994v1 [cs.RO] 13 Mar 2026
+
+nodes act as potential crossing points and are connected with edges. Formally, let the environment be represented as a directed graph G = (V, E ), where V denotes the set of traversable nodes and E ⊆ V × V denotes the set of directed edges. These edges encode traversability constraints of the environment, such as maximum allowed speed, navigation parameters, terrain type, and permissible envelope size. Centralised MRPP is conducted within this topological space in order to reduce the joint state space and avoid the complexity of metric spaces. In planning, routes are generated as an ordered sequence of nodes, where for each agent a ∈ A a route is defined as 
+
+Ra = ⟨v0, v 1, . . . , v k⟩ with vi ∈ V and (vi, v i+1 ) ∈ E for all 
+
+i. The primary aim of route planning being to avoid points of contention wherein a node v ∈ V is defined as being in contention if ∃ a̸ = b ∈ A such that v ∈ Ra ∩ Rb.Unlike a basic network representation, incorporating these traversability constraints within the map itself enables the map to stay coupled with the environment it represents. This also allows planners to utilise these parameters in their optimisation process. To this end, in this work, the robot’s footprint is utilised along with the topological map’s permissible envelope to create permissible sub-graphs for robots to plan over and reduce the planning space per robot. Similarly, prioritisation processes are able to utilise per-edge speed limits along with per-robot nominal speeds in planning calculations. In this work, we consider an agricultural polytunnel envi-ronment with raised tables for the plants. The narrow rows between the raised tables act as narrow and long corridors traversible by robots. The robots are unable to move under the raised beds due to their size as well as the foliage of the plants on the raised beds. Under the topological representation, this models the environment as a series of end-connected narrow corridors as shown in Figure 1. 
+
+B. Corridor-Dominated Topology 
+
+This type of environment, characterised by a high propor-tion of nodes satisfying deg( v) ≤ 2, results in long linked paths connected by infrequent branching points. Further, they contain high proportions of articulation nodes, where the removal of a single node v ∈ V can result in large sections of the map becoming inaccessible. It is topologically distinct from environments constructed of open spaces or connected rooms [8]. The topological structure results in unique planning requirements with heavy constraints on overtaking and interleaving. Under this struc-ture, alternative paths are limited and contention is spatially concentrated at bottleneck nodes. In turn, this increases the impact of local resource contention during coordination. 
+
+C. Priority-Based Planning 
+
+Within MRPP, there are two main approaches to planning routes, coupled and decoupled path planning [9]. Within coupled path planning, all robots in a single route search instance are planned with direct consideration of one another. In contrast, decoupled path planning generates each robot’s path independently, and then goes through a conflict reso-lution stage that identifies nodes or fragments of the routes that overlap and implements mitigating policies. Due to the exponential increase in the joint state as fleet size increases, coupled path planners often respond poorly to scalability. Decoupled path planners, perform well under increasing fleet sizes. However, they are often unable to guarantee a global optimum plan. The most prominent decoupled path planning approach is prioritised planning [10]. In this approach, a pre-selected heuristic is used to provide a global ordering ≺ over agents in A, wherein agents are planned sequentially such that each agent a generates its route while treating the routes of all agents b ≺ a as fixed occupancy constraints. This approach is able to provide good scaling to increases in fleet size as planning is completed in linear time. The heuristic chosen can be simple prioritisation based on name [11] or path length [12], or can be more complicated such as utilising the homology classes of trajectories [13]. There are many such priority-focused examples of decoupled MRPP as outlined in [9]. In this work, the Fragment Planner, is presented as a novel priority-based planner which focuses on resource-centric prioritisation to resolve local ownership of critical points. III. M ETHODOLOGY 
+
+A modular dynamic multi-robot path planning and navi-gation execution framework is developed as a single frame-work on which different MRPP algorithms with standardised interfaces can be easily tested. To ensure planners are all compatible with the core deployment architecture, a Base-Planner is developed with a shared, consistent behaviour. The shared functionalities available for all planners are outlined in Section. III-A. Five agent-centric prioritisation approaches are explored in this paper - A greedy-search-based naive decoupled Na¨ ıve planner, three generic prioritised planners, and the PBS planner. These are discussed in Sections. III-B, III-C and III-D respectively. The fragment planners (Space-Only-Aware and Space-Time-Aware), which prioiritise the agents based on a resouce-centric prioiritisation approach, are described in Section III-E. Table I summarises the conceptual differences between the approaches evaluated. 
+
+A. BasePlanner - Shared Implementation Functionalities 1) Group Assignments: In order to effectively manage lifelong framing, it is important that the planning state is able to be carried over between planning instances. To that end, we utilise a group system wherein all agents in the agent set A are categorised into one of three groups: New Active ( N , has not received a plan before), Active (C, is executing a plan), and Inactive ( I, is stationary). These groups are applied according to Algorithm 1, utilising information from the agent’s current goal and route taken during the preparation to the start of planning. 
+
+2) Route for Active: For planning routes for active agents, all planners utilise the same basic workflow in order to function within the lifelong coordinated space. Algorithm 2 Fig. 1. Polytunnel environment presented with an aerial photogrammetry render (left), and the topological representation from simulation (right). TABLE I CONCEPTUAL DIFFERENCES IN EVALUATED APPROACHES                 
+
+> Approach Conflict Resolution Trigger Temporal Modelling Temporal Priority Ordering Enforced Priority Ordering Priority Ordering Scope Conflict Responses Na¨ ıve Independent Planning
+> N/A N/A N/A N/A N/A Waiting Only
+> Traditional Prioritised Planner
+> N/A N/A Global Forced Agent-Level Waiting Only
+> Priority Based Search (using local priority adjustment)
+> During Planning, on Conflict Space–Time Expanded (Future Conflicts Found) Global Forced Agent-Centric Priority Constraint Search
+> Fragment Planner (Space-Only-Aware)
+> During Planning, on Contention Timeless Spatially Local Fragment Ownership Forced (Local) Spatially Focused Resource-Centric Waiting / Partial Route Execution / Spatial Deferral
+> Fragment Planner (Space-Time-Aware)
+> During Planning, on Contention Time-Aware Spatially Local Fragment Ownership Forced (Local) Spatially Focused Resource-Centric Waiting / Partial Route Execution / Spatial Deferral
+
+Algorithm 1: BasePlanner: G ET GROUPS 
+
+Input: Agent set A, current planning context 
+
+Output: (N , C, I): new, active, inactive groups 
+
+N ← ∅ , C ← ∅ , I ← ∅ ;
+
+foreach a ∈ A do if NEWLY ELIGIBLE (a) then 
+
+N ← N ∪ { a}
+
+else if ACTIVE (a) then 
+
+C ← C ∪ { a}
+
+else 
+
+I ← I ∪ { a}
+
+return (N , C, I);outlines three stages to this process, wherein a pre-routing configuration is performed to prepare the agent for planning, removing any existing route properties. Then its endpoints (start node s and goal node g) are identified, and the map is filtered using the provided agent set A and blocking set 
+
+B. The pre-routing validation is then performed to verify if a routing from s to g is possible (see Algorithm 3) and only then is the route search processed. The final generated route is then post-processed to move the new route onto the robot for execution. 
+
+Algorithm 2: BasePlanner: R OUTE FOR ACTIVE 
+
+Input: Agent a, agent set A, routing map map ,blocking set B
+
+Output: Updated route state for a (or inactive) PRE ROUTING CONFIGURE (a); 
+
+(s, g ) ← GET ROUTE ENDPOINTS (a);
+
+if map = filtered then 
+
+GENERATE FILTERED MAP (a, s, g, A, B);
+
+if ¬ALLOW ROUTING (a, s, g ) then return (inactive , a );
+
+r ← ROUTE SEARCH (s, g );
+
+return POST ROUTING CONFIGURE (a,r); 
+
+3) Routing Checks: To ensure a routing is viable, the start and goal nodes for are validated according to Algorithm 3. This algorithm outlines three key checks to verify that the start and goal nodes exist and are within the map, and that planning is required at this stage. If any stage fails, the route search will move the agent from active to inactive for separate route processing. 
+
+4) Priorities Calculations: To ensure priority calculation is well-refined, the priority generation system is kept in the Algorithm 3: BasePlanner: A LLOW ROUTING 
+
+Input: Agent a, start s, goal g
+
+Output: Confirmation on if routing is viable 
+
+if g = ∅ then return FALSE ;
+
+if s = g then return FALSE ;
+
+if ¬ISVALID NODE (s) or ¬ISVALID NODE (g) then return FALSE ;
+
+return TRUE ;
+
+Algorithm 4: BasePlanner: G ET PRIORITIES 
+
+Input: Groups N , C, I, heuristic h, optional target node v
+
+Output: Ordered agent-id list ord 
+
+U ← N ∪ C ∪ I , score ← ∅ ;
+
+names ← SORTED IDS (U);
+
+foreach a ∈ U do if h = name then 
+
+score [a.id ] ← INDEX (names, a.id )
+
+else if h = time since task start then 
+
+score [a.id ] ← a. task start time 
+
+else if h = closest first then 
+
+score [a.id ] ← | a. optimal route |
+
+else if h = distance to node then 
+
+ℓa ← ROUTE PREFIX DISTANCE (a, v );
+
+score [a.id ] ← ℓa
+
+else if h = time to node then 
+
+ℓa ← ROUTE PREFIX DISTANCE (a, v );
+
+ua ← max( ϵ, a. nominal speed );
+
+score [a.id ] ← ℓa/u a
+
+ord ← SORT KEYS BYVALUE ASCENDING (score );
+
+return ord ;base class for all planners to have consistent results. Imple-mented under this algorithm are five prioritisation heuristics which are able to be utilised. Algorithm 4 outlines the five approaches which let the highest priority agent be the one which: (i) is first alphabetically by name, (ii) has spent the longest on task, (iii) is closest to their goal, (iv) is closest to a point of contention (v) can reach the contention earliest. The agents identifiers are returned in the order of their priority. 
+
+B. Na¨ ıve Planning 
+
+The Na¨ ıve Planner (NP) is designed as a baseline example of how the system operates when multi-robot operation is not considered. In this approach, outlined in Algorithm 5, each robot is identified and classified into its group, then for each agent requiring planning (i.e., a ∈ N ∪ C ), they are planned over an independent map, generating their optimal route to the node with no consideration of other robots occupying space in the environment (i.e., B = ϕ) in Algorithm 2. 
+
+Algorithm 5: Na¨ ıvePlanner: F IND ROUTES 
+
+Input: Agent set A
+
+Output: Updated routes for active/new agents 
+
+map ← filtered ;
+
+(N , C, I) ← GET GROUPS (A);
+
+D ← { a.id 7 → a | a ∈ N ∪ C} ;
+
+foreach (a.id ) ∈ D do 
+
+ROUTE FOR ACTIVE (a, A, map , ∅); 
+
+Algorithm 6: PrioritisedPlanner: F IND ROUTES 
+
+Input: Agent set A, heuristic h
+
+Output: Updated routes for eligible agents 
+
+map ← filtered ;
+
+(N , C, I) ← GET GROUPS (A);
+
+ord ← GET PRIORITIES (N , C, I, h );
+
+D ← { a.id 7 → a | a ∈ N ∪ C ∪ I} ;
+
+foreach a.id ∈ ord do 
+
+B ← OCCUPIED NODES (route );ROUTE FOR ACTIVE (a, A, map , B); 
+
+C. Prioritised Planning 
+
+The prioritised planner (PP) works according to the prin-ciples outlined by Erdmann and Lozano-P´ erez [10]. This approach is broken down into two stages and is outlined in Algorithm 6. Agents are assigned a forced global or-dering, using priority scores calculated based on the cho-sen prioritisation heuristic. Agents are then assigned plans, building onto a global occupancy model. In practice, this is achieved through an iterative planning and sub-graph generation process. In traditional PP implementations, agents which are unable to identify a route must stay stationary until a planning instance arises where a path is able to be achieved. Whilst the PP approach is able to scale linearly due to limited coupling between agents, it is not able to always guarantee a solution for all agents, and even when it does, it is unable to guarantee optimality. In this paper, we consider the following prioritisation heuristics: (1) name, (2) shortest route to the goal and (3) time since the current task start. 
+
+D. PBS Planning 
+
+A well-explored process for improving prioritised planning is to incorporate rescheduling. This is an additional step which follows on from the search where by some process, priorities are rearranged between the agents so that a more optimal arrangement can be found. PBS Planning [6] is a locally space-time expanded prioritised planning implemen-tation which leverages this rescheduling methodology. PBS rescheduling, utilises a depth-first search algorithm to build up partial priority orderings. In this algorithm, outlined in Algorithm 7, planning priorities are initially empty. Agents are planned decoupled from one another in open space, if any agent generated a route containing a conflict, a partial priority ordering (rule) is created between the two agents involved in Algorithm 7: PBSPlanner: F IND ROUTES 
+
+Input: Agent set A, max attempts T
+
+Output: Conflict-minimised route assignment 
+
+map ← filtered ;
+
+(N , C, I) ← GET GROUPS (A);
+
+D ← { a.id 7 → a | a ∈ N ∪ C ∪ I} ;
+
+prio [a] ← − 1 for a ∈ N ∪ C ;
+
+prio [a] ← +∞ for a ∈ I ;
+
+R ← [∅] ; // candidate rulesets queue 
+
+Rtest ← ∅ ;
+
+for i ← 1 to T do if R = ∅ then break 
+
+r⋆ ← POP FIRST (R);
+
+prio ← GET PRIORITIES (r⋆, prio );
+
+ord ← SORT KEYS BYVALUE ASCENDING (prio );
+
+foreach a.id ∈ ord do 
+
+PRE ROUTING CONFIGURE (a)
+
+routes ← ∅ ;
+
+foreach a.id ∈ ord do 
+
+B ← GET AGENTS TOCONSIDER (a, r ⋆);
+
+B ← OCCUPIED NODES (a.route , B );
+
+ret ← ROUTE FOR ACTIVE (a, A,map , B);
+
+if ret = inactive then 
+
+ROUTE FOR INACTIVE (a, A)
+
+routes [a.id ] ← a.route ;
+
+f ails ← { a.id | | routes [a.id ]| = 0 ∧ prio [a.id ]̸ =+∞} ;
+
+conf ← GET CONFLICTS (a, D);
+
+Rnew ← GET RULESETS (conf, r ⋆);
+
+Rnew ← FILTER UNTESTED (Rnew , R, Rtest , r ⋆);
+
+Rtest ← R test ∪ { r⋆};
+
+R ← R ∪ R new ;
+
+if |conf | = 0 ∧ | f ails | = 0 then break 
+
+the form of a search tree with a branch either way as to which robot goes first. The replanning is then completed again with this partial priority ordering put in place. In practice, agents plan in order of any rules, with sub-graphs being generated for each agent excluding nodes which are occupied by the routes of higher-priority agents. 
+
+E. Fragment Planner 
+
+The fragment planner is a priority-based planning ap-proach which similarly to the PBS planner, utilises local priority orderings generated during planning rather than pre-planning global ordering as in traditional prioritised planning. The fragment planner, however, utilises spatially-focused resource-centric priority ordering rather than agent-agent generative orderings in PBS. Further, whilst both utilise global occupancy modelling, the fragment planner does this globally as a one-time event constructing a single global occupancy map, whereas PBS does this with repeated 
+
+Algorithm 8: FragmentPlanner: F IND ROUTES 
+
+Input: Agent set A, priority metric π
+
+Output: Updated routes, route fragments, and aligned fragment edges 
+
+B ← OCCUPIED NODES () ;
+
+(N , C, I) ← GET GROUPS () ;
+
+U ← N ∪ C ;map = filtered ;
+
+R ← {} ;
+
+foreach a ∈ U do 
+
+ret ← ROUTE FOR ACTIVE (a, A, map, B);
+
+if ret = inactive then 
+
+I ← I ∪ { a};
+
+else 
+
+Ra.id = ret ;
+
+(CP, CP Agents ) ←
+
+GET CRITICAL POINTS (R, U − I );
+
+F ← ASSIGN FRAGMENTS (CP, CP Agents, π );BUILD ROUTE FRAGMENTS (F); 
+
+Algorithm 9: FragmentPlanner: GET CRITICAL -POINTS 
+
+Input: Agent routes {Ra}, active-agent set Agoal 
+
+Output: CP, CP Agents CP ← ∅ , CP Agents ← ∅ ;
+
+foreach agent a do 
+
+CP [KEY (Ra)] ← ∅ ;
+
+foreach b ∈ A goal , b ̸ = a do 
+
+X ← NODES (Ra) ∩ NODES (Rb);
+
+CP [KEY (Ra)] ← CP [KEY (Ra)] ∪ X;
+
+foreach v ∈ X do 
+
+CP Agents [v] ← CP Agents [v] ∪ { a, b };
+
+return (CP, CP Agents );occupancy updates during iterative replanning. The Fragment planner then goes through a route fragmentation process where generated routes are split into fragments on contention points and spatially-local fragment ownership is awarded through priority orderings. The core algorithm which the Fragment Planner uses is outlined in Algorithm 8. In this, like with the standard prioritised planner, groups are first assigned, and each active agent is iterated through. The total system occupancy is identified, as the blocking set and each agent is given their own filtered map, which excludes the nodes occupied by other agents. Once all robots have generated routes through the environment, the algorithm moves to fragment the routes based on the points of contention. The next stage of the core algorithm is to run an all-pairs conflict detection, wherein critical points are identified as any nodes which are contained within routes of more than one agent (Algorithm 9). Algorithm 10: FragmentPlanner: ASSIGN FRAG -
+
+> MENTS
+
+Input: CP, CP Agents , routes {Ra}, metric π
+
+Output: Preliminary node fragments F [a]
+
+ClaimedCP ← ∅ , F ← ∅ ;
+
+foreach agent a (planner iteration order) do 
+
+collective ← [ ] , partial ← [ ] ;
+
+foreach node v in route order of Ra do if v / ∈ CP [KEY (Ra)] then 
+
+append v to partial ;
+
+else 
+
+Uv ← CP Agents [v];
+
+hv ← (π = time ) ? time to node :
+
+distance to node ;
+
+ord v ← GET PRIORITIES (∅, Uv , ∅, h v , v );
+
+owner ← ord v [0] ;
+
+if owner = a ∧ v / ∈ ClaimedCP then 
+
+append v to partial ;
+
+ClaimedCP ← ClaimedCP ∪ { v};
+
+else if partial ̸ = [ ] then 
+
+append partial to collective partial ← [v]; break ;
+
+if partial ̸ = [ ] then 
+
+append partial to collective F [a] ← collective ;
+
+return F ;Once critical points are identified, the fragment planner, as outlined in Algorithm 10 generates resource-centric (pri-oritising to resolve conflicting nodes as shared resources) priority orderings to align conflict points to agents. This is constructed by greedily resolving each critical point to the higher priority agent, compiling fragments as it moves through the route and splitting into new fragments whenever the agent is unable to maintain continuous ownership. For this implementation, two key agent prioritisation heuristics are implemented for evaluation. The default space-only-aware version utilises shortest path distances to the critical nodes for spatial priority assignment, whilst the space-and-time-aware version utilises the robot’s nominal speed to assign critical points to the robot based on arrival ordering. The Fragment Planner algorithm completes with each agent holding a list of sub-paths (fragments), and each agent is allowed to execute only the first fragment. Formally, given a route Ra = ⟨v0, . . . , v k⟩, the route is decomposed into an ordered set of fragments {F 1 
+
+> a
+
+, F 2 
+
+> a
+
+, . . . , F ma }. Where a route is unattainable due to, for instance, the first node being blocked by another, the robot is moved into a passive inactive state with an empty fragment, where it will repeat planning at each planning instance until a route is available. IV. E XPERIMENTS AND RESULTS 
+
+The proposed fragment planners and the other MRPP approaches were evaluated in multiple simulated trials in-volving robotic fleets of different sizes on a topological map representation of four tunnels and mapped routes to a packhouse in a commercial strawberry farm in Kent, UK. This topological map contains over 3.6 km of traversible paths spanning 1050 unidirectional edges connecting 414 nodes. Bidirectional edges between two arbitrary nodes n1
+
+and n2 are represented by two unidirectional edges, one from 
+
+n1 to n2 and the other from n2 to n1.The experiments consisted of sets of trials of one hour du-ration, for a fixed robotic fleet size. The fleet size was varied from 5 to 10, resulting in 6 sets of trials over 6 hours for one MRPP algorithm. In each trial, a new task is randomly generated at one of the unoccupied nodes whenever a robot completes its navigation target. These 6 sets of trials were repeated for all the 7 multi-robot path planning approaches (Na¨ ıve Planning, three prioritised planning, PBS planning and two Fragment Planners) to evaluate the variation in performance across the agent-centric and resource-centric prioritisation approaches. For each task, the optimal route from the assigned robot was recorded, calculated from the robot’s start node to the navigation target node on an empty graph (assuming no other agents are present, giving the optimal route). The path executed by the robot throughout the task’s lifetime (that de-pends on the MRPP approach being used) was also recorded and on task completion, the ratio of the initial optimal route and the executed route was calculated according to (1) to represent the ith task’s path optimisation efficiency (POE i). This is averaged over all tasks within the trial to get the representative P OE task from that trial. 
+
+POE i = dexec 
+
+> i
+
+dopt 
+
+> i
+
+, POE task = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+POE i (1) However, as the number of tasks in each trial may vary depending on the dynamic conditions, a more accurate representation of the average POE than the POE task , is calculated as the ratio of the total optimal distance for all completed tasks and the total executed distance in (2). This value (POE avg ) was also recorded along with the total tasks executed over the test period. 
+
+POE avg =
+
+PNi=1 dexec i
+
+PNi=1 dopt 
+
+> i
+
+(2) Collisions were detected on a topological level when the robots share the same node, edge or crossing edges to ensure the MRPP algorithms work as expected. However, this detection was disabled in the tests with the Na¨ ıve planner, because in this approach, all robots navigate through their optimal routes, resulting in collision scenarios. However, it represents the best possible throughput for all robots, as they complete their tasks at the earliest. 1.00 1.05 1.10 1.15 1.20 1.25 1.30      
+
+> POE avg (over 1hr trials)
+> 50
+> 100
+> 150
+> 200
+> 250
+> 300
+> Total Task Throughput Completed (over 1hr trials)
+> POE avg vs Total Task Throughput Grouped by Planner and Robot Count
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 67
+> 8
+> 9
+> 10
+> 5
+> 6
+> 78
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8910
+> Legend
+> Naïve Planner
+> Prioritised Planner (name)
+> Prioritised Planner (shortest route)
+> Prioritised Planner (time since task start)
+> PBS Planner
+> Fragment Planner (space-time)
+> Fragment Planner (space-only)
+> agents: 5
+> agents: 6 9
+> agents: 10
+> included collision
+
+Fig. 2. Total task throughput vs average path optimisation efficiency of varying multi robot path planning approaches with varying numbers of robots. 
+
+A full comparison between the POE avg and the total task throughput is presented for each combination of total number of robots and planner type in Figure 2. Ideally, each additional robot would result in an increase in the total number of task executions proportional to the fleet size without reducing the efficiency of the fleet. From the results, it can be seen that both the fragment planners (FPs) configurations show positive correlations, indicating that under these planning strategies, adding more robots improves throughput with a tolerable increase in per-robot inefficiency. Conversely, the results using Prioritised Planners (PPs) show little correlation between P OE avg and total task throughput. It can be interpreted from this, that adding more robots reduces system efficiency through worsening resource distribution. In the evaluation of a coordinated system’s ability to manage resources, planner efficiency is a key indicator. Figure 3 shows the distribution of POE avg values achieved per planner type over the trials. The results show FP (space-time-aware) is able to achieve the best POE avg at 1.08 . However, the range of FP (space-time-aware) is high compared to the more predictable distributions under PP (shortest route) and FP (space-only-aware), both achieving an average at around 
+
+1.15 ± 0.05 , compared to the range of all other planners at 
+
+±0.2.Whilst POE avg is a representative indicator of system effi-ciency, throughput makes a much better indicator of system efficacy. To better highlight the variation between total task throughput, Figure 4 presents the variation in task completion rates according to agent counts. These results highlight that both FP implementations had significantly higher through-Planner Types  
+
+> 1.10
+> 1.15
+> 1.20
+> 1.25
+> 1.30
+> POE avg
+> Distributions of POE avg Grouped by Planner
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 67
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> Legend
+> Prioritised Planner (name)
+> Prioritised Planner (shortest route)
+> Prioritised Planner (time since task start)
+> PBS Planner
+> Fragment Planner (space-time)
+> Fragment Planner (space-only)
+> agents: 5
+> agents: 6 9
+> agents: 10
+> included collision
+
+Fig. 3. Distributions of average path optimisation efficiency across varying robot counts, grouped by planner. 
+
+puts compared to the baseline PP and PBS planners. This evidences the impact of the spatial fragmentation in im-proving route execution, where rather than fully waiting for route availability, the FP approaches encourage partial route progression, thus reducing wait times and enabling a higher throughput. As such, FP (space-time-aware) shows the best potential throughput gains, inferring as the number of robots increase, that throughput will remain unsaturated. The PBS planner shows the worst performance in through-put under these conditions. However as POE avg is stable as the number of robots increases. It is likely that the reduced throughput is result of PBS being unable to generate non-conflicting paths causing robots to wait for a route. Given that PPs generally perform better, it can thus be reasoned that priority instability from local rescheduling is playing a key role in the reduced quality. The PBS planner has been proven to have higher throughput in free space execution. So, it can be reasoned that the reduced quality be associated to the corridor-like environment causing a lack of space for interleaving. Figure 4 shows the variability in throughput per planner as the number of robots increases. For each robot count, the Na¨ ıve Planner (NP) results indicate the highest potential task throughput, if no collision may occur, even when every robot is able to immediately execute their optimal route. It is generally understood that achieving such a throughput (even with a coupled planner) is not guaranteed. However, it is an appropriate indicator for the feasible maximum throughput and can act as an appropriate baseline for evaluation. To assess how well the planners function with respect to maximum potential efficiency, Table II displays the relative throughput with respect to NP. The results show clearly the strengths of the FPs in achieving higher efficiency, with at 10 robots, the FP (space-time-aware) achieving over 95% of the potential demonstrated by the NP. Contrasted with the PBS, which at 9 robots is barely able to achieve a fifth of the potential demonstrated by the NP. 5 6 7 8 9 10      
+
+> Robot Count (over 1hr trials)
+> 50
+> 100
+> 150
+> 200
+> 250
+> 300
+> Total Task Throughput Completed (over 1hr trials)
+> Total Task Throughput vs Robot Count Grouped by Planner
+> 5
+> 6
+> 7
+> 89
+> 10
+> 5
+> 67
+> 8
+> 9
+> 10
+> 5
+> 6
+> 78
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8
+> 9
+> 10
+> 5
+> 6
+> 7
+> 8910
+> Legend
+> Naïve Planner
+> Prioritised Planner (name)
+> Prioritised Planner (shortest route)
+> Prioritised Planner (time since task start)
+> PBS Planner
+> Fragment Planner (space-time)
+> Fragment Planner (space-only)
+> agents: 5
+> agents: 6 9
+> agents: 10
+> included collision
+
+Fig. 4. Total task throughput over varying robot counts grouped by planner. TABLE II THROUGHPUT AS % OF NA¨IVE PLANNER FOR DIFFERENT FLEET SIZE 
+
+Planner 5 6 7 8 9 10 PP (name) 54.3 50.45 46.15 50.00 44.13 47.62 PP (shortest route) 63.98 56.70 58.30 51.09 58.01 50.34 PP (task start time) 67.74 60.27 59.51 45.65 41.28 49.66 PBS 51.08 37.95 37.65 39.13 21.00 31.63 FP (space-only) 91.4 84.82 87.04 84.06 81.49 77.89 FP (space-time) 95.7 87.05 91.09 92.39 88.26 95.92 
+
+V. C ONCLUSION 
+
+When planning under lifelong conditions in corridor-like environments, it is critical that system-wide rhythm emerges. Given the density and frequency of bottlenecks in such an en-vironment, planners utilising agent-level global priority lock-in and agent-centric priority imbalance struggle to efficiently resolve the inherently spatial contentions with agent-level evaluations, which can lead to notable reductions in system-wide efficacy. This is presented in extensive multi-robot trials highlighting how a resource-centric framing through the proposed Fragment Planners can enable a significantly higher system efficacy through route fragmentation. This is demonstrated at up to 95% of the best-case task throughput and efficiencies as low as 8% above optimal routes. This sug-gests that contentions under lifelong planning in corridor-like environments are most effectively modelled with resource-centric framing. ACKNOWLEDGEMENTS 
+
+This work was supported by AgriFoRwArdS CDT, under the Engineering and Physical Sciences Research Council [EP/S023917/1]. REFERENCES 
+
+[1] A. Prorok, M. Malencia, L. Carlone, G. S. Sukhatme, B. M. Sadler, and V. Kumar, “Beyond robustness: A taxonomy of approaches towards resilient multi-robot systems,” arXiv preprint arXiv:2109.12343 , 2021. [2] S. M. LaValle and J. J. Kuffner, “Randomized kino-dynamic planning,” Int. J. Rob. Res. , vol. 20, no. 5, pp. 378–400, 1999. [3] T. Wen, X. Wang, Z. Sun, Z. Zheng, and X. Kong, “An adaptive local path planning algorithm for multi-robot systems,” in 2022 IEEE International Conference on Unmanned Systems (ICUS) , 2022, pp. 817–822. [4] A. Andreychuk, K. Yakovlev, D. Atzmon, and R. Stern, “Multi-agent pathfinding with continuous time,” in Proceedings of the Twenty-Eighth International Joint Conference on Artificial Intelligence, IJCAI-19 ,International Joint Conferences on Artificial Intelli-gence Organization, Jul. 2019, pp. 39–45. [5] J. R. Heselden and G. P. Das, “Crh*: A deadlock free framework for scalable prioritised path planning in multi-robot systems,” in Annual Conference Towards Autonomous Robotic Systems , Springer, 2021, pp. 66– 75. [6] H. Ma, D. Harabor, P. J. Stuckey, J. Li, and S. Koenig, “Searching with Consistent Prioritization for Multi-Agent Path Finding,” Proc. AAAI Conf. Artif. Intell. , vol. 33, pp. 7643–7650, 2019, ISSN : 2159-5399. arXiv: 1812.06356 .[7] G. Das, G. Cielniak, J. Heselden, and et al., “A unified topological representation for robotic fleets in agricultural applications,” Authorea , Sep. 2023. [8] M. R. Ryan, “Exploiting subgraph structure in multi-robot path planning,” J. Artif. Intell. Res. , vol. 31, pp. 497–542, 2008. [9] J. R. Heselden and G. P. Das, “Heuristics and rescheduling in prioritised multi-robot path planning: A literature review,” Machines , vol. 11, no. 11, p. 1033, 2023. [10] M. Erdmann and T. Lozano-P´ erez, “On multiple mov-ing objects,” Algorithmica , vol. 2, no. 1-4, pp. 477– 521, 1987. [11] C. M. Clark et al., “Randomized motion planning for groups of nonholonomic robots,” in Proceedings of the 6th International Symposium on Artificial Intelligence, Robotics and Automation in Space: i-SAIRAS , 2001. [12] J. P. Van Den Berg and M. H. Overmars, “Prioritized motion planning for multiple robots,” 2005 IEEE/RSJ Int. Conf. Intell. Robot. Syst. IROS , pp. 2217–2222, 2005. [13] W. Wu, S. Bhattacharya, and A. Prorok, “Multi-robot path deconfliction through prioritization by path prospects,” arXiv preprint arXiv:1908.02361 , 2019.

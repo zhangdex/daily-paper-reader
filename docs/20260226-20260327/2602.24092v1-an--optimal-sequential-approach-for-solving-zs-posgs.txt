@@ -1,0 +1,2063 @@
+Title: An $\epsilon$-Optimal Sequential Approach for Solving zs-POSGs
+
+URL Source: https://arxiv.org/pdf/2602.24092v1
+
+Published Time: Mon, 02 Mar 2026 02:18:09 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+# An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+Jilles S. Dibangoye 1 Matthia Sabatelli 1 Erwan C. Escudie 1
+
+## Abstract 
+
+While recent reductions of zero-sum partially observable stochastic games (zs-POSGs) to transition-independent stochastic games (TI-SGs) theoretically admit dynamic programming, prac-tical solutions remain stifled by the inherent non-linearity and exponential complexity of the simul-taneous minimax backup. In this work, we sur-mount this computational barrier by rigorously recasting the simultaneous interaction as a se-quential decision process via the principle of sep-aration. We introduce distinct sufficient statis-tics for valuation and execution—the sequential occupancy state and the private occupancy fam-ily—which reveal a latent geometry in the opti-mal value function. This structural insight allows us to linearise the backup operator, reducing the update complexity from exponential to polyno-mial while enabling the direct extraction of safe policies without heuristic bookkeeping. Experi-mental results demonstrate that algorithms lever-aging this sequential framework significantly out-perform state-of-the-art methods, effectively ren-dering previously intractable domains solvable. 
+
+## 1. Introduction 
+
+The principle of optimality, introduced by Bellman (Bell-man, 1957) in the 1950s, remains the cornerstone of sequen-tial decision-making. While its rigorous application to fully observable Markov Decision Processes (MDPs) and zero-sum Stochastic Games (SGs) (Shapley, 1953) is now settled theory, extending this level of control to simultaneous-move zero-sum partially observable stochastic games (zs-POSGs) has long been regarded as one of the hardest open problems in algorithmic game theory. The combination of partial ob- 
+
+> 1
+
+Bernoulli Institute, University of Groningen, Nijenborgh 4, NL-9747 AG Groningen, Netherlands. Correspondence to: Jilles S. Dibangoye <j.s.dibangoye@rug.nl>, Matthia Sabatelli <m.sabatelli@rug.nl>, Erwan C. Escudie <e.c.escudie@rug.nl>. 
+
+Proceedings of the 43 rd International Conference on Machine Learning , Seoul, South Korea. PMLR 306, 2026. Copyright 2026 by the author(s). 
+
+servability, adversarial dynamics, and simultaneous moves induces a severe curse of dimensionality that has historically defied efficient solution methods (Hansen et al., 2004). Significant progress has been made in the adjacent field of cooperative POSGs (Dec-POMDPs), where the adoption of a centralised planning perspective allowed for the reformu-lation of the problem as a continuous-state MDP (Nayyar et al., 2013; Oliehoek, 2013; Dibangoye et al., 2013). This approach facilitated the transfer of powerful dynamic pro-gramming techniques (Dibangoye et al., 2016; Dibangoye & Buffet, 2018) and heuristic search algorithms (Szer et al., 2005; Oliehoek et al., 2010; Dibangoye et al., 2012; Peralez et al., 2024; 2025), effectively rendering complex cooper-ative domains tractable. In stark contrast, the adversarial POSG landscape has remained fragmented. Approaches relying on heuristic search (Horák et al., 2017; Horák & Bošansk `y, 2019; Buffet et al., 2020a;b), deep reinforcement learning (Brown et al., 2020; Moravcík et al., 2017), or regularised public-belief abstractions (Sokota et al., 2023) often struggle to balance scalability with game-theoretic guarantees. While recent work has explored convex value functions (Wiggers et al., 2016; Cunha et al., 2023; Nay-yar & Gupta, 2017), these methods typically grapple with intricate bookkeeping (Delage et al., 2023) or restrictive structural assumptions to extract safe policies. Recent advances have begun to crack this barrier. Notably, Escudie et al. (2025) achieved a structural breakthrough by demonstrating that general zs-POSGs can be losslessly re-duced to transition-independent zero-sum stochastic games (TI-zs-SGs). This reduction is profound: it lifts the nebulous space of partial observability into a structured Markovian game played over occupancy states (beliefs over states and joint histories), theoretically opening the door to dynamic programming in the spirit of Shapley. However, in practice, the resulting computational burden remains prohibitive. The fundamental bottleneck lies in the simultaneous nature of the backup operator. In the TI-zs-SG formulation, the “actions” available to the planner are decision rules—distributions over private actions conditioned on history. Even in the re-duced game, the standard Bellman backup requires solving a matrix game (minimax optimisation) over these decision rules at every state. Since the space of decision rules grows exponentially with the horizon, the simultaneous backup operator is inherently non-linear and computationally ru-1 
+
+> arXiv:2602.24092v1 [cs.GT] 27 Feb 2026 An ε-Optimal Sequential Approach for Solving zs-POSGs
+
+inous. Thus, despite the structural reduction, the community remains stifled by a computational wall. 
+
+The Sequential Paradigm Shift. In this work, we argue that the intractability of the simultaneous backup is not an intrinsic property of the game, but a consequence of how we structure the optimisation. We propose a paradigm shift: we show that optimal reasoning in simultaneous games can be rigorously recast as a sequential decision process, effectively decoupling the agents’ choices in the planner’s reasoning phase without altering the simultaneous semantics of the execution phase. Therefore, in this paper, we investigate the following research question: 
+
+How can the computationally ruinous simultaneous min-imax backup be decomposed into tractable sequential updates without sacrificing game-theoretic optimality? 
+
+Our answer rests on the principle of separation (Dibangoye et al., 2015), which suggests that the statistics required to compute values do not need to be identical to those required to extract policies . By formalising this distinc-tion, we introduce two novel information structures: the 
+
+sequential occupancy state , a value-sufficient statistic that allows us to decompose the joint value function, and the 
+
+private occupancy family , a policy-sufficient statistic that enables the direct extraction of safe strategies. This struc-tural dichotomy allows us to reveal the geometry of the optimal value function, fundamentally altering the optimisa-tion landscape. We demonstrate that the sequential backup operator becomes polynomial, transforming the intractable non-linear simultaneous update into a sequence of tractable linear programs. By disentangling the players’ decision variables, we collapse the complexity of the Bellman up-date from exponential to polynomial complexity. Finally, we integrate these findings into a point-based value itera-tion (PBVI) framework (Pineau et al., 2003), demonstrating that our sequential approach solves established benchmarks from the literature (Wiggers et al., 2016) with significantly higher numerical stability and lower exploitability than pre-vious simultaneous methods (Escudie et al., 2025; Delage et al., 2023; Tammelin, 2014), effectively bridging the gap between theoretical solvability and practical tractability. 
+
+## 2. Preliminaries 
+
+In this section, we formally define zero-sum partially ob-servable stochastic games (zs-POSGs) and establish the notation used throughout our work. We then review the pre-vailing simultaneous-move central-planner formulation and show why, despite yielding a theoretically sound reduction, it encounters a fundamental computational barrier. This will motivate the sequential paradigm shift developed in the remainder of the paper. 
+
+2.1. Simultaneous-Move zs-POSGs 
+
+A simultaneous-move zs-POSG, denoted M, is defined by the tuple M = ( S, A1, A2, Z1, Z2, p, r, b, γ, ℓ ). The game proceeds over a finite horizon ℓ, involving two competing agents, player 1 (maximiser) and player 2 (minimiser). The finite set S represents the hidden states of the environment. At each stage t, both players simultaneously select private actions a1 ∈ A1 and a2 ∈ A2. These actions, combined with the current state s, trigger a stochastic transition to a next state s′ and the generation of observations according to the joint probability kernel p(s′, z 1, z 2 | s, a 1, a 2). Here, 
+
+zi ∈ Zi denotes the private observation received by player i.The immediate payoff r(s, a 1, a 2) rewards player 1 at the expense of player 2. The game initiates from a distribution 
+
+b ∈ ∆( S) and discounts future rewards by γ ∈ [0 , 1) .Unlike in fully observable games, players here act based on imperfect information. We define the private history hi,t 
+
+as the sequence of actions and observations available to player i up to stage t. To manage this uncertainty, play-ers employ policies πi = (di, 0, . . . , d i,ℓ −1), which are sequences of history-dependent decision rules. A deci-sion rule di,t : Hi,t → ∆( Ai) maps private histories to probability distributions over actions. We denote the set of all such decision rules at stage t by Di,t . The value of the game under a joint policy (π1, π 2) is the expected cumulative discounted return from the initial belief b, de-noted vπ1,π 2 (b). Under the minimax theorem (Neumann, 1928; Sion, 1958), the game admits a unique optimal value 
+
+v∗
+
+> sim
+
+(b) = max π1 min π2 vπ1,π 2 (b).
+
+2.2. The Computational Barrier of Simultaneity 
+
+Extending Bellman’s principle of optimality to zs-POSGs re-quires an information state that makes the interaction Marko-vian while respecting players’ information constraints. Since no shared state or joint history is commonly known, recent work has pursued reductions that embed a zs-POSG into a fully observable stochastic game and then apply dy-namic programming (DP) in the reduced model. Following Sanjari et al. (2023), a reduction is lossless if it satisfies three criteria: value preservation (the expected return of any joint policy is unchanged), equilibrium correspondence (original and new equilibria correspond under a surjective mapping), and information-structure equivalence (the reduction nei-ther adds spurious information nor collapses strategically relevant distinctions). These criteria ensure that planning in the reduced game is both optimal and game-theoretically interpretable for the original zs-POSG. Several reductions fall short of this standard or remain com-putationally intractable. Public-belief reductions exploit rich public signals: in POSGs with public observations, the common signal supports a Markov game on public beliefs (Ghosh et al., 2004; Horák & Bošansk `y, 2019; Horák et al., 2An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+2017). The PuB-AMG of Brown et al. (2020); Sokota et al. (2023) extend this idea via public policy commitments and a stochastic game over public beliefs, solving a regularised minimax problem. However, the added announcements modify the original information structure, and the resulting strategies can be highly exploitable in the underlying zs-POSG; there is no guarantee of value preservation or exact equilibrium recovery, so the reduction is not lossless for general zs-POSGs. Occupancy Markov games (zs-OMGs) instead adopt a central planner acting on occupancy states ,posterior distributions over hidden states, and joint histories (Wiggers et al., 2016; Buffet et al., 2020a; Delage et al., 2023). While this supports Bellman-style DP, the planner chooses joint decision rules as if it observed the latent oc-cupancy state, breaking equilibrium correspondence. Ad hoc policy-tracking can patch execution but does not re-store a clean lossless reduction, and, crucially, each backup involves linear programs over exponentially many history-dependent decision rules, leading to exponential complexity in the horizon and information structure. Escudie et al. (2025) resolve the correctness side by giv-ing a lossless reduction from any zs-POSG to a transition-independent zero-sum stochastic game whose states are occupancy states and player-specific occupancy sets. The reduction preserves value, equilibria, and information struc-ture, and it restores a clean dynamic-programming view: Bellman-style optimality equations become available, so point-based methods such as PBVI can be transferred in a principled way. The remaining difficulty is algorithmic .A direct Bellman backup at the central-planning level is a simultaneous minimax over history-dependent decision rules , i.e., a stage game whose rows and columns are entire decision rules rather than primitive actions—an exponential object that is dead on arrival. Escudie et al. (2025) avoid this by trading “quantify over all opponent decision rules” for “optimise against an explicit, finite value representation”: the opponent’s continuation values are cached as a family of finite envelopes, and greedy updates are computed by a linear program whose constraints are indexed by cached en-velopes and their witness vectors, not by opponent decision rules. The exponential quantification thus disappears from the formulation .However, this trade shifts the burden onto what is stored and how it is optimised. As PBVI iterates, new witness vectors are generated and the cache grows; meanwhile, the greedy step is realised by a single monolithic linear program that tightly couples cache indices with the opponent’s action– observation branching. In practice, this coupling makes the program large quickly, so the backup remains the dominant runtime cost even though it is polynomial in explicit rep-resentation size. The present work targets precisely this bottleneck by reformulating the central-planner optimisa-tion itself: we replace the monolithic greedy backup with a sequential backup that factorises the update into smaller, structured programs, retaining the same lossless foundation while markedly reducing the coupling paid at each iteration. 
+
+## 3. The Sequential Reformulation 
+
+The computational barrier in simultaneous zs-POSGs stems from a single source: the Bellman backup operator couples the players through a minimax optimisation over the joint space of decision rules D1,t × D2,t . Since the size of these spaces is exponential in the history length, solving this ma-trix game at every step becomes intractable. However, this coupling is a constraint of the simultaneous formulation , not intrinsic to the optimal value function itself. To dismantle this barrier, we propose a topological transformation: we expand each simultaneous decision stage into two internal 
+
+sub-stages . Instead of selecting a joint profile in one shot, the planner first selects a decision rule for player 1, and then—conditioned on this choice—selects a decision rule for player 2. Crucially, this sequentialisation occurs only within the planner’s optimisation process; the physical game remains simultaneous. 
+
+3.1. Lifting to Sequential Occupancy States 
+
+To support this two-step reasoning, we must lift the state space to capture the system’s status at these distinct sub-stages. We introduce sequential occupancy states : the first (x1,t ) represents the standard simultaneous state, while the second ( x2,t ) captures the intermediate state after player 1’s commitment but before player 2’s response. 
+
+Definition 3.1. Let θ1,t 
+
+.
+
+= ( d1,0, d 2,0, . . . , d 1,t −1, d 2,t −1)
+
+and θ2,t 
+
+.
+
+= ( θ1,t , d 1,t ) denote the exhaustive information states (histories of joint decision rules) of the sequential planner at sub-stages (1 , t ) and (2 , t ), respectively. The sequential occupancy states are the posteriors: 
+
+x1,t (s, h 1,t , h 2,t ) .
+
+= Pr( s, h 1,t , h 2,t | θ1,t ),x2,t (s, h 1,t , h 2,t , a 1) .
+
+= Pr( s, h 1,t , h 2,t , a 1 | θ2,t ).
+
+Moreover, the internal transition (1 , t ) → (2 , t )
+
+induced by d1,t is the deterministic pushforward 
+
+x2,t (s, h 1,t , h 2,t , a 1) = x1,t (s, h 1,t , h 2,t ) d1,t (a1 | h1,t ).Figure 1 illustrates this topological change. The simultane-ous decision node is unzipped into the sequence 
+
+x1,t d1
+
+−→ x2,t d2
+
+−→ x1,t +1 .
+
+The intermediate node x2,t is not a new physical state of the world, but a computational snapshot that explicitly includes player 1’s mixed action. We write Xseq for the set of all sequential occupancies. 3An ε-Optimal Sequential Approach for Solving zs-POSGs                
+
+> 0t· · · t+ 1 . . . Time
+> x1,0x1,t x2,t x1,t +1 · · ·
+> d2,0d1,t d2,t
+> r1,0r1,t r2,t r1,t +1 · · ·
+> infers
+> receives
+> selects
+
+Figure 1. The influence diagram for the sequential occupancy game from the sequential central planner. 
+
+3.2. Sequential Dynamics and Rewards 
+
+At the occupancy level, only two kinds of updates can occur, matching the two sub-stages. At (1 , t ), selecting d1,t only injects player 1’s mixed action into the occupancy; the envi-ronment is not yet resolved, so the immediate payoff is zero. At (2 , t ), selecting d2,t completes the original simultaneous stage: the joint action is resolved, the true reward is realised, and the next stage-boundary occupancy is produced. We denote these two updates by occupancy-level primi-tives τseq (transition) and ρseq (reward). Concretely, for the first sub-stage we set ρseq (x1,t , d 1,t ) ≡ 0 and de-fine τseq (x1,t , d 1,t ) .
+
+= x2,t via the deterministic pushfor-ward. For the second sub-stage, we define τseq (x2,t , d 2,t ) .
+
+=
+
+x1,t +1 via the standard environment kernel, and the reward 
+
+ρseq (x2,t , d 2,t ) .
+
+= E[rt | x2,t , d 2,t ].
+
+Definition 3.2 (Sequential Occupancy Game) . The sequen-tial reformulation induces a sequential occupancy Markov game Mseq 
+
+.
+
+= ( Xseq , Fseq , D, τ seq , ρ seq , γ, ℓ ), where D .
+
+=
+
+D1 ∪ D2 is the combined space of decision rules acting on the sequential state space. 
+
+3.3. Recovering Simultaneity via Two-Step Recursion 
+
+The central property of this reformulation is that compos-ing the two sequential updates perfectly reconstructs the original simultaneous backup. We define the sequential op-timal value function v∗ 
+
+> seq
+
+via standard Bellman equations on the unzipped graph, using a stage-dependent operator opt i
+
+(defined as max for player 1 and min for player 2). 
+
+Theorem 3.3 (Sequential Optimality Equations) . For any transient sub-stage state xi ∈ Xseq ,
+
+v∗
+
+> seq
+
+(xi) = opt i, d i∈Di
+
+ρseq (xi, d i) + γi v∗
+
+> seq
+
+(τseq (xi, d i))  ,
+
+where γ1 = 1 and γ2 = γ.
+
+This theorem makes the structural change explicit: the cou-pled saddle-point update is replaced by two sub-stage op-timisations. By composing these updates across (1 , t ) and 
+
+(2 , t ), we recover the simultaneous backup at stage bound-aries: v∗
+
+> seq
+
+(x1) = v∗
+
+> sim
+
+(x1).
+
+Theorem 3.4 (Sufficiency) . Sequential occupancy states are sufficient to compute optimal values in Mseq and hence in the simultaneous zs-POSG M.
+
+Roadmap. The remainder of the paper builds on this re-formulation. In Section 4, we exploit the geometry of v∗ 
+
+> seq
+
+to derive a polynomial-time backup operator. In Section 5, we ensure losslessness by extending the transition-independent reduction to this sequential setting. 
+
+## 4. Sequential Backup Geometry 
+
+The sequential reformulation removes the minimax coupling by splitting each stage into two internal sub-stages. This sec-tion explains why that split matters computationally, beyond being a mere modelling convenience. In the simultaneous view, the Bellman backup hides a nested pessimistic compu-tation inside the saddle point, and that hidden computation must be reconstructed from scratch every time the backup is applied. The sequential view makes this pessimistic layer visible at the intermediate occupancy and turns it into a first-class object that can be computed once, stored, and reused across backups. This caching viewpoint is the central mes-sage of the section. Concretely, we establish two outcomes. First, we make the shape of the optimal value explicit as a two-layer envelope: a local pessimistic envelope revealed at the intermediate occupancy, and an outer selection over non-dominated con-tinuations. Second, we leverage this explicit envelope struc-ture to obtain a sequential backup that decomposes into two linear programs, one per sub-stage. The point is not that the game becomes simpler, but that the expensive part of the saddle-point update becomes an object we can pre-compile. 
+
+4.1. Saddle Geometry Unveiled 
+
+The intermediate occupancy x2 is the key to making the hidden pessimistic layer explicit. By transitioning from the stage boundary to x2, the planner effectively freezes player 1’s mixed decision rule. This creates the computa-4An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+tional leverage: player 2’s best response no longer needs to be chosen as a single global object. Instead, it separates across private histories, allowing pessimism to be evaluated locally. Crucially, this pessimistic evaluation is computed once per candidate envelope and reused as a static constraint to evaluate any candidate decision rule d1 (as formalised by LP 1 in Section 4.2), effectively decoupling the decision variables within the backup. 
+
+˜bh2
+
+˜bh2
+
+˜bh2
+
+> •
+
+•
+
+•
+
+> •
+
+•
+
+•
+
+> •
+
+•
+
+•        
+
+> Figure 2. The Max-of-Concave Geometry. This diagram visu-alizes the value function structure projected onto the probability simplex. The horizontal axis represents the space of normalized local beliefs ˜bh2
+> .
+> =bh2/∥bh2∥1.The thick highlighted curve corresponds to the upper envelope (optimism) over a family of concave functions (pessimism).
+
+Decomposition into local belief vectors. The separation above is driven by a simple statistic: for each private history 
+
+h2, we extract from the global occupancy the local weighted belief bh2 that governs player 2’s pessimistic evaluation. Crucially, this belief must capture the full latent state, which includes the opponent’s private history h1. Let Ω1
+
+.
+
+= S×H1
+
+and Ω2
+
+.
+
+= S × H1 × A1 denote the domains of uncertainty relevant to player 2 at sub-stages 1 and 2 respectively. For a given occupancy xi, the local belief bh2 ∈ RΩi 
+
+> +
+
+is defined as the unnormalized slice of the occupancy: 
+
+bh2 (ω) .
+
+= xi(ω, h 2), for ω ∈ Ωi.
+
+This vector encodes both the conditional probability and the relative weight of the history. Consequently, summing the inner products ⟨bh2 , α ⟩ correctly absorbs the marginal probability Pr xi (H2 = h2).
+
+The Two-Layer Envelope. This decomposition reveals a universal geometry common to both sub-stages. Fix an arbi-trary sub-stage i ∈ { 1, 2}. The value function behaves as a 
+
+two-layer envelope reflecting the adversarial hierarchy. At the inner layer , any fixed future strategy for player 1 induces a collection Γ2 ⊂ RΩi that forms a “tent” of hyperplanes—a piecewise-linear concave function representing player 2’s 
+
+pessimistic response against local beliefs. At the outer layer ,player 1 optimises over a family Γ1 of such collections, establishing the global value as the optimistic pointwise maximum over these concave tents. The following theorem formalises this Max-of-Concave saddle geometry (Fig. 2). 
+
+Theorem 4.1. Fix a sub-stage i ∈ { 1, 2}. Let Γ1 be a family of finite sets representing non-dominated future strategies, where each Γ2 ∈ Γ1 is a subset of RΩi . For any occupancy 
+
+xi at this sub-stage, the optimal sequential value is: 
+
+v∗
+
+> seq
+
+(xi) = max Γ2∈Γ1 Val Γ2 (xi)
+
+Val Γ2 (xi) .
+
+= P 
+
+> h2
+
+min α∈Γ2 ⟨bh2 , α ⟩.
+
+4.2. Disentangled Greedy Selection 
+
+The envelope characterisations yield two decoupled LPs—one per sub-stage. The sequential split turns the adver-sary’s inner pessimisation into reusable linear constraints; a variable/constraint count then exposes an exponential gap relative to the simultaneous matrix-game backup. 
+
+Optimizing d1 against cached envelopes. LP 1 represents the greedy backup of the maximiser against a compiled en-velope. Unlike simultaneous backups that must re-solve player 2’s response inside every evaluation, the sequen-tial formulation evaluates d1 directly against the cached envelopes produced at the intermediate stage. Since the im-mediate reward is zero, player 1 maximizes the continuation value of the induced intermediate occupancy. 
+
+Lemma 4.2. Fix a finite family Γ1 of collections Γ2 cached from the intermediate stage (2 , t ). The greedy decision rule of player 1 at occupancy x1 is: 
+
+arg max d1 max Γ2∈Γ1 Val Γ2 (τseq (x1, d 1)) .
+
+Operationally, because Γ1 is a finite collection, we solve one instance of LP 1 for each candidate envelope Γ2 ∈ Γ1,and retain the pair (d∗
+
+> 1
+
+, Γ∗ 
+
+> 2
+
+) that yields the global maximum. Recall that bh2 is an unnormalised weighted belief, so the objective correctly aggregates values according to the his-tory probability. maximise d1,w 
+
+P 
+
+> h2
+
+wh2
+
+subject to wh2 ≤ ⟨ bh2 , α ⟩, ∀h2, ∀α ∈ Γ2. (LP 1)Crucially, the decision variables d1 are embedded within the belief vector bh2 . The term ⟨bh2 , α ⟩ expands to a linear expression in d1:
+
+⟨bh2 , α ⟩ = P 
+
+> s,h 1,a 1
+
+x1(s, h 1, h 2) d1(a1 | h1) α(s, a 1).
+
+Consequently, LP 1 treats the adversary as a fixed set of hyperplanes evaluated at beliefs that vary linearly with d1.
+
+Optimizing d2 against cached envelopes. Player 2 acts to minimise the immediate cost plus the expected future value. Because the future value is encoded by a family of envelopes Γ′
+
+> 1
+
+, the optimal response involves selecting the most pessimistic envelope mixture. We express this greedy 5An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+backup in the dual form to avoid enumerating the decision-rule vertices. 
+
+Lemma 4.3. Fix a family Γ′ 
+
+> 1
+
+cached from the next stage 
+
+(1 , t + 1) . The greedy decision rule for player 2 corresponds to the solution of the dual maximisation: 
+
+max λ∈∆(Γ ′  
+
+> 1)
+
+min d2
+
+P 
+
+> Γ′
+> 2∈Γ′
+> 1
+
+λ(Γ ′
+
+> 2
+
+) Val Γ′ 
+
+> 2
+
+(τseq (x2, d 2)) .
+
+The dual variable λ acts as a selector for active future en-velopes. To handle the branching over observations with-out exploding the complexity, we define an observation-shifted vector . For any future vector α ∈ Γ′
+
+> 2
+
+, action a2,and observation z2, let qαa2,z 2 be the vector back-projected to the intermediate state: qαa2,z 2 (s, h 1, a 1) .
+
+= r(s,a 1,a 2) 
+
+> |Z2|
+
++
+
+γ P 
+
+> s′,z 1
+
+p(s′, z 1, z 2 | s, a 1, a 2) α(s′, h 1 ·a1 ·z1). Note the first term distributes the immediate reward uniformly across observation branches to ensure it is counted exactly once in the total summation. LP 2 computes the optimal response by summing contributions over all observation outcomes. The variables wΓ′ 
+
+> 2
+> h2,z 2
+
+represent the value contribution of a specific envelope Γ′ 
+
+> 2
+
+given observation z2.maximise λ,w,v 
+
+P 
+
+> h2
+
+vh2
+
+subject to 
+
+vh2 ≤ P 
+
+> Γ′
+> 2∈Γ′
+> 1
+
+P 
+
+> z2
+
+wΓ′ 
+
+> 2
+> h2,z 2
+
+, ∀h2, ∀a2,wΓ′ 
+
+> 2
+> h2,z 2
+
+≤ λ(Γ ′
+
+> 2
+
+) ⟨bh2 , q αa2,z 2 ⟩,
+
+∀h2, ∀a2, ∀z2, ∀Γ′ 
+
+> 2
+
+∈ Γ′
+
+> 1
+
+, ∀α ∈ Γ′
+
+> 2
+
+,
+
+P 
+
+> Γ′
+> 2∈Γ′
+> 1
+
+λ(Γ ′
+
+> 2
+
+) = 1 , λ ≥ 0.
+
+(LP 2)At optimum, the maximisation saturates the constraints, recovering the mixture value. Crucially, this formulation avoids enumerating decision rules; the complexity is now polynomial in the game’s representation parameters. 
+
+Theorem 4.4. The sequential backup operator is polyno-mial in the explicit representation size. Computing the opti-mal update entails: (i) at sub-stage 1, solving |Γ1| instances of LP 1 with OOO(|H1|| A1|) variables and OOO(|H2|| Γ2|) con-straints; (ii) at sub-stage 2, solving one instance of LP 2 with 
+
+OOO(|H2|| Z2|| Γ′
+
+> 1
+
+|) variables and OOO(|H2|| A2|| Z2|| Γ′
+
+> 1
+
+|| ¯Γ′
+
+> 2
+
+|)
+
+constraints, where |¯Γ′
+
+> 2
+
+| .
+
+= max Γ′∈Γ′ 
+
+> 1
+
+|Γ′|.
+
+In contrast, the simultaneous backup scales with the size of the decision-rule spaces |D1| and |D2|, which grow exponentially with the size of the private-history spaces 
+
+|Hi|. The sequential reformulation removes this strategy-enumeration bottleneck by never indexing the optimisation by opponent decision rules: pessimism is enforced only against finitely many cached supporting vectors, so the run-time is governed by the explicit envelope representation that is actually stored and manipulated. Appendix E provides the detailed input-size analysis by counting scalar variables and linear constraints in LP 1 and LP 2 and appealing to polynomial-time solvability of linear programs. Relative to the cached-envelope greedy update of Escudie et al. (2025), the gain is structural rather than foundational: both approaches are polynomial in the same cached rep-resentation objects, but they pay for them differently. Es-cudie et al. (2025) realise the greedy step as one monolithic LP in which the cache indices and the opponent’s action– observation branching are coupled throughout the constraint family. Our sequential backup factorises this coupling into two stages: a cache-local optimisation (LP 1) followed by a single global aggregation (LP 2). Operationally, this means we pay the action–observation branching once—at sub-stage 2—rather than inside every per-envelope optimisation, yielding a lighter greedy update while preserving the same lossless guarantees. 
+
+Witness-based cache updates. Our value representation is a finite cache of envelopes, combined by pointwise max-imisation. Crucially, each greedy step produces a certificate (a witness vector at sub-stage 1, or a witness envelope at sub-stage 2 via the LP dual) that can be appended to the cache. This yields a monotone augmentation of the represented value function, with strict improvement whenever the new candidate improves the value at the generating occupancy. See Appendix D for the formal constructions and proof. 
+
+4.3. Algorithmic Realisation: Sequential PBVI 
+
+The geometric insights and polynomial backups developed above are not standalone; they serve as the computational engine for a Point-Based Value Iteration (PBVI) algorithm. Since the sequential reduction maps the original problem to a sequential occupancy Markov game, we can directly apply the standard PBVI schema used in simultaneous settings. In the sequential model, however, the dynamic program is indexed by sub-stages : we write ν = ( i, t ) with i ∈ { 1, 2}
+
+and t ∈ { 0, . . . , ℓ }, and we let next (ν) denote the successor sub-stage. The algorithm therefore maintains (i) a finite sample set Xν of sequential occupancies for each sub-stage 
+
+ν, and (ii) a family of envelopes Γ1,ν representing the value function at that sub-stage. The integration is seamless: at each iteration, rather than solving a large matrix game, the planner executes the se-quential backup at every sampled sub-stage . This is imple-mented by the backward sweep over sub-stage ν in reverse order, from (1 , ℓ ) down to (1 , 0) . For each ν and each sam-pled occupancy xν ∈ Xν , the routine Improve solves the LP associated with the active player at ν using the cached 
+
+successor envelope Γ1,next (ν) and then augments the cur-rent cache Γ1,ν with the newly generated witness envelope (Theorem D.3). Concretely, when ν = (2 , t ), Improve 
+
+solves the dual program (LP 2) against the successor cache 6An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+Γ1,next (ν), which computes the optimal player 2 response against Γ1,next (ν) and thereby generates an intermediate en-velope Γ2,ν . When ν = (1 , t ), Improve solves (LP 1)against the corresponding intermediate successor envelope 
+
+Γ2,next (ν), producing a witness vector (and its envelope) used to augment Γ1,ν (Theorem D.3). After this backward improvement sweep, the algorithm per-forms a forward expansion sweep over sub-stages (second loop in Algorithm 1). Starting from the current sampled sets {Xν }ν , the routine expand propagates reachability to populate the successor sample sets Xnext (ν). To ensure scalability, we employ standard bounded pruning techniques to discard envelopes (or vectors within envelopes) that are not selected on the sampled occupancies, preventing repre-sentation growth from exploding. Overall, this sequential 
+
+PBVI inherits the convergence guarantees of the simultane-ous PBVI schema, while typically executing each backup substantially faster thanks to the polynomial LP factorisa-tion. We refer the reader to Appendix H for the complete pseudocode and detailed pruning specifications. 
+
+## 5. Sequential Transition Independence 
+
+The previous sections show that the sequential split yields a polynomial-time Bellman update at the level of sequential occupancies. What remains is to ensure that this computa-tional device sits inside a game-theoretically sound model: values and equilibrium structure must be preserved exactly, as in the transition-independent reduction of Escudie et al. (2025). This section therefore introduces a sequential vari-ant of the TI-zs-SG and states the corresponding losslessness result. All the structural and algorithmic consequences es-tablished in Escudie et al. (2025) then carry over verbatim; in particular, policy extraction is performed at the level of player occupancy sets (as in that work), not by the LPs used to implement the sequential backup. 
+
+5.1. The Sequential TI-zs-SG 
+
+Recall that, in the simultaneous TI-zs-SG of Escudie et al. (2025), the game is organised around two layers: (i) a cen-tral occupancy state used to evaluate values, and (ii) player-specific occupancy sets used to represent each player’s feasi-ble private-information evolution and to support equilibrium-consistent policy extraction. The sequential split refines only the timing of the central backup: each stage is decom-posed into two sub-stages, so that player 1 updates first and player 2 completes the stage, exactly as in Sections 3 and 4. Formally, we define the sequential transition-independent game M′ 
+
+> seq
+
+by taking the TI-zs-SG construction of Escudie et al. (2025) and applying it to the sequential occupancy recursion: at sub-stage (1 , t ), only player 1 is active and only player 1’s occupancy set is updated (the opponent set is held fixed); at sub-stage (2 , t ), only player 2 is active and only player 2’s occupancy set is updated, while the stage reward is realised and the next stage-boundary state is produced. The central sequential occupancies x1,t and x2,t remain the value-sufficient statistics manipulated by the uninformed recursion, and they are induced by the compatibility of the two current occupancy sets (cf. Figure 4). This interleaving is the only change relative to the simulta-neous TI-zs-SG: the information structure, the meaning of occupancy sets, and the equilibrium-consistent extraction operators remain exactly those of Escudie et al. (2025). 
+
+5.2. Losslessness Theorem 5.1 (Sequential lossless reduction) . The sequen-tial transition-independent zs-SG M′ 
+
+> seq
+
+is a lossless reduc-tion of the original zs-POSG M, and composing its two sub-stages at each t recovers the simultaneous TI-zs-SG optimality equations of Escudie et al. (2025). 
+
+By Theorem 5.1, every result established for TI-zs-SGs in Escudie et al. (2025) applies immediately to M′
+
+> seq
+
+, includ-ing equilibrium correspondence, exploitability bounds , and the associated policy extraction procedure at the level of player occupancy sets. In the remainder of the paper, our sequential backups are used to implement the value recur-sion efficiently, while the extraction of executable strategies follows the TI-zs-SG machinery unchanged. 
+
+## 6. Empirical evaluation 
+
+We evaluate our approach on Adversarial Tiger, Recycling, and MABC ( http://masplan.org/ ), which are stan-dard benchmarks in the recent zs-POSG literature and are used as reference domains in Wiggers et al. (2016), De-lage et al. (2023), and Escudie et al. (2025). Following the same convention, we instantiate the competitive setting by using a zero-sum payoff: player 2’s reward is the nega-tive of player 1’s reward. This construction preserves the original transition and observation structure and isolates the algorithmic effect of the backup operator. For each game, we compare two variants of the PBVI al-gorithm: Sim (Escudie et al., 2025), which implements the simultaneous approach and serves as the baseline, and Seq ,which implements the sequential approach. For complete-ness, we also include HSVI (Delage et al., 2023) and a naive 
+
+CFR+ implementation (Tammelin, 2014). Table 1 summa-rizes the results for the most computationally demanding horizons, reporting both the final value reached by each algorithm and the exploitability of the resulting policy. 
+
+Simultaneous vs. Sequential PBVI . Figure 3 and Table 1 compare Sim and Seq under the same PBVI outer loop (sampling, improvement, and pruning), differing only in 7An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+1 6
+
+0.00 
+
+0.10 
+
+0.20 
+
+Iterations 
+
+> Exploitability
+
+Adversarial Tiger 
+
+1 6
+
+−1.00 
+
+−0.95 
+
+−0.90 
+
+Iterations 
+
+> Value
+
+Adversarial Tiger 
+
+1 6
+
+0
+
+1,500 
+
+3,000 
+
+Iterations 
+
+> Cumulated Time (s)
+
+Adversarial Tiger 
+
+1 6
+
+0
+
+250 
+
+500 
+
+Iterations 
+
+> Nb. of points
+
+Adversarial Tiger 
+
+> Seq
+> Sim
+
+Figure 3. PBVI on Adversarial Tiger ( ℓ=5 ): exploitability, value, cumulative runtime, and sample count over iterations, averaged over random seeds. Green: simultaneous; red: sequential. 
+
+the backup: Sim applies the simultaneous minimax backup, whereas Seq applies the sequential backup (LP 2 followed by LP 1). We report two outcomes: (i) wall-clock time to reach the reported iterate, and (ii) exploitability ε of the resulting focal policy. Across all benchmarks and the largest horizons reported, 
+
+Seq attains lower or equal exploitability than Sim , while being significantly faster in the most demanding instances (Speedup column in Table 1, and runtime curves in Fig-ure 3). The reason is structural: the sequential backup replaces a single, highly coupled simultaneous optimisation by two smaller programs whose sizes scale with the cached-envelope representation (Appendix E), so each improvement step is cheaper. This lower per-backup cost allows Seq to complete more improvement–expansion cycles within the same time budget, which results in denser sampling and, empirically, better exploitability. 
+
+Table 1. Snapshot of results (time in seconds, exploitability ε). Speedup is Sim time divided by Seq time. OOT : timeout; OOM :out of memory; ‘–’: exploitability budget exceeded. Best values per row are highlighted in magenta .                                                                                                                                                                                   
+
+> Game ( ℓ)Speedup Seq Sim HSVI CFR+
+> time εtime εtime εtime ε
+> kuhn poker 0.2 0.00 0.1 0.00 NA NA 0.01 0.00
+> adversarial-tiger(3) 7.33 0.15 0.00 1.1 0.00 500 0.00 10.00
+> adversarial-tiger(4) 1.4 10 0.00 14 0.00 OOT 17 0.01 adversarial-tiger(5) 1.7 30 0.00 51 0.00 OOT 181 0.01 adversarial-tiger(7) 1.83 264 0.00 485 0.02 OOT OOM
+> adversarial-tiger(10) 26.6 287 0.02 7648 0.05 OOT OOM
+> adversarial-tiger(12) 782 0.02 OOT OOT OOM
+> adversarial-tiger(14) 1840 0.18 OOT OOT OOM
+> mabc(3) 20 0.85 0.00 17 0.00 70 0.00 0.5 0.00
+> mabc(4) 20.8 15 0.00 312 0.01 OOT 40.00
+> mabc(5) 3.1 44 0.00 136 0.02 OOT 51 0.01 mabc(7) 18.5 178 0.00 3298 0.04 OOT OOM
+> mabc(10) 1377 0.05 OOT OOT OOM
+> recycling(3) 0.18 27 0.00 50.00 430 0.00 60.00
+> recycling(4) 0.4 36 0.01 15 0.01 OOT 80 0.03 recycling(5) 3.1 72 0.01 225 0.03 OOT OOM
+> recycling(7) 23.4 84 0.01 1969 0.02 OOT OOM
+> recycling(10) 14.7 1616 0.00 23798 0.05 OOT OOM
+> competitive-tiger(3) 0.93 48 0.02 45 0.02 291 0.00 17 0.00
+> competitive-tiger(4) 1.98 60 0.01 119 0.00 OOT OOM
+> competitive-tiger(5) 2.11 152 0.03 322 0.02 OOT OOM
+> competitive-tiger(7) 3.7 450 0.08 1685 0.06 OOT OOM
+> competitive-tiger(10) 847 0.03 OOT OOT OOM
+
+Regarding values, Seq can appear slightly more conserva-tive early on (lower value estimates) because it maintains a lower-bound representation built from cached envelopes. However, as iterations proceed, the additional improvement cycles made possible by the cheaper backup translate into tighter envelopes at the sampled occupancies, and the value curves typically catch up to the simultaneous variant (e.g., Adv. Tiger and MABC in Figure 5). Finally, the exploitabil-ity traces produced by Sim exhibit larger transient fluctua-tions in several settings (Figure 3); in our experiments this correlates with slower sampling growth, so each update is informed by fewer newly reached occupancies before the next greedy step is computed. 
+
+HSVI (Delage et al., 2023) and CFR+ (Tammelin, 2014) are included for completeness. A detailed discussion of their behaviour on these benchmarks, including the practical limitations that lead to timeouts or memory exhaustion at larger horizons, is provided in Escudie et al. (2025); we therefore focus here on isolating the effect of replacing the simultaneous backup ( Sim ) by the sequential one ( Seq ). 
+
+## 7. Conclusion 
+
+Lossless reductions give zs-POSGs a clean dynamic-programming interpretation, yet in practice they still leave the same stumbling block: a Bellman backup that is a si-multaneous minimax over history-dependent decision rules, and therefore grows explosively with private-history length. Our key idea is to remove this obstacle at its source by se-quentialising the backup : we replace the exponential stage game by two structured LP sub-stages whose size is poly-nomial in the explicit cache representation, so the cost is governed by the number of supporting hyperplanes actually stored rather than by the dimension of the strategy space. This structural shift compounds in practice—cheaper back-ups enable denser point sets, denser point sets yield tighter envelopes, and tighter envelopes translate into lower ex-ploitability—so across benchmarks and horizons Seq con-sistently improves robustness over Sim while often deliver-ing order-of-magnitude speedups. The message is simple: in zs-POSGs, scalability is won in the backup, and sequen-tialisation turns reduction-based planning from a principled formulation into a usable algorithm. 8An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+## References 
+
+Bellman, R. E. Dynamic Programming . Dover Publications, Incorporated, 1957. Brown, N., Bakhtin, A., Lerer, A., and Gong, Q. Combining deep reinforcement learning and search for imperfect-information games. In NeurIPS , 2020. Buffet, O., Dibangoye, J. S., Safidine, A., and Thomas, V. 
+
+ϵ-optimally solving zs-POSGs using Bellman’s optimal-ity principle. Technical report, Inria Nancy Grand-Est, 2020a. Buffet, O., Dibangoye, J. S., Safidine, A., and Thomas, V. Heuristic search value iteration for zero-sum stochastic games. IEEE Transactions on Games (to appear) , 2020b. Cunha, R. F., Castellini, J., Peralez, J., and Dibangoye, J. S. On convex optimal value functions for POSGs. arXiv preprint arXiv:2311.09459 , 2023. Delage, A., Buffet, O., Dibangoye, J. S., and Saffidine, A. HSVI can solve zero-sum partially observable stochastic games. Dynamic Games and Applications , pp. 1–55, 2023. Dibangoye, J. and Buffet, O. Learning to act in decentralized partially observable MDPs. In Proceedings of the 35th International Conference on Machine Learning , pp. 1233– 1242, 2018. Dibangoye, J. S., Christopher, A., and Arnaud, D. Scaling up decentralized mdps through heuristic search. In Con-ference on Uncertainty in Artificial Intelligence , 2012. Dibangoye, J. S., Amato, C., Buffet, O., and Charpillet, F. Optimally solving Dec-POMDPs as continuous-state MDPs. In IJCAI , pp. 90–96, 2013. Dibangoye, J. S., Buffet, O., and Simonin, O. Structural results for cooperative decentralized control models. In Yang, Q. and Wooldridge, M. J. (eds.), Proceedings of the Twenty-Fourth International Joint Conference on Ar-tificial Intelligence, IJCAI 2015, Buenos Aires, Argentina, July 25-31, 2015 , pp. 46–52. AAAI Press, 2015. Dibangoye, J. S., Amato, C., Buffet, O., and Charpillet, F. Optimally Solving Dec-POMDPs as Continuous-State MDPs. Journal of Artificial Intelligence Research , 55, 2016. Escudie, E., Sabatelli, M., Buffet, O., and Dibangoye, J. S. 
+
+ε-optimally solving two-player zero-sum POSGs. In The Thirty-ninth Annual Conference on Neural Information Processing Systems , 2025. Ghosh, M., McDonald, D., and Sinha, S. Zero-sum stochas-tic games with partial information. JOTA , 121, 2004. Hansen, E. A., Bernstein, D. S., and Zilberstein, S. Dynamic Programming for Partially Observable Stochastic Games. In AAAI , 2004. Horák, K. and Bošansk `y, B. Solving partially observable stochastic games with public observations. In Proceed-ings of the AAAI Conference on Artificial Intelligence ,2019. Horák, K., Bošansk `y, B., and Pˇ echouˇ cek, M. Heuristic search value iteration for one-sided partially observable stochastic games. In Proceedings of the AAAI Conference on Artificial Intelligence , volume 31, 2017. Moravcík, M., Schmid, M., Burch, N., Lisý, V., Morrill, D., Bard, N., Davis, T., Waugh, K., Johanson, M. B., and Bowling, M. H. Deepstack: Expert-level artificial intelligence in heads-up no-limit poker. Science , 356:508 – 513, 2017. Nayyar, A. and Gupta, A. Information structures and values in zero-sum stochastic games. In 2017 American Control Conference (ACC) , pp. 3658–3663, 2017. Nayyar, A., Mahajan, A., and Teneketzis, D. Decentralized stochastic control with partial history sharing: A common information approach. IEEE Transactions on Automatic Control , 58(7):1644–1658, 2013. Neumann, J. v. Zur theorie der gesellschaftsspiele. Mathe-matische Annalen , 100:295–320, 1928. Oliehoek, F. A. Sufficient plan-time statistics for decen-tralized pomdps. In Twenty-Third International Joint Conference on Artificial Intelligence , 2013. Oliehoek, F. A., Spaan, M. T. J., Dibangoye, J. S., and Amato, C. Heuristic search for identical payoff bayesian games. In AAMAS , pp. 1115–1122, 2010. Peralez, J., Delage, A., Buffet, O., and Dibangoye, J. S. Solving hierarchical information-sharing dec-POMDPs: An extensive-form game approach. In Forty-first Interna-tional Conference on Machine Learning , 2024. Peralez, J., Delage, A., Castellini, J., Cunha, R. F., and Dibangoye, J. S. Optimally solving simultaneous-move Dec-POMDPs: The sequential central planning approach. 
+
+Proceedings of the AAAI Conference on Artificial Intelli-gence , 39(22):23276–23285, Apr. 2025. Pineau, J., Gordon, G., Thrun, S., et al. Point-based value iteration: An anytime algorithm for pomdps. In IJCAI ,volume 3, pp. 1025–1032, 2003. Sanjari, S., Ba¸ sar, T., and Yüksel, S. Isomorphism proper-ties of optimality and equilibrium solutions under equiv-alent information structure transformations: Stochastic 9An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+dynamic games and teams. SIAM Journal on Control and Optimization , 61(5):3102–3130, 2023. Shapley, L. S. Stochastic games*. Proceedings of the National Academy of Sciences , 39(10):1095–1100, 1953. Sion, M. On general minimax theorems. Pacific Jouronal of Mathematics , 8(1):171–176, 1958. Sokota, S., D’Orazio, R., Ling, C. K., Wu, D. J., Kolter, J. Z., and Brown, N. Abstracting imperfect information away from two-player zero-sum games. In International Con-ference on Machine Learning , volume 202 of Proceedings of Machine Learning Research , pp. 32169–32193, 2023. Szer, D., Charpillet, F., and Zilberstein, S. MAA*: A Heuristic Search Algorithm for Solving Decentralized POMDPs. In Proceedings of the Twenty-First Conference on Uncertainty in Artificial Intelligence , 2005. Tammelin, O. Solving large imperfect information games using CFR+. CoRR , 2014. Wiggers, A. J., Oliehoek, F. A., and Roijers, D. M. Structure in the value function of two-player zero-sum games of incomplete information. In ECAI , 2016. 10 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+# Appendix — Detailed Proofs 
+
+## Contents 
+
+1 Introduction 12 Preliminaries 2
+
+2.1 Simultaneous-Move zs-POSGs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22.2 The Computational Barrier of Simultaneity . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+
+3 The Sequential Reformulation 3
+
+3.1 Lifting to Sequential Occupancy States . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33.2 Sequential Dynamics and Rewards . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43.3 Recovering Simultaneity via Two-Step Recursion . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+
+4 Sequential Backup Geometry 4
+
+4.1 Saddle Geometry Unveiled . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 44.2 Disentangled Greedy Selection . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 54.3 Algorithmic Realisation: Sequential PBVI . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+
+5 Sequential Transition Independence 7
+
+5.1 The Sequential TI-zs-SG . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 75.2 Losslessness . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+
+6 Empirical evaluation 77 Conclusion 8A Sequential Optimality Equations — Proof of Theorem 3.3 12 
+
+A.1 Sufficiency of Sequential Occupancy States — Proof Theorem 3.4 . . . . . . . . . . . . . . . . . . . . . 12 A.2 Compactness and attainment . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13 A.3 Sequential Bellman equations by backward induction . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13 
+
+B Geometry of Optimal Sequential Value Functions — Proof Theorem 4.1 14 C Greedy Selection Operators — Proofs of Lemmas 4.2–4.3 14 
+
+C.1 Proof of Lemma 4.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14 C.2 Proof of Lemma 4.3 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15 
+
+D Updating Value Function Representations 15 E From Exponential to Polynomial Complexity — Proof of Theorem 4.4 16 
+
+11 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+F Sequential Lossless Reduction — Proof of Theorem 5.1 18 G Sequential Transition-Independent Stochastic Games 18 
+
+G.1 Formal definitions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19 
+
+H Algorithms 20 
+
+H.1 Point Based Value Iteration . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20 H.2 Pruning strategy . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 
+
+I Experimental results 21 
+
+I.1 Benchmarks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21 I.2 Additional results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22 I.3 Implementation Details . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23 
+
+## A. Sequential Optimality Equations — Proof of Theorem 3.3 
+
+This section provides a concise, self-contained proof by backward induction. The only non-trivial points are: (i) sequential occupancy states are sufficient (Markov) for one-step rewards and transitions, and (ii) the one-step optimisations attain 
+
+max / min .
+
+Termination conditions. At stage boundary t = ℓ, the process terminates at x1,ℓ . We set v∗
+
+> seq
+
+(x1,ℓ ) .
+
+= 0 .
+
+Discount split. Since the true stage reward is realised only at sub-stage 2, discounting must apply only once per completed original stage. We therefore set γ1
+
+.
+
+= 1 and γ2
+
+.
+
+= γ.
+
+A.1. Sufficiency of Sequential Occupancy States — Proof Theorem 3.4 Lemma A.1. Fix t < ℓ . Let θ1,t and θ2,t be the sequential planner’s exhaustive information states, and let x1,t and x2,t be the induced sequential occupancies. Private histories are updated by appending the realised pair (ai, z i) to hi,t .(i) For any d1,t ∈ D1,t , consider the resulting exhaustive history θ2,t = ( θ1,t , d 1,t ). Then, for all (s, h 1,t , h 2,t , a 1),
+
+Pr( s, h 1,t , h 2,t , a 1 | θ2,t ) = τseq (x1,t , d 1,t )( s, h 1,t , h 2,t , a 1) and ρseq (x1,t , d 1,t ) = 0 .
+
+(ii) For any d2,t ∈ D2,t , consider the resulting exhaustive history θ1,t +1 = ( θ2,t , d 2,t ). Then, for all (s′, h 1,t +1 , h 2,t +1 ),
+
+Pr( s′, h 1,t +1 , h 2,t +1 | θ1,t +1 ) = τseq (x2,t , d 2,t )( s′, h 1,t +1 , h 2,t +1 ) and E[r(s, a 1, a 2) | θ2,t , d 2,t ] = ρseq (x2,t , d 2,t ).
+
+In particular, the one-step law of the next occupancy and the one-step expected reward depend on the exhaustive past only through (xi,t , d i,t ).Proof. (i) Under θ1,t , the triple (s, h 1,t , h 2,t ) has distribution x1,t . Moreover, for each h1,t and each a1, the probability of sampling action a1 equals d1,t (a1 | h1,t ). Therefore, for every (s, h 1,t , h 2,t , a 1),
+
+Pr( s, h 1,t , h 2,t , a 1 | θ2,t ) = x1,t (s, h 1,t , h 2,t ) d1,t (a1 | h1,t ),
+
+which equals τseq (x1,t , d 1,t )( s, h 1,t , h 2,t , a 1) by the sub-stage (1 , t ) pushforward construction of Section 3.2. Moreover, the sub-stage reward at (1 , t ) is defined to be 0.
+
+(ii) Under θ2,t and the choice d2,t (equivalently, under θ1,t +1 ), for each h2,t and each a2, the probability of sampling action 
+
+a2 equals d2,t (a2 | h2,t ). Then, for each (s, a 1, a 2) and each (s′, z 1, z 2), the probability of transitioning and observing equals p(s′, z 1, z 2 | s, a 1, a 2), and histories are updated by appending (ai, z i). By the sub-stage (2 , t ) transition construction 12 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+of Section 3.2 (integration of p against x2,t and d2,t with history appending), this induces exactly τseq (x2,t , d 2,t ), yielding the claimed componentwise identity. Finally, the conditional expected stage reward is ρseq (x2,t , d 2,t ) by definition of 
+
+ρseq .
+
+Proof of Theorem 3.4. Fix a sub-stage (i, t ) and consider two exhaustive information states θi,t and θ′ 
+
+> i,t
+
+that induce the same sequential occupancy xi,t . By Lemma A.1, for any admissible one-step decision rule di,t , the conditional expected one-step reward and the conditional law of the next occupancy coincide under θi,t and θ′
+
+> i,t
+
+, and depend on the exhaustive past only through (xi,t , d i,t ).Fix any continuation policy πt: in Mseq from sub-stage (i, t ) onward. We show by induction on the remaining number of sub-stages that the expected cumulative discounted return induced by πt: is the same when starting from θi,t or from θ′
+
+> i,t
+
+.The base case holds at termination. For the induction step, let di,t be the decision rule prescribed by πt: at (i, t ) as a function of hi,t . Lemma A.1 gives the same one-step expected reward and the same conditional law of the next occupancy under θi,t 
+
+and θ′
+
+> i,t
+
+; conditioning on that next occupancy and applying the induction hypothesis to the remaining continuation under πt:
+
+yields equality of the full expected return. Hence, for any continuation policy πt:, the induced expected return depends on the exhaustive past only through the current occupancy xi,t .Taking the appropriate max /min over continuation policies preserves this invariance, so the optimal value depends on θi,t 
+
+only through xi,t . Therefore sequential occupancy states are sufficient to compute v∗ 
+
+> seq
+
+in Mseq . Finally, at stage boundaries the two sub-stages compose to the original simultaneous stage, so these optimal boundary values coincide with the optimal values in the simultaneous zs-POSG M (Section 3.3). 
+
+A.2. Compactness and attainment Lemma A.2 (Compactness of decision-rule sets) . For each t, the set Di,t is compact. Proof. Since Hi,t and Ai are finite, a decision rule is a finite product of simplices ∆( Ai), hence compact. 
+
+A.3. Sequential Bellman equations by backward induction 
+
+Proof of Theorem 3.3. We prove the sequential Bellman equalities by backward induction on t, using the standard one-step decomposition of the finite-horizon objective. 
+
+Base. At t = ℓ, no reward can be collected in the remaining horizon, hence v∗
+
+> seq
+
+(x1,ℓ ) = 0 .
+
+Inductive hypothesis. Fix t ∈ { 0, . . . , ℓ − 1} and assume that v∗
+
+> seq
+
+(x1,t +1 ) is defined for every valid boundary occupancy at time t + 1 , and that it is continuous on that set. 
+
+Step 1: intermediate sub-stage (2 , t ). Fix a valid x2,t . For any d2,t ∈ D2,t , Lemma A.1 ensures that τseq (x2,t , d 2,t )
+
+is a valid boundary occupancy at time t + 1 , so v∗
+
+> seq
+
+ τseq (x2,t , d 2,t ) is well-defined. Consider the finite-horizon return from (2 , t ) under a choice d2,t and an arbitrary continuation policy π2,t +1: : by the Markov property (Lemma A.1) and the definition of the sequential primitives, it decomposes as the one-step reward plus the discounted continuation value starting from the next boundary occupancy. Optimising over continuations therefore yields the principle of optimality :
+
+v∗
+
+> seq
+
+(x2,t ) = min 
+
+> d2,t ∈D2,t
+
+ρseq (x2,t , d 2,t ) + γ2 v∗
+
+> seq
+
+ τseq (x2,t , d 2,t ) .
+
+Moreover, the map d2,t 7 → ρseq (x2,t , d 2,t ) is affine, d2,t 7 → τseq (x2,t , d 2,t ) is affine, and v∗ 
+
+> seq
+
+is continuous by the inductive hypothesis; hence the bracketed objective is continuous. Since D2,t is compact (Lemma A.2), the minimum is attained. 
+
+Step 2: boundary sub-stage (1 , t ). By Step 1, v∗
+
+> seq
+
+(x2,t ) is well-defined for every valid intermediate occupancy at time t.Fix a valid x1,t . For any d1,t ∈ D1,t , Lemma A.1 ensures that τseq (x1,t , d 1,t ) is a valid intermediate occupancy at time t, so 
+
+v∗
+
+> seq
+
+ τseq (x1,t , d 1,t ) is well-defined. By construction ρseq (x1,t , d 1,t ) ≡ 0, and by the same one-step decomposition/optimal-continuation argument as in Step 1, 
+
+v∗
+
+> seq
+
+(x1,t ) = max 
+
+> d1,t ∈D1,t
+
+ρseq (x1,t , d 1,t ) + γ1v∗
+
+> seq
+
+ τseq (x1,t , d 1,t ) ,
+
+with γ1 = 1 . As above, the objective is continuous in d1,t (affine τseq composed with a continuous v∗
+
+> seq
+
+), and D1,t is compact, so the maximum is attained. 13 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+Conclusion. The base case and Steps 1–2 establish the claimed Bellman equalities for every t < ℓ and every transient sub-stage occupancy. 
+
+## B. Geometry of Optimal Sequential Value Functions — Proof Theorem 4.1 
+
+Proof of Theorem 4.1. Fix a sub-stage i ∈ { 1, 2} at some stage t. An occupancy xi is a distribution over (ω, h 2,t ) with 
+
+ω ∈ Ωi. For each h2,t ∈ H2,t , define the unnormalised slice bh2,t ∈ RΩi 
+
+> +
+
+by bh2,t (ω) .
+
+= xi(ω, h 2,t ).
+
+Inner pessimistic layer. Fix any player 1 continuation policy π1,t :. For any player 2 continuation tree πtree ,2,t (rooted at the empty continuation history), the definition of value-vector pairs induces a value vector απ1,t :,π tree ,2,t ∈ RΩi . Since the horizon and all action/observation sets are finite, the set of deterministic player 2 continuation trees from stage t is finite; moreover, because the continuation value is linear in the player 2 continuation, the minimum over (possibly mixed) continuations is attained at a deterministic tree. Let Γ2 ⊂ RΩi be the (finite) set of vectors απ1,t :,π tree ,2,t induced by these deterministic trees. Then, for each h2,t ,
+
+min  
+
+> πtree ,2,t admissible
+
+D
+
+bh2,t , α π1,t :,π tree ,2,t 
+
+E
+
+= min 
+
+> α∈Γ2
+
+⟨bh2,t , α ⟩.
+
+Moreover, since π2,t : is a family of decision rules indexed by player 2 histories, it selects, for each realised h2,t , a re-rooted continuation tree πtree ,2,t = π2,t :(h2,t ). Thus the player 2-optimal continuation value under π1,t : equals 
+
+P 
+
+> h2,t
+
+min α∈Γ2 ⟨bh2,t , α ⟩ = Val Γ2 (xi).
+
+Outer optimistic layer. Let Γ1 be a family of such finite sets Γ2 representing the non-dominated player 1 continuations. Optimising over player 1 continuations is therefore equivalent to maximising over Γ2 ∈ Γ1, giving 
+
+v∗
+
+> seq
+
+(xi) = max 
+
+> Γ2∈Γ1
+
+Val Γ2 (xi),
+
+as claimed. 
+
+## C. Greedy Selection Operators — Proofs of Lemmas 4.2–4.3 
+
+C.1. Proof of Lemma 4.2 
+
+Proof. Fix a boundary occupancy x1 at sub-stage (1 , t ). By construction, ρseq (x1, d 1) ≡ 0; hence any greedy decision rule of player 1 maximises 
+
+d1 7 −→ v∗
+
+> seq
+
+ τseq (x1, d 1). (1) Let x2
+
+.
+
+= τseq (x1, d 1).At the intermediate sub-stage (2 , t ), the optimal value admits the envelope representation 
+
+v∗
+
+> seq
+
+(x2) = max 
+
+> Γ2∈Γ∗
+> 1
+
+Val Γ2 (x2), Val Γ2 (x2) .
+
+= X
+
+> h2
+
+min 
+
+> α∈Γ2
+
+⟨bh2 , α ⟩. (2) We justify that the outer optimisation in (2) is a max (not merely a sup ). Let Π1,t : denote the set of player 1 continuation policies from stage t onward; since the horizon is finite and each decision rule is a simplex over a finite action set, Π1,t : is a finite product of simplices and therefore compact. For each π1,t : ∈ Π1,t :, let Γ2,π 1,t : be the associated finite set of α-vectors induced by the finite index set K of deterministic follower policy trees, and define Γ∗
+
+> 1
+
+.
+
+= {Γ2,π 1,t : : π1,t : ∈ Π1,t :}. For each fixed reachable x2, the real-valued map 
+
+π1,t : 7 −→ Val Γ2,π 1,t : (x2) (3) is continuous, because Γ2,π 1,t : = {ακπ1,t : : κ ∈ K} and, for each κ ∈ K, π1,t : 7 → ⟨ bh2 , α κπ1,t : ⟩ is continuous, while the minimum over finitely many continuous functions preserves continuity. Therefore, by Weierstrass, there exists π∗ 
+
+> 1,t :
+
+∈ Π1,t :
+
+attaining the maximum of (3), and the corresponding Γ2,π ∗ 
+
+> 1,t :
+
+∈ Γ∗ 
+
+> 1
+
+attains the outer maximum in (2). Substituting (2) into (1) yields 
+
+arg max 
+
+> d1∈D1
+
+v∗
+
+> seq
+
+ τseq (x1, d 1) = arg max 
+
+> d1∈D1
+
+max 
+
+> Γ2∈Γ∗
+> 1
+
+Val Γ2
+
+ τseq (x1, d 1),
+
+14 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+which is the claim. Finally, the arg max over d1 is attained since D1,t is compact (Lemma A.2) and d1 7 → τseq (x1, d 1) is affine, hence 
+
+d1 7 → Val Γ2 (τseq (x1, d 1)) is continuous for each fixed Γ2, and the pointwise maximum over Γ∗ 
+
+> 1
+
+is upper semicontinuous; therefore a maximiser exists by Weierstrass. 
+
+C.2. Proof of Lemma 4.3 
+
+Proof. Fix x2 at sub-stage (2 , t ). The greedy step minimises ρseq (x2, d 2) + γ v ∗
+
+> seq
+
+(τseq (x2, d 2)) over d2 ∈ D2,t . Using the cached representation at (1 , t + 1) ,
+
+v∗
+
+> seq
+
+(x1) = max  
+
+> Γ′
+> 2∈Γ′
+> 1
+
+X
+
+> h2
+
+min 
+
+> α∈Γ′
+> 2
+
+⟨bh2 (x1), α ⟩,
+
+and unfolding the one-step recursion at (2 , t ) (reward plus discounted continuation) yields exactly the back-projected vectors qαa2,z 2 used in Equation (LP 2). Introduce epigraph variables vh2 for the value of each history slice and wΓ′ 
+
+> 2
+> h2,z 2
+
+for each envelope/observation contribution. Because d2 enters linearly through τseq , minimising over the simplex-valued rule 
+
+d2( · | h2) is enforced by the pointwise constraints vh2 ≤ P
+
+> Γ′
+> 2
+
+P 
+
+> z2
+
+wΓ′ 
+
+> 2
+> h2,z 2
+
+∀a2, and the inner min α∈Γ′ 
+
+> 2
+
+is enforced by 
+
+wΓ′ 
+
+> 2
+> h2,z 2
+
+≤ λ(Γ ′
+
+> 2
+
+)⟨bh2 , q αa2,z 2 ⟩ ∀ α ∈ Γ′
+
+> 2
+
+. The simplex constraint P
+
+> Γ′
+> 2
+
+λ(Γ ′
+
+> 2
+
+) = 1 , λ ≥ 0 makes λ a mixture (dual selector) over cached envelopes. Thus the greedy problem is equivalently LP 2 (maximising P 
+
+> h2
+
+vh2 ), and by strong LP duality (feasible and bounded since Γ′ 
+
+> 1
+
+is finite and all payoffs/vectors are bounded), its dual is precisely the stated max–min form in the lemma. 
+
+## D. Updating Value Function Representations 
+
+Proposition D.1 (Sub-stage 1: witness-vector update) . Fix an occupancy x1 at sub-stage 1 and a cached envelope Γ2 ∈ Γ1,where Γ2 ⊂ RS×H1×A1 indexes vectors by (s, h 1, a 1) at the intermediate sub-stage. For any decision rule d1, define the induced intermediate slices 
+
+bd1 
+
+> h2
+
+(s, h 1, a 1) .
+
+= x1(s, h 1, h 2) d1(a1 | h1).
+
+For each h2, choose an arbitrary minimiser (ties broken arbitrarily) 
+
+αh2 ∈ arg min 
+
+> α∈Γ2
+
+X
+
+> s,h 1,a 1
+
+bd1 
+
+> h2
+
+(s, h 1, a 1) α(s, h 1, a 1),
+
+and define the generated witness vector βd1,Γ2 ∈ RS×H1×H2 by 
+
+βd1,Γ2 (s, h 1, h 2) .
+
+= X
+
+> a1
+
+d1(a1 | h1) αh2 (s, h 1, a 1).
+
+Then, for every d1,
+
+Val Γ2
+
+ τseq (x1, d 1) = X
+
+> s,h 1,h 2
+
+x1(s, h 1, h 2) βd1,Γ2 (s, h 1, h 2) = ⟨x1, β d1,Γ2 ⟩.
+
+In particular, if (d∗
+
+> 1
+
+, Γ∗ 
+
+> 2
+
+) is the maximiser selected by Lemma 4.2, then βd∗  
+
+> 1,Γ∗
+> 2
+
+is a valid witness vector to update the boundary envelope at x1.Proof. Fix d1 and Γ2. By the definition of Val Γ2 at the intermediate occupancy, 
+
+Val Γ2
+
+ τseq (x1, d 1) = X
+
+> h2
+
+min 
+
+> α∈Γ2
+
+X
+
+> s,h 1,a 1
+
+bd1 
+
+> h2
+
+(s, h 1, a 1) α(s, h 1, a 1).
+
+Since Γ2 is finite, each inner minimum is attained; choose αh2 as an arbitrary minimiser (ties broken arbitrarily). Substituting the definition of bd1 
+
+> h2
+
+yields 
+
+Val Γ2
+
+ τseq (x1, d 1) = X
+
+> h2
+
+X
+
+> s,h 1,a 1
+
+x1(s, h 1, h 2) d1(a1 | h1) αh2 (s, h 1, a 1).
+
+15 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+Reordering the finite sums and using the definition of βd1,Γ2 gives 
+
+X
+
+> s,h 1,h 2
+
+x1(s, h 1, h 2) βd1,Γ2 (s, h 1, h 2) = ⟨x1, β d1,Γ2 ⟩,
+
+which proves the claim. 
+
+Proposition D.2 (Sub-stage (2 , t ): witness-envelope generation) . Fix a reachable x2 and a cached family Γ′ 
+
+> 1
+
+from (1 , t + 1) .Let (λ∗, w ∗, v ∗) be an optimal solution of Equation (LP 2). For each (h2, a 2, z 2, Γ′
+
+> 2
+
+), choose any minimiser 
+
+αh2,a 2,z 2,Γ′ 
+
+> 2
+
+∈ arg min 
+
+> α∈Γ′
+> 2
+
+bh2 , q αa2,z 2 ,
+
+and define, for each (h2, a 2), the vector 
+
+βh2,a 2 .
+
+= X
+
+> z2
+
+X 
+
+> Γ′
+> 2∈Γ′
+> 1
+
+λ∗(Γ ′
+
+> 2
+
+) qαh2,a 2,z 2,Γ′ 
+
+> 2
+> a2,z 2
+
+.
+
+Finally, define the (finite) witness envelope at x2 as 
+
+Γ2,x 2
+
+.
+
+=
+
+n
+
+βh2,a 2 : h2 ∈ H2,t , a 2 ∈ A2
+
+o
+
+⊂ RΩ2 .
+
+Then, for all h2 and a2,
+
+bh2 , β h2,a 2 = X 
+
+> Γ′
+> 2∈Γ′
+> 1
+
+λ∗(Γ ′
+
+> 2
+
+) X
+
+> z2
+
+min 
+
+> α∈Γ′
+> 2
+
+bh2 , q αa2,z 2 ,
+
+and therefore Γ2,x 2 is a valid cached envelope for evaluating Val Γ2,x 2 (x2), as used at predecessor boundary sub-stages (via Equation (LP 1)). Proof. Because each Γ′ 
+
+> 2
+
+is finite, the arg min is non-empty and the chosen αh2,a 2,z 2,Γ′ 
+
+> 2
+
+attains the minimum. Substituting these minimisers into the definition of βh2,a 2 gives the equality by linearity in λ∗ and summation over z2.
+
+Theorem D.3 (Monotone cache augmentation) . Fix a sub-stage i ∈ { 1, 2} and let Γ1 be the current cached family. Define the represented value function 
+
+bvseq (xi) .
+
+= max 
+
+> Γ2∈Γ1
+
+Val Γ2 (xi).
+
+Let Γ2,x i be a witness envelope generated at xi (by Proposition D.1 when i = 1 , and by Proposition D.2 when i = 2 ), and define the augmented family Γ+1
+
+.
+
+= Γ 1 ∪ { Γ2,x i }, with the associated value bv+seq defined as above with Γ+1 . Then, for every occupancy xi,
+
+bv+seq (xi) ≥ bvseq (xi),
+
+and in particular 
+
+bv+seq (xi) = max 
+
+nbvseq (xi), Val Γ2,x i (xi)
+
+o
+
+.
+
+Moreover, if Val Γ2,x i (xi) > bvseq (xi), then bv+seq (xi) > bvseq (xi).Proof. By definition, Γ1 ⊆ Γ+1 , hence 
+
+bv+seq (xi) = max 
+
+> Γ2∈Γ+1
+
+Val Γ2 (xi) ≥ max 
+
+> Γ2∈Γ1
+
+Val Γ2 (xi) = bvseq (xi).
+
+The displayed identity follows because Γ+1 adds exactly one candidate envelope, and strict improvement holds whenever the added candidate attains a strictly larger value at xi.
+
+## E. From Exponential to Polynomial Complexity — Proof of Theorem 4.4 
+
+Proof of Theorem 4.4. We count the number of decision variables and linear constraints in the two LPs and use that linear programs are solvable in time polynomial in their input size (bit-length). 16 An ε-Optimal Sequential Approach for Solving zs-POSGs Update step # LPs # variables # constraints Ours: LP 1 |Γ1| O(|H1|| A1| + |H2|) O(|H2| · | Γ2|) (+ simplex) 
+
+Ours: LP 2 1 O(|H2|| Z2| · | Γ′
+
+> 1
+
+|) O |H2|| A2| + |H2|| A2|| Z2| · | Γ1| · | Γ∗ 
+
+> 2
+
+| (+ simplex) (Delage et al., 2023) 1 (rule variables + epigraph) Exponential: O |A2||H2|
+
+(Escudie et al., 2025) 1 O |Γ1| · | H2| · | A2| · | Z2| O |Γ1| · | Γ∗ 
+
+> 2
+
+| · | H2| · | A2| · | Z2|
+
+Table 2. LP complexity comparison (input-size view). The OMG greedy-update LP has constraints indexed by opponent decision rules, yielding an exponential dependence on |H2| (Delage et al., 2023). Both the cached-envelope greedy LP (Escudie et al., 2025) and our sequential backup scale polynomially in the same explicit representation objects, but they expose different optimisation structure. 
+
+Sub-stage (1 , t ): LP 1. Fix a cached envelope Γ2 ∈ Γ1. LP 1 optimises over (d1, w ). A decision rule d1(· | h1) is a simplex vector for each h1 ∈ H1, hence has Θ( |H1|| A1|) scalar coordinates. The epigraph variables wh2 add |H2| scalars, so the total variable count is 
+
+OOO(|H1|| A1| + |H2|).
+
+The main inequalities are wh2 ≤ ⟨ bh2 , α ⟩ for every h2 ∈ H2 and every α ∈ Γ2, hence OOO(|H2|| Γ2|) constraints (plus simplex constraints as well). Since we solve one such LP for each Γ2 ∈ Γ1, sub-stage (1 , t ) requires |Γ1| LPs of this size. 
+
+Sub-stage (2 , t ): LP 2. LP 2 uses the variables λ ∈ ∆(Γ ′
+
+> 1
+
+), vh2 for h2 ∈ H2, and wΓ′ 
+
+> 2
+> h2,z 2
+
+for (h2, z 2, Γ′
+
+> 2
+
+) ∈ H2 × Z2 × Γ′
+
+> 1
+
+.Therefore, the number of scalar variables is 
+
+|Γ′
+
+> 1
+
+| + |H2| + |H2|| Z2|| Γ′
+
+> 1
+
+| = OOO |H2|| Z2|| Γ′
+
+> 1
+
+|.
+
+For constraints: (i) the “min over a2” constraints vh2 ≤ P
+
+> Γ′
+
+P 
+
+> z2
+
+wΓ′ 
+
+> h2,z 2
+
+appear for each (h2, a 2), giving OOO(|H2|| A2|)
+
+constraints; (ii) the envelope constraints wΓ′ 
+
+> h2,z 2
+
+≤ λ(Γ ′)⟨bh2 , q αa2,z 2 ⟩ appear for each (h2, a 2, z 2, Γ′, α ) with α ∈ Γ′. Thus their count is 
+
+OOO
+
+
+
+|H2|| A2|| Z2| X
+
+> Γ′∈Γ′
+> 1
+
+|Γ′|
+
+
+
+= OOO |H2|| A2|| Z2|| Γ′
+
+> 1
+
+| | ¯Γ′
+
+> 2
+
+|,
+
+where |¯Γ′
+
+> 2
+
+| = max Γ′∈Γ′ 
+
+> 1
+
+|Γ′|. The simplex constraints for λ add OOO(|Γ′
+
+> 1
+
+|) further constraints. 
+
+Polynomial-time conclusion. Both LP 1 and LP 2 have sizes polynomial in the explicit parameters 
+
+|H1|, |H2|, |A1|, |A2|, |Z2|, |Γ1|, |Γ′
+
+> 1
+
+|, |¯Γ′
+
+> 2
+
+|. Since sub-stage (1 , t ) solves |Γ1| instances of LP 1 and sub-stage (2 , t )
+
+solves one instance of LP 2, and since linear programming is solvable in time polynomial in its input size (bit-length), computing the sequential backup is polynomial in the explicit representation size. 
+
+LP complexity comparison to the state of the art. We compare the linear programs underlying (i) the OMG greedy-update view Delage et al. (2023), (ii) the cached-envelope greedy LP view Escudie et al. (2025), and (iii) our sequential backup (LP 1/LP 2). In the OMG view, pessimism is enforced against all deterministic opponent decision rules d2 : H2 → A2.Since the number of such mappings is |A2||H2|, the resulting LP description carries an exponential constraint family. For the polynomial LPs, we report input-size bounds in terms of the same explicit representation objects used throughout the paper: a cached family Γ1 of envelopes Γ2 ∈ Γ1, and the maximal envelope size 
+
+|Γ∗
+
+> 2
+
+| .
+
+= max 
+
+> Γ2∈Γ1
+
+|Γ2|.
+
+Table 2 reports the asymptotic numbers of scalar variables and linear constraints, as well as the number of LP solves per backup step. 
+
+Comparative analysis: Delage et al. (2023) vs. our sequential backup. The OMG greedy-update formulation Delage et al. (2023) enforces pessimism against all deterministic opponent decision rules d2 : H2 → A2. Because there are 
+
+|A2||H2| such mappings, the LP description contains O(|A2||H2|) constraints (Table 2), which is exponential in the size of the opponent’s private-history space. Our sequential backup removes this bottleneck by never indexing constraints by opponent decision rules: LP 1 constrains only against finitely many vectors in a cached envelope Γ2, and LP 2 aggregates only over finitely many cached envelopes. Hence both LP 1 and LP 2 admit polynomial-size descriptions in the explicit parameters |H1|, |H2|, |A1|, |A2|, |Z2|, |Γ1|, |Γ∗
+
+> 2
+
+|. In particular, for any |A2| ≥ 2, any polynomially bounded LP description 17 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+is asymptotically strictly smaller than |A2||H2| as |H2| → ∞ . This is the precise sense in which our sequentialisation turns an exponentially described update into a polynomially described backup operator. 
+
+Comparative analysis: Escudie et al. (2025) vs. our sequential backup. Both approaches avoid the OMG exponential constraint family by optimising against the same explicit cached representation (Γ 1, Γ2). The difference is how the optimisation couples indices. In Escudie et al. (2025), a single monolithic greedy LP couples, within one program, the outer cache index Γ1, the inner value index α ∈ Γ2, and the opponent action–observation indices (a2, z 2), yielding a constraint count O(|Γ1| · | Γ∗
+
+> 2
+
+| · | H2| · | A2| · | Z2|) (Table 2). Our sequential backup factorises this coupling into two sub-stages. LP 1 is local to a fixed envelope Γ2 and therefore eliminates the global (a2, z 2) coupling from the α ∈ Γ2 enumeration: its constraints scale only as O(|H2| · | Γ2|), and it is solved once per candidate envelope. The global (a2, z 2) coupling is paid only once, at the aggregation stage LP 2,whose constraints scale as O(|H2|| A2|| Z2| · | Γ1| · | Γ∗
+
+> 2
+
+|). Consequently, relative to the monolithic formulation of Escudie et al. (2025), our update strictly reduces the coupling burden by ensuring that the |A2|| Z2| factor appears only in the single aggregation LP and not inside each per-envelope optimisation. This is precisely the computational gain delivered by the sequential factorisation: it preserves the same explicit representation objects while decoupling local envelope selection (LP 1)from global aggregation (LP 2). 
+
+## F. Sequential Lossless Reduction — Proof of Theorem 5.1 
+
+Proof of Theorem 5.1. Let M′ denote the (simultaneous) TI-zs-SG of Escudie et al. (2025), which is a lossless reduction of the zs-POSG M.
+
+Step 1: M′ 
+
+> seq
+
+is a pure stage-unrolling of M′. The construction of M′ 
+
+> seq
+
+only unzips each stage t of M′ into two internal sub-stages: at (1 , t ) player 1 selects d1,t , the central state is pushed forward deterministically, the reward is 0, and γ1 = 1 ; at 
+
+(2 , t ) player 2 selects d2,t , the original TI kernel and occupancy-set updates of M′ are applied, the stage reward is realised, and γ2 = γ. Define Φ as the path-embedding that inserts the intermediate node x2,t after each boundary node x1,t , and 
+
+Ψ as the projection that composes the two sub-stages at each t; then Ψ ◦ Φ = Id , and Φ ◦ Ψ is identity up to the inserted bookkeeping nodes. Consequently, Φ and Ψ induce a bijection between admissible policy profiles in M′ and in M′
+
+> seq
+
+, where admissibility means measurability w.r.t. the same decision-rule histories/occupancy sets as in M′ (so x2,t is not an additional signal); under corresponding admissible profiles, the induced law on stage-boundary states and the total discounted return coincide, hence best responses and equilibrium values are preserved. 
+
+Step 2: Losslessness w.r.t. M. Since M′ is lossless for M and M′ 
+
+> seq
+
+is equivalent to M′ over admissible profiles via Φ, Ψ,
+
+M′ 
+
+> seq
+
+is a lossless reduction of M.
+
+Step 3: Recovering the simultaneous TI-zs-SG optimality equations. For any boundary state x1,t ,
+
+v∗
+
+> seq
+
+(x1,t ) = max 
+
+> d1,t
+
+min 
+
+> d2,t
+
+h
+
+ρM′ (x1,t , d 1,t , d 2,t ) + γ v ∗
+
+> seq
+
+ τM′ (x1,t , d 1,t , d 2,t )i
+
+,
+
+because x2,t = τseq (x1,t , d 1,t ) is a bookkeeping node with ρseq (x1,t , d 1,t ) = 0 and γ1 = 1 , and the (2 , t ) update applies exactly the one-stage primitives of M′. This is precisely the simultaneous TI-zs-SG optimality equation of Escudie et al. (2025). 
+
+## G. Sequential Transition-Independent Stochastic Games 
+
+This appendix formalises the sequential transition-independent reduction used throughout the paper. It follows the simul-taneous TI-zs-SG construction of Escudie et al. (2025) and refines only the timing of the central recursion: each original stage t is split into two sub-stages (1 , t ) and (2 , t ), so that player 1 commits first and player 2 completes the stage. We present the reduction through two statistics: (i) a value-sufficient sequential occupancy for the uninformed recursion, and (ii) player-specific occupancy families supporting equilibrium-consistent extraction. 
+
+Timing. Sub-stages are indexed by (i, t ) with i ∈ { 1, 2} and t ∈ { 0, . . . , ℓ − 1}. Define next(1 , t ) .
+
+= (2 , t ) and 
+
+next(2 , t ) .
+
+= (1 , t + 1) . The terminal stage boundary is (1 , ℓ ).18 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+Hidden 
+
+x1,t 0start x2,t 0 x1,t 1 x2,t 1 . . . 
+
+o1,t 0 o1,t 0 o1,t 1 o1,t 1 o1,t 2
+
+d1,t 0 d1,t 1
+
+o2,t 0
+
+d2,t 0
+
+o2,t 0
+
+d2,t 0
+
+o2,t 1 o2,t 1
+
+d2,t 1
+
+Time (1 , t 0) (2 , t 0) (1 , t 1) (2 , t 1)              
+
+> τseq (x1,t 0, d 1,t 0)τseq (x2,t 0, d 2,t 0)
+> ρseq (x2,t 0, d 2,t 0)
+> τseq (x1,t 1, d 1,t 1)τseq (x2,t 1, d 2,t 1)
+> ρseq (x2,t 1, d 2,t 1)
+
+Figure 4. Sequential Transition-Independent Stochastic Game. The diagram illustrates the interleaved dynamics extending over stages 
+
+t0 and t1. At each sub-stage (1 , t ), Player 1 is active, updating their local state o1 and driving the transition x1,t → x2,t . At sub-stage 
+
+(2 , t ), Player 2 acts, updating o2 and completing the stage transition x2,t → x1,t +1 , while generating the sequential reward ρseq .
+
+Sequential occupancies and occupancy families. At each sub-stage (i, t ), the (hidden) global state is a sequential occupancy xi,t , the value-sufficient statistic manipulated by the uninformed recursion. Player i does not observe xi,t ; instead it reasons over a local state oi,t , called an occupancy family. The family oi,t collects exactly the sequential occupancies 
+
+xi,t that are consistent with player i’s decision-rule history up to (i, t ) (with the fixed information structure), while ranging over all opponent private evolutions. Because oi,t and onext( i,t ) live at consecutive sub-stages, the successor sequential occupancy is recovered by a propagate-and-match operation: propagate the predecessor family through the occupancy recursion under the active decision rule, then match against the successor family. 
+
+Local dynamics. At sub-stage (1 , t ), only player 1 is active: it selects d1,t , the central occupancy updates x1,t 7 → x2,t , and the stage reward is 0. At sub-stage (2 , t ), only player 2 is active: it selects d2,t , the central occupancy updates x2,t 7 → x1,t +1 ,and the original stage reward is realised. Each player-specific occupancy family evolves by appending the corresponding decision rule, exactly as in Escudie et al. (2025), but interleaved across sub-stages (Figure 4). 
+
+G.1. Formal definitions Definition G.1 (Sequential focal planning process) . For each player i ∈ { 1, 2}, the sequential focal planning process is a tuple Mseq ,i = ( Oi, Fi, Di, τ seq ,i , ρ seq ,i ), where Oi is the set of occupancy families oi,t , Fi ⊂ Oi is the set of terminal families (at (1 , ℓ ) for i = 1 , and after (2 , ℓ − 1) for i = 2 ), Di is the set of decision rules, τseq ,i maps (oi,t , d i,t ) to the next family at the next activation of player i, and ρseq ,i is 0 on nonterminal families and equals opt ¬i, x ∈o g(x) on terminal families. 
+
+Definition G.2 (Sequential TI-zs-SG) . The sequential transition-independent zero-sum stochastic game is M′ 
+
+> seq
+
+=(Xseq , Fseq , Mseq ,1, Mseq ,2, τ seq , φ seq , ρ seq , ℓ, γ ), where Xseq = {x1,t }ℓt=0 ∪ { x2,t }ℓ−1 
+
+> t=0
+
+, Fseq ⊆ Xseq is terminal (e.g., 
+
+x1,ℓ ), τseq maps (xi,t , d i,t ) to xnext( i,t ), ρseq is 0 at (1 , t ) and realises the original stage reward at (2 , t ), and the compatibil-ity operator is 
+
+φseq (oi,t , onext( i,t ), d i,t ) .
+
+= τseq (xi,t , d i,t ) | xi,t ∈ oi,t ∩ onext( i,t ),
+
+which is a singleton under the standard construction of occupancy families from decision-rule histories. 1
+
+> 1
+
+Occupancy families are defined as the sets of sequential occupancies consistent with a fixed information structure and a given 
+
+19 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+## H. Algorithms 
+
+H.1. Point Based Value Iteration 
+
+We now present a detailed description of the Point-Based Value Iteration (PBVI) algorithms for simultaneous zs-POSGs. We describe how PBVI (Pineau et al., 2003) is adapted to solve either the original model M (Simultaneous PBVI, cf. 
+
+Algorithm 2) or its sequential reduction Mseq (Sequential PBVI, cf. Algorithm 1). In both cases, the algorithm alternates between two main phases: an expansion phase, which incrementally builds a representative set of reachable occupancy states, and an improvement phase, which updates the corresponding value function approximations over this sample. 
+
+Expansion phase – expand (Xν ). Value updates are performed over a finite sample of occupancy states, rather than over the entire continuous occupancy space. This sample set is iteratively expanded by simulating likely trajectories from the initial belief state, typically by sampling decision rules according to a prescribed exploration strategy. By concentrating computation on reachable regions of the occupancy space, this procedure improves the accuracy of the value approximation. In the Sequential PBVI algorithm, the generated trajectories are twice as long as those of the simultaneous variant, since the effective planning horizon is doubled by the sequentialisation over the two players. 
+
+Improvement phase – improve (Xν , Γ1,next (ν)). Value backups are carried out backward over the sampled occupancy states, from the final stage to the initial one, in a manner analogous to backward induction. This ordering enables an efficient propagation of value information across sub-stages and between players. For each occupancy state, a Bellman backup is obtained by solving a linear program that evaluates all decision rules available to the current player and selects the one that maximises the expected value. While the sequential formulation involves roughly twice as many sampled occupancy states, each linear program is substantially smaller, with significantly fewer variables and constraints. 
+
+Algorithm 1 Sequential PBVI for Mseq .
+
+function SeqPBVI (ℓ)
+
+Initialise Xν ← ∅ , for all sub-stage ν.Initialise Γ1,ν ← ∅ , for all sub-stage ν.
+
+while has not converged do for ν = (1 , ℓ ), . . . , (1 , 0) do 
+
+improve (Xν , Γ1,next (ν)).
+
+end for for ν = (1 , 0) , . . . , (2 , ℓ ) do 
+
+Xnext (ν) ← expand (Xν ).
+
+end for end while 
+
+function improve (Xν , Γ1,next (ν))
+
+for xν ∈ Xν do 
+
+sol ν ← LP (Γ 1,next (ν), x ν )Γ2,ν ← Update (Xν , Γ1,next (ν), sol ν )Γ1,ν ← Γ1,ν ∪ { Γ2,ν }
+
+end for 
+
+function expand (Xν )
+
+for xν ∈ Xν do 
+
+Sample randomly a set Dν ← { dν }
+
+Xnext( ν) ← Xnext( ν) ∪ { τseq (xν , d ν )|dν ∈ Dν }
+
+end for Algorithm 2 Simultaneous PBVI for M.
+
+function SimPBVI (ℓ)
+
+Initialise Xt ← ∅ , for all time-step t.Initialise Γ1,t ← ∅ , for all time-steps t.
+
+while has not converged do for t = ℓ − 1, . . . , 0 do 
+
+improve (Xt, Γ1,t +1 ).
+
+end for for t = 0 , . . . , ℓ do 
+
+Xt+1 ← expand (Xt).
+
+end for end while 
+
+function improve (Xt, Γ1,t +1 )
+
+for xt ∈ Xt do 
+
+sol t ← LP (Γ 1,t +1 , x t)Γ2,t ← Update (Xt, Γ1,t +1 , sol t)Γ1,t ← Γ1,t ∪ { Γ2,t }
+
+end for 
+
+function expand (Xt)
+
+for xt ∈ Xt do 
+
+Sample randomly a set D ← { (d1,t , d 2,t )}
+
+Xt+1 ← Xt+1 ∪ { τsim (xt, (d1,t , d 2,t )) |(d1,t , d 2,t ) ∈ D}
+
+end for 
+
+decision-rule history. Given oi,t and di,t , propagating any xi,t ∈ oi,t through τseq (·, d i,t ) yields the unique successor occupancy consistent with the successor decision-rule history; matching with onext( i,t ) therefore selects a unique element. 
+
+20 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+H.2. Pruning strategy 
+
+This section draws inspiration from (Escudie et al., 2025). For any sub-stage ν, this procedure provides the subroutines required to prune unnecessary sets of hyperplanes Γ2,ν from the collection Γ1,ν , as well as redundant points in Xν .An envelope Γ2,ν ∈ Γ1,ν is said to be dominated over Xν if, for every sequential occupancy state xν ∈ Xν , there exists another envelope Γ′ 
+
+> 2,ν
+
+∈ Γ1,ν such that Val Γ2,ν (xν ) < Val Γ′ 
+
+> 2,ν
+
+(xν ). According to Algorithm 3, a dominated envelope Γ2,ν 
+
+has no support point in Xν , and therefore satisfies refCount (Γ 2,ν ) = 0 . The pruning routine consequently retains only envelopes with at least one support point in Xν . That said, this procedure is not fully aggressive: a dominated envelope may still admit one or more support points in Xν , although this situation appears unlikely in practice. 
+
+Algorithm 3 Bounded Pruning. 
+
+function BoundedPruning (Γ 1,ν , Xν )
+
+for Γ2,ν ∈ Γ1,ν do 
+
+refCount (Γ 2,ν ) ← 0.
+
+end for for xν ∈ Xν do 
+
+Γ2,x ν ← arg max Γ2∈Γ1,ν Val Γ2 (xν )
+
+refCount (Γ 2,x ν ) ← refCount (Γ 2,x ν ) + 1 
+
+end for return {Γ2,ν ∈ Γ1,ν | refCount (Γ 2,ν ) > 0}
+
+Similarly, we remove redundant points in Xν . Fix ϵ > 0 and sequential occupancy state xν ∈ Xν . Let Γ2,x ν ∈ Γ1,ν denote an envelop within Γ1,ν that achieves the highest pessimistic value for player 2 at xν , i.e., 
+
+Val Γ2,xν (xν ) = max Γ2∈Γ1,ν Val Γ2 (xν ).
+
+We say that a point xν ∈ Xν is ϵ-redundant with respect to (Xν , Γ1,ν ) if and only if there exists another point x′ 
+
+> ν
+
+∈ Xν such that the gap |Val Γ2,xν (xν ) − Val Γ2,x ′
+
+> ν
+
+(xν )| is less than or equal to ϵ. Algorithm 4 removes from Xν all ϵ-redundant points. 
+
+Algorithm 4 Redundant Sequential Occupancy State Pruning. 
+
+function PruneStates (Xν , Γ1,ν , ϵ )
+
+Initialise X◦ 
+
+> ν
+
+← ∅ 
+
+for xν ∈ Xν do 
+
+Γ2,x ν ← arg max Γ2∈Γ1,ν Val Γ2 (xν )
+
+end for for xν ∈ Xν do 
+
+isRedundant ← false 
+
+for x′ 
+
+> ν
+
+∈ X◦ 
+
+> ν
+
+do if |Val Γ2,xν (xν ) − Val Γ2,x ′
+
+> ν
+
+(xν )| ≤ ϵ then 
+
+isRedundant ← true and break end if end for if ¬isRedundant then 
+
+X◦ 
+
+> ν
+
+← X◦ 
+
+> ν
+
+∪ { xν }
+
+end if end for return X◦
+
+> ν
+
+## I. Experimental results 
+
+I.1. Benchmarks 
+
+We evaluate our approach on several competitive benchmark problems, adapted from standard multi-agent settings. 21 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+Multi-Agent Recycling. In the original cooperative version, two robots must clean a room represented as a grid by emptying garbage cans. Each robot has limited battery life and a restricted view of the environment, including limited observability of the other robot. Coordination is therefore required. We adapt the task to a zero-sum setting by altering the reward function: each robot now aims to clean more efficiently than the other. 
+
+Multi-Agent Tiger. The environment consists of two rooms—one containing a treasure and the other a tiger. Each agent stands before a door and may choose to either listen for cues or enter a room. Due to stochastic listening outcomes, agents receive noisy observations. Two competitive variants, Adversarial Tiger and Competitive Tiger , were introduced in Wiggers et al. (2016) to study adversarial behaviour under partial observability. 
+
+Multi-Agent Broadcast Channel (MABC). This benchmark captures a communication scenario where two agents (nodes) must broadcast messages over a shared channel. To prevent collisions, only one node may broadcast at any time. While the original version is cooperative, maximising joint throughput, we consider a competitive variant by modifying the reward structure. 
+
+Kuhn Poker. Kuhn Poker is a simple two-player, zero-sum poker game with three cards. Each player is dealt one hidden card and antes one chip. Players alternate betting or passing until one folds or the bets are equal. The higher card wins the pot. 
+
+I.2. Additional results 
+
+1 3 5
+
+0.00 
+
+0.05 
+
+0.10 
+
+Iterations 
+
+> Exploitability
+
+Adversarial Tiger 
+
+1 4
+
+0.00 
+
+0.05 
+
+0.10 
+
+Iterations 
+
+MABC 
+
+1 3 5
+
+0.00 
+
+0.05 
+
+0.10 
+
+Iterations 
+
+Recycling 
+
+1 3 5
+
+0
+
+75 
+
+150 
+
+Iterations 
+
+> Nb. of points sampled
+
+Adversarial Tiger 
+
+1 4
+
+0
+
+50 
+
+100 
+
+Iterations 
+
+MABC 
+
+1 3 5
+
+0
+
+100 
+
+200 
+
+Iterations 
+
+Recycling      
+
+> Seq
+> Sim
+> Figure 5. Top: Exploitability of PBVI across iterations on different benchmarks ( ℓ= 5 ). The green curve corresponds to the simultaneous variant, while the red curve represents the sequential variant. Bottom: Number of points sampled at each iteration by simultaneous and sequential variants.
+
+22 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+1 6
+
+0.00 
+
+0.10 
+
+0.20 
+
+Iterations 
+
+> Exploitability
+
+Recycling 
+
+1 6
+
+0.20 
+
+0.35 
+
+0.50 
+
+Iterations 
+
+> Value
+
+Recycling 
+
+1 6
+
+0
+
+1,500 
+
+3,000 
+
+Iterations 
+
+> Cumulated Time (s)
+
+Recycling 
+
+1 6
+
+0
+
+200 
+
+400 
+
+Iterations 
+
+> Nb. of points
+
+Recycling 
+
+> Seq
+> Sim
+
+1 6
+
+0.00 
+
+0.10 
+
+0.20 
+
+Iterations 
+
+> Exploitability
+
+Adversarial Tiger 
+
+1 6
+
+−1.00 
+
+−0.95 
+
+−0.90 
+
+Iterations 
+
+> Value
+
+Adversarial Tiger 
+
+1 6
+
+0
+
+1,500 
+
+3,000 
+
+Iterations 
+
+> Cumulated Time (s)
+
+Adversarial Tiger 
+
+1 6
+
+0
+
+250 
+
+500 
+
+Iterations 
+
+> Nb. of points
+
+Adversarial Tiger 
+
+> Seq
+> Sim
+
+Figure 6. Exploitability, value, cumulative computation time, and number of sampled points of PBVI over iterations on the Recycling and Adversarial Tiger benchmarks ( ℓ=5), evaluated across different random seeds. The green curves correspond to the simultaneous variant, while the red curves represent the sequential variant. 
+
+Table 3. Snapshot of results (time in seconds, exploitability ε). For each setting, we report the runtime of each algorithm (in seconds), as well as the value v(b) and the exploitability ε. Speedup is Sim time divided by Seq time. OOT : timeout; OOM : out of memory; ‘–’: exploitability budget exceeded. Best values per row are highlighted in magenta 
+
+Game ( ℓ) Speedup Seq Sim HSVI CFR+ 
+
+time v(b) ε time v(b) ε time v(b) ε time v(b) ε
+
+kuhn poker 0.55 0.2 0.055 0.00 0.11 0.055 0.00 NA NA NA 0.01 0.055 0.00 
+
+adversarial-tiger(3) 7.33 0.15 -0.56 0.00 1.1 -0.56 0.00 500 -0.56 0.00 1 -0.56 0.00 
+
+adversarial-tiger(4) 1.4 10 -0.76 0.00 14 -0.76 0.00 OOT 17 -0.75 0.01 adversarial-tiger(5) 1.7 30 -0.97 0.00 51 -0.97 0.00 OOT 181 -0.95 0.01 adversarial-tiger(7) 1.83 264 -1.36 0.00 485 -1.37 0.02 OOT OOM 
+
+adversarial-tiger(10) 26.6 287 -1.95 0.02 7648 -1.98 0.05 OOT OOM 
+
+adversarial-tiger(12) 782 -2.38 0.02 OOT OOT OOM 
+
+adversarial-tiger(14) 1840 -2.87 0.18 OOT OOT OOM 
+
+mabc(3) 20 0.85 0.096 0.00 17 0.096 0.00 70 0.096 0.00 0.5 0.096 0.00 
+
+mabc(4) 20.8 15 0.11 0.00 312 0.10 0.01 OOT 4 0.11 0.00 
+
+mabc(5) 3.1 44 0.11 0.00 136 0.12 0.02 OOT 51 0.12 0.01 mabc(7) 18.5 178 0.13 0.00 3298 0.13 0.04 OOT OOM 
+
+mabc(10) 1377 0.17 0.05 OOT OOT OOM 
+
+recycling(3) 0.18 27 0.32 0.00 5 0.32 0.00 430 0.32 0.00 6 0.32 0.00 
+
+recycling(4) 0.4 36 0.35 0.01 15 0.36 0.01 OOT 80 0.36 0.03 recycling(5) 3.1 72 0.38 0.01 225 0.40 0.03 OOT OOM 
+
+recycling(7) 23.4 84 0.46 0.01 1969 0.48 0.02 OOT OOM 
+
+recycling(10) 14.7 1616 0.6 0.00 23798 0.62 0.05 OOT OOM 
+
+competitive-tiger(3) 0.93 48 -0.04 0.02 45 -0.04 0.02 291 0.00 0.00 17 0.00 0.00 
+
+competitive-tiger(4) 1.98 60 -0.07 0.01 119 -0.06 0.00 OOT OOM 
+
+competitive-tiger(5) 2.11 152 -0.09 0.03 322 -0.08 0.02 OOT OOM 
+
+competitive-tiger(7) 3.7 450 -0.13 0.08 1685 -0.15 0.06 OOT OOM 
+
+competitive-tiger(10) 847 -0.23 0.03 OOT OOT OOM 
+
+I.3. Implementation Details 
+
+The results presented in this paper were run on CPU (AMD Ryzen 7 PRO). 23 An ε-Optimal Sequential Approach for Solving zs-POSGs 
+
+Table 4. Hyperparameters employed by SeqPBVI. 
+
+Game Pruning threshold Bound. Pruning Sampling distance 
+
+kuhn poker 1e-5 1 0.0 adversarial tiger 1e-5 1 0.1 mabc 1e-5 1 0.1 recycling 1e-5 1 0.1 competitive tiger 1e-5 1 0.2 
+
+24

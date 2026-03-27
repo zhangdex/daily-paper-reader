@@ -1,0 +1,395 @@
+Title: SPARC: Spatial-Aware Path Planning via Attentive Robot Communication
+
+URL Source: https://arxiv.org/pdf/2603.02845v1
+
+Published Time: Wed, 04 Mar 2026 01:54:02 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# SPARC: Spatial-Aware Path Planning via Attentive Robot Communication 
+
+Sayang Mu, Xiangyu Wu, and Bo An †
+
+School of Computer Science and Engineering Nanyang Technological University, Singapore 
+
+{sayang.mu, xiangyu.wu, boan }@ntu.edu.sg 
+
+Abstract —Efficient communication is critical for decentralized Multi-Robot Path Planning (MRPP), yet existing learned commu-nication methods treat all neighboring robots equally regardless of their spatial proximity, leading to diluted attention in congested regions where coordination matters most. We propose Relation-enhanced Multi-Head Attention ( RMHA ), a communication mech-anism that explicitly embeds pairwise Manhattan distances into the attention weight computation, enabling each robot to dy-namically prioritize messages from spatially relevant neighbors. Combined with a distance-constrained attention mask and GRU-gated message fusion, RMHA integrates seamlessly with MAPPO for stable end-to-end training. In zero-shot generalization from 8 training robots to 128 test robots on 40 ×40 grids, RMHA achieves approximately 75% success rate at 30% obstacle density— outperforming the best baseline by over 25 percentage points. Ablation studies confirm that distance-relation encoding is the key contributor to success rate improvement in high-density environments. 
+
+Index Terms —Multi-robot path planning, graph attention mechanism, multi-head attention, communication optimization, cooperative decision-making 
+
+I. I NTRODUCTION AND RELATED WORK 
+
+Multi-Robot Path Planning (MRPP) is a core problem in artificial intelligence and robotics, aiming to design collision-free paths for multiple robots to navigate from their respective starting positions to goal positions in a known environment [1]. In this paper, the terms agent and robot are used interchange-ably. In the standard MRPP formulation, a graph structure represents the robots’ workspace together with sets of start and goal vertices. At each time step, a robot may either stay at its current vertex or move to an adjacent one [2]. A solution to an MRPP instance is a set of paths—one per robot—that are free of both vertex and edge collisions. Finding such a solution is known to be NP-hard. An MRPP instance is defined by a graph, a set of robots, and their respective start–goal pairs. The problem can be viewed as a planning challenge whose objective is to find a collision-free path set (the solution ) for a given instance. An MRPP 
+
+algorithm (or solver ) refers to the method used to compute such a solution. MRPP has broad applications in intelligent warehousing systems [3], urban traffic networks [4], autonomous vehicles, and electronic games, among others [5]. As a foundational 
+
+> †Corresponding author.
+
+task in building physical multi-robot systems, MRPP plays a pivotal role in the design phase and its importance is expected to grow as demand for cooperative and competitive multi-robot scenarios increases. In the warehouse logistics domain in particular, the rapid expansion of e-commerce has made intelligent logistics sys-tems indispensable. Autonomous Mobile Robots (AMR) [6] are increasingly deployed in unmanned warehouses. For such AMR-based warehousing systems, path planning is the core scheduling component. However, as the number of robots and the complexity of tasks increase, efficiently and safely planning collision-free paths remains a critical challenge. 
+
+A. Centralized Planning Methods 
+
+Centralized approaches rely on a central controller with complete global information to compute (near-)optimal paths. 
+
+A* and its variants. A* is a classic heuristic search algo-rithm whose evaluation function is f (n) = g(n) + h(n). Ex-tensions to multi-robot settings include LRA*, which adjusts trajectories upon detecting potential conflicts; CA*, which introduces a three-dimensional reservation table to avoid colli-sions [7]; and HCA*, which employs hierarchical abstraction to improve scalability. However, frequent replanning in dense scenarios leads to high computational overhead. 
+
+Conflict-Based Search (CBS) uses a two-level search: the high level discovers and decomposes conflicts, while the low level computes optimal single-robot paths under con-straints [8]. A binary constraint tree is constructed until a conflict-free solution is found. 
+
+ODrM* combines decoupled and coupled strategies: each robot initially follows its individual optimal path; upon collision, only the conflicting robots are coupled for joint search [9], [10]. While effective as a bounded sub-optimal planner, ODrM* suffers from exponential complexity growth when the number of agents or environment complexity in-creases. 
+
+B. Decentralized Learning-Based Methods 
+
+Centralized methods struggle with real-time requirements and scalability as the number of robots and environment size grow. Multi-Agent Reinforcement Learning (MARL) offers an effective alternative under partial observability: agents 
+
+> arXiv:2603.02845v1 [cs.RO] 3 Mar 2026
+
+access only local observations and make fast, decentralized decisions [11]. Learning-based methods typically train a policy that maps local observations ( e.g. , a limited Field of View, FOV) to discrete actions (up/down/left/right/wait) on a grid world. Major paradigms include Imitation Learning (IL), which imitates demonstrations from centralized solvers, and Rein-forcement Learning (RL), which maximizes expected return. In MRPP, the problem is commonly modeled as a Dec-POMDP [11]. PRIMAL [12] integrates physical simulation with hybrid offline–online training; LNS2+RL [14] fuses large neighborhood search with MARL; Li et al. first introduced GNNs for MRPP, encoding FOV interactions and supporting decentralized decisions [15], [16]. 
+
+C. Motivation and Challenges 
+
+Despite progress in learned communication for MRPP, two key challenges remain. (C1) Spatially-agnostic communica-tion: Existing methods such as MAGAT [16] and SCRIMP [1] compute attention weights purely from message content, treat-ing a distant robot identically to an adjacent one. In congested regions, this dilutes attention across irrelevant neighbors and degrades coordination. (C2) Training instability at scale: 
+
+Transformer-based communication introduces high-variance gradients in online MARL, causing training collapse when naively applied to large robot populations. Our work addresses both challenges by embedding spatial relations directly into the attention mechanism and constraining communication to local neighborhoods. 
+
+D. Contributions 
+
+The main contributions of this work are as follows: 1) We propose a spatial relation-enhanced multi-head attention communication mechanism that incorporates inter-robot relative distance as edge information into the attention weight computation, enabling communication weights to adapt dynamically to topological relation-ships and improving cooperative decision-making. 2) We construct an end-to-end cooperative learning framework based on MAPPO , introducing distance-constrained local communication and attention masking to reduce communication overhead while maintaining effective information exchange and training stability. 3) We design communication ablation studies and multi-density scenario evaluations that quantitatively verify the critical role of distance-relation encoding for success rate improvement and congestion/conflict mitigation, demonstrating stronger robustness in high-density envi-ronments. II. S PATIAL RELATION -E NHANCED MULTI -H EAD 
+
+ATTENTION 
+
+COMMUNICATION FOR MULTI -R OBOT PATH PLANNING 
+
+A. System Model and Problem Formulation 1) MRPP System Model: The MRPP problem can be formally defined as a four-tuple ⟨A , G, Odyn , Ostatic ⟩, where:  
+
+> Fig. 1. Illustration of MRPP constraints: vertex collisions, edge collisions, and swap collisions must all be avoided.
+
+A = {A1, A 2, . . . , A N } is the set of N robots; G = ( V, E )
+
+is a graph representing the environment with vertex set V
+
+(locations) and edge set E (traversable connections); Odyn =
+
+{Od 
+
+> 1
+
+, . . . , O dM } denotes M dynamic obstacles whose positions change over time; and Ostatic = {Os
+
+> 1
+
+, . . . , O sK } denotes K
+
+static obstacles. Each robot An ∈ A is represented by a tuple ⟨sn, g n⟩,where sn and gn are the start and goal positions, respectively. A valid MRPP solution must satisfy the constraints illustrated in Fig. 1: 1) Deadlock-free constraint: There exists a finite time step 
+
+T ∈ Z+ such that all robots reach their goals. 2) Vertex collision-free constraint: For any two robots An
+
+and An′ and any time step 0 ≤ t ≤ T , their positions must not coincide, nor may any robot occupy a position held by a static or dynamic obstacle. 3) Edge collision-free constraint: No two robots may simultaneously traverse the same edge in opposite di-rections. When multiple valid solutions exist, MRPP can be cast as an optimization problem. Common objectives include the 
+
+makespan :
+
+M (π) = max  
+
+> 1≤k≤N
+
+|Πk|, (1) and the Sum of Costs (SOC) :
+
+SOC( π) = 
+
+> N
+
+X
+
+> k=1
+
+|Πk|, (2) where |Πk| denotes the path length of robot k. These two objectives optimize the solution from the perspectives of time and total path length, respectively. 
+
+Reward design in RL-based MRPP. Table I summa-rizes the reward mechanisms used in representative RL-based MRPP methods. Core elements include movement penalties and collision penalties to constrain redundant actions and conflict risks, heuristic-based sub-goal positive feedback to guide progressive goal achievement, and mechanisms that suppress blocking, deadlock, and path deviation to improve cooperation efficiency. 
+
+2) Problem Formulation: In this work, the MRPP problem is defined by a set of robots {1, . . . , n } and represented as a tuple ⟨G, S, T ⟩, where G = ( V, E ) is an undirected graph, 
+
+S = {s1, . . . , s n} ⊂ V and T = {t1, . . . , t n} ⊂ V are the start and goal positions, respectively [13]. Time is discretized into TABLE I COMPARISON OF REWARD DESIGNS IN RL-BASED MRPP M ETHODS                                                                                                                                
+
+> Method Year Move Wait aWait bColl. Ego-goal All-goal Block Oscil. Deviate
+> PRIMAL 2019 ↓↓→↓–↑↓––GNN 2020 –––––––––MAPPER 2020 ↓↓↓↓↑––↓↓
+> G2RL 2020 ↓––↓–↑–––PRIMAL2 2021 ↓↓→↓↑––––MAGAT 2021 –––––––––DHC 2021 ↓↓→↓↑–↓––PICO 2022 ↓↓→↓–↑–––DCC 2022 ↓↓→↓↑––––SACHA 2023 ↓↓→↓↑–↓––SCRIMP 2023 ↓↓→↓→↑–––
+> aNot at goal. bAt goal. ↓= penalty; ↑= reward; →= neutral; – = not used.
+
+steps; at each step a robot may move to an adjacent vertex or stay, provided the action does not cause a vertex, edge, or swap collision. The objective is to find the shortest joint collision-free path from S to T .In the MARL setting, the problem is modeled as a Markov game ⟨N , O, A, R, P, γ ⟩, where N = {1, . . . , N } is the robot set; O = QNi=1 Oi is the joint observation space; 
+
+A = QNi=1 Ai is the joint action space; R : O × A →
+
+[−Rmax , R max ] is the joint reward function; P : O×A×O → 
+
+R is the transition probability; and γ ∈ (0 , 1) is the discount factor. At each time step t, robot i receives observation oti ∈ O i
+
+and selects action ati according to its policy πi. The objective is to maximize the cumulative discounted reward: 
+
+Rγ =
+
+> ∞
+
+X
+
+> t=0
+
+γt R(ot, a t). (3) 
+
+B. Spatial Relation-Enhanced Multi-Head Attention Commu-nication Algorithm 1) MDP Modeling for MRPP: As illustrated in Fig. 2, MRPP can be modeled as a Markov Game (MG), an ex-tension of the Markov Decision Process (MDP) to multi-agent settings [11]. An MDP is defined by a five-tuple 
+
+⟨S, A, T, R, γ ⟩. In an MG with N robots, the action space extends to the joint space A1...N = A1 × · · · × A N , and the reward function becomes a set R = {R1, . . . , R N }
+
+with Rn : S × A n → R. Under partial observability, the model becomes a Partially Observable Markov Game (POMG) [17], where each robot observes only a local view 
+
+on ∈ O n. Alternatively, a Dec-POMDP formulation can be used, represented as ⟨O , S, A, T, R, ϕ, γ ⟩, where ϕ denotes the conditional observation distribution [18]. To cast MRPP as an RL problem, we construct a discrete two-dimensional grid world. Robots, goals, and obstacles each occupy one cell. At the start of each episode, n unique start and goal positions are randomly assigned within the same connected region. Robots move simultaneously and collisions are checked on the joint action vector. Each robot’s FOV is limited to 3 × 3. 
+
+> Fig. 2. MARL modeling paradigms for MRPP: MG, POMG, and Dec-POMDP.
+
+State space S: Each robot’s observation consists of two parts. The first comprises eight binary matrices: four heuristic maps (one per movement direction, with a cell marked 1 iff executing that action brings the robot closer to its goal) and four maps encoding nearby obstacles, other robots’ positions, the robot’s own goal, and projected goal positions of observ-able peers. The second is a 7-dimensional vector containing the normalized distance to the goal ( dx, dy , d), the extrinsic reward ret−1, the intrinsic reward rit−1, the minimum Euclidean distance dt−1min to positions stored in a short-term memory buffer, and the previous action at−1.
+
+Action space A: A = {Up , Down , Left , Right , Stay }. Ac-tions are feasible only if they do not cause vertex, edge, or swap collisions. 
+
+Reward R: The reward structure is summarized in Table II. Robots that have not yet reached their goals receive a per-step penalty to encourage faster completion. An episode terminates when all robots reach their goals or a maximum of 256 time steps is reached. Communication messages are subject to a one-step delay and are not blocked by obstacles. 
+
+2) The RMHA Communication Mechanism: The architec-ture of the proposed RMHA module is shown in Fig. 3. To design an efficient communication paradigm for MARL-based MRPP, we adopt a communication Transformer [19]– TABLE II REWARD SETTINGS        
+
+> Action Reward
+> Move (up/down/left/right) −0.3
+> Stay (at goal / off goal) 0.0/−0.3
+> Collision −2.0
+> Blocking −1.0
+
+[21] inspired by the graph modeling paradigm. We apply the Transformer Encoder architecture to map the input ob-servation sequence (o1, . . . , o N ) to the output action se-quence (a1, . . . , a N ). Each encoder block consists of a spatial relation-enhanced attention mechanism, a multi-layer percep-tron (MLP) [22]–[24], and residual connections. In the standard multi-head attention, the attention score between elements oi and oj is computed as the dot product of their query and key vectors: 
+
+sij = f (oi, o j ) = oi W ⊤ 
+
+> q
+
+Wk oj , (4) which can be viewed as implicit edge information associated with the directed edge ej→i.We propose a Spatial Relation-Enhanced Multi-Head At-tention (RMHA ) mechanism that explicitly incorporates inter-robot spatial relationships into the attention computation [25]– [27]. Specifically, the Manhattan distance between robots is embedded into a high-dimensional vector space and combined with local observations to jointly compute attention scores: 
+
+sij = g(oi, o j , d i→j , d j→i) = ( oi +di→j ) W ⊤ 
+
+> q
+
+Wk (oj +dj→i),
+
+(5) where d∗→∗ denotes the embedding vector of the Manhat-tan distance between the corresponding robots. We choose Manhattan distance over Euclidean distance because robots move on a grid with four cardinal directions, making Man-hattan distance the exact shortest-path metric in obstacle-free regions and a tighter lower bound in the presence of obstacles. The encoded observations (o1, . . . , o N ) thus capture not only individual robot information but also higher-level spatial relationships through communication. 
+
+Communication range constraint. In practice, each robot can only communicate with a limited number of peers due to bandwidth and medium-access contention. To model this, each robot communicates only with those within a specified radius 
+
+R:
+
+Ni(t) = {j | dij (t) ≤ R, j ̸ = i}, (6) where dij (t) is the distance between robots i and j at time t.An adjacency-based mask is applied to the attention scores: 
+
+˜sij =
+
+(
+
+sij , if ej→i = 1 ,
+
+−∞ , if ej→i = 0 , (7) ensuring that only information from connected robots is ac-cessible.    
+
+> Fig. 3. Architecture of the RMHA communication module.
+
+3) Integration with MAPPO: We adopt Multi-Agent Prox-imal Policy Optimization (MAPPO) [28]–[30] as the base training framework. The neural network model integrates three components (Fig. 4): 
+
+(1) Multi-modal observation encoder. A backbone of seven convolutional layers and two max-pooling layers ex-tracts spatial features, followed by three fully connected layers for dimensionality reduction. For robot i at time t, the local observation oti ∈ R4×m×m is processed by: 
+
+ˆoti = Conv 2
+
+ MP  Conv 1(oti) , (8) 
+
+¯oti = FC 1
+
+ concat  ˆoti, FC 0(vti ) , (9) where vti is the 7-dimensional state vector. Temporal fusion is achieved via an LSTM unit: 
+
+hti = LSTM(¯ oti, h t−1 
+
+> i
+
+). (10) 
+
+(2) Distributed communication module. Built on the Transformer encoder, this module deeply fuses the quantized Manhattan distance representation with attention weight com-putation. For a group of n robots, the queries, keys, and values are: 
+
+Q = Wq
+
+ M t−1 + W1 · Distance , (11) 
+
+K = Wk
+
+ M t−1 + W2 · Distance , (12) 
+
+V = Wv M t−1, (13) where M t−1 ∈ Rn×d is the message matrix from the previous time step, and W1·Distance encodes explicit edge information. The attention weights are computed using scaled dot-product attention: 
+
+αi = softmax 
+
+ qi K⊤
+
+√dk
+
+
+
+. (14) Information aggregation is performed through multi-head at-tention: 
+
+head i = αi V, (15) TABLE III EXPERIMENTAL PARAMETERS                
+
+> Parameter Value
+> Training robot count 8Action count 5Max episode length 256 FOV size 3World size (10 ,40)
+> Obstacle probability (0 .0,0.5)
+> Mask distance 40 Move cost −0.3
+> Idle cost −0.3
+> Goal reward 0.0
+> Collision cost −2.0
+> Blocking cost −1.0
+
+mt−1 
+
+> i
+
+= concat  head 1 
+
+> i
+
+, . . . , head hi
+
+ Wo. (16) Local communication is enforced via a mask matrix Mij =
+
+−∞· 1(∥pi −pj ∥2 > r ), where r is the communication radius. 
+
+(3) Output heads. The LSTM hidden state and the commu-nication message are concatenated and fed to four output heads that produce: (i) the message vector for the next time step, (ii) state-value estimates for extrinsic and intrinsic rewards, (iii) the policy distribution πi(at | ot), and (iv) a blocking flag indicating whether the robot obstructs other agents’ paths. The policy is optimized using the clipped PPO objective: 
+
+Lπ (θ) = Et
+
+h
+
+min  rt(θ) ˆAt, clip( rt(θ), 1±ϵ) ˆAt
+
+i
+
+, (17) where ˆAt is the Generalized Advantage Estimation (GAE) and rt(θ) = πθ (at|ot)/π θold (at|ot) is the importance sampling ratio. MAPPO employs Centralized Training with Decentralized Execution (CTDE): during training, agents share environment states, actions, and rewards to build a globally informed joint policy model; during execution, each agent relies solely on local observations for independent decision-making. The complete training procedure is presented in Algo-rithm 1. III. E XPERIMENTS 
+
+A. Experimental Setup 
+
+Training. The number of robots is set to 8 with a 3×3 FOV. Grid world sizes are randomly sampled from {10 ×10 , 25 ×
+
+25 , 40 ×40 }; obstacle density follows a triangular distribution over [0% , 50%] with peak at 33%. A representative training environment is shown in Fig. 5; full parameter settings are listed in Table III. 
+
+Testing. The robot count is scaled to 128 on a 40 ×40 grid at obstacle densities of 0%, 15%, and 30%. This train–test discrepancy evaluates generalization across scales. 
+
+Scalability evaluation. To further verify generalization across different robot counts, the model trained with 8 robots is tested with 16, 32, 64, and 128 robots. Fig. 6 shows that while success rate decreases as the number of robots increases,  
+
+> RMHA
+
+maintains high success rates from 16 to 64 robots and avoids performance collapse at 128 robots, demonstrating good scalability. All experiments are conducted on an Ubuntu server with dual NVIDIA RTX 8000 GPUs, using PyTorch 2.1 and Python 3.7. 
+
+B. Baselines and Evaluation Metrics 
+
+Baselines. We compare with three state-of-the-art MARL-based MRPP methods: SCRIMP [1] (GNN-based scalable communication, FOV 3×3), DHC [17] (GNN-based communi-cation, FOV 9×9), and PICO (ad-hoc routing communication, FOV 11 ×11 ). We also include the classical centralized planner 
+
+ODrM* [10] with inflation factor ϵ = 2 .0 and a 5-minute timeout. 
+
+Metrics.  
+
+> •
+
+Max Reached (MR): the maximum number of robots that reach their goals at any time step.  
+
+> •
+
+Collision Rate (CO): the ratio of collision events (with obstacles or other robots) to the product of episode length and robot count.  
+
+> •
+
+Success Rate (SR): the percentage of episodes in which all robots reach their goals collision-free within the time limit Tmax :
+
+Sr = Nsuccess 
+
+Ntotal 
+
+× 100% . (18) Statistical significance is ensured by running at least 100 episodes per setting. 
+
+C. Results and Analysis 1) Communication Ablation Study: To evaluate the contri-bution of the Transformer-based communication mechanism, we develop two ablation baselines:  
+
+> •
+
+MAPPO : the communication module is entirely re-moved; robots never send or receive messages.  
+
+> •
+
+MAPPO+Graph Comm : attention weights are computed based on message content alone, without fusing Manhat-tan distance embeddings. All experiments use 128 robots in a 40 ×40 grid at obstacle densities of 0%, 15%, and 30%. Fig. 7 shows the training reward over time. All three meth-ods exhibit rapid reward increase in the early stages. However,  
+
+> RMHA
+
+and MAPPO+Graph Comm converge faster and more stably, while MAPPO rises more slowly with larger variance, indicating the significant advantages of graph communication in training efficiency and convergence. As shown in Fig. 8, success rates decrease with increasing obstacle density. MAPPO+Graph Comm consistently outper-forms MAPPO—at 30% density, MAPPO drops to approxi-mately 40% while Graph Comm remains around 50%. RMHA 
+
+further improves upon Graph Comm, achieving approximately 75% at 30% density (vs. 50%), confirming that Manhattan distance-based relation encoding enables more accurate spatial understanding. In terms of maximum goals reached, RMHA 
+
+maintains near 125 goals even in high-density environments, while MAPPO degrades rapidly. Fig. 4. Network architecture of RMHA integrated with MAPPO. 
+
+Algorithm 1 RMHA Training Procedure 
+
+Input: Robot count N , episodes K, steps T , FOV F , layers L,discount γ, PPO clip ϵ
+
+1: Initialize encoder ϕ, Transformer ψ, output heads θ, buffer B
+
+2: for episode k = 0 , . . . , K −1 do 
+
+3: for step t = 0 , . . . , T −1 do 
+
+4: Encode observations via ϕ (Eqs. 8–10) 5: Compute messages and distances for all robots 6: for l = 1 , . . . , L : attention with distance (Eqs. 11–16), GRU, FFN 7: Generate πti , v ti , b ti from Transformer output + LSTM state 8: Resolve conflicts via softmax over value differences 9: Compute intrinsic rewards; execute actions; store in B
+
+10: end for 
+
+11: Sample mini-batch; compute GAE; update ϕ, ψ, θ via PPO (Eq. 17) 12: end for 
+
+Overall, in the 128-robot, 30%-density setting, the success rate of RMHA exceeds that of the non-enhanced communica-tion method by 53%, verifying the algorithm’s generalization capability and robustness at scale. 
+
+2) Comparison with State-of-the-Art Methods: To further evaluate RMHA , we compare it with ODrM*, SCRIMP, DHC, and PICO on two types of benchmark maps: Warehouse maps (regular shelf aisles and narrow corridors simulating pick-and-place scenarios) and City/Game maps (irregular block/maze-like layouts simulating urban traffic or game levels). All experiments use a 40 × 40 grid with 128 robots. For each map type and obstacle complexity level (0%, 15%, 30%), 100 reproducible map instances are sampled with fixed random seeds; all algorithms run on the same instances to ensure     
+
+> Fig. 5. A 10 ×10 grid world with 30% obstacle density and 8 robots. Colored squares indicate start positions; colored circles indicate goals; gray circles represent obstacles; the red dashed box shows the 3×3FOV.
+
+fairness. Mean values with confidence intervals are reported. As shown in Fig. 9, all algorithms’ success rates decline with increasing obstacle complexity. At low complexity (0%),  
+
+> RMHA
+
+performs comparably to ODrM* and SCRIMP. As complexity increases to 15% and 30%, RMHA ’s advantage becomes progressively larger. At 30%, RMHA maintains a success rate of approximately 75%, while SCRIMP falls below 50%, ODrM* drops to roughly 20% (within the 5-minute planning limit), and DHC and PICO exhibit severe performance degradation. Fig. 10 shows the maximum goals reached. PICO and DHC degrade fastest despite having communication mechanisms, Fig. 6. Success rate of RMHA under different robot counts.  
+
+> Fig. 7. Communication ablation: training reward curves.
+
+as they lack effective modeling of dynamic inter-robot rela-tionships. In contrast, SCRIMP and RMHA , which employ graph attention/Transformer-based communication, maintain 120+ goals even at 30% density. RMHA further benefits from spatial relation encoding, enabling more precise modeling of local congestion structure. 
+
+3) Trajectory Visualization: Fig. 11 compares the global trajectories of RMHA and MAPPO in a complex environment.  
+
+> RMHA
+
+produces well-organized trajectories with fewer path conflicts, whereas MAPPO exhibits significant crossing and clustering in local areas, with some robots stalling for extended periods. Fig. 12 shows a representative head-on encounter in a narrow corridor. Under the baseline, both robots adopt similar forward/wait strategies, resulting in persistent deadlock. Under 
+
+> RMHA
+
+, the attention mechanism enables robot A to perceive the conflicting neighbor’s proximity and proactively yield, resolving the deadlock within two time steps. IV. C ONCLUSION 
+
+This paper investigated the cooperative communication problem in multi-robot path planning from the perspectives of communication mechanism modeling, algorithmic frame-work integration, and experimental validation. We proposed 
+
+> RMHA
+
+, a spatial relation-enhanced multi-head attention com-munication method based on graph attention mechanisms. By              
+
+> (a) MAPPO vs. Graph Comm (b) RMHA vs. Graph Comm Fig. 8. Communication ablation: success rate comparison.
+> Fig. 9. Success rate comparison across algorithms on Warehouse and City/Game maps.
+
+incorporating relative distance information between robots into the attention weight computation, RMHA dynamically adjusts communication weights, significantly reducing communication overhead while improving path planning success rates. Experiments demonstrate that RMHA exhibits high adapt-ability and robustness across varying obstacle densities, with particularly strong performance in high-density scenarios where its success rate substantially exceeds existing methods. Communication ablation studies further confirm the critical role of inter-robot distance information in optimizing path planning decisions. In summary, RMHA provides an effective solution for efficient cooperation in complex multi-robot environments, offering a new perspective on intelligent agent communication and collaboration. 
+
+Limitations and future work. The current evaluation is limited to discrete grid worlds with uniform robot capa-bilities; extending RMHA to continuous action spaces and heterogeneous robot teams remains open. Additionally, the Manhattan distance embedding assumes obstacle-free line-of-sight proximity, which may not reflect true reachability in cluttered environments. Future work will explore learned distance metrics that account for obstacle topology, as well as integration with lifelong MRPP settings where start–goal assignments change dynamically. Fig. 10. Maximum goals reached across algorithms on Warehouse and City/Game maps. 
+
+Fig. 11. Global trajectory comparison: RMHA (left) vs. MAPPO (right). 
+
+REFERENCES [1] Y. Wang, B. Ang, S. Huang, et al. , “SCRIMP: Scalable communication for reinforcement- and imitation-learning-based multi-agent pathfind-ing,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS) , 2023, pp. 9301–9308. [2] J. Li, A. Tinka, S. Kiesel, et al. , “Lifelong multi-agent path finding in large-scale warehouses,” in Proc. AAAI Conf. Artif. Intell. , vol. 35, no. 13, 2021, pp. 11272–11281. [3] Y. Zhang, M. C. Fontaine, V. Bhatt, et al. , “Multi-robot coordina-tion and layout design for automated warehousing,” arXiv preprint arXiv:2305.06436 , 2023. [4] K. Dresner and P. Stone, “A multiagent approach to autonomous intersection management,” J. Artif. Intell. Res. , vol. 31, pp. 591–656, 2008. [5] H. Ma, “Graph-based multi-robot path finding and planning,” Current Robot. Rep. , vol. 3, no. 3, pp. 77–84, 2022. [6] H. Tamura, T. Konno, K. Ito, et al. , “Human behavior and comfort during load carrying to autonomous mobile robot,” Int. J. Social Robot. ,pp. 1–19, 2025. [7] D. Silver, “Cooperative pathfinding,” in Proc. AAAI Conf. Artif. Intell. Interactive Digital Entertainment , vol. 1, 2005, pp. 117–122. [8] G. Sharon, R. Stern, A. Felner, and N. R. Sturtevant, “Conflict-based search for optimal multi-agent pathfinding,” Artif. Intell. , vol. 219, pp. 40–66, 2015. [9] Z. Ren, S. Rathinam, and H. Choset, “Subdimensional expansion for multi-objective multi-agent path finding,” IEEE Robot. Autom. Lett. ,vol. 6, no. 4, pp. 7153–7160, 2021. [10] J. Ellis, “Multi-agent path finding with reinforcement learning,” M.S. thesis, Stellenbosch Univ., Stellenbosch, 2021. 
+
+Fig. 12. Deadlock resolution in a narrow corridor. At T1, robots A and B enter a conflict; the baseline leads to deadlock by T2–T3. Under RMHA , robot A yields at T3, allowing B to pass, and both proceed by T4.[11] L. Huang and Q. Zhu, “The strategic value of observable cost in stochastic games,” IEEE Trans. Cybern. , vol. 52, no. 10, pp. 10506– 10519, 2021. [12] G. Sartoretti, J. Kerr, Y. Shi, et al. , “Multi-agent path finding with prioritized communication learning: Pathfinding via reinforcement and imitation multiagent learning,” IEEE Robot. Autom. Lett. , vol. 4, no. 3, pp. 2378–2385, 2019. [13] J. Chung, J. Fayyad, Y. A. Younes, et al. , “Learning team-based navigation: A review of deep reinforcement learning techniques for multi-agent pathfinding,” Artif. Intell. Rev. , vol. 57, no. 2, p. 41, 2024. [14] Y. Wang et al. , “LNS2+RL: Combining multi-agent reinforcement learning with large neighborhood search in multi-agent path finding,” in Proc. AAAI Conf. Artif. Intell. , vol. 39, no. 22, 2025. [15] Q. Li, F. Gama, A. Ribeiro, and A. Prorok, “Graph neural networks for decentralized multi-robot path planning,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS) , 2020, pp. 11785–11792. [16] Q. Li, W. Lin, Z. Liu, and A. Prorok, “Message-aware graph attention networks for large-scale multi-robot path planning,” IEEE Robot. Autom. Lett. , vol. 6, no. 3, pp. 5533–5540, 2021. [17] Z. Ma, Y. Luo, and H. Ma, “Distributed heuristic multi-agent path finding with communication,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA) , 2021, pp. 8699–8705. [18] H. Guan, Y. Gao, M. Zhao, Y. Yang, F. Deng, and T. L. Lam, “Ab-mapper: Attention and BicNet based multi-agent path planning for dynamic environment,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS) , 2022, pp. 13799–13806. [19] P. Wang, M. Ghergherehchi, and J. Kim, “Transformer-based path planning for single-arm and dual-arm robots in dynamic environments,” 
+
+Int. J. Adv. Manuf. Technol. , vol. 139, no. 7–8, pp. 1–19, 2025. [20] Z. Xiong, Y. Wang, Y. Tian, et al. , “RoPT: Route-planning model with Transformer,” Appl. Sci. , vol. 15, no. 9, pp. 4914, 2025. [21] K. Lee, E. Im, and K. Cho, “Mission-conditioned path planning with Transformer variational autoencoder,” Electronics , vol. 13, no. 13, pp. 2437, 2024. [22] S. T. Aina and A. B. Iyaomolere, “Multi hand gesture recognition using a multilayer perceptron (MLP) model with mmWave radar sensing data,” 
+
+J. Eng. Res. Rep. , vol. 27, no. 11, pp. 194–203, 2025. [23] X. Wang, F. Xu, and M. Zhang, “A transfer learning-enhanced multilayer perceptron for buffeting response prediction of long-span bridges,” J. Wind Eng. Ind. Aerodyn. , vol. 267, p. 106258, 2025. [24] A. Ouaret, I. S. Talantikite, H. Lehouche, et al. , “A direct adaptive control architecture for buildings thermal comfort and energy efficiency optimization using multilayer perceptron neural networks and model reference learning,” Energy Build. , vol. 349, p. 116528, 2025. [25] H. Xiao, L. Fu, C. Shang, et al. , “Collaborative energy-saving path planning of unmanned surface vehicle cluster based on multi-head attention mechanism and multi-agent deep reinforcement learning,” Eng. Appl. Artif. Intell. , vol. 161, p. 112078, 2025. [26] Z. Chen, Y. Liu, W. Ni, et al. , “Predicting driving comfort in autonomous vehicles using road information and multi-head attention models,” Nat. Commun. , vol. 16, no. 1, p. 2709, 2025. [27] S. Chen and Y. Liu, “Research on transportation mode recognition based on multi-head attention temporal convolutional network,” Sensors ,vol. 23, no. 7, 2023. [28] Y. Zhou, Y. Yue, B. Yan, et al. , “Collaborative target tracking algorithm for multi-agent based on MAPPO and BCTD,” Drones , vol. 9, no. 8, p. 521, 2025. [29] P. Zhang and G. Li, “A cooperative dynamic target search approach for multi-UAV systems utilizing the MAPPO algorithm,” Discover Artif. Intell. , vol. 5, no. 1, p. 153, 2025. [30] Z. Ding, X. Wang, C. Cai, et al. , “Multi-UAV intelligent decision-making method with layer delay dual-center MAPPO for air combat,” 
+
+Appl. Intell. , vol. 55, no. 11, p. 811, 2025.

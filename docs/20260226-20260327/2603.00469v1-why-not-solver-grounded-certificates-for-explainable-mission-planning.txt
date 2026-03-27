@@ -1,0 +1,398 @@
+Title: Why Not? Solver-Grounded Certificates for Explainable Mission Planning
+
+URL Source: https://arxiv.org/pdf/2603.00469v1
+
+Published Time: Tue, 03 Mar 2026 01:32:11 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# Why Not? Solver-Grounded Certificates for Explainable Mission Planning 
+
+# Najeeb Khan Serana AI Inc., Vancouver, Canada 
+
+# najeeb.khan@serana.ai https://serana.ai 
+
+# Abstract 
+
+Operators of Earth observation satellites need justifications for scheduling decisions: why a request was selected, re-jected, or what changes would make it schedulable. Ex-isting approaches construct post-hoc reasoning layers in-dependent of the optimizer, risking non-causal attributions, incomplete constraint conjunctions, and solver-path depen-dence. We take a faithfulness-first approach: every expla-nation is a certificate derived from the optimization model itself: minimal infeasible subsets for rejections, tight con-straints and contrastive trade-offs for selections, and in-verse solves for what-if queries. On a scheduling instance with structurally distinct constraint interactions, certifi-cates achieve perfect soundness with respect to the solver’s constraint model (15/15 cited-constraint checks), counter-factual validity (7/7), and stability (Jaccard = 1.0 across 28 seed-pairs), while a post-hoc baseline produces non-causal attributions in 29% of cases and misses constraint conjunc-tions in every multi-cause rejection. A scalability analysis up to 200 orders and 30 satellites confirms practical extrac-tion times for operational batches. 
+
+# 1. Introduction 
+
+Earth observation (EO) satellite scheduling combines imag-ing task selection with downlink planning under coupled resource constraints. Recent surveys identify integrated imaging and downlink planning as a core class of satellite scheduling problems [5]. As these systems become more autonomous, operators need transparency into scheduling decisions. This transparency supports situational awareness and trust. Without it, operators cannot verify that the sched-uler respects mission priorities, and they lack recourse when the schedule conflicts with operational judgment. The explainability challenge centers on three query types: why a request was selected, why not when it is re-jected, and what if to find changes that would make a re-jected request schedulable. All three must account for the coupling between imaging and downlink, since an imaging decision is only viable if a later downlink pass can retrieve the data before storage overflows. Existing work emphasizes presentation mecha-nisms [13–15]. These include argumentation structures, knowledge graphs, and natural language interfaces. While they improve operator interaction, they lack formal guar-antees that explanations accurately reflect the underlying optimization model. This gap manifests in three concrete failure modes: (1) non-causal attribution , where the explanation cites a plausible but non-decisive factor (e.g., storage pressure when the actual cause is a missing downlink); (2) incom-plete conjunctions , where only a subset of jointly necessary constraint kinds is reported, leading to corrections that have no effect; and (3) solver-path dependence , where explana-tions change when the solver is re-run with a different ran-dom seed. We formalize these in Section 4.1 and demon-strate each empirically in Section 5. This paper addresses the gap between explanation inter-faces and solver behavior. We take a faithfulness-first ap-proach. We define explanation faithfulness as the property that every claim in an explanation corresponds to a veri-fiable statement over the scheduler’s constraints and deci-sion variables. Each explanation is a certificate: a compact subset of model constraints and variable bindings that can be independently checked against the optimization formu-lation. This approach builds on optimization infeasibility analysis [2, 8], which identifies minimal sets of constraints responsible for infeasibility, and on constraint satisfaction explanation [7, 9], which provides efficient algorithms for computing such sets. The contributions of this work are fourfold: • An integrated EO scheduling formulation with imag-ing/downlink coupling via storage feasibility, designed for explanation with semantic tagging of constraint fami-lies that maps solver artifacts to operator-understandable categories. • Certificate-based methods for why and why-not queries using minimal conflict sets and contrastive dominance analysis, with formal soundness guarantees. 1
+
+> arXiv:2603.00469v1 [cs.AI] 28 Feb 2026
+
+• Counterfactual explanations for what-if queries via min-imal corrections, validated through re-solving to confirm the predicted schedule change. • A faithfulness evaluation protocol with metrics for sound-ness, minimality, and stability, enabling regression testing as the scheduling model evolves. 
+
+# 2. Related Work 
+
+Explainability for satellite scheduling. Powell and Ric-cardi motivate explainability for onboard satellite schedul-ing [13]. They propose abstract argumentation to ex-plain scheduling outcomes [14]. Later work uses knowl-edge graphs and question answering for interactive expla-nations [15]. They also explore natural language generation for operator-facing explanations [17]. Maillard et al . apply explainable scheduling to coverage analysis in constellation design [12]. These works show that transparency matters for operational acceptance. 
+
+Explainability in constraint satisfaction and optimiza-tion. Constraint reasoning provides a foundation for ex-plainable decision support. Surveys consolidate methods for generating explanations from minimal conflicting sub-sets and correction subsets [9]. Step-wise frameworks pro-duce interpretable and verifiable explanation sequences [1]. Efficient algorithms compute optimal unsatisfiable subsets for constraint satisfaction problems [6, 7]. Counterfactual explanations have been formalized through inverse optimization and inverse constraint pro-gramming [10, 11]. These produce minimal changes to make a desired decision feasible. They directly address why-not and what-if queries with verifiable answers. Out-side space applications, argumentation-supported tools pro-vide structured interaction with scheduling outcomes [4]. 
+
+Gap. No existing space-specific approach grounds expla-nations in the solver’s constraint model or provides formal correctness guarantees. 
+
+# 3. Problem Formulation 
+
+This section translates the physical and operational rules governing EO scheduling (visibility windows, onboard stor-age limits, ground-station contacts, and slew constraints) into a mixed-integer optimization model. The formula-tion is designed so that every constraint carries a semantic tag linking it back to an operator-understandable category, which is the basis for the certificate-based explanations in Section 4. 
+
+3.1. Integrated EO Scheduling 
+
+Consider an EO satellite system operating over a planning horizon [0 , T ]. The system comprises one or more space-craft and a set of ground stations. The scheduler receives a set of imaging requests (orders) and must decide which to acquire, when, and how to downlink the resulting data. The objective is to maximize mission value subject to physical, operational, and policy constraints. 
+
+Decision variables. Let O denote the set of imaging or-ders and P the set of imaging passes (time windows dur-ing which a spacecraft can observe a target). Let Q denote the set of downlink passes (time windows during which a spacecraft is in contact with a ground station). The model uses four families of binary decision variables: 
+
+xo,p ∈ { 0, 1} order o assigned to imaging pass p, (1) 
+
+yp ∈ { 0, 1} imaging pass p is used, (2) 
+
+dq ∈ { 0, 1} downlink pass q is used, (3) 
+
+ao ∈ { 0, 1} order o is scheduled. (4) An order is considered scheduled only if it is imaged and downlink resources are allocated such that delivery is fea-sible under onboard storage constraints. This coupling be-tween imaging and downlink is central to the formulation and distinguishes it from imaging-only models common in the literature. 
+
+Objective function. The scheduler maximizes a weighted combination of mission value terms. Each order o has a base value Vo and a priority level Po. The priority is mapped through a weight function W (Po) = 1 + α(Po − 1) , where 
+
+α is a tunable parameter that controls how steeply higher-priority orders are preferred. The objective includes a re-ward for scheduled orders, a penalty for downlink resource usage, a penalty for cloud risk, and a penalty for data la-tency: 
+
+max X
+
+> o,p
+
+Vo W (Po) xo,p + β X
+
+> o
+
+ao
+
+− λ X
+
+> q
+
+dq − μ X
+
+> o,p
+
+Vo W (Po) cp xo,p 
+
+− η X
+
+> o,p
+
+Vo W (Po) ℓp xo,p (5) where cp is the fractional cloud-cover forecast for pass p, ℓp
+
+is the normalized latency from imaging to the earliest avail-able downlink (computed from pass geometry, not from the decision variables), and β, λ, μ, η are scalar weights. The 
+
+β term is set small relative to order values and acts as a tiebreaker, preferring schedules that include more orders when value alone is indifferent. The λ term discourages un-necessary downlink passes, since each ground-station con-tact has an operational cost. The cloud and latency penalties steer the scheduler toward clearer skies and faster data de-livery when multiple imaging opportunities exist. 2Assignment constraints. Each order is assigned to at most one imaging pass, and the pass-usage and order-scheduled indicators are linked to the assignment variables: 
+
+X
+
+> p
+
+xo,p ≤ 1 ∀ o ∈ O , (6) 
+
+xo,p ≤ yp ∀ o, p, (7) 
+
+ao = X
+
+> p
+
+xo,p ∀ o ∈ O , (8) 
+
+yp ≤ X
+
+> o
+
+xo,p ∀ p ∈ P . (9) Constraint (6) ensures single assignment; together with binary domains, it implies ao ∈ {0, 1} via (8). Con-straints (7) and (9) link pass usage to assignments so that a pass is marked as used if and only if at least one order is assigned to it. 
+
+Downlink requirement. An imaging pass is usable only if at least one subsequent downlink pass on the same space-craft is selected. Let D(p) denote the set of downlink passes for the same spacecraft that begin after imaging pass p ends: 
+
+yp ≤ X
+
+> q∈D (p)
+
+dq ∀ p ∈ P . (10) If D(p) = ∅, no subsequent downlink exists, and yp is fixed to zero. This constraint encodes the requirement that ac-quired data must be retrievable. It is the primary source of imaging-downlink coupling: selecting an imaging pass forces the selection of a compatible downlink pass, which consumes ground-station time and affects storage dynam-ics. 
+
+Temporal exclusion. Passes on the same spacecraft that overlap in time or require an attitude slew exceeding the available transition time cannot both be selected. Let E
+
+denote the set of conflicting pass pairs (exclusions), con-structed by checking temporal overlap and minimum slew duration. For each pair (i, j ) ∈ E , where ui and uj are the corresponding pass-selection variables ( y for imaging, d for downlink): 
+
+ui + uj ≤ 1 ∀ (i, j ) ∈ E . (11) 
+
+Storage reservoir. Onboard storage evolves as images are acquired and data is transmitted. For each spacecraft, passes are ordered chronologically. Let s0 denote the initial stor-age level and C the storage capacity. At each pass k in the chronological sequence, the cumulative storage must re-main within bounds: 
+
+0 ≤ s0 + X
+
+> j≤k
+
+∆j ≤ C ∀ k, (12) where ∆j = P 
+
+> o
+
+data o xo,j for an imaging pass (stor-age increases by the data volume of assigned orders) and 
+
+∆j = −tx j dj for a downlink pass (storage decreases by the transmitted volume). Here tx j is the data volume that downlink pass j can transmit, determined by the ground-station link rate and the pass duration. This reservoir con-straint couples all imaging and downlink decisions on the same spacecraft into a single resource trajectory. 
+
+Feasibility filters. Before the optimization model is con-structed, several feasibility checks prune the variable space. Orders are excluded from passes that occur after their dead-line. Passes with cloud-cover forecasts exceeding a hard threshold are removed. Imaging passes are excluded when the spacecraft is unavailable (e.g., during maintenance or orbit maneuvers). Downlink passes are excluded when the ground station is unavailable. These filters reduce model size without affecting optimality, since the removed assign-ments are infeasible by definition. 
+
+3.2. Semantic Constraint Tags 
+
+Each constraint in the model is annotated with a semantic tag drawn from a fixed taxonomy. The tags identify the physical or operational category of the constraint: VISIBIL -
+
+> ITY
+
+, DEADLINE , CLOUD , STORAGE , DOWNLINK , TEMPO -
+
+> RAL
+
+, ENERGY , and POLICY . These tags serve two purposes. First, they allow explanation algorithms to project solver-internal constraint identifiers onto categories that operators understand. An unsatisfiable core expressed as a set of con-straint indices is not useful to an operator. The same core expressed as “storage capacity at time t3 plus downlink re-quirement for pass p7” is actionable. Second, the tags en-able aggregation. When a minimal conflict contains mul-tiple storage constraints at consecutive time steps, the tag allows grouping them into a single “storage trajectory con-flict” rather than listing each bound separately. 
+
+3.3. Faithfulness Requirements 
+
+Explanation faithfulness means that every claim in an expla-nation is a verifiable statement over the optimization model and its solution. We formalize this through three proper-ties, each designed to prevent the failure modes identified in Section 4.1. 
+
+Soundness requires that each constraint cited in an ex-planation is indeed a constraint of the model and that the claimed status is verifiable. For infeasibility certificates, soundness has two levels: the cited set must be jointly suf-ficient to prove infeasibility (set-level check), and each in-dividual constraint must be necessary , meaning that remov-ing it yields a feasible witness in which that constraint is violated (per-constraint check). 
+
+Minimality requires that no proper subset of the cited constraints suffices to establish the explanation. For a why-3not explanation, this means the conflict set is irreducible: removing any single constraint makes the augmented prob-lem (with a forced in) feasible. Minimality prevents expla-nations from including extraneous constraints that obscure the decisive factors. 
+
+Completeness requires that the explanation accounts for all necessary conditions. For a why-not explanation based on infeasibility, completeness means the cited constraints are not only individually necessary but jointly sufficient to establish infeasibility. This aligns with the notion of ir-reducible infeasible subsystems in mathematical program-ming [2, 3, 8]. 
+
+# 4. Proposed Approach 
+
+Figure 1 illustrates the explanation pipeline. An opera-tor poses a query about a specific order: why it was se-lected, why it was rejected, or what would make it schedu-lable. The system augments the scheduling model to reflect the query (e.g., forcing a rejected order into the schedule), runs the solver or an infeasibility analysis on the augmented model, and extracts a certificate: a compact, verifiable sub-set of constraints and variable bindings that answers the query. Semantic tags (Section 3.2) then project the certifi-cate onto operator-understandable categories. Presentation layers (argumentation frameworks, knowledge graphs, nat-ural language interfaces) may rephrase or reorder [1] the certificate but must not add claims beyond it. We first iden-tify the failure modes that motivate this approach, then de-tail each certificate type. 
+
+4.1. Challenges with Post-hoc Explanation Layers 
+
+Explanation layers built separately from the optimizer can diverge from the true causes encoded in the model. The three failure modes identified in Section 1 (non-causal at-tribution, incomplete conjunctions, and solver-path depen-dence) motivate the solver-grounded certificates detailed below. Section 5 demonstrates each on a realistic schedul-ing instance. 
+
+4.2. Certificate-Based Explanations for Why-Not Queries 
+
+When an operator queries why order a is not in the schedule 
+
+S∗, we construct an augmented problem Ma by adding the constraint aa = 1 (forcing order a to be scheduled) to the original model M . Two cases arise. 
+
+Case 1: Ma is infeasible. No feasible schedule exists that includes a under the current constraints. The explanation is a minimal infeasible subset (MIS) of the constraints in Ma.A MIS is a subset I ⊆ Ma such that I is infeasible and every proper subset of I is feasible. This is also known as an irreducible infeasible subsystem (IIS) in the mathematical programming literature [2, 8]. To compute the MIS, we use a deletion-based algorithm that isolates the blocking constraints by testing which ones can be removed without restoring feasibility. Starting from 
+
+Ma (which is infeasible by assumption), we iterate over each constraint c in Ma. We temporarily remove c and solve the relaxed problem. If the relaxed problem is still infeasible, c is redundant for this particular infeasibility and is permanently removed. If the relaxed problem becomes feasible, c is necessary and is retained. After processing all constraints, the remaining set is a MIS, the smallest set of rules that together make scheduling order a impossible. The cost is at most |Ma| feasibility checks (no objective needed). For models with large constraint counts but small cores, grow-shrink variants [3] can be faster than deletion from the full set. Once the MIS is computed, the semantic tags from Sec-tion 3.2 project it onto operator-understandable terms. For example, a MIS containing a downlink requirement con-straint (10) for pass p7, a temporal exclusion constraint (11) for passes (p4, p 7), and the forcing constraint aa = 1 is re-ported as: “Order a requires imaging pass p7, which needs a downlink afterward, but p7 conflicts temporally with pass 
+
+p4 (serving order b). No alternative imaging pass for a has a viable downlink.” 
+
+Case 2: Ma is feasible but a is not selected. A feasi-ble schedule including a exists, but the optimizer did not choose it because including a reduces the objective. Let S∗
+
+> a
+
+denote the optimal schedule with a forced in. The expla-nation is a contrastive certificate: the set of orders in S∗
+
+that are displaced in S∗ 
+
+> a
+
+, together with the objective differ-ence obj (S∗) − obj (S∗ 
+
+> a
+
+). This directly answers the opera-tor’s question: including a would require dropping orders 
+
+{b1, b 2} and would reduce mission value by δ.To ensure this explanation is minimal, we check whether forcing a while retaining each displaced order individually is feasible. If displacing only b1 suffices (i.e., forcing both a
+
+and b2 is feasible), then b2 is not a necessary displacement and is removed from the explanation. 
+
+4.3. Certificate-Based Explanations for Why Queries 
+
+For a scheduled order a ∈ S∗, the operator wants to know why a was included. The explanation has two parts. 
+
+Tight constraints. We identify constraints from the model that are binding (satisfied with equality) at S∗ and involve the decision variables of order a. For example, if the storage reservoir constraint (12) is tight at the time step immediately after a’s imaging pass, this indicates that a was scheduled under storage pressure and that any additional imaging at that point would overflow the buffer. Similarly, if the temporal exclusion constraint (11) for the pair (pa, p c)
+
+4Operator 
+
+# query 
+
+# Model 
+
+# augmentation 
+
+# Certificate 
+
+# extraction 
+
+# Semantic 
+
+# tagging 
+
+# Explanation 
+
+# output 
+
+why / why-not / what-if MIS / contrastive / inverse 
+
+> Offline verification
+> soundness · counterfactual · stability Figure 1. Explanation pipeline. An operator query triggers model augmentation and certificate extraction (MIS for why-not, contrastive analysis for why, inverse solve for what-if). Semantic tags map solver constraints to operator categories. Offline verification (dashed) is not required at query time.
+
+is binding, it shows that a’s imaging pass directly excluded pass pc.
+
+Contrastive dominance. We identify alternative orders that could have been scheduled in place of a but were not. For each such alternative b, we solve the problem with a
+
+excluded and b forced in. If the resulting objective is lower, 
+
+a dominates b in this context, and the explanation reports the value difference. If no feasible schedule exists with b
+
+in place of a, the explanation reports that b is not a viable alternative. This gives the operator a concrete sense of the trade-offs the scheduler made. 
+
+4.4. Counterfactual Explanations via Minimal Cor-rections 
+
+A why-not certificate tells the operator what is blocking a rejected order, but not what to change to unblock it. For what-if queries, the operator wants to know the smallest modification to the mission plan that would make a rejected order a schedulable. This completes the explanation loop: the MIS identifies the decisive constraints, and the minimal correction identifies the cheapest way to relax them. We formalize this as an inverse problem following [10, 11]. 
+
+Change space. Not all model parameters are under the operator’s control. We define a set of operator-actionable parameters Θ that reflects the levers available in prac-tice: cloud-cover thresholds (relaxing from 20% to a higher value, accepting more imaging risk), ground-station avail-ability windows (adding a contact pass by coordinating with station operators), storage reserve margins (reducing the safety buffer to free capacity), and priority weights (increas-ing Pa to make a more competitive against other orders). Each parameter θi ∈ Θ has a current value θ0 
+
+> i
+
+and a cost 
+
+wi(|θi −θ0 
+
+> i
+
+|) that measures the operational cost of deviation. These costs encode domain knowledge: cloud-threshold re-laxations are inexpensive (the operator simply accepts more risk), while adding ground-station passes is expensive (it requires coordination with external operators and may dis-place other missions’ contacts). 
+
+Inverse problem. Given the change space, we seek the cheapest set of parameter modifications that makes a
+
+schedulable: 
+
+min 
+
+> ∆∈Θ
+
+X
+
+> i
+
+wi(|∆i|) s.t. M (θ0+∆) is feasible with aa = 1 ,
+
+(13) where M (θ) denotes the scheduling model parameterized by θ. The solution ∆∗ is a minimal correction: the cheapest set of parameter changes that makes a schedulable. When the change space is discrete and small (e.g., a few candidate additional ground-station passes), this reduces to enumerat-ing combinations. When it is continuous (e.g., cloud thresh-olds), the problem can be formulated as a mixed-integer program with the correction magnitudes as additional vari-ables. 
+
+Validation. The inverse formulation operates on a param-eterized version of the model, which may introduce approx-imation gaps relative to the full scheduling problem. We therefore validate each minimal correction by re-solving the complete scheduling model M (θ0 + ∆ ∗) with aa = 1 and verifying that the resulting schedule indeed includes a with an objective value above the operator’s threshold. This re-solve step guards against cases where the correction is nec-essary but not sufficient in the full model, and confirms that the operator can trust the recommendation. 5Reporting. The output to the operator states the correc-tion in operational terms: “Order a becomes schedulable if the cloud-cover threshold for pass p3 is relaxed from 20% to 28%, or if an additional downlink pass is added at ground station G2 between 14:00 and 14:12 UTC.” When multiple minimal corrections exist, we report the one with lowest operational cost and optionally the full Pareto set of cost-equivalence classes. This gives the operator a concrete menu of interventions ranked by feasibility, rather than a single take-it-or-leave-it recommendation. 
+
+# 5. Experimental Evaluation 
+
+We evaluate certificate-based explanations along two axes. First, we verify correctness : are the certificates sound, min-imal, counterfactually valid, and stable across solver runs? We then compare against a representative post-hoc baseline to quantify the failure modes from Section 4. Second, we characterize computational cost across a range of problem sizes to assess practical scalability. 
+
+5.1. Experimental Setup 
+
+Scheduling model and orbital mechanics. We instanti-ate the integrated imaging-downlink model from Section 3 using a constellation of three commercial synthetic aper-ture radar (SAR) satellites with real two-line element sets (TLEs): two spacecraft (S1, S2) at 53 ◦ inclination and one (S3) in a 97 .7◦ sun-synchronous orbit. All have 8.0 GB onboard storage, 15.0 Mbps downlink rate, and 150 s mini-mum slew time. Ten imaging orders are placed on verified ground tracks over a 12-hour simulation window. Imaging and downlink passes are generated via Skyfield/SGP4 prop-agation. 
+
+Test instance. We construct a single instance that exer-cises structurally distinct constraint interactions by restrict-ing downlink access to a single ground station (Svalbard). Because S1 and S2 fly at 53 ◦ inclination, they cannot reach the polar station and receive zero downlink passes. Only the sun-synchronous S3 retains downlink access (4 passes). Initial storage is 80% (1.6 GB free); each order requires 1.8 GB. The model contains 38 passes (34 imaging, 4 down-link) and 110 semantically tagged constraints. This design introduces a structural asymmetry: orders with imaging candidates on both satellite types encounter 
+
+different blocking constraints on each path. Candidates on S1/S2 are blocked by missing downlink ( NO DOWNLINK ), while candidates on S3 are blocked by storage overflow (STORAGE UPPER BOUND ). Of 10 orders, 1 is scheduled, 2 are rejected by optimal-ity trade-offs (schedulable but displaced by higher-priority orders), and 7 are constraint-infeasible, yielding 7 infeasi-bility certificates. 
+
+Post-hoc baseline. The baseline implements the optimizer-agnostic explanation pattern shared by all existing satellite scheduling explanation work (argumen-tation frameworks [14], knowledge graphs [15], and LLM-generated text [16]), which operate as post-hoc layers without access to solver internals. For each unscheduled order, the baseline identifies candidate imaging passes, inspects the schedule state (temporal conflicts, downlink availability, storage trajectory), and reports blocking reasons for the single best candidate. It uses the same semantic categories as the certificate approach but derives them from schedule-state inspection. Crucially, it evaluates each candidate independently and selects the one with the fewest blocking reasons, so it cannot reason about the joint constraint structure across all candidates. A multi-candidate variant could inspect all candidates and reduce non-causal attributions, but it would still lack the ability to prove that two constraint kinds are jointly necessary, since that requires reasoning over the solver’s constraint model across all candidates simultaneously. 
+
+5.2. Correctness and Baseline Comparison 
+
+We now test whether the certificates correctly identify the true bottlenecks in the Svalbard scenario, specifically miss-ing downlink for the inclined-orbit satellites and storage overflow for the sun-synchronous one, and whether the post-hoc baseline misses any. 
+
+Intrinsic correctness. Soundness and stability are algo-rithmic guarantees by construction of the MIS algorithm; we verify them here concretely. The 7 infeasibility certifi-cates cite 15 constraints in total. We check each against the three soundness conditions from Section 3 (tag validity, collective sufficiency, and individual necessity); all 15 pass all three checks (Table 1). The certificates are also mini-mal, averaging 2.1 constraints (median 2.0, maximum 3), well within operator working memory. To confirm counter-factual validity, we derive a targeted correction from each certificate’s constraint kinds (e.g., adding storage capacity when STORAGE UPPER BOUND is cited, inserting a syn-thetic downlink pass when NO DOWNLINK is cited), apply it to a cloned instance, and re-solve; all 7 previously re-jected orders become schedulable. Finally, re-running the instance with 8 different solver seeds yields identical expla-nation sets (Jaccard = 1.0 across all  82
+
+ = 28 seed pairs), confirming that certificates are stable with respect to solver non-determinism. 
+
+Baseline failure modes. We now compare the two ap-proaches on the 7 infeasibility explanations, i.e. the cases where an order is rejected because no feasible schedule can include it. Using the certificate output as ground truth, we examine where the post-hoc baseline diverges. Of the three 6Table 1. Evaluation results. All metrics are over the 7 constraint-infeasible orders unless noted. Top: intrinsic correctness. Bot-tom: post-hoc baseline failure modes (certificate output as ground truth).               
+
+> Intrinsic correctness
+> Infeasibility certificates 7Soundness checks passed 15 / 15 Counterfactual tests succeeded 7 / 7 Stability (Jaccard, 28 seed-pairs) 1.000 Core size (avg / median / max) 2.1 / 2.0 / 3
+> Post-hoc baseline failure modes
+> Orders with non-causal attribution 2 / 7 (29%) Non-causal / total attributions 2 / 9 (22%) Conjunction orders ( |G|>1)3Baseline incomplete on conjunctions 3 / 3 (100%)
+
+failure modes from Section 1, solver-path dependence is ad-dressed by the stability result above (the baseline was not designed to be re-run across seeds). The remaining two, non-causal attribution and incomplete conjunctions, both manifest on this instance. The first is non-causal attribution . Orders ORD-03 and ORD-04 are each blocked by storage overflow alone, but the baseline also cites NO DOWNLINK because the candi-date satellites lack downlink access. The missing downlink is a real constraint in the model, but it is not necessary for the proof of infeasibility: storage overflow would still block these orders even if downlink were available. An operator acting on the non-causal diagnosis (for example, by request-ing an additional ground-station contact) would undertake an expensive and unnecessary intervention. In total, 2 of 7 orders (29%) receive at least one non-causal attribution (Table 1). The second failure mode is incomplete conjunctions , and it is the more consequential one. Three orders (ORD-01, ORD-06, ORD-09) have imaging candidates on two satellite types: the 53 ◦-inclination spacecraft (blocked by missing downlink to Svalbard) and the sun-synchronous spacecraft (blocked by storage overflow, since 1.8 GB ex-ceeds 1.6 GB free). The certificate correctly identifies both  
+
+> NO DOWNLINK
+
+and STORAGE UPPER BOUND as jointly necessary; removing either makes the order schedulable via the other satellite type. The baseline, however, eval-uates candidates independently and selects the one with the fewest blocking reasons, a 53 ◦-inclination pass blocked solely by missing downlink. It never discovers that storage overflow is jointly necessary. This occurs on all three con-junction orders (3/3), meaning an operator would receive an incomplete diagnosis every time the true cause spans multi-ple constraint kinds (Figure 2). Imaging order   
+
+> S1 / S2 candidates
+> (53° inclination)
+> S3 candidates
+> (97.7° sun-sync)
+> no_downlink
+> (cannot reach Svalbard)
+> storage_upper_bound
+> (1.8 GB > 1.6 GB free)
+> BLOCKED BLOCKED
+> Certificate
+> { no_downlink , storage_upper_bound }
+> both jointly necessary
+> Baseline
+> { no_downlink } partial diagnosis
+
+Figure 2. Conjunction failure mode. An order’s candidates span two satellite types, each blocked by a different constraint kind. The certificate identifies both as jointly necessary; the baseline re-ports only the single best candidate’s cause. Table 2. Wall-clock timing breakdown for the test instance (3 satellites, 1 ground station, 10 orders, Apple M4 CPU).      
+
+> Component Time
+> Operational (query-time)
+> Scheduling solve (CP-SAT) 6 ms Certificate extraction (MIS) 440 ms
+> Offline validation
+> Soundness verification 64 ms Counterfactual testing 1 197 ms
+
+5.3. Computational Cost 
+
+Having established correctness, we now ask whether cer-tificate extraction is fast enough for operational use. Ta-ble 2 reports wall-clock times for the test instance, solved with Google’s CP-SAT constraint-programming solver on an Apple M4 CPU. The operational cost (what a mission planner experiences at query time) comprises the schedul-ing solve and certificate extraction; soundness verification and counterfactual testing are offline validation steps run during development. For 7 certificates, the solve completes in 6 ms and certificate extraction takes 440 ms, giving sub-second total latency. The dominant cost is MIS extraction, which makes O(k · c) solver calls per infeasible order ( k =core size, c = candidate constraints). Not all unscheduled orders require MIS extraction: pre-filtered orders (no vis-ibility, cloud cover) and optimality trade-offs are resolved without the deletion algorithm, and each order’s extraction is independent and trivially parallelizable. 725 50 75 100 125 150 175 200 
+
+Number of imaging orders 
+
+> 0
+> 200
+> 400
+> 600
+> 800
+> MIS extraction time (s)
+> CP-SAT solve: 37 209 ms
+> (not visible at this scale)
+> Total MIS extraction
+> Per-certificate cost
+> 0
+> 2
+> 4
+> 6
+> 8
+> 10
+> 12
+> Per-certificate cost (s)
+
+Figure 3. Operational latency vs. order count (10 satellites, 5 ground stations). MIS extraction dominates total latency; the CP-SAT solve remains negligible ( <210 ms) across all tested sizes. 
+
+Scalability analysis. The test instance is small by design; to characterize how costs grow, we generate synthetic in-stances along two axes. First, we scale the number of or-ders from 25 to 200 in uniform increments (10 satellites, 5 ground stations). As shown in Figure 3, per-certificate cost rises from 176 ms at 25 orders to 11.3 s at 200 orders, because larger order sets produce more constraints for the deletion algorithm to iterate over. Total latency reaches 14 min at 200 orders. Second, we vary constellation size from 5 to 30 satellites with a fixed 50-order workload (Fig-ure 4). Larger constellations schedule more orders (7 of 50 at 5 satellites vs. 31 at 30), which reduces the number of infeasible certificates from 30 to 7. Per-certificate cost still grows with model size (508 ms to 4.1 s), but total op-erational latency remains under 30 s because fewer orders require certificates. For typical operational batches (25–50 orders), certificate extraction completes in under 15 s, and larger batches can be parallelized since each order’s extrac-tion is independent. 
+
+5.4. Summary and Limitations 
+
+The results show that solver-grounded certificates are both correct and compact: perfect scores on all four intrinsic metrics, with cores small enough (2–3 constraints) for an operator to act on directly. The post-hoc baseline, by con-trast, produces non-causal attributions in 29% of cases and fails to identify all blocking constraint kinds in every con-junction case. These are not edge cases; they arise from a structural limitation of optimizer-agnostic reasoning that no amount of candidate inspection can fully resolve. Certifi-cate extraction adds modest overhead (sub-second for the test instance, under 15 s for typical batches) and is trivially parallelizable. Several limitations scope these findings. Correctness is verified on a single structured instance; the scalability ex-0     
+
+> 10
+> 20
+> 30
+> 40
+> Infeasible certificates
+> 510 15 20 25 30
+
+Number of satellites 
+
+> 0
+> 5
+> 10
+> 15
+> 20
+> 25
+> 30
+> 35
+> MIS extraction time (s)  MIS extraction time
+> Infeasible certificates
+
+Figure 4. Constellation scaling (50 orders, 5 ground stations). Per-certificate cost increases with constellation size, but total latency remains bounded because more orders become schedulable, reduc-ing the number of certificates needed (bars). 
+
+periments are synthetic and measure runtime only. The baseline represents the architectural limitation of optimizer-agnostic approaches; stronger implementations that inspect multiple candidates could partially mitigate non-causal at-tribution, though not incomplete conjunctions. The coun-terfactual tests validate that corrections derived from cer-tificate constraint kinds restore schedulability, but do not exercise the full inverse optimization pipeline (Equation 13) with operational cost weighting. User studies with mission operators are needed to validate explanation utility in prac-tice. 
+
+# 6. Conclusion 
+
+This paper presents a faithfulness-first approach to explain-able AI for integrated Earth observation scheduling. Ex-planations are grounded in verifiable solver certificates: minimal conflicts and minimal corrections. This ensures alignment between explanations and the actual optimiza-tion model. The evaluation confirms full correctness on all four intrinsic metrics with respect to the solver’s constraint model and exposes concrete failure modes, non-causal at-tribution (29%) and incomplete conjunctions (100%), in the post-hoc baseline that is standard in the literature. Ascalability analysis shows that certificate extraction remains practical for typical operational batches and is trivially par-allelizable. Future work will implement these methods on operational EO instances and evaluate explanation utility through user studies with mission operators. 8References 
+
+[1] Bart Bogaerts, Emilio Gamba, and Tias Guns. A framework for step-wise explaining how to solve constraint satisfaction problems. Artificial Intelligence , 2021. 2, 4 [2] John W. Chinneck. Finding a useful subset of constraints for analysis in an infeasible linear program. INFORMS Journal on Computing , 1997. 1, 4 [3] John W. Chinneck. Analyzing infeasible optimization mod-els. Tutorial, CPAIOR, 2007. 4 [4] Kristijonas Cyras, Myles Lee, and Dimitrios Letsios. Sched-ule explainer: An argumentation-supported tool for interac-tive explanations in makespan scheduling. In Explainable and Transparent AI and Multi-Agent Systems , 2021. 2 [5] Benedetta Ferrari, Jean-Franc ¸ois Cordeau, Maxence De-lorme, Manuel Iori, and Roberto Orosei. Satellite schedul-ing problems: A survey of applications in earth and outer space observation. Computers & Operations Research , 173: 106875, 2025. 1 [6] Emilio Gamba, Bart Bogaerts, and Tias Guns. Efficiently explaining csps with unsatisfiable subset optimization. In 
+
+IJCAI , pages 1371–1377, 2021. 2 [7] Emilio Gamba, Bart Bogaerts, and Tias Guns. Efficiently ex-plaining csps with unsatisfiable subset optimization. Journal of Artificial Intelligence Research , 2023. 1, 2 [8] John Gleeson and Jennifer Ryan. Identifying minimally in-feasible subsystems of inequalities. INFORMS Journal on Computing , 1990. 1, 4 [9] Sharmi Dev Gupta, Begum Genc, and Barry O’Sullivan. Ex-planation in constraint satisfaction: A survey. In IJCAI ,pages 4400–4407, 2021. 1, 2 [10] Anton Korikov and J. Christopher Beck. Counterfactual ex-planations via inverse constraint programming. In Interna-tional Conference on Principles and Practice of Constraint Programming (CP) , 2021. 2, 5 [11] Anton Korikov, Alexander Shleyfman, and J. Christopher Beck. Counterfactual explanations for optimization-based decisions in the context of the gdpr. In IJCAI , pages 4097– 4102, 2021. 2, 5 [12] Adrien Maillard, Christopher Wells, Shadi Eveisgharan, Paul Rosen, and Steve Chien. Where is my coverage? using ex-plainable automated scheduling to inform mission design of an earth-observing constellation. In International Workshop on Planning and Scheduling for Space (IWPSS) , 2023. 2 [13] Cheyenne Powell and Annalisa Riccardi. Towards explain-ability of on-board satellite scheduling for end user interac-tions. In 72nd International Astronautical Congress (IAC) ,Dubai, United Arab Emirates, 2021. 1, 2 [14] Cheyenne Powell and Annalisa Riccardi. Abstract argumen-tation for explainable satellite scheduling. In IEEE Interna-tional Conference on Data Science and Advanced Analytics (DSAA) , pages 1–10, 2022. 2, 6 [15] Cheyenne Powell and Annalisa Riccardi. Question answer-ing over knowledge graphs for explainable satellite schedul-ing. Journal of Aerospace Information Systems , 2025. 1, 2, 6[16] Cheyenne Powell and Annalisa Riccardi. Generating textual explanations for scheduling systems leveraging large lan-guage models. Journal of Intelligent Information Systems ,2025. 6 [17] Cheyenne Powell, Audrey Berquand, and Annalisa Ric-cardi. Natural language processing for explainable satellite scheduling. In SPACEOPS , 2023. 2 
+
+9

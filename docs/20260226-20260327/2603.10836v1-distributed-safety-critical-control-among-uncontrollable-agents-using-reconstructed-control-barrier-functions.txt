@@ -1,0 +1,1238 @@
+Title: Distributed Safety Critical Control among Uncontrollable Agents using Reconstructed Control Barrier Functions
+
+URL Source: https://arxiv.org/pdf/2603.10836v1
+
+Published Time: Thu, 12 Mar 2026 01:06:11 GMT
+
+Number of Pages: 7
+
+Markdown Content:
+# Distributed Safety Critical Control among Uncontrollable Agents using Reconstructed Control Barrier Functions 
+
+Yuzhang Peng, Wei Wang, Jiaqi Yan, and Mengze Yu 
+
+Abstract — This paper investigates the distributed safety crit-ical control for multi-agent systems (MASs) in the presence of uncontrollable agents with uncertain behaviors. To ensure system safety, the control barrier function (CBF) is employed in this paper. However, a key challenge is that the CBF constraints are coupled when MASs perform collaborative tasks, which depend on information from multiple agents and impede the design of a fully distributed safe control scheme. To overcome this, a novel reconstructed CBF approach is proposed. In this method, the coupled CBF is reconstructed by leveraging state estimates of other agents obtained from a distributed adaptive observer. Furthermore, a prescribed performance adaptive parameter is designed to modify this reconstruction, ensuring that satisfying the reconstructed CBF constraint is sufficient to meet the original coupled one. Based on the reconstructed CBF, we design a safety-critical quadratic programming (QP) controller and prove that the proposed distributed control scheme rigorously guarantees the safety of the MAS, even in the uncertain dynamic environments involving uncontrollable agents. The effectiveness of the proposed method is illustrated through simulations. 
+
+I. INTRODUCTION In recent years, safety critical control has garnered signif-icant attention for its applications in fields such as robotics [1], autonomous driving [2], and aerospace [3]. Beyond established methods such as artificial potential fields (APFs) [4], prescribed performance control (PPC) [5], and nonover-shooting control [6], the use of control barrier functions (CBFs) to ensure system safety represents an emerging research direction. The standard CBF-based approach adopt a quadratic program (QP) as the controller to compute the control inputs that strictly satisfies the CBF-induced safety constraint, thereby guaranteeing system safety [7]. Due to the widespread application of multi-agent systems (MAS) in collaborative tasks, ensuring their safety using CBFs has also become an active area of research. The works in [8] and [9] investigate the cooperative control problem for MASs under safety or task constraints using a CBF-based approach. However, both of these studies adopt a centralized control architecture. A distributed CBF-QP control frame-work is proposed in [10] to address the control problem under                
+
+> *This work was supported by National Natural Science Foundation of China under Grants 62573023 and 62373019, and the Fundamen-tal Research Funds for the Central Universities (501RCQD2025103003, 501XSKC2025103001). Yuzhang Peng and Mengze Yu are with the School of Automation Science and Electrical Engineering, Beihang University, Beijing 100191, China.
+
+pengyz@buaa.edu.cn ; yumengze0214@126.com  
+
+> Wei Wang and Jiaqi Yan are with the School of Automation Science and Electrical Engineering, Beihang University, Beijing 100191, China and the Hangzhou Innovation Institute, Beihang University, Hangzhou 310051, China.
+
+w.wang@buaa.edu.cn ; jqyan@buaa.edu.cn 
+
+collaborative task constraints. Nevertheless, this approach assumes that the MAS for achieving the collaborative task is fully connected. Therefore, designing distributed safety controllers based on CBFs to address the cooperative control problem still remains a challenge. The primary challenge in designing distributed CBF-based controllers is that the CBF often involves the states of multiple agents, resulting in a coupled CBF . When a standard QP controller is adopted, this coupled CBF induces a coupled constraint that involves the states and control inputs of multiple agents. Consequently, it becomes infeasible for an individual agent to compute a control input that satisfies this constraint using only its local information. One approach to overcome the issue of coupled CBFs and enable distributed control is the constraint decomposition approach proposed in [11], [12]. The core assumption therein is that a coupled constraint can be decomposed into multiple local constraints, each relying solely on information available to the respective agent. Consequently, if the control input of every agent satisfies its respective local constraint, it can be guaranteed that the original coupled constraint is also satisfied. While the constraint decomposition approach allows for the design of fully distributed QP controllers, a drawback is that not all coupled CBF constraints can be transformed into local ones through a simple additive split as used in [11], [12]. Another challenge arises from the presence of uncontrol-lable agents with uncertain behavior in the operating environ-ment of MASs [13], [14]. Prominent examples include pedes-trians in multi-robot navigation scenarios and human-driven vehicles in autonomous driving contexts. When uncontrol-lable agents are present in the environment, the constraint decomposition approach proposed in [11], [12] becomes inapplicable. This is because the method requires all agents involved in a coupled constraint to satisfy their respective decomposed local constraints. However, we can only design control inputs for controllable agents , whereas the inputs of uncontrollable agents are entirely unknown and cannot be prescribed. This makes it impossible to satisfy the local constraints corresponding to the uncontrollable agents, which in turn renders the design of distributed safety controllers more challenging. 
+
+Contributions: Motivated by the aforementioned limi-tations, we propose a novel reconstructed CBF approach to resolve the challenge of coupled CBF constraints in distributed safety critical control.  
+
+> •
+
+By leveraging state estimates from distributed adaptive observers, this method transforms coupled, global CBFs 
+
+> arXiv:2603.10836v1 [eess.SY] 11 Mar 2026
+
+into local ones. We further modify the reconstructed CBFs with a prescribed performance adaptive parame-ter, which guarantees that satisfying the reconstructed CBF constraints is sufficient to satisfy the original global one.  
+
+> •
+
+Prior works, such as [11], [12], require the presupposi-tion that all agents involved in a coupled constraint are controllable. In contrast, the reconstructed CBFs method enables controllable agents to compensate for the uncer-tain behaviors of uncontrollable ones. This relaxes the requirement for global constraint satisfaction, such that instead of requiring all agents to enforce the coupled CBF constraint, only a subset of controllable agents needs to satisfy their reconstructed local constraints. The remainder of this paper is organized as follows: Section II provides the preliminaries and describes the problem. In Section III, a distributed safety critical control framework based on reconstructed CBFs is proposed. Section IV demonstrates the effectiveness of the proposed method through a simulation example. A conclusion is drawn in Section V. 
+
+Notation : Symbols R represents the real number set. 
+
+Rn denotes the n-dimensional real vector space and Rm×n
+
+denotes the m×n-dimensional real matrix space. I represents an identity matrix with an appropriate dimension. Inequal-ities X ≻ 0 and Y  0 indicate that matrices X and Y
+
+are positive definite and positive semi-definite, respectively. 
+
+1 and 0 refer to vectors of proper dimensions with all entries to be 0 or 1, respectively. The Kronecker product of matrices 
+
+M ∈ Rm×n and N ∈ Rp×q is denoted by M ⊗N ∈ Rmp ×nq .II. PRELIMINARIES AND PROBLEM STATEMENT 
+
+A. Graph Theory 
+
+In this paper, different controllable agents are connected through an undirected graph G = {N , E} , which consists of agents N = {1, 2, . . . , N } and edges E = {(i, j )|i, j ∈ N } .Since G is undirected, if the edge (i, j ) ∈ E , then (j, i ) ∈ E .Moreover, (i, j ) ∈ E indicates that agent j can obtain the state information of agent i. In this case, agent j is referred to as a neighbor of agent i, and vice versa. Self edge is disallowed in this study, i.e., (i, i ) /∈ E, ∀i ∈ N . The adjacency matrix A = [ aij ] ∈ RN ×N is given by aij = 1 
+
+if (i, j ) ∈ E , and aij = 0 , otherwise. The degree matrix is denoted by D = diag {d1, . . . , d N }, where di = ∑Nj=1 aij .The Laplacian matrix L is provided by L = D − A . The undirected graph G is connected if there is a sequence of connected edges between any agents i and j. The set of uncontrollable agents is defined as V = {N + 1 , . . . , N +
+
+V }. Similarly, if the controllable agent i ∈ N is directly connected with the uncontrollable agent l ∈ V , which means that agent i is aware of the state information of agent l, we have ail = 1 and ail = 0 , otherwise. Let N + := N ∪ V be the set that includes all controllable agents and uncontrollable agents. For any i ∈ N and j ∈ N +, define Hj = L + Bj
+
+with Bj = diag {b1j , . . . , b N j }, where bij = aij if i 6 = j and 
+
+bii = 1 otherwise. 
+
+B. System Dynamics and Control Barrier Functions 
+
+Consider a class of nonlinear MASs as 
+
+˙xi = f (xi) + g(xi)ui, i ∈ N +, (1) where xi = [ xi, 1, . . . , x i,n ]T ∈ Rn and ui ∈ Rm are the state and control input of agent i, respectively. The function f :
+
+Rn → Rn is globally Lipschitz continuous with an unknown Lipschitz constant L1, while the function g : Rn → Rn×m is locally Lipschitz continuous. Let x = [ xT 
+
+> 1
+
+, . . . , x TN +V ]T and 
+
+u = [ uT 
+
+> 1
+
+, . . . , u TN +V ]T denote the stacked state vector and stacked control input vector of all agents in N +, respectively. Note that the control input ul of the uncontrollable agent 
+
+l ∈ V ⊆ N + is unknown and cannot be designed. In the CBF-based standard safety critical control method, the fundamental objective is to constrain the system state within a predefined safe set . Given the MAS (1) and a continuously differentiable function h(x) : R(N +V )n → R,the safe set C for (1) is defined as the zero superlevel set of function h as follows: 
+
+C := {x ∈ R(N +V )n|h(x) ≥ 0}. (2) The interior and boundary of C, respectively denoted by 
+
+Int( C) and ∂C, are defined as follows: 
+
+Int( C) := {x ∈ R(N +V )n|h(x) > 0},∂C := {x ∈ R(N +V )n|h(x) = 0 }. (3) Afterwards, the definition of CBFs is introduced as follows: 
+
+Definition 1 (Zeroing CBFs, ZCBFs [7]): The continu-ously differentiable function h(x) is a ZCBF if there exists an extended class K function α(·) for all x(t) ∈ C , such that 
+
+sup   
+
+> u∈R(N+V)m
+
+[N +V∑
+
+> i=1
+
+∂h 
+
+∂x i
+
+(f (xi) + g(xi)ui)
+
+]
+
+≥ − α(h(x)) .
+
+(4) Then, the following lemma is established for ZCBFs. 
+
+Lemma 1 ([7] ): For a given ZCBF h(x) and MAS (1), if the control input satisfy u ∈ U Z , where UZ is the set of control input satisfying (4), the safe set C is forward invariant. 
+
+C. Problem Statement 
+
+In research related to CBFs, QP is commonly employed to synthesize a controller that ensures the control input strictly satisfies safety constraints. For system (1), to guarantee that constraint (4) is strictly satisfied, the standard QP-based controller is formulated as follows: 
+
+u = arg min   
+
+> ν∈R(N+V)m
+
+1
+
+2 (ν − unom )T W (ν − unom ) (5a) s.t.  
+
+> N+V
+
+∑
+
+> i=1
+
+∂h 
+
+∂x i
+
+(f (xi) + g(xi)ui) ≥ − α(h(x)) . (5b) The controller (5), also referred to as the safety filter , is used to modify the nominal control input unom ∈ R(N +V )m,which is designed to achieve a primary control task (e.g. trajectory tracking) without considering safety constraints. The remaining terms, ν and W ∈ R(N +V )m×(N +V )m, are the optimization variable and a positive definite weighted matrix, respectively. According to Lemma 1, (5) is able to strictly ensure the safety of the system while achieving the control task corresponding to unom as effectively as possible. However, the presence of the coupled constraint (4) renders the controller (5) centralized. Besides, it is not possible to solve for the control input that satisfies (4) using only the information from a single agent. Moreover, due to the presence of uncontrollable agents, ui for i ∈ V cannot be designed, which renders (5) inapplicable and exacerbates the difficulty in designing a distributed safety controller. To overcome the aforementioned challenges, the control objective of this paper is as follows:  
+
+> •
+
+Design a distributed QP controller for each controllable agent i ∈ N , which rigorously guarantees the safety constraints while utilizing only the local information of the agent;  
+
+> •
+
+The designed distributed safety controller remains ap-plicable even when the safety constraints involve un-controllable agents, i.e., ∂h  
+
+> ∂x i
+
+6 ≡ 0T for i ∈ V .
+
+Remark 1: Although our analysis, as presented in (5b), focuses on the case where all controllable agents are subject to a single, common coupled CBF constraint, the proposed method can be readily extended to scenarios involving mul-tiple heterogeneous coupled CBF constraints among agents. We demonstrate this capability with a case study in Section IV. To achieve the control objectives, the following assump-tions are imposed. 
+
+Assumption 1: The undirected graph G is connected, and the state of uncontrollable agent l for any l ∈ V can be obtained by at least one controllable agent. 
+
+Assumption 2: The control effectiveness g(xi)ui is bounded, i.e., ‖g(xi)ui‖ ≤ D for any i ∈ N +, where D > 0
+
+is an unknown upper bound. 
+
+Assumption 3: The derivative of the function h(z), i.e.,  
+
+> dh (z)
+> dz
+
+, is designed to be locally Lipschitz continuous. 
+
+Assumption 4: For the CBF h(x), both its function form and its value are known to any controllable agent i ∈ N .
+
+Assumption 5: At the initial time t = 0 , each agent i is in the interior of the safe set C, i.e., h(x(0)) > 0.
+
+Remark 2: Assumption 1 relaxes the fully connected topology required in [10] while maintaining the necessary connectivity for cooperative tasks like consensus [15]. As-sumption 2 standardly bounds control effort [16], [17], and Assumption 3 is easily satisfied. This work departs from [11] which assumes that coupled constraints can be decomposed into local constraints known to individual agents. Instead, Assumption 4 posits that an agent must be aware of both the safety objective (the functional form of h) and its current safety status (the value of h). This is reasonable. For instance, in collision avoidance ( h(x1, x 2) := ‖x1 − x2‖2 − d2, where 
+
+d > 0 is a safe distance), agents do not need each other’s full state; the CBF value (relative distances) obtained via local sensing (e.g., ultra-wideband) are sufficient. Finally, Assumption 5 necessitates initial safety to prevent immediate constraint violations caused by uncertainties [2]. The following lemmas will be utilized in the subsequent sections. 
+
+Lemma 2 ([18]): Under Assumption 1, it is clearly that the non-zero diagonal matrix Bj  0 for all j ∈ N +. Thus, it can be obtained that Hj ≻ 0, with the eigenvalues λj,l of 
+
+Hj satisfying 0 < λ j, 1 ≤ · · · ≤ λj,N .
+
+Lemma 3 ([19]): The following inequality holds for any 
+
+ǫ > 0 and any ̟ ∈ R:
+
+|̟ | ≤ ̟
+
+> 2
+
+√̟ 2 + ǫ2 + ǫ. (6) III. MAIN RESULTS The distributed control scheme proposed in this paper will be presented in this section. 
+
+A. Design of Distributed Adaptive Observer 
+
+Noting that constraint (5b) incorporates the states and control inputs of multiple agents, the implementation of dis-tributed control becomes challenging due to the incomplete information acquisition by a single agent. To overcome this issue, we first design a distributed observer for each agent 
+
+i ∈ N , which allows it to estimate the states of the other agents. 
+
+˙ˆxi,l = f (ˆ xi,l ) − ˆδi,l ξi,l ,ξi,l =
+
+> N
+
+∑
+
+> j=1
+
+aij (ˆ xi,l − ˆxj,l ) + bil (ˆ xi,l − xl) ,
+
+˙ˆδi,l = 2 ξTi,l Plξi,l − σl ˆδi,l , l = 1 , . . . , N + V, (7) where ˆxi,l is the estimate of the state xl by agent i, Pl ∈
+
+Rn×n is a symmetric positive definite matrix, σl is a positive constant. ˆδi,l is an adaptive parameter used to estimate the constant δl, which satisfies 
+
+2λl,N P 2 
+
+> l
+
++ L21
+
+λl, 1
+
+I − 2λl, 1δlPl + σlPl ≺ 0. (8) Afterwards, the following proposition can be established. 
+
+Proposition 1: Consider the MAS described by (1) with the distributed adaptive observers (7). Provided that Assump-tions 1 and 2 are satisfied, it can be concluded that 1) all estimate error ˜xi,l := ˆ xi,l − xi,l , ˙˜xi,l and adaptive parameters ˆδi,l remain globally uniformly bounded with 
+
+lim sup t→∞ || ˜xi,l (t)|| =
+
+√ Ξl  
+
+> λl, 1λmin (Pl)σl
+
+, i ∈ N , l ∈ N +,where Ξl := σl
+
+> 2
+
+∑Ni=1 δ2 
+
+> l
+
++ N D 2 ;2) if the signal xl for l ∈ N + is bounded, then all signals of the observer (7) are bounded. 
+
+Proof: The time derivative of ˜xi,l is calculated as 
+
+˙˜xi,l = ˜fi,l − dl − ˆδi,l ξi,l , (9) where ˜fi,l := f (ˆ xi,l ) − f (xi,l ) and dl := g(xl)ul. Con-sequently, define ˜xl := 
+
+[
+
+˜xT
+
+> 1,l
+
+, . . . , ˜xTN,l 
+
+]T
+
+. Consider the following Lyapunov function 
+
+Vl = ˜ xTl (Hl ⊗ Pl) ˜ xl + 1
+
+2
+
+> N
+
+∑
+
+> i=1
+
+˜δ2
+
+> i,l
+
+, (10) where ˜δi,l = δl − ˆδi,l . It can be derived that 
+
+˙˜xl = ˜Fl − 1 ⊗ dl − ˆδl (Hl ⊗ I) ˜ xl, (11) where ˜Fl =
+
+[ ˜f T
+
+> 1,l
+
+, . . . , ˜f TN,l 
+
+]T
+
+and ˆδl =diag {ˆδ1,l , . . . , ˆδ1,l ,
+
+︸ ︷︷ ︸
+
+> n
+
+ˆδ2,l , . . . , ˆδ2,l ,
+
+︸ ︷︷ ︸
+
+> n
+
+. . . , ˆδN,l , . . . , ˆδN,l 
+
+︸ ︷︷ ︸
+
+> n
+
+}N n ×N n .Thus, the derivative of Vl along (11) is obtained as 
+
+˙Vl =2˜ xTl (Hl ⊗ Pl) ˜Fl − 2˜ xTl (Hl ⊗ Pl) ( 1 ⊗ dl)
+
+− 2˜ xTl (Hl ⊗ Pl) ˆδl (Hl ⊗ I) ˜ xl −
+
+> N
+
+∑
+
+> i=1
+
+˜δi,l ˙ˆδi,l 
+
+≤2˜ xTl
+
+(H2 
+
+> l
+
+⊗ P 2
+
+> l
+
+) ˜xl + || ˜Fl|| 2 + || 1 ⊗ dl|| 2
+
+− 2
+
+> N
+
+∑
+
+> i=1
+
+ˆδi,l ξTi,l Plξi,l −
+
+> N
+
+∑
+
+> i=1
+
+˜δi,l ˙ˆδi,l . (12) Based on the global Lipschitz continuity of the function f (·)
+
+and Assumption 4, it can be deduced that 
+
+|| ˜Fl|| 2 =
+
+> N
+
+∑
+
+> i=1
+
+|| ˜fi,l || 2 ≤ L21|| ˜xl|| 2, || 1 ⊗ dl|| 2 ≤ N D 2. (13) Substituting (13) into (12) and using Lemma 2 yields: 
+
+˙Vl ≤2˜ xTl
+
+(H2 
+
+> l
+
+⊗ P 2
+
+> l
+
+) ˜xl + L21 ˜xTl ˜xl + N D 2
+
+− 2
+
+> N
+
+∑
+
+> i=1
+
+(
+
+δl − ˜δi,l 
+
+)
+
+ξTi,l Plξi,l −
+
+> N
+
+∑
+
+> i=1
+
+˜δi,l ˙ˆδi,l 
+
+≤2λl,N ˜xTl
+
+(Hl ⊗ P 2
+
+> l
+
+) ˜xl + L21
+
+λl, 1
+
+˜xTl (Hl ⊗ I) ˜ xl
+
+− 2λl, 1δl ˜xTl (Hl ⊗ Pl) ˜ xl + σlN∑
+
+> i=1
+
+˜δi,l ˆδi,l + N D 2.
+
+(14) Combining (8) and (14), it is deduced that 
+
+˙Vl ≤ − σl ˜xTl (Hl ⊗ Pl) ˜ xl − σl
+
+2
+
+> N
+
+∑
+
+> i=1
+
+˜δ2 
+
+> i,l
+
++ σl
+
+2
+
+> N
+
+∑
+
+> i=1
+
+δ2 
+
+> l
+
++ N D 2
+
+= −σlVl + Ξ l. (15) Performing integration on both sides of (15) yields that 
+
+Vl(t) ≤
+
+(
+
+Vl(0) − Ξl
+
+σl
+
+)
+
+e−σlt + Ξl
+
+σl
+
+. (16) From (10) and (16), it can be concluded that Vl, ˜xi,l and 
+
+˜δi,l for i ∈ N , l ∈ N + remain bounded. Moreover, ˆδi,l and 
+
+ξi,l are also bounded. From (11) and (13), all ˙˜xi,l remain bounded. According to (16), it also can be obtain that 
+
+lim sup 
+
+> t→∞
+
+|| ˜xi,l (t)|| =
+
+√
+
+Ξl
+
+λl, 1λmin (Pl)σl
+
+. (17) Furthermore, if xl is bounded, then, based on the previous analysis, it is evident that all the signals of the observer (7) are bounded. 
+
+B. Reconstructed Control Barrier Functions 
+
+Based on the state estimate from the observer (7), the coupled CBF h(x) is then reconstructed for each agent i ∈ N 
+
+as follows: 
+
+ˆhi(ˆ υi, ϑ i) = h(ˆ υi) − ϑi,
+
+˙ϑi = − ci
+
+ei(ρi − ei)
+
+ρi
+
+εi −̺ e i
+
+ρi
+
+(ρi 
+
+> 0
+
+− ρi
+
+> ∞
+
+)e −̺t
+
+− ρiεi
+
+4ei(ρi − ei) −
+
+ˆr2
+
+> i
+
+(∥ ∥∥ dh (ˆ υi)
+
+> dˆυi
+
+∥∥∥ +
+
+∥∥∥ ˙ˆ¯xi
+
+∥∥∥)
+
+χi
+
+√χ2 
+
+> i
+
+ˆr2 
+
+> i
+
++ ǫ2
+
+> i
+
+,
+
+˙ˆri = γi|εi|ρi
+
+2ei(ρi − ei)
+
+(∥ ∥∥∥
+
+dh (ˆ υi)
+
+dˆυi
+
+∥∥∥∥ +
+
+∥∥∥ ˙ˆ¯xi
+
+∥∥∥)
+
+− ςi ˆri, (18) where ˆυi is the vector obtained by replacing the el-ement xj (j 6 = i, j ∈ N +) in the vector x
+
+with ˆxi,j , ˆ¯xi := [ˆxTi, 1, . . . , ˆxTi,N +V
+
+]T and χi :=    
+
+> εiρi
+> 2ei(ρi−ei)
+
+(∥ ∥∥ dh (ˆ υi)
+
+> dˆυi
+
+∥∥∥ +
+
+∥∥∥ ˙ˆ¯xi
+
+∥∥∥)
+
+. The parameters ci,̺ , ǫi, ςi
+
+and γi are positive constants. Moreover, ˆhi is the recon-structed CBF, ϑi and ˆri are adaptive parameters, ei is the reconstruction error, given by 
+
+ei := h(x) − ˆhi(ˆ υi, ϑ i), (19) and εi and ρi are respectively defined as 
+
+εi = 1
+
+2 ln 
+
+( ei
+
+ρi − ei
+
+)
+
+, ρ i(t) = (ρi 
+
+> 0
+
+− ρi
+
+> ∞
+
+) e−̺t + ρi
+
+> ∞
+
+.
+
+It should be noted that ϑi is an adaptive parameter designed based on PPC theory. Its role is to modify the function h(ˆ υi)
+
+in (18) to ensure that when the reconstructed CBF constraint 
+
+ˆhi ≥ 0 is satisfied, the original coupled CBF constraint 
+
+h ≥ 0 also holds. This property will be formally proven in the subsequent theorem. The initial value of ϑi, ρi 
+
+> 0
+
+and 
+
+ρi 
+
+> ∞
+
+are chosen such that 0 < ρ i 
+
+> ∞
+
+< ρ i
+
+> 0
+
+, 0 < e i(0) < ρ i 
+
+> 0
+
+and 
+
+ˆhi(ˆ υi(0) , ϑ i(0)) ≥ 0.Then, regarding the reconstructed CBF (18), the following result can be established. 
+
+Theorem 1: Considering reconstructed CBF (18), under Assumption 1-5, it can be concluded that: 1) The reconstruction error ei (19) satisfies the prescribed performance constraint, i.e., 0 < e i(t) < ρ i(t);2) If ˆhi ≥ 0 holds for at least one i ∈ N , then it follows that h(x) > 0.
+
+Proof: 1) Using proof by contradiction, we assume that 
+
+ei first exceeds the performance bounds (0 , ρ i) at some finite time ¯t, which indicates that lim t→¯t εi(t) → ∞ . Hence, for 
+
+t ∈ [0 , ¯t), we have ei ∈ (0 , ρ i). The following Lyapunov function is selected as 
+
+Vi = 1
+
+2 ε2 
+
+> i
+
++ 1
+
+2γi
+
+˜r2 
+
+> i
+
+, (20) where ˜ri = ri − ˆri. Positive constant ri satisfies a certain condition to be introduced later. Taking the derivative of Viover the interval [0 , ¯t) yields 
+
+˙Vi =εi
+
+[ −1
+
+2 ( ρi − ei) ˙ρi + ρi
+
+2ei (ρi − ei)
+
+×
+
+(
+
+˙ϑi − dh (ˆ υi)
+
+dˆυi
+
+˙ˆυi + dh (x)
+
+dx ˙x
+
+)] 
+
+− 1
+
+γi
+
+˜ri ˙ˆr
+
+=εi
+
+( ρi
+
+2ei (ρi − ei) ˙ϑi − 1
+
+2 ( ρi − ei) ˙ρi
+
+)
+
++ εiρi
+
+2ei (ρi − ei)
+
+[ dh (x)
+
+dx 
+
+(
+
+˙xi − ˙ˆυi
+
+)
+
++
+
+( dh (x)
+
+dx − dh (ˆ υi)
+
+dˆυi
+
+)
+
+˙ˆυi
+
+]
+
+− 1
+
+γi
+
+˜ri ˙ˆr. (21) Combining Proposition 1 and Assumption 3, it is deduced that 
+
+|| ˙x − ˙ˆυi|| ≤ ∆i, 1, (22) 
+
+∥∥∥∥
+
+dh (x)
+
+dx − dh (ˆ υi)
+
+dˆυi
+
+∥∥∥∥ ≤ L2|| x − ˆυi|| ≤ ∆i, 2, (23) where L2 is a Lipschitz constant of dh (z) 
+
+> dz
+
+, ∆i, 1 and ∆i, 2
+
+are positive constants. Defining ri := max {∆i, 1, ∆i, 2} and applying Lemma 3, it can be obtained that 
+
+˙Vi ≤εi
+
+( ρi
+
+2ei (ρi − ei) ˙ϑi − 1
+
+2 ( ρi − ei) ˙ρi
+
+)
+
++ |εi|ρi
+
+2ei (ρi − ei)
+
+[(∥ ∥∥∥
+
+dh (x)
+
+dx 
+
+∥∥∥∥ +
+
+∥∥∥ ˙ˆυi
+
+∥∥∥)
+
+ri
+
+]
+
+− 1
+
+γi
+
+˜ri ˙ˆr
+
+≤ ρiεi
+
+2ei (ρi − ei) ˙ϑi − εi
+
+2 ( ρi − ei) ˙ρi + |εi|ρi
+
+2ei(ρi − ei)
+
+×
+
+[(∥ ∥∥∥
+
+dh (x)
+
+dx 
+
+∥∥∥∥ +
+
+∥∥∥ ˙ˆυi
+
+∥∥∥ −
+
+∥∥∥∥
+
+dh (ˆ υi)
+
+dˆυi
+
+∥∥∥∥ −
+
+∥∥∥ ˙ˆ¯xi
+
+∥∥∥)
+
+ri
+
+]
+
++ |εi|ρi ˜ri
+
+2ei(ρi − ei)
+
+(∥ ∥∥∥
+
+dh (ˆ υi)
+
+dˆυi
+
+∥∥∥∥ +
+
+∥∥∥ ˙ˆ¯xi
+
+∥∥∥)
+
++ χ2 
+
+> i
+
+ˆr2
+
+> i
+
+√χ2 
+
+> i
+
+ˆr2 
+
+> i
+
++ ǫ2
+
+> i
+
++ ǫi − 1
+
+γi
+
+˜ri ˙ˆr. (24) Applying the reverse triangle inequality yields that 
+
+|εi|ρi
+
+2ei (ρi − ei)
+
+[(∥ ∥∥∥
+
+dh (x)
+
+dx 
+
+∥∥∥∥ +
+
+∥∥∥ ˙ˆυi
+
+∥∥∥ −
+
+∥∥∥∥
+
+dh (ˆ υi)
+
+dˆυi
+
+∥∥∥∥ −
+
+∥∥∥ ˙ˆ¯xi
+
+∥∥∥)
+
+ri
+
+]
+
+≤ |εi|ρi
+
+2ei (ρi − ei)
+
+[(∥ ∥∥∥
+
+dh (x)
+
+dx − dh (ˆ υi)
+
+dˆυi
+
+∥∥∥∥ +
+
+∥∥∥ ˙ˆυi − ˙ˆ¯xi
+
+∥∥∥)
+
+ri
+
+]
+
+≤ 1
+
+2
+
+( |εi|ρi
+
+2ei (ρi − ei)
+
+)2
+
++ 1
+
+2 ∆2 
+
+> i
+
+, (25) where ∆i ≥
+
+(∥ ∥∥ dh (x) 
+
+> dx
+
+− dh (ˆ υi)
+
+> dˆυi
+
+∥∥∥ +
+
+∥∥∥ ˙ˆυi − ˙ˆ¯xi
+
+∥∥∥)
+
+ri is a pos-itive constant. Substituting (18), (25) into (24) and using Young inequality yields that 
+
+˙Vi ≤ − ci
+
+2 ε2 
+
+> i
+
++ ςi ˜ri ˆri + 1
+
+2 ∆2 
+
+> i
+
++ ǫi
+
+≤ − ci
+
+2 ε2 
+
+> i
+
+− ςi
+
+2 ˜r2 
+
+> i
+
++ ςi
+
+2 r2 
+
+> i
+
++ 1
+
+2 ∆2 
+
+> i
+
++ ǫi
+
+≤ − ζiVi + Ω i, (26) where ζi = min {ci, ς iγi} and Ωi := ςi 
+
+> 2
+
+r2 
+
+> i
+
++ 1 
+
+> 2
+
+∆2 
+
+> i
+
++ ǫi is a positive constant. Integrating both sides of (26), it is obtained that 
+
+Vi(t) ≤
+
+(
+
+Vi(0) − Ωi
+
+ζi
+
+)
+
+e−ζit + Ωi
+
+ζi
+
+. (27) From (27), it can be known that Vi(¯ t−) is bounded, i.e., 
+
+εi(¯ t−) is bounded, which is in contradiction with the as-sumption lim t→¯t εi(t) → ∞ . Therefore, for t ∈ [0 , +∞), εi
+
+and ˜ri remain bounded, i.e., reconstruction error ei satisfy the prescribed performance criteria. 2) Since for t ∈ [0 , +∞), we have ei > 0, which implies that h(x) > ˆhi(ˆ υi, ϑ i) for any i ∈ N holds. Thus, if 
+
+ˆhi(ˆ υi, ϑ i) ≥ 0 holds for at least one i ∈ N , it is deduced that h(x) > 0 holds. 
+
+Theorem 1.2) stems from the fact clarified in Remark 1: all 
+
+ˆhi, i ∈ N , are reconstructions of the original coupled CBF h.Moreover, for scenarios with multiple heterogeneous coupled CBFs, the non-negativity of each original CBF would need to be individually guaranteed by its respective reconstructed CBF remaining non-negative, which can be easily extended from our approach by having each agent reconstruct its own original coupled CBF via (18). 
+
+C. Design of Distributed Safety Controller 
+
+To guarantee the overall safety of MAS (1), based on the distributed observer (7) and the reconstructed CBF (18), a distributed safety controller for agent i ∈ N is designed as follows: 
+
+ui = arg min  
+
+> νi∈Rm
+
+1
+
+2 (νi − ui, nom )T Wi(νi − ui, nom ) (28a) s.t. ∂ˆhi
+
+∂x i
+
+(f (xi) + g(xi)ui) + ∑   
+
+> l∈N +,l 6=i
+
+∂ˆhi
+
+∂ ˆxi,l 
+
+˙ˆxi,l − ˙ϑi
+
+≥ − αi(ˆhi),
+
+(28b) where νi represents the optimization variable, ui, nom is the nominal control input of agent i, Wi ∈ Rm×m is a positive definite weighted matrix, and αi(·) is an extended class K
+
+function. Then, we have the following theorem. 
+
+Theorem 2: Considering the MAS modeled by (1) un-der Assumption 1-5. With the proposed distributed control scheme (7), (18) and (28), the safe set C is forward invariant, i.e., the safety of all agents in N is guaranteed. 
+
+Proof: At initial time t = 0 , according to Assumption 5, we have h(x(0)) > 0. By appropriately selecting the parameters, we can always ensure that ˆhi(ˆ υi(0) , ϑ i(0)) ≥ 0
+
+and 0 < e i(0) < ρ i
+
+> 0
+
+. As a concrete example, we can set 
+
+ρi 
+
+> 0
+
+= h(x(0)) and ϑi(0) = h(ˆ υi(0)) − h(x(0)) /2, then, it follows that 0 < e i(0) = h(x(0)) /2 < h (x(0)) = ρi
+
+> 0
+
+and ˆhi(ˆ υi(0) , ϑ i(0)) = h(x(0)) /2 ≥ 0. Furthermore, if 
+
+ˆhi(ˆ υi(0) , ϑ i(0)) ≥ 0, from Lemma 1, it can be known that ˆhi(ˆ υi, ϑ i) ≥ 0 always holds for t ∈ [0 , +∞) with the controller (28). Recalling Theorem 1, it can be inferred that 
+
+h(x(t)) ≥ 0 also holds for t ∈ [0 , +∞), which implies that the safety set C is forward invariant. Therefore, the safety of all agents in N is rigorously guaranteed. 
+
+Remark 3: The proposed fully distributed scheme rigor-ously guarantees safety by rendering C forward invariant (Theorem 2). Crucially, unlike methods [11], [12] that require all agents in a coupled constraint to actively comply, our reconstructed CBF approach accommodates uncontrollable agents. As shown in Theorem 1, maintaining the recon-structed constraint (e.g., ˆhi ≥ 0) ensures the original coupled constraint h ≥ 0 is satisfied. Therefore, controllable agents can compensate for uncertain behaviors of uncontrollable agents, requiring only a subset of agents to actively satisfy the constraints. IV. SIMULATION In this section, the effectiveness of the proposed method is demonstrated by a multi-robot navigation case study. Consider an MAS consisting of four robots with N + =
+
+{1, 2, 3, 4}, where robot 4 is an uncontrollable agent, while the remaining agents are controllable. The dynamics of robots are given as 
+
+
+
+˙pi =
+
+[
+
+cos θi −l sin θi
+
+sin θi l cos θi
+
+]
+
+ui,
+
+˙θi = ωi,i = 1 , 2, 3, 4, (29) where pi = [xi, y i]T denotes the position of the center of robot i and θi is its heading angle. ui = [vi, ω i]T
+
+is the control input of robot i, where vi and ωi are the linear velocity and angular velocity of robot i, respectively. 
+
+l = 0 .036 is the distance between the center point pi and the wheel axle of robot i. As the subsequent robotic task depends only on pi, (29) can be regarded as (1) with f = 0 and 
+
+g = [cos θi, −l sin θi; sin θi, l cos θi]. The communication topology is illustrated in Fig. 1.  
+
+> Fig. 1. Communication topology.
+
+The robots’ working environment contains three circular obstacles Oi, i = 1 , . . . , 3. The center position pO,i and the radius rO,i of Oi is set as: [pTO, 1, r O, 1] = [0 .8, 2.5, 0.5] ,
+
+[pTO, 2, r O, 2] = [3 , 3.5, 0.3] , [pTO, 3, r O, 3] = [3 , 1.5, 0.5] . Be-sides, the environment includes a goal point G0 located at 
+
+pG, 0 = [0 , 4] T and a circular target region G1 centered at pG, 1 = [1 , 0.5] T with a radius rG, 1 = 0.4. Robot 4
+
+is required to navigate to the goal point G0 and robots 
+
+1, 2 are tasked with navigating to the goal region G1. In addition, robots i for i = 1 , 2, 3 are subject to the following constraints:  
+
+> •
+
+Collision avoidance : Robots i ∈ { 1, 2, 3} must avoid obstacles and other robots, yielding the constraints: 
+
+bi,O l = || pi − pO,l || 2 − (rR + rO,l )2 ≥ 0, l ∈ { 1, 2, 3},bi,j = || pi − pj || 2 − 4r2 
+
+> R
+
+≥ 0, j ∈ { 1, 2, 3, 4}, i 6 = j, 
+
+where rR = 0 .1 is the collision radius of the robots.  
+
+> •
+
+Coupled constraints : Robots 1 and 2 must cooperate, while robot 3 follows the uncontrollable robot 4. Both pairs must maintain a distance within df = 1.25 ,yielding: 
+
+bi = d2 
+
+> f
+
+− || pi − pj || 2 ≥ 0, i 6 = j, i, j ∈ { 1, 2},b3 = d2 
+
+> f
+
+− || p3 − p4|| 2 ≥ 0.
+
+Then, we derive the following CBF: 
+
+hi = − 1
+
+20 ln 
+
+
+
+> 3
+
+∑
+
+> l=1
+
+e−20 bi,O l + ∑  
+
+> j6=i,j ∈N +
+
+e−20 bi,j + e−20 bi
+
+ .
+
+It is deduced that hi ≤ min l∈{ 1,2,3},j 6 =i,j ∈N + {bi,O l , b i,j , b i}.In the considered case study, there exists multiple heteroge-neous coupled CBFs, i.e., hi, i = 1 , 2, 3. Nevertheless, we can still reconstruct hi using (18) and subsequently establish a safety controller based on (28).                               
+
+> 01234
+> 0.5 11.5 22.5 33.5 44.5
+> Fig. 2. Trajectories of 4 robots.
+> 020 40 60
+> 00.5
+> 020 40 60
+> 00.5
+> 020 40 60
+> 00.5
+> 020 40 60
+> 00.5 1
+> 020 40 60
+> 00.5 1
+> 020 40 60
+> 00.5 1
+> Fig. 3. Reconstructed CBF ˆhiand reconstruction error ei,i= 1 , . . . , 3.
+
+The initial states of the robots are set as fol-lows: [p1(0) T , θ 1(0)] = [4 , 4, 0] , [p2(0) T , θ 2(0)] =[4 , 3, 0] , [p3(0) T , θ 3(0)] = [4 , 0.5, −π], [p4(0) T , θ 4(0)] = [3 .5, 0.6, −π]. The distributed observers here are used solely for estimating pi and the distributed observers parameters are set as: the initial estimate ˆxi,j is set to be identical to the actual initial state, ˆδi,j (0) = 2 , σj = 0 .01 , Pj = diag {2, 2}
+
+for i = 1 , 2, 3, j ∈ N +. The parameters for the reconstructed CBFs are set as follows: θi(0) = 0 .1, ˆri(0) = 0 , ρi 
+
+> 0
+
+= 1 ,ρi 
+
+> ∞
+
+= 0 .15 ,̺ = 1 , ci = 0 .01 , ςi = 0 .8, γi = 0 .01 , ǫi = 0 .01 
+
+for i = 1 , 2, 3. For QP controller, we choose α1(ˆh1) = ˆh1,
+
+α2(ˆh2) = ˆh2, α3(ˆh3) = ˆh53/10 , and Wi = g(θi)T g(θi)
+
+for i = 1 , 2, 3. Additionally, the constraints on the robots’ maximum linear velocity and angular velocity are imposed, such that |vi| ≤ vmax and |ωi| ≤ ωmax for i ∈ N +, where 
+
+[vmax , ω max ] = [0 .22 , 2.84] .                                                
+
+> 010 20 30 40 50 60
+> -0.2 00.2
+> 010 20 30 40 50 60
+> -2 02
+> 010 20 30 40 50 60
+> -0.2 00.2
+> 010 20 30 40 50 60
+> -2 02
+> 010 20 30 40 50 60
+> -0.2 00.2
+> 010 20 30 40 50 60
+> -2 02
+> 010 20 30 40 50 60
+> -0.2 00.2
+> 010 20 30 40 50 60
+> -2 02
+
+Fig. 4. Control input ui, i = 1 , . . . , 4.
+
+The trajectories of the robots are presented in Fig. 2. Fig. 3 illustrates the reconstructed CBFs ˆhi and reconstruction errors ei, i = 1 , 2, 3, where the black dashed line represents the prescribed performance boundary. The control inputs for each robot are displayed in Fig. 4. As shown in Fig. 3, all reconstructed CBFs remain non-negative and the reconstruc-tion error satisfies the prescribed performance requirements. This implies that the original constraint hi ≥ 0 is also satisfied. Therefore, the proposed distributed control method effectively ensures system safety. V. CONCLUSIONS This paper presented a distributed safety critical control scheme based on reconstructed CBFs to address the control problem of MASs subject to coupled safety constraints. The original coupled CBF is reconstructed using state estimates obtained from a distributed adaptive observer, which enables the resulting reconstructed CBFs to be fully distributed. The reconstruction process is modified by designing a prescribed performance adaptive parameter, such that the satisfaction of the reconstructed CBF constraints guarantees that of the original coupled one. Based on the reconstructed CBFs, a safety QP controller is designed and we prove that this con-troller strictly guarantees the safety of the MAS. Compared to previous works, our proposed method is also applicable to uncertain dynamic environments containing uncontrollable agents. A simulation is conducted to demonstrate the effec-tiveness of the proposed method. REFERENCES [1] M. Cavorsi, L. Sabattini and S. Gil, “Multirobot adversarial resilience using control barrier functions,” IEEE Transactions on Robotics , vol. 40, pp. 797–815, 2024. [2] J. Shen, Y. Liu, W. Wang and Z. Wang, “Composite learning adaptive safety critical control with application to adaptive cruise of intelligent vehicles,” IEEE Transactions on Industrial Electronics , vol. 72, no. 10, pp. 10793-10803, 2025. [3] H. Yang, H. Dong and X. Zhao, “Integration of prescribed performance with control barrier functions for attitude control and allocation with reaction wheels,” IEEE Transactions on Aerospace and Electronic Systems , vol. 61, no. 2, pp. 1775–1786, 2025. [4] O. Khatib, “Real-time obstacle avoidance for manipulators and mobile robots,” The International Journal of Robotics Research , vol. 5, no. 1, pp. 90–98, 1986. [5] C. P. Bechlioulis and G. A. Rovithakis, “Robust adaptive control of feedback linearizable mimo nonlinear systems with prescribed performance,” IEEE Transactions on Automatic Control , vol. 53, no. 9, pp. 2090–2099, 2008. [6] M. Krstic and M. Bement, “Nonovershooting Control of strict-feedback nonlinear systems,” IEEE Transactions on Automatic Con-trol , vol. 51, no. 12, pp. 1938–1943, 2006. [7] A. D. Ames, X. Xu, J. W. Grizzle, and P. Tabuada, “Control barrier function based quadratic programs for safety critical systems,” IEEE Transactions on Automatic Control , vol. 62, no. 8, pp. 3861–3876, 2017. [8] M. Charitidou and D. V. Dimarogonas, “Receding horizon control with online barrier function design under signal temporal logic specifica-tions,” IEEE Transactions on Automatic Control , vol. 68, no. 6, pp. 3545–3556, 2023. [9] L. Wang, A. D. Ames and M. Egerstedt, “Safety barrier certificates for collisions-free multirobot systems,” IEEE Transactions on Robotics ,vol. 33, no. 3, pp. 661–674, 2017. [10] L. Lindemann and D. V. Dimarogonas, “Barrier function based collab-orative control of multiple robots under signal temporal logic tasks,” 
+
+IEEE Transactions on Control of Network Systems , vol. 7, no. 4, pp. 1916–1928, 2020. [11] X. Tan, C. Liu, K. H. Johansson and D. V. Dimarogonas, “A continuous-time violation-free multi-agent optimization algorithm and its applications to safe distributed control,” IEEE Transactions on Automatic Control , vol. 70, no. 8, pp. 5114–5128, 2025. [12] P. Mestres, C. Nieto-Granda and J. Cort´ es, “Distributed safe nav-igation of multi-agent systems using control barrier function-based controllers,” IEEE Robotics and Automation Letters , vol. 9, no. 7, pp. 6760–6767, 2024. [13] R. I. Brafman and M. Tennenholtz, “On partially controlled multi-agent systems,” Journal of Artificial Intelligence Research , vol. 4, pp. 477–507, 1996. [14] X. Yu, Y. Zhao and L. Lindemann, “Signal temporal logic control synthesis among uncontrollable dynamic agents with conformal pre-diction,” Automatica , vol. 183, p. 112616, 2026. [15] C. Deng and C. Wen, “Distributed resilient observer-based fault-tolerant control for heterogeneous multiagent systems under actuator faults and DoS attacks,” IEEE Transactions on Control of Network Systems , vol. 7, no. 3, pp. 1308–1318, 2020. [16] L. Lindemann and D. V. Dimarogonas, “Control barrier functions for multi-agent systems under conflicting local signal temporal logic tasks,” IEEE Control Systems Letters , vol. 3, no. 3, pp. 757–762, 2019. [17] J. Chen, H. Mei, Z. Shi and Y. Zhong, “Robust formation tracking control for noncooperative heterogeneous multiagent systems,” IEEE Transactions on Cybernetics , vol. 54, no. 10, pp. 5661–5671, 2024. [18] C. Godsil and G. F. Royle, Algebraic Graph Theory , vol. 207. New York, NY, USA: Springer, 2001. [19] Y. X. Li, “Command filter adaptive asymptotic tracking of uncertain nonlinear systems with time-varying parameters and disturbances,” 
+
+IEEE Transactions on Automatic Control , vol. 67, no. 6, pp. 2973– 2980, 2022.

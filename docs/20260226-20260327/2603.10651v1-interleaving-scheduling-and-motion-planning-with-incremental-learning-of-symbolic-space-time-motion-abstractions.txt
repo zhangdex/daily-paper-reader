@@ -1,0 +1,788 @@
+Title: Interleaving Scheduling and Motion Planning with Incremental Learning of Symbolic Space-Time Motion Abstractions
+
+URL Source: https://arxiv.org/pdf/2603.10651v1
+
+Published Time: Thu, 12 Mar 2026 00:50:55 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+# Interleaving Scheduling and Motion Planning with Incremental Learning of Symbolic Space-Time Motion Abstractions (Extended Version) 
+
+## Elisa Tosello 1, Arthur Bit-Monnot 2, Davide Lusuardi 1, Alessandro Valentini 1, Andrea Micheli 1
+
+> 1
+
+Fondazione Bruno Kessler, Trento, Italy 
+
+> 2
+
+LAAS-CNRS, Universit´ e de Toulouse, CNRS, INSA, Toulouse, France etosello@fbk.eu, abitmonnot@laas.fr, lusuardi@fbk.eu, alvalentini@fbk.eu, amicheli@fbk.eu 
+
+Abstract 
+
+Task and Motion Planning combines high-level task sequenc-ing ( what to do) with low-level motion planning ( how to do it) to generate feasible, collision-free execution plans. However, in many real-world domains, such as automated warehouses, tasks are predefined, shifting the challenge to if , when , and 
+
+how to execute them safely and efficiently under resource, time and motion constraints. In this paper, we formalize this as the Scheduling and Motion Planning problem for multi-object navigation in shared workspaces. We propose a novel solution framework that interleaves off-the-shelf schedulers and motion planners in an incremental learning loop. The scheduler generates candidate plans, while the motion plan-ner checks feasibility and returns symbolic feedback, i.e., spatial conflicts and timing adjustments, to guide the sched-uler towards motion-feasible solutions. We validate our pro-posal on logistics and job-shop scheduling benchmarks aug-mented with motion tasks, using state-of-the-art schedulers and sampling-based motion planners. Our results show the effectiveness of our framework in generating valid plans un-der complex temporal and spatial constraints, where synchro-nized motion is critical. 
+
+Code — https://github.com/fbk-pso/tampest.git 
+
+## Introduction 
+
+Task and Motion Planning (TAMP) is the problem of combining high-level decision-making, i.e., deciding which tasks to perform, with low-level motion planning, i.e., en-suring that these tasks are carried out via physically feasi-ble, collision-free trajectories (Garrett et al. 2021; Dantam 2020). This integration is critical in domains where sym-bolic actions must be grounded in real-world geometry and dynamics, including robotics and automated manufacturing. While traditional TAMP focuses on what to do and how to execute it, many real-world scenarios assume a predeter-mined set of tasks, shifting the challenge to if and when 
+
+to perform them. This reframes the problem as schedul-ing under resource, precedence, and timing constraints. For example, in an automated warehouse, mobile robots must transport goods from storage to delivery stations. With tasks such as move, pick, and drop predetermined, the problem 
+
+Copyright © 2026, Association for the Advancement of Artificial Intelligence (www.aaai.org). All rights reserved. 
+
+becomes (i) deciding the order and timing for each robot (scheduling ) and (ii) computing dynamically and kinemat-ically feasible, collision-free trajectories to execute these tasks in the continuous physical environment ( motion plan-ning ) (see Figure 1). The interplay between space and time is crucial: motion planning must ensure not only spatial feasi-bility but also precise temporal coordination among agents, which may need to wait, sequence, or synchronize their movements to safely share constrained regions (e.g., nar-row passages) and to prevent conflicts or deadlocks. Unlike discrete path-finding abstractions, this requires reasoning di-rectly in continuous configuration spaces with explicit kino-dynamic constraints. We refer to this integrated challenge as the Scheduling and Motion Planning (SAMP) problem. In this paper, we formally define the SAMP problem for multiple objects navigating in a shared workspace and pro-pose a framework that addresses SAMP by interleaving off-the-shelf schedulers and motion planners in an incremental learning loop of symbolic motion abstractions. The sched-uler generates candidate schedules without considering the underlying motion. The motion planner, treated as a black-box, evaluates them accounting for the kinematics and dy-namics of the objects involved, and returns either feasible trajectories or symbolic refinements to help the Scheduler finding a valid solution. Feedbacks include geometric refine-ments, highlighting spatial conflicts (i.e., unreachable goals and blocking obstacles), and temporal refinements, adjust-ing activity durations or requesting delays to enable feasi-ble motion synchronization. By incrementally learning such symbolic motion abstractions, our framework does not need to fully ground all constraints in advance, enabling better scalability in complex and dynamic domains. We provide constraint formulations either using fluent conditions and effects, or just using precedence and re-source constraints. This flexibility enables different sched-ulers (e.g., Aries (Bit-Monnot 2023) and OR-Tools (Per-ron and Didier 2025)) to be combined with various motion planners (e.g., ST-RRT* (Grothe et al. 2022)) under vari-ous settings (optimal/non-optimal, with/without fluents). We evaluate these combinations on classical logistics and job-shop benchmarks (Taillard 1993) augmented with naviga-tion tasks. Results show that our framework produces valid, eventually optimal, synchronized plans under temporal and spatial constraints. 
+
+> arXiv:2603.10651v1 [cs.RO] 11 Mar 2026
+
+Figure 1: SAMP schedule of robots ( r1, r2) performing overlapping move–pick–drop tasks. Intervals [ ti, tj ] indi-cate start and end times. Robots travel from start locations (s1, s2) to pick components ( c1, c2) at ( l1, l2) and deliver them to ( d1, d2), parallelizing tasks when possible. 
+
+## Related Work 
+
+Several studies address TAMP: from domain-specific solu-tions (Garrett, Lozano-P´ erez, and Kaelbling 2018; Tous-saint 2015) to general frameworks (Dantam et al. 2016; Garrett, Lozano-Perez, and Kaelbling 2020; Cashmore et al. 2015; Tosello, Valentini, and Micheli 2024). While effective in combining symbolic and geometric planning, they neglect the temporal dimension, crucial when dealing with multi-agent scenarios. This gap led to works on temporal coordi-nation, from motion-control strategies (Pecora et al. 2018) to optimal multi-agent planning (Faroni et al. 2024) and Temporal Task and Motion Planning (Tosello, Valentini, and Micheli 2025). However, they overlook cases where activi-ties are predefined and the problem shifts toward scheduling, focusing on the temporal allocation and synchronization of known tasks rather than their dynamic generation. This motivates Simultaneous Task and Motion Schedul-ing (STAAMS), which assigns and orders high-level actions while accounting for motion-level constraints. Although STAAMS combines Constraint Programming and Motion Planning, most existing approaches are tailored to spe-cific domains, e.g., dual-arm manipulation (Zanlongo et al. 2021), traffic coordination (Leet et al. 2023), and assem-bly lines (Neville, Chernova, and Ravichandar 2023). Some methods either rely on precomputed trajectories or perform online motion planning but use the scheduler primarily to enforce static constraints (e.g., collision avoidance or kine-matic limits), often without temporal feedback (Behrens, Stepanova, and Babuska 2020) or tight scheduling-motion integration. Such customizations and limited reproducibil-ity hinder direct comparison. In contrast, we aim to de-velop a domain-independent framework for SAMP that ex-plicitly reasons over dynamically feasible trajectories in continuous space. We therefore consider benchmarks that may appear simpler (e.g., 2D navigation) but remain non-trivial, as they require tightly interleaving scheduling deci-sions with motion-level feasibility over time. Using these benchmarks, we compare against a fully sequential SAMP baseline (without parallelism), isolating the contribution of our refinement-based interleaving strategy, which yields a 41% improvement when parallelization is enabled. Reasoning over continuous state spaces with explicit modeling of agent kinematics and dynamics can be com-putationally expensive. An alternative is to shift towards Multi-Agent Path Finding (MAPF) (Stern et al. 2021). How-ever, classical MAPF assumes point-like agents on dis-crete spaces, neglecting geometry, kinematics, and dynam-ics. Extensions for large agents (Li et al. 2019; Li 2023), kinematic constraints (H¨ onig et al. 2017; Ma et al. 2019) or temporal dependencies (Jiang, Lin, and Li 2025) par-tially address these limitations, but rely on discretization, while continuous-time MAPF (Andreychuk et al. 2019) still omits full kinodynamic modeling. We therefore see MAPF as complementary and plan to explore it in the future un-der new problem formulations and representational assump-tions. This extension will enable a MAPF-aware scheduler based on interleaved refinement, handling an additional class of problems and bridging continuous and discrete reason-ing. 
+
+## Problem Statement 
+
+Consider a fleet of mobile robots moving products from shelves to a delivery station (see Figure 1). Robots are mov-able objects whose configurations change during tasks, and the schedule defines when they move, pick items, or return, along with the trajectories and control laws enabling these actions. Activities can be optional, allowing the scheduler to skip them if they are desirable but non-essential (their in-clusion improves plan quality) or to select among mutually exclusive alternatives (a delivery may be omitted if it would create an irresolvable motion conflict, e.g., one robot block-ing another). Motions must be geometrically feasible, avoid-ing static (walls, shelves) and dynamic (other robots) obsta-cles, and temporally feasible, satisfying the timing schedul-ing constraints. We call this problem SAMP and formalize it here, starting from the concept of Optional Scheduling (OS). 
+
+Definition 1. An Optional Scheduling (OS) problem (with fluents and effects) is a tuple ϕ = ⟨V , A, R, C, eff , init ⟩:
+
+• V = {f1, .., f k} is a finite set of fluents f ∈ V , each with a finite domain Dom(f). 
+
+• A is the set of mandatory and optional activities, where optional ones may be excluded. Each a ∈ A has a duration bound [lb a, ub a], with lb a, ub a ∈ N+ being the lower and upper bounds, respectively. We denote a.present, a.start, and a.end the variables for presence, start, and end times of a. 
+
+• R is the set of available resources, with each resource 
+
+r ∈ R having availability λr ∈ N+.
+
+• C = Cf ⊔ C t ⊔ C r is the set of constraints, divided into: 
+
+– Cf the set of fluent constraints of the form ([ κ1, κ 2], a, f =
+
+v), where κi is an expression a.start + k or a.end − k,
+
+k ∈ N, with a ∈ A , f ∈ V , v ∈ Dom(f). 
+
+– Ct the set of constraints enforcing precedence relations and temporal ordering between activities. They are arbitrary Boolean combination of atoms of the form: 
+
+* a.present for some a ∈ A , where a.present is True iff the activity is scheduled (i.e. appears in the solution); 
+
+* κ1 − κ2 ≤ ∆t, with κi ∈ { aj .start , aj .end } for aj ∈ A ,and ∆t ∈ Z being the maximum delay between them. 
+
+– Cr the set of constraints on resource usage, where activity 
+
+a ∈ A uses γar units of resource r over [a.start, a.end ].• eff : A → E maps an activity to its timed effects on fluents. Each element of eff (a) is of the form (κ, f := v) with κ
+
+being either a.start + k or a.end − k with k ∈ N, f ∈ V 
+
+and v ∈ Dom(f); it indicates that at timing κ (relative to a), fluent f is assigned to value v due to activity a.
+
+• init is the initial fluent state, which assigns a value init (f ) ∈ Dom (f ) to each f ∈ V at time 0. 
+
+The schedule solving an OS problem is defined as follows. 
+
+Definition 2. A schedule ρ solving ϕ is a tuple ⟨p, s, e ⟩:
+
+• p : A → {⊤ , ⊥} indicates if an activity is present, 
+
+• s : A → N indicates the starting time of an activity, and 
+
+• e : A → N indicates the ending time. 
+
+We now define the semantics. In particular, for an expression 
+
+κ of the form ai.start +k (resp. ai.end −k), its evaluation in 
+
+ρ is ρ(κ) = s(ai)+ k (resp. ρ(κ) = e(ai)−k). A schedule ρ
+
+is non-conflicting if there exists no time t ∈ N and activities 
+
+a1, a 2 ∈ A with effects (κ1, f 1 := v1) ∈ eff (a1), (κ2, f 2 := 
+
+v2) ∈ eff (a2) such that ρ(κ1) = ρ(κ2) ∧ f1 = f2, i.e., two effects on the same fluent never overlap, as required by the PDDL semantics (Fox and Long 2003). To define the validity of a non-conflicting schedule, we first introduce a function tracking fluent changes over time. 
+
+Definition 3. For a non-conflicting schedule ρ = ⟨p, s, e ⟩,the evaluation function ξρ : V × N → S  
+
+> f∈V
+
+Dom (f ) maps a fluent f ∈ V and a time point t ∈ N to the value of f at time t under ρ. It is defined as: 
+
+ξρ(f, t ) = 
+
+
+
+init (f ) if t = 0 
+
+v if ∃a ∈ A s.t. p(a)∧
+
+(κ, f := v) ∈ eff (a) ∧ ρ(κ) = tξρ(f, t − 1) otherwise 
+
+Intuitively, ξρ(f, t ) gives the value of fluent f at time t, set by the most recent activity a ending by t that updates f. If none exists, it returns the initial value of f.Validity and optimality of ρ can then be defined as follows. 
+
+Definition 4. Let the set of activities active at time t under schedule ρ be Atρ = {a ∈ A | p(a) ∧ s(a) ≤ t ≤ e(a)}.A schedule ρ is valid for an OS ϕ if it is non-conflicting and the following conditions hold. 1. ∀a ∈ A , ¬p(a) ∨ e(a) − s(a) ∈ [lb a, ub a], i.e., if the activity is present, its duration satisfies the duration bounds. 2. For each r ∈ R , ∀t ∈ N. P
+
+> a∈A tρ
+
+γar ≤ λr , i.e., total resource demand at any time does not exceed availability. 3. Constraints in Ct are satisfied using standard Boolean logic, with the value of atoms defined as follows: 
+
+• a.present is true iff p(a) (presence); 
+
+• κ1 − κ2 ≤ ∆t iff ρ(κ1) − ρ(κ2) ≤ ∆t (precedence). 4. Constraints in Cf are satisfied: given ([ κ1, κ 2], a, f := 
+
+v) ∈ C f, either ¬p(a) or ∀t ∈ [ρ(κ1), ρ (κ2)] , ξρ(f, t ) = v.
+
+Definition 5. Given an OS ϕ, a set of schedules S, and a function opt : S → R to be minimized, ρ ∈ S is optimal 
+
+for ϕ if it is valid for ϕ and for every other valid schedule 
+
+ρ′̸ = ρ ∈ S , opt (ρ) ≤ opt (ρ′).
+
+We now incorporate motion activities, i.e., tasks involving object movement subject to motion constraints. 
+
+Definition 6. A Scheduling and Motion Planning (SAMP) problem is a tuple ψ = ⟨ϕ, O, W, Q, u, i, mc ⟩, where: 
+
+• ϕ = ⟨V , A, R, C, eff , init ⟩ is an OS as per Definition 1. 
+
+• O ⊆ R is a set of movable objects, where each object o ∈O is characterized by a geometric model go and a control model uo, with λo = 1 (only one is available). 
+
+• W ⊆ RN (N = 2 or N = 3) is the workspace, i.e., the volume of reachable end-points for objects in O. Wf ree is the portion of W that is free from fixed obstacles. 
+
+• Q is the configuration space, with Qo ⊆ Q the subset of Q representing the configurations that o ∈ O may as-sume given its motion model. occ (o, q ) ⊆ W f ree is the set of points in Wf ree occupied by o when in q ∈ Q o.
+
+• i : O → Q o is a function that assigns to a movable object 
+
+o ∈ O an initial configuration q ∈ Q o.
+
+• mc : A → mot associates an activity a to its motion con-straint, where a motion constraint can be ⊥ (indicating no motion constraint) or a tuple ⟨oa, q Sa , q Ga ⟩, where: 
+
+– oa ∈ O is the movable object involved in the activity; 
+
+– qSa , q Ga ∈ Q oa are the configurations it must assume at the start and the end of the activity, respectively. For each activity a where mc (a)̸ = ⊥, we set γaoa = 1 , i.e., each activity moving object o uses the resource o.
+
+This definition adds motion constraints to an OS problem. Since a trajectory τ (a) : R≥0 → Q specifies the configura-tion of object oa at each time t ∈ [s(a), e (a)] , describing its continuous motion from qSa to qGa , we now extend solution schedules to handle SAMP problems. 
+
+Definition 7. A SAMP schedule for ψ =
+
+⟨ϕ, O, W, Q, u, i, mc ⟩ is a tuple π = ⟨p, s, e, τ ⟩, with 
+
+⟨p, s, e ⟩ = ρ a schedule for the OS problem ϕ, and 
+
+τ : A → R≥0 → Q ∪ {⊥} a function that assigns to each 
+
+a ∈ A a trajectory for the movable object oa, if mc (a)̸ = ⊥.
+
+Note that we use (as customary) integer time for schedul-ing and real time for motion trajectories, following common practice in each domain; uniforming the time domain would require only minor adjustments in the formalization. Let oa be the object moved by activity a ∈ A , i.e., whose motion constraint is mc (a) = ⟨oa, qSa , q Ga ⟩. A SAMP sched-ule is non-conflicting if ρ is non-conflicting and there ex-ists no time t ∈ R and activities a1̸ = a2 ∈ π such that 
+
+oa1 = oa2 and s(a1) ≤ t ≤ e(a1) ∧ s(a2) ≤ t ≤ e(a2), i.e., two activities moving the same object do not overlap in time. Note that any valid OS schedule satisfies this condition, as movable objects are modeled as unary resources. We now define a function that maps object configurations over time under a non-conflicting SAMP schedule. 
+
+Definition 8. Let π be a non-conflicting SAMP schedule, and let the sequence of motions moving o be Aoπ = ⟨a ∈ A | 
+
+p(a) ∧ o = oa⟩ = ⟨a0, a 1, . . . , a n⟩, ordered so that for any 
+
+ai, a j ∈ A oπ , if ai precedes aj in π, then s(ai) < s (aj ). The 
+
+evaluation function ζπ : O × R≥0 → Q , which returns the configuration of o ∈ O at time t ∈ R≥0, is defined as: 
+
+ζπ (o, t ) = 
+
+                     
+
+> i(o)if t < s (a0),τ(ai)( t)if s(ai)≤t≤e(ai), i ∈ { 0,... , n },τ(ai)( e(ai)) if e(ai)< t < s (ai+1 ), i ∈ { 0,... ,n-1 },τ(an)( e(an)) if t > e (an).
+
+sheduler (off-the-shelf )
+
+motion planner (off-the-shelf )
+
+ψ π
+
+⟨ρ,τ ⟩
+
+ρ
+
+⟨Σ, Ω, δ, d ⟩
+
+Figure 2: Our framework. Given a SAMP problem ψ, the scheduler sends a candidate schedule ρ to the motion plan-ner. If invalid, the planner returns geometric (unreachable configurations Σ and obstacles Ω) and temporal (new delays 
+
+d and durations δ) refinements until a valid SAMP schedule 
+
+π is found (with trajectories τ ), if one exists. The validity of π is then defined as follows. 
+
+Definition 9. A non-conflicting SAMP schedule π is valid 
+
+for the SAMP problem ψ if ρ is valid for the OS problem ϕ
+
+as per Definition 4 and the following constraints hold: 1. ∀t ∈ R≥0, ∀oi, o j ∈ O such that oi̸ = oj ,
+
+occ (oi, ζ π (oi, t )) ∩ occ (oj , ζ π (oj , t )) = ∅, i.e., object mo-tions are collision-free. 2. ∀o ∈ O , ∀t ∈ R≥0, the configuration ζπ (o, t ) lies on a trajectory that is dynamically feasible under the control model uo of o; i.e., that can be executed by its controller. 3. ∀o ∈ O , let Aoπ = ⟨a0, . . . , a n⟩ be the sequence of activi-ties in π moving o. Then, τ (ai)( e(ai)) = τ (ai+1 )( s(ai+1 )) 
+
+for all i ∈ 0, . . . , n − 1, ensuring that the trajectory of o is continuous in space-time among all activities moving it. 
+
+One interesting case is the one with no fluents nor effects. This is practically relevant because not all schedulers sup-port fluents (e.g., OR-Tools (Perron and Didier 2025)). 
+
+Definition 10. An OS problem without fluents is defined as OS ϕ with V = ∅. Accordingly, a SAMP problem without fluents is defined as SAMP ψ with V = ∅.
+
+In this paper, we propose a framework for SAMP that sup-ports different schedulers by expressing constraints either using fluent conditions and effects or just using precedence constraints. The framework is detailed in the next section. 
+
+## The Core Framework 
+
+Our SAMP framework incrementally learns symbolic ab-stractions of motion tasks (Algorithm 1). It interleaves an off-the-shelf scheduler, which proposes a motion-agnostic candidate schedule ρ (line 4), with an off-the-shelf motion planner that checks the feasibility of ρ via G ET MOTION OR-REFINE (line 13). The motion planner returns valid trajecto-ries, which are used to decorate the motion activities in ρ,if they exist; otherwise, it provides spatio-temporal refine-ments for the next scheduling iteration (Figure 2). The initial problem submitted to the scheduler is the OS ϕ
+
+from the SAMP problem enriched with simple constraints to ensure object trajectories are continuous (third condition of Definition 9). This can be achieved either by a fluent track-ing each object’s configuration and imposing a condition for 
+
+Algorithm 1: The Core Framework  
+
+> 1
+
+begin SOLVE (ψ, opt , t p, timeout ) 
+
+> 2
+
+ψ′ ← ψ it ← 0 
+
+> 3
+
+while Now() < timeout do  
+
+> 4
+
+ρ, status ← get-schedule (ψ′, opt ) ▷ Invoke the scheduler  
+
+> 5
+
+if status ∈ [VALID , OPTIMAL ] then  
+
+> 6
+
+τ (ρ) ← ∅  
+
+> 7
+
+conf (o) ← i(o) ∀o ∈ O  
+
+> 8
+
+foreach G ∈ P (ρ) do ▷ Check each parallel motion group  
+
+> 9
+
+foreach a ∈ G do ▷ Geometric check of each activity  
+
+> 10
+
+if ¬ GET MOTION ORREFINE ({a}, ψ′, conf , GEOM , tp)
+
+then goto 20  
+
+> 11
+
+foreach a ∈ G do ▷ Temporal check of each activity  
+
+> 12
+
+if ¬ GET MOTION ORREFINE ({a}, ψ′, conf , TIME , tp)
+
+then goto 20  
+
+> 13
+
+τ (G) ← GET MOTION ORREFINE (G, ψ′, conf , ALL , tp) 
+
+> 14
+
+if τ (G)̸ = ∅ then τ (ρ) ← τ (ρ) ∪ τ (G) else goto 20  
+
+> 15
+
+update(conf, G) 
+
+> 16
+
+if τ (ρ)̸ = ∅ then return ⟨ρ, τ ⟩ ▷ Return SAMP schedule  
+
+> 17
+
+else  
+
+> 18
+
+if it == 0 then return UNSOLVABLE  
+
+> 19
+
+tp ← 2 · tp ψ′ ← ψ ▷ Double timeout and reset ψ 
+
+> 20
+
+it ← it + 1  
+
+> 21
+
+return INCOMPLETE  
+
+> 22
+
+begin GET MOTION ORREFINE (G, ψ, conf , refs , t p) 
+
+> 23
+
+τ (G) ← ∅ path-found ← True  
+
+> 24
+
+smin ← min( {s(a)|a ∈ G} ) 
+
+> 25
+
+CG ← { (mc (a), δ a = s(a) − smin )|a ∈ G}  
+
+> 26
+
+if refs = GEOM ∧G = {a} then  
+
+> 27
+
+path-found , Σ, Ω ← get-path (CG , conf , tp) 
+
+> 28
+
+else  
+
+> 29
+
+τ (G), d, δ, Σ, Ω ← get-motion (CG , conf , tp) ▷ G ⊆ G  
+
+> 30
+
+if τ (G) = ∅ ∨ ¬ path-found then  
+
+> 31
+
+ψ.add-geometric-refinements (G, Σ, Ω, conf ) 
+
+> 32
+
+else if refs = TIME or refs = ALL then  
+
+> 33
+
+if ¬ V 
+
+> a∈G
+
+da + δa ≤ da + δa then  
+
+> 34
+
+CG ← { (mc (a), δ a)|a ∈ G}  
+
+> 35
+
+ψ.add-temporal-refinements (G, CG , d, conf ) 
+
+> 36
+
+return ∅ 
+
+> 37
+
+return τ (G)
+
+each motion activity, or via precedence constraints restrict-ing the admissible ordering of motion activities. For the mo-tion planning problem, solving it monolithically would be computationally infeasible; thus, we divide the schedule into 
+
+parallel motion groups : subsets of activities that can inter-fere with each other but are independent from other groups. 
+
+Definition 11. Two activities a, b ∈ A are parallel in ρ if 
+
+p(a) and p(b) hold, and ∃t ∈ R such that s(a) ≤ t ≤ e(a) ∧
+
+s(b) ≤ t ≤ e(b). They are further defined as motion-parallel 
+
+if they are parallel, mc (a)̸ = ⊥, and mc (b)̸ = ⊥.
+
+A parallel motion group G(ρ) (G for the rest of paper) is a maximal set of motion-parallel activities in ρ, with P(ρ)
+
+the set of all such groups (see Figure 3). Given G ∈ P (ρ),and the configuration of each object at the start time of G
+
+(conf , line 7), G ET MOTION ORREFINE either: • Gets τ (G): finds collision-free, temporally consistent tra-jectories for all the activities in G.t
+
+G1 G2 G3
+
+a1 a2 a2
+
+a3
+
+a4
+
+a5
+
+Figure 3: Parallel motion groups P(π) = {G 1, G2, G3}.• Adds geometric refinements : exploits the motion plan-ner’s exploration to identify unreachable locations and blocking obstacles for those activities that are spatially in-feasible and adds them as new constraints of ψ.• Adds temporal refinements : adds constraints on execu-tion durations and inter-activity delays for motions that are geometrically feasible but violate the temporal constraints imposed by the scheduler, ensuring safe synchronization. If τ (G) exists, the planner updates each object’s configura-tion to the goal of the last activity moving it (line 15) and goes to the next group. If all groups are valid, a SAMP plan 
+
+π = ⟨ρ, τ ⟩ is returned (line 16), optimal under Definition 5 (assuming optimality depends solely on ρ, not on trajectory optimization); otherwise, new constraints are generated. Before describing how constraints are computed, we give a few final details of the core framework. Since many mo-tion planners are sample-based, they may fail to terminate if no path exists or even time out despite a solution existing (false-negative sensitivity). This means a schedule marked as unsolvable may be truly infeasible (line 18) or falsely un-solvable due to insufficient sampling. To address this, we impose a timeout tp per planner call and, when a solution is initially unsolvable, double tp up to an upper limit, reset the refinements (line 19), and restart, mitigating false neg-atives with minimal added complexity. To further improve efficiency, we cache the trajectories of activities or groups whose motion constraints have already been validated. Be-fore re-evaluating any constraints, the cache is checked to avoid redundant computations. This cache persists across restarts, enabling the reuse of previously validated trajec-tories and reducing computational overhead. The final op-timization (gray box of Algorithm 1) reduces the cost of evaluating entire groups via a layering architecture that, be-fore checking entire groups (Layer 2), validates their sin-gle activities (Layer 1). Each activity undergoes a geometric feasibility check (line 9), followed by a temporal feasibil-ity check (line 11). Both operate as specialized instances of GET MOTION ORREFINE (see Algorithm 1), but applied to single activities and their respective refinements. In this con-text, the geometric check effectively verifies the existence of a path, simplifying the motion planner’s role to that of a path finder (line 27). This pre-check boosts performance by avoiding unnecessary and expensive group-level synchro-nization checks, as shown in our experimental evaluation. 
+
+## Geometric and Temporal Refinements 
+
+In this section, we detail how G ET MOTION ORREFINE com-putes and formulates the spatio-temporal refinements. 
+
+Geometric Refinements. Let Qψ ⊆ Q be the finite subset of configurations relevant to the problem, i.e., those actually involved in the motion activities of the problem, defined as: 
+
+Qψ = {qSa , q Ga |a ∈ A , mc (a) = ⟨oa, q Sa , q Ga ⟩} ,
+
+If the motion planner fails to find a trajectory for the group G (line 29), or a path in the case of a singleton group (line 27), it reports the spatial conflicts encountered, being: • Σ = {σa ⊆ Q ψ | a ∈ G} : the set of unreachable config-urations for each activity a ∈ G . For an activity a moving 
+
+oa from qSa to qGa , the reachable set is: 
+
+eσa = q ∈ Q ψ | occ (oa, q ) ⊆ reach (qSa ) ,
+
+where rech (qSa ) is the region reachable from qSa , computed from the area explored by the motion planner. Then, σa =
+
+Qψ \eσa includes all unreachable configurations, i.e., all con-figurations outside reach (qSa ), including qGa if not reachable. • Ω = {ωa ⊂ O | a ∈ G} : the set of blocking obstacles 
+
+identified by collision checking for each a ∈ G . Given a,when using a sampling-based motion planner, an object o ∈
+
+O is added in ωa if o̸ = oa and a collision was detected between o and oa when extending the motion-tree of oa, i.e., 
+
+o blocks the expansion of possible motions of oa.Such spatial conflicts are used to inform the scheduler that the configuration of at least one blocking obstacle must be modified to make an otherwise unreachable configu-ration reachable. This refinement is performed by ψ.add-geometric-refinements (G, Σ, Ω, conf ) (line 31). To formalize this constraint, we first define the set of rivals of a parallel motion group G as the motion activities not in G:
+
+eG = {r ∈ A | r /∈ G, mc (r)̸ = ⊥} .
+
+An activity r ∈ eG does not overlap with G (¬overlaps (r, G))if it does not exist or is entirely scheduled before or after G:
+
+r. present → [ ^
+
+> a∈G
+
+(r. end < a. start ) ∨ ^
+
+> a∈G
+
+(r. start > a. end )] 
+
+Given G, let Go = {a ∈ G | oa = o} be the activities in G moving o, and let aomin be the first activity moving o
+
+(i.e., s(aomin ) ≤ s(a) ∀a ∈ G o). We define the refinement condition formula RC OND (G) as: 
+
+^
+
+> a∈G
+
+a. present ∧ ^
+
+> o∈O
+> a∈G o\{ aomin }
+
+aomin .end ≤ a. start ∧^ 
+
+> r∈eG
+
+¬overlaps (r, G)
+
+It specifies the condition under which all activities in G are scheduled, with each activity moving an object, and all rival activities not overlapping G (temporal and geometric refine-ments thus depend only on the activities of the group and the initial configuration of each movable object). The new constraint sent to the scheduler is then defined as follows: 
+
+> RC OND
+
+(G) → _
+
+> b∈G ,o ∈ωb
+> CHCONF
+
+(b, conf (o)) 
+
+with o ∈ ωb being a blocking obstacle for b ∈ G and con-fig(o) its current configuration. That is, if G is scheduled and none of its rival activities overlap with it, then the configura-tion of at least one blocking obstacle must change. This con-straint can be encoded either using fluents or without them. tsmin  
+
+> ac
+> b
+> db
+> δb
+> δb
+> b
+> db
+
+Figure 4: Temporal refinement for G = {a, b, c }, starting at 
+
+smin (start of a). The motion planner delays the start of b
+
+(from δb to δb) and increases its duration (from db to db). In the case of fluents, for each activity b ∈ G we intro-duce into ψ a corresponding auxiliary activity b′. The activ-ity b′ has the same start and end times as b, and it includes a precondition on the fluent fo, which represents the con-figuration of the object o ∈ ωb. This precondition requires that the value of fo be different from the blocking config-uration conf (o). Intuitively, the role of b′ is to ensure that, whenever b is relevant for execution, the object o is not in the configuration that would block or invalidate the execution of 
+
+b. Then, our refinement requires b′ to be present:          
+
+> CHCONF (b, conf (o)) = b′.present ∧(b′.start =b. start )
+> ∧(b′.end =b. end )
+
+Without fluents, helper activities H = {h ∈ A | mc (h) = 
+
+⟨oh, q Sh , q Gh ⟩ ∧ qGh̸ = conf(o) } move o to any state different from conf(o) and deleter activities X = {x ∈ A | mc (x) = 
+
+⟨o, q Sx , q Gx ⟩ ∧ qGx = conf(o) } place o in the blocking config-uration conf(o) . We define C HCONF (a, conf (o)) as:             
+
+> DEL (b, conf (o)) ∨_
+> h∈H
+> (h. present ∧(h. end < b. start )) ∧
+> ^
+> x∈X
+> (x. present →(x. end < h. start )∨(x. start > b. end ))
+> !
+
+with D EL (b, conf (o)) being 
+
+V         
+
+> x∈X x. present →(x. start > b. end )if conf (o)̸=i(o)
+> F alse otherwise
+
+Intuitively, this constraint requires that either there is no deleter activity before b and the initial configuration of o is different from conf(o) , or that there exists an helper activity occurring before b and any deleter activities happen before the helper or after b. In essence, obstacles must be removed before executing a motion they would otherwise block. To improve performance and avoid repeated computa-tion, we propagate and cache reachability information for all equivalent objects, i.e., sharing the same geometry and con-trol, located within the same reachability area. For singleton groups G = {a}, we generalize geometric constraints to all activities moving equivalent objects from the same reacha-bility area eσa toward a target configuration within the set of configurations σa deemed unreachable by a.
+
+Temporal Refinements. Geometric feasibility does not guarantee temporal feasibility: scheduled times may differ from those needed for execution, and parallel motions may require delay adjustments for collision-free synchronization. GET MOTION ORREFINE performs this check. It com-putes the earliest start time smin = min {s(a) | a ∈ G} 
+
+among the activities of the group (line 24), and it collects CG
+
+(line 25), i.e., the set of motion constraints with scheduled start times δa = s(a) − smin . If for at least one subset G ⊆ G 
+
+(possibly G itself) the motion planner identifies trajectories 
+
+τ (G) that are geometrically feasible but fail to satisfy the timing constraints imposed by the scheduler (line 29), then 
+
+get-motion immediately returns (as this is sufficient to prove the whole candidate schedule is unfeasible) and outputs: • d = {da ∈ R≥0 | a ∈ G} : new estimated durations. • δ = {δa ∈ R≥0 | a ∈ G} : new estimated delays. These values are computed from the space-time trajectories generated by the motion planner. Specifically, given an ac-tivity a moving oa, and given the space-time sequence of states along its planned trajectory, we compute the actual motion start time δa as the earliest timestamp at which oa ex-hibits non-negligible translational or angular displacement with respect to smin . We then determine the motion dura-tion da by summing the time intervals ∆t from the first movement of oa until it comes to rest (see Figure 4). In this case, G ET MOTION ORREFINE verifies whether the needed timing da + δa does not exceed the scheduled da + δa for 
+
+a ∈ G (line 33). If this condition holds, the space-time tra-jectory is deemed valid (cached) and returned: we assume it is always possible for movable objects to pause. If the com-puted timings exceed the scheduled ones, ψ.add-temporal-refinments (G, Cg , d, conf ) uses needed durations ( d), delays (δ, included in Cg ), and current configurations ( conf ) to add to the problem a new temporal refinement indicating that G
+
+cannot be executed as scheduled unless at least one duration or delay is adjusted (line 35). Formally: 
+
+> RC OND
+
+(G) → CHTIME (G)
+
+This means that if the parallel group G is scheduled and no rival r ∈ eG overlaps with any a ∈ G , the timing of activities in G must be adjusted. Given δa, da, and ωa, C HTIME (G) is             
+
+> _
+> a∈G
+> o∈O
+> CHCONF (a, conf (o)) ∨_
+> a∈G
+> a. start −min
+> b∈G
+> (b. start )< δ a∨
+> _
+> a∈G| (da+δa)<(δa+da)
+> (a. end −min
+> b∈G
+> (b. start )) ≥δa+da
+
+Thus, the scheduler must either require an object’s config-uration to change before at least one group activity starts, advance the start of at least one activity in the subgroup, or extend the duration of some activity a in the subgroup to at least the value δa + da estimated by the motion planner. As an example, consider the parallel motion group G =
+
+{a, b, c } of Figure 4, which starts at smin = s(a) (the start time of a). To ensure b is feasible when executed in parallel with a (G = {a, b }), the motion planner schedules b to start at δb with an updated duration db (no obstacle obstructs ob,the object moved by b). In this case, the motion planner must inform the scheduler that either (i) b must be anticipated with r0@s0 r1@s1 c0@l0                                 
+
+> c1@l1
+> door closed
+> b0
+> [26, 40] move_r0_s0_l0 [26, 43] move_r1_s1_l1 [40, 41] pick_r0_c0 [53, 54] pick_r1_c1 [54, 84] move_r0_l0_s0 [54, 84] move_r1_l1_s1
+> [0, 17] move_r1_s1_b0 [17, 18] open_d0_r1 [18, 39] move_r0_s0_l1 [18, 28] move_r1_b0_l0 [29, 30] pick_r1_c0 [30, 61] move_r1_l0_s1 [39, 40] pick_r0_c1 [40, 61] move_r0_l1_s0
+> <Σ={l0, l1}, Ω={door} >
+> [0, 25] move_r0_s0_b0 [25, 26] open_d0_r0 [26, 40] move_r0_b0_l1 [26, 43] move_r1_s1_b0 [40, 41] pick_r0_c1 [41, 91] move_r0_l1_s0 [43, 53] move_r1_b0_l0 [53, 54] pick_r1_c0 [54, 84] move_r1_l0_s1
+> <δ, d>
+> Scheduler Scheduler
+> Motion Planner (Layer 1)
+> Initial Setup Valid SAMP schedule
+> Motion Planner (Layer 2)
+> 54
+> 0
+> 43
+> 41
+> 26
+> 26
+
+Figure 5: A logistics scenario with two robots ( r0, r 1) delivering two items ( c0, c 1) from l0 and l1. The first schedule is infeasible as Σ = {l0, l 1} is blocked by Ω = {door } (Layer 1, RRT). The second schedule is geometrically feasible but trajectories need updated delays δ and durations d (Layer 2, ST-RRT*). Such motion planning’s feedback leads to a final valid SAMP schedule. respect to the current schedule (an option the scheduler has not yet requested the motion planner to evaluate), or (ii) b
+
+must be assigned a new end time equal to δb + db. Formally: 
+
+CHTIME (G) = b. start − s(a) < δ b ∨ b. end − s(a) ≥ δb + db.
+
+For singleton groups, temporal refinements apply to all equivalent activities, as with geometric refinements. As a result, our framework synchronizes parallel motion activities by postponing starts, adjusting trajectories and du-rations, or executing stop-and-go maneuvers on the objects. 
+
+Formal guarantees. Our framework is sound , as it returns a solution only if the schedule satisfies all constraints and the motion planner finds valid trajectories for all its motion ac-tivities. It is also relatively optimal for makespan optimiza-tion: if the motion planner computes duration-minimal solu-tions and the scheduler generates makespan-minimal plans, the resulting SAMP solution is makespan optimal. Assum-ing the off-the-shelf motion planner is complete, relative completeness (returning a solution if one exists) relies on showing that the learned constraints always prune the candi-date schedule from the solution space of the scheduler and do not cut any valid solution. The first property follows from the presence of spatio-temporal refinements, while the sec-ond relies on the refinements being triggered by RC OND 
+
+(see Appendix). 
+
+## Experimental Evaluation 
+
+We now evaluate our framework’s ability to generate valid plans in complex multi-object scenarios using state-of-the-art solvers. We extend the logistics benchmark and the Job Shop Problem with transportation (JSP) (Nouri, Driss, and Gh´ edira 2016) to include navigation tasks, stressing both the scheduler and motion planner with space-time refinements: • Logistics : nr robots, starting at a depot, must trans-port items from ns shelves back to the depot (as in Fig-ure 1). Shelves are arranged into narrow corridors, some-times blocked by obstacles (closed doors) that must be moved to allow access. Each shelf contains ni items, acces-sible from either the corridor (inner) side or the outer side. • JSP : nr robots must move ni items between nm machines for treatment. Then, each item is placed on a pallet for col-lection. The machines are initially blocked by closed doors. Available activities include robot navigation , door open-ing /closing , and item loading /unloading , all with certain du-rations. Only navigation requires motion planning with ob-stacle avoidance, door activities are instantaneous changes of door configurations, and others are symbolic. The opti-mization metric aims to minimize the makespan. 
+
+Tests. As the first SAMP study, we adopt a 2D setup to es-tablish the foundations. Despite its apparent simplicity, the problem remain challenging: multi-robot coordination re-quires time-parametrized, dynamically feasible trajectories in continuous space (with car-like dynamics), and the plan-ner’s search space grows exponentially with the number of agents. We consider the following test cases: • Logistics . We analyze nr ∈ { 1, 2, 3} robots and ns = 2 
+
+shelves forming a narrow corridor with an entrance door, each shelf holds ni = 4 items [tot. instances: 24]. The door is open (DO in Table 1) or closed (DC), and items are picked only from the corridor (OC) or from both sides (ALL). • JSP . We consider nr ∈ { 1, 2, 3} robots, ni ∈ { 1, 2, 3}
+
+items to be treated, and nm ∈ { 1, 2, 4, 6} machines for treat-ment (i.e., nm doors to open) [tot. instances: 36]. Our framework is domain-independent and built upon the Unified Planning library (Micheli et al. 2025), enabling seamless substitution or extension of the scheduling meth-ods. On the motion planning side, it integrates the Open Mo-tion Planning Library (OMPL) (S ¸ ucan, Moll, and Kavraki 2012), supporting all its planners. In our experiments, we use Aries (Bit-Monnot 2023) and its optimal variant Aries-opt (both with and without fluents), and our OR-Tools-based Constraint Programming Scheduling Engine (CPSE, with-out fluents). They are combined with RRT (LaValle 1998) for path planning (Layer 1) and ST-RRT* (Grothe et al. 2022) for space-time multi-robot motion planning ( tp = 10 
+
+s, Layer 2), following the layering approach of the gray box of Algorithm 1. We also customize the collision checker to record obstacles encountered during the search. Layer 2 checks motion feasibility sequentially: for par-allel robots, spatio-temporal trajectories are planned one at a time, each respecting previously planned trajecto-ries to avoid collisions. This instantiation trades complete-ness for scalability, and remains aligned with the ST-RRT* setup (Grothe et al. 2022; Kerimov, Onegin, and Yakovlev 2025), where scalability has been proved for up to 11 con-current robots. This highlights the difficulty of our setting, Benchmark CPSE (no fluents) Aries (no fluents) Aries (with fluents) CPSE-opt (no fluents) Aries-opt (no fluents) Aries-opt (with fluents) #sol t [s] (% tp) refs #sol t [s] (% tp) refs #sol t [s] (% tp) refs #sol t [s] (% tp) refs #sol t [s] (% tp) refs #sol t [s] (% tp) refs                                                       
+
+> LOG . OC-DO 16.7 323 (84%) 0.0, 6.4, 1.6 9.0 60 (81%) 0.0, 4.2, 0.0 18.3 286 (88%) 0.0, 6.1, 2.5 13.3 227 (77%) 0.0, 5.0, 0.9 10.3 126 (72%) 0.0, 4.2, 0.2 12.7 166 (78%) 0.0, 4.9, 0.8 LOG . OC-DC 14.7 359 (80%) 1.0, 9.1, 1.5 11.0 161 (85%) 1.0, 7.0, 0.2 19.3 377 (87%) 1.0, 10.9, 2.1 12.3 416 (75%) 1.0, 8.6, 1.9 8.0 251 (75%) 1.0, 6.5, 0.0 10.0 203 (78%) 1.0, 6.9, 0.3 LOG . ALL-DO 14.0 447 (72%) 0.0, 10.5, 2.1 9.3 96 (79%) 0.0, 6.4, 0.1 17.0 270 (87%) 0.0, 10.5, 2.6 9.7 349 (76%) 0.0, 8.7, 3.7 7.3 198 (81%) 0.0, 7.3, 3.1 8.3 195 (79%) 0.0, 6.8, 1.8 LOG . ALL-DC 11.7 401 (68%) 1.0, 12.3, 1.1 10.3 166 (81%) 0.9, 7.2, 0.4 16.0 392 (81%) 1.0, 11.9, 2.5 7.3 336 (76%) 1.0, 12.4, 3.1 2.3 165 ( 92 %) 1.0, 3.6, 2.7 6.0 224 (76%) 1.0, 10.3, 0.6 JSP 13.0 355 (76%) 1.5, 6.7, 0.3 12.0 152 (89%) 1.5, 3.6, 0.1 17.0 389 (91%) 1.9, 9.5, 0.5 11.7 342 (65%) 1.4, 3.9, 0.1 12.3 210 (77%) 1.5, 3.7, 0.0 17.7 291 (79%) 2.0, 6.5, 0.1
+> TOTAL 70.0 378 (76%) 0.7, 8.8, 1.4 51.7 132 (83%) 0.8, 5.7, 0.2 87.7 343 (87%) 0.8, 9.7, 2.1 54.3 332 (74%) 0.7, 7.2, 1.7 40.3 194 (77%) 0.7, 5.1, 0.8 54.7 227 (78%) 0.9, 6.7, 0.6
+
+Table 1: Overall performance: each cell shows the number of problems solved (# sol ), average planning time in seconds ( t), percentage of time spent in motion planning ( %tp), and average refinement counts ( refs ) by type and layer: geometric (single activity), temporal (single activity), and group (combined geometric and temporal). All averaged over three runs per instance. which combines an already challenging multi-robot motion-planning problem with a scheduling problem that must se-quence many (potentially optional) activities. Tests were run on an AMD EPYC 7413 with a 1800 s timeout and a 20 GB memory limit. 
+
+Results. Table 1 shows the performance averaged over three runs per instance, accounting for variability of sampling-based motion planners. In both domains, all solvers solve at least one instance with 3 robots, confirming correct han-dling of temporal constraints and inter-object synchroniza-tion. Scheduling requires many refinement loops (avg. 9.1) due to optional navigation activities, while motion planning remains costly, taking up to 92% of total planning time. The framework effectively handles geometric complexity: in logistics scenarios, performance is similar whether doors are open or closed, showing robustness to spatial constraints. On the temporal side, solving instances with up to 3 robots indicates that the framework can manage synchronization. To further evaluate this ability and the benefits of paral-lelizing multi-robot activities, we compared the makespan of solutions produced by our approach with fully sequential schedules (i.e., no parallelization). For the instances con-sidered, the average theoretical maximum improvement in makespan due to parallelization is 50% (e.g., 2 robots pick-ing 2 items from shelves in parallel versus sequentially). In all cases where parallelization can improve the makespan, our approach achieves an average reduction of 41%. Handling synchronization justifies the use of ST-RRT*, a typically expensive motion planner that, however, ac-counts for kinodynamic constraints and produces time-optimal trajectories. Planning times remain relatively low due to the layered architecture, which absorbs most geo-metric and temporal refinements at the single-action level, reducing multi-robot ST-RRT* calls ( refs column: single-action geometric refinements, single-action temporal refine-ments, joint geometric–temporal refinements at the motion-parallel-group level). Layering also improves coverage: with both layers, 359 instances are solved on average; disabling Layer 1 reduces coverage to 140, and disabling only its single-robot temporal check (keeping the geometric one) yields 182. To further assess the value of refinements, we evaluated a sequential pipeline: first solve scheduling in a motion-agnostic way, then invoke motion planning once, without refinement if it fails. In our setup, such sequential pipeline cannot solve any problem. Although some instances require no geometric refinements at the single-action level, there is always at least one temporal refinement. This is not due to unrealistic duration estimates: we use a standard sym-metric trapezoidal velocity profile, but it ignores multi-agent interactions, necessitating additional temporal refinements. Focusing on performance, Aries with fluents performs best, solving 87.7 instances. In logistics (see Figure 5), at least one instance is solved with 1 robot and 8 items, 2 robots and 8 items, and 3 robots and 7 items; in JSP, in-stances are solved with 1–3 robots, up to 2 machines, and 3 pallets. Using fluents consistently improves performance, showing that richer state representations better guide re-finements. Solvers generally handle more instances without makespan minimization, reflecting the added complexity of optimization. In Aries-Opt with fluents, the planning time spent on motion planning drops to 78%, compared to 87% in the non-optimal version, indicating more effort devoted to optimization. Without fluents, CPSE outperforms Aries (124.3 vs. 92.0 total instances solved, opt and non-opt), sug-gesting CPSE is more effective in this configuration. A fi-nal observation concerns refinements under different door settings. In the logistics domain, Aries-Opt without fluents generates more refinements when doors are open (ALL-DO) than when closed (ALL-DC). With open doors, fewer geo-metric bottlenecks and ordering constraints exist: the plan-ner generates highly parallel schedules early in the search. Although symbolically consistent, these schedules can cause spatio-temporal conflicts at the motion-planning level (e.g., corridor congestion), requiring additional temporal refine-ments. When doors are closed, door-opening activities intro-duce explicit ordering and synchronization constraints that restrict parallelism and reduce invalid combinations. 
+
+## Conclusion and Future Work 
+
+This paper formally defines the SAMP problem and presents a framework that solves it by interleaving off-the-shelf schedulers with motion planners, guided by incremental learning-based motion abstractions. The scheduler proposes candidate plans, and the motion planner checks feasibility, returning symbolic constraints to refine spatial and tem-poral decisions when needed. Experiments on scheduling benchmarks with navigation tasks, testing various schedul-ing strategies (optimal, non-optimal, with/without fluents) and planners, show the framework’s effectiveness in han-dling multiple synchronized agents, coordinated stop-and-go behaviors, and complex spatio-temporal constraints. In future work, we plan to extend our framework to sup-port MAPF in addition to motion planning. Once we under-stand how to generate refinements, we will layer schedul-ing on top of MAPF to obtain a MAPF-aware scheduler, en-abling the framework to tackle this problem as well. 
+
+## Acknowledgments 
+
+This work has been partially supported by the AI4Work project funded by the EU Horizon 2020 research and innova-tion program under GA n. 101135990, the STEP-RL project funded by the European Research Council under GA n. 101115870, and by the Interconnected Nord-Est Innovation Ecosystem (iNEST) funded by the European Union Next-GenerationEU (Piano Nazionale di Ripresa e Resilienza (PNRR) – mission 4 component 2, investment 1.5 – D.D. 1058 23/06/2022, ECS00000043). 
+
+## References 
+
+Andreychuk, A.; Yakovlev, K.; Atzmon, D.; and Stern, R. 2019. Multi-Agent Pathfinding with Continuous Time. In 
+
+Proceedings of the Twenty-Eighth International Joint Con-ference on Artificial Intelligence, IJCAI-19 , 39–45. Interna-tional Joint Conferences on Artificial Intelligence Organiza-tion. Behrens, J. K.; Stepanova, K.; and Babuska, R. 2020. Si-multaneous task allocation and motion scheduling for com-plex tasks executed by multiple robots. In 2020 IEEE Inter-national Conference on Robotics and Automation (ICRA) ,11443–11449. Bit-Monnot, A. 2023. Enhancing Hybrid CP-SAT Search for Disjunctive Scheduling. In European Conference on Ar-tificial Intelligence (ECAI) . Krakow, Poland. Cashmore, M.; Fox, M.; Long, D.; Magazzeni, D.; Ridder, B.; Carrera, A.; Palomeras, N.; Hurtos, N.; and Carreras, M. 2015. ROSPlan: Planning in the Robot Operating System. 
+
+Proceedings of the International Conference on Automated Planning and Scheduling , 25(1): 333–341. Dantam, N. T. 2020. Task and Motion Planning , 1–9. Berlin, Heidelberg: Springer Berlin Heidelberg. ISBN 978-3-642-41610-1. Dantam, N. T.; Kingston, Z. K.; Chaudhuri, S.; and Kavraki, L. E. 2016. Incremental Task and Motion Planning: A Constraint-Based Approach. In Robotics: Science and Sys-tems .Faroni, M.; Umbrico, A.; Beschi, M.; Orlandini, A.; Cesta, A.; and Pedrocchi, N. 2024. Optimal Task and Motion Planning and Execution for Multiagent Systems in Dynamic Environments. IEEE Transactions on Cybernetics , 54(6): 3366–3377. Fox, M.; and Long, D. 2003. PDDL2.1: An Extension to PDDL for Expressing Temporal Planning Domains. J. Artif. Intell. Res. , 20: 61–124. Garrett, C. R.; Chitnis, R.; Holladay, R.; Kim, B.; Silver, T.; Kaelbling, L. P.; and Lozano-P´ erez, T. 2021. Integrated Task and Motion Planning. Annual Review of Control, Robotics, and Autonomous Systems , 4(1): 265–293. Garrett, C. R.; Lozano-Perez, T.; and Kaelbling, L. P. 2020. PDDLStream: Integrating Symbolic Planners and Blackbox Samplers. In International Conference on Automated Plan-ning and Scheduling (ICAPS) .Garrett, C. R.; Lozano-P´ erez, T.; and Kaelbling, L. P. 2018. FFRob: Leveraging symbolic planning for efficient task and motion planning. The International Journal of Robotics Re-search , 37(1): 104–136. Grothe, F.; Hartmann, V. N.; Orthey, A.; and Toussaint, M. 2022. ST-RRT*: Asymptotically-Optimal Bidirectional Mo-tion Planning through Space-Time. In Proc. of the IEEE Int. Conf. on Robotics and Automation (ICRA) .H¨ onig, W.; Kumar, T. K. S.; Cohen, L.; Ma, H.; Xu, H.; Ayanian, N.; and Koenig, S. 2017. Summary: multi-agent path finding with kinematic constraints. In Proceedings of the 26th International Joint Conference on Artificial Intelligence , IJCAI’17, 4869–4873. AAAI Press. ISBN 9780999241103. Jiang, H.; Lin, M.; and Li, J. 2025. Speedup tech-niques for switchable temporal plan graph optimization. AAAI’25/IAAI’25/EAAI’25. AAAI Press. ISBN 978-1-57735-897-8. Kerimov, N.; Onegin, A.; and Yakovlev, K. 2025. Safe inter-val randomized path planning for manipulators. ICAPS ’25. AAAI Press. ISBN 1-57735-903-8. LaValle, S. M. 1998. Rapidly-exploring random trees : a new tool for path planning. The annual research report .Leet, C.; Oh, C.; Lora, M.; Koenig, S.; and Nuzzo, P. 2023. Task Assignment, Scheduling, and Motion Planning for Automated Warehouses for Million Product Workloads. In 2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , 7362–7369. Li, J. 2023. Intelligent planning for large-scale multi-robot coordination. In Proceedings of the Thirty-Seventh AAAI Conference on Artificial Intelligence and Thirty-Fifth Con-ference on Innovative Applications of Artificial Intelligence and Thirteenth Symposium on Educational Advances in Artificial Intelligence , AAAI’23/IAAI’23/EAAI’23. AAAI Press. ISBN 978-1-57735-880-0. Li, J.; Surynek, P.; Felner, A.; Ma, H.; Kumar, T. K. S.; and Koenig, S. 2019. Multi-agent path finding for large agents. In Proceedings of the Thirty-Third AAAI Conference on Ar-tificial Intelligence and Thirty-First Innovative Applications of Artificial Intelligence Conference and Ninth AAAI Sym-posium on Educational Advances in Artificial Intelligence ,AAAI’19/IAAI’19/EAAI’19. AAAI Press. ISBN 978-1-57735-809-1. Ma, H.; H¨ onig, W.; Kumar, T. K. S.; Ayanian, N.; and Koenig, S. 2019. Lifelong path planning with kinematic constraints for multi-agent pickup and delivery. In Pro-ceedings of the Thirty-Third AAAI Conference on Artifi-cial Intelligence and Thirty-First Innovative Applications of Artificial Intelligence Conference and Ninth AAAI Sym-posium on Educational Advances in Artificial Intelligence ,AAAI’19/IAAI’19/EAAI’19. AAAI Press. ISBN 978-1-57735-809-1. Micheli, A.; Bit-Monnot, A.; R¨ oger, G.; Scala, E.; Valen-tini, A.; Framba, L.; Rovetta, A.; Trapasso, A.; Bonassi, L.; Gerevini, A. E.; Iocchi, L.; Ingrand, F.; K¨ ockemann, U.; Pa-trizi, F.; Saetti, A.; Serina, I.; and Stock, S. 2025. Unified Planning: Modeling, manipulating and solving AI planning problems in Python. SoftwareX , 29: 102012. Neville, G.; Chernova, S.; and Ravichandar, H. 2023. D-ITAGS: A Dynamic Interleaved Approach to Resilient Task Allocation, Scheduling, and Motion Planning. IEEE Robotics and Automation Letters , 8(2): 1037–1044. Nouri, H. E.; Driss, O. B.; and Gh´ edira, K. 2016. A Clas-sification Schema for the Job Shop Scheduling Problem with Transportation Resources: State-of-the-Art Review. In Silhavy, R.; Senkerik, R.; Oplatkova, Z. K.; Silhavy, P.; and Prokopova, Z., eds., Artificial Intelligence Perspectives in Intelligent Systems , 1–11. Cham: Springer International Publishing. ISBN 978-3-319-33625-1. Pecora, F.; Andreasson, H.; Mansouri, M.; and Petkov, V. 2018. A Loosely-Coupled Approach for Multi-Robot Co-ordination, Motion Planning and Control. Proceedings of the International Conference on Automated Planning and Scheduling , 28(1): 485–493. Perron, L.; and Didier, F. 2025. CP-SAT. https://developers. google.com/optimization/cp/cp solver/. Version v9.12. Stern, R.; Sturtevant, N.; Felner, A.; Koenig, S.; Ma, H.; Walker, T.; Li, J.; Atzmon, D.; Cohen, L.; Kumar, T. K.; Bart´ ak, R.; and Boyarski, E. 2021. Multi-Agent Pathfinding: Definitions, Variants, and Benchmarks. Proceedings of the International Symposium on Combinatorial Search , 10(1): 151–158. S¸ ucan, I. A.; Moll, M.; and Kavraki, L. E. 2012. The Open Motion Planning Library. IEEE Robotics & Automation Magazine , 19(4): 72–82. https://ompl.kavrakilab.org. Taillard, E. 1993. Benchmarks for basic scheduling prob-lems. European Journal of Operational Research , 64(2): 278–285. Tosello, E.; Valentini, A.; and Micheli, A. 2024. A meta-engine framework for interleaved task and motion planning using topological refinements. In ECAI 2024 , 4377–4384. IOS Press. Tosello, E.; Valentini, A.; and Micheli, A. 2025. Temporal Task And Motion Planning with Metric Time for Multiple Object Navigation. In AAAI 2025 .Toussaint, M. 2015. Logic-geometric programming: an optimization-based approach to combined task and motion planning. In Proceedings of the 24th International Confer-ence on Artificial Intelligence , IJCAI’15, 1930–1936. AAAI Press. ISBN 9781577357384. Zanlongo, S. A.; Dirksmeier, P.; Long, P.; Padir, T.; and Bobadilla, L. 2021. Scheduling and Path-Planning for Op-erator Oversight of Multiple Robots. Robotics , 10(2). Appendix 
+
+This appendix contains the formal proofs of the guarantees (soundness , completeness , and optimality ) underlying the proposed framework, providing theoretical support for the properties discussed in the main text. 
+
+Soundness 
+
+The goal is to prove that if our framework returns a solu-tion, then this solution is guaranteed to be correct, meaning that all scheduling constraints are satisfied, and the motion planner has found valid trajectories for all motion activities. 
+
+Theorem 1 (Soundness) . Let ψ be a SAMP problem, if 
+
+SOLVE (ψ, opt, t p, timeout ) produces a solution π, then π
+
+is valid. Proof. Sketch. Let π = ⟨p, s, e, τ ⟩ and let ρ = ⟨p, s, e ⟩.We need to prove that π is non-conflicting and satisfies the condition of Definition 9. As noted in the main paper, we model movable objects as unary resources, so since ρ is a solution for the OS prob-lem ϕ (because it is generated by the scheduler on the OS problem itself), it follows that π is non-conflicting. Condi-tion 3 of Definition 9 is satisfied by the scheduling problem posted to the scheduler, while conditions 1 and 2 are ensured because Algorithm 1 only returns at line 16, where the mo-tion planner has successfully found a valid trajectory for all parallel motion groups. 
+
+Completeness 
+
+The goal is to prove that our framework returns a solution whenever one exists, assuming the motion planner is com-plete and produces time-optimal solutions. This proof relies on showing that the learned constraints always cut the cur-rent candidate schedule from the solution space of the sched-uler, but never cut valid solutions. 
+
+Lemma 2 (Geometric Progression) . Suppose a geometric refinement is derived out of a candidate schedule ρ for the SAMP problem ψ with parallel motion group G, introducing conflicts Σ and Ω and yielding a refined SAMP problem ψ′.Then, ρ is no longer a candidate schedule for ψ′.Proof. Sketch. The geometric refinement added to ψ′ is the constraint: 
+
+> RC OND
+
+(G) → _
+
+> b∈G ,o ∈ωb
+> CHCONF
+
+(b, conf (o)) 
+
+To show that ρ is not a candidate schedule for ψ′, it suffices to show that ρ violates this constraint. Clearly, RC OND (G)
+
+is satisfied by ρ: all activities in G exist in ρ, the order of activities is the same (as it only depends on ρ) and rivals are either before or after the activities in G, otherwise they would have been part of G in the first place. Instead, the formula W 
+
+> b∈G ,o ∈ωb
+
+CHCONF (b, conf (o)) is violated because the configuration of every o ∈ O only de-pends on ρ, and thus all C HCONF (b, conf (o)) are false for any b and any o.
+
+Lemma 3 (Temporal Progression) . Suppose a temporal re-finement is derived out of a candidate schedule ρ for the SAMP problem ψ with parallel motion group G, resulting in a new SAMP problem ψ′. Then ρ is not a candidate schedule for ψ′.Proof. Sketch. The temporal refinement added to ψ′ is the constraint: 
+
+> RC OND
+
+(G) → CHTIME (G)
+
+with G ⊆ G and C HTIME (G) equals to             
+
+> _
+> a∈G
+> o∈O
+> CHCONF (a, conf (o)) ∨_
+> a∈G
+> a. start −min
+> b∈G
+> (b. start )< δ a∨
+> _
+> a∈G| (da+δa)<(δa+da)
+> (a. end −min
+> b∈G
+> (b. start )) ≥δa+da
+
+To show that ρ is not a candidate schedule for ψ′, it suffices to show that ρ violates this constraint. RC OND (G) is satis-fied by ρ as in the previous proof. The formula W 
+
+> a∈G ,o ∈O
+
+CHCONF (a, conf (o)) is violated because the configuration of each o ∈ O only depends on ρ,and thus all C HCONF (b, conf (o)) are false for any b and o.The formula W 
+
+> a∈G
+
+a. start − min b∈G (b. start ) < δ a is vio-lated because in ρ, for any a ∈ G , s(a)−min b∈G (s(b)) = δa
+
+by definition. W
+
+> a∈G| (da+δa)<(δa+da)
+
+(a. end − min b∈G (b. start )) ≥ δa +
+
+da is violated because each activity a is such that e(a) −
+
+min b∈G (s(b)) = da + δa by definition. Hence, all disjuncts are trivially false. 
+
+Lemma 4 (Geometric pruning soundness) . Suppose a geo-metric refinement is derived out of a candidate schedule ρ
+
+for ψ with parallel motion group G and conflict Σ and Ω,resulting in SAMP ψ′. Any SAMP solution π of ψ is a SAMP solution for ψ′.Proof. Sketch. Suppose, for the sake of contradiction, that there exists a solution π = ⟨p, s, e, τ ⟩ for ψ which is not a solution for ψ′. Let ρ′ be the OS schedule of π. Since the only difference between ψ and ψ′ is the constraint 
+
+> RC OND
+
+(G) → _
+
+> b∈G ,o ∈ωb
+> CHCONF
+
+(b, conf (o)) 
+
+then, π must violate this constraint. To violate this constraint, π must satisfy RC OND (G) and violate W 
+
+> b∈G ,o ∈ωb
+
+CHCONF (b, conf (o)) .Hence, π has the set of activities G, all present and such that any other motion activity is either before the start of the first activity in G or after the last end. This is because of the first and third conjuncts of RC OND (G).Note that conf(o) in ρ must be equal to conf(o) in ρ′ for all 
+
+b ∈ G and o ∈ ωb. Moreover, conf (oa) = conf ′(oa) for all 
+
+a ∈ G , because of the second conjunct of RC OND (G): the first motion action for any moved object is kept, therefore every movable object moved by G is initially in the same configuration. Thus, all relevant obstacles (we assume that the motion planner is complete, therefore all obstacles that can be encountered by any movable object are returned) and movable objects are in the same configurations in ρ and ρ′.Now, consider the paths for motion activities in G that must exist for π to be a solution. Observe that, changing the order of the activities (after the first one), moving oa can-not change the motion planner verdict on the feasibility of the combined motion of the activities in G. This is because in geometric refinements we are not considering the timings and the problem constraints require the sequence of activi-ties moving oa to be such that the ending configuration of one activity is the initial configuration of the following one. The only thing that matters for the path existence is whether the paths are geometrically realizable, and this is unaffected by changing the order of waypoints to be reached by one movable object (but without constraining the order of way-points between different movable objects). However, we know that the motion planner instantiated on the candidate schedule ρ deemed the problem unsolvable. This leads to a contradiction, as π cannot be a solution for ψ
+
+under these conditions. 
+
+Lemma 5 (Temporal pruning soundness) . Suppose a tem-poral refinement is derived out of a candidate schedule ρ for 
+
+ψ with parallel motion group G, resulting in a new SAMP 
+
+ψ′. Any SAMP solution π of ψ is a SAMP solution for ψ′.Proof. Sketch. We proceed as in the previous lemma. Sup-pose, for the sake of contradiction, that there exists a solution 
+
+π = ⟨p, s, e, τ ⟩ for ψ which is not a solution for ψ′. Let ρ′
+
+be the OS schedule of π. Since the only difference between 
+
+ψ and ψ′ is the constraint 
+
+> RC OND
+
+(G) → CHTIME (G)
+
+with G ⊆ G and C HTIME (G) equals to             
+
+> _
+> a∈G
+> o∈O
+> CHCONF (a, conf (o)) ∨_
+> a∈G
+> a. start −min
+> b∈G
+> (b. start )< δ a∨
+> _
+> a∈G| (da+δa)<(δa+da)
+> (a. end −min
+> b∈G
+> (b. start )) ≥δa+da
+
+then, π must violate this constraint. To violate this constraint, π must satisfy RC OND (G) and violate C HTIME (G). As before, π has the set of activities G,all present and such that all other motion activity is either before the start of the first activity in G or after the last end. Moreover, conf(o) in ρ must be equal to conf(o) in ρ′ for all o ∈ O . Additionally, for all a ∈ G it must hold s(a) −
+
+min b∈G (s(b)) ≥ δa and e(a) − min b∈G (s(b)) < δ a + da.But then consider the trajectories τ (a) for all a ∈ G , these trajectories are such that each movable object oa is station-ary in the interval [min b∈G (s(b)) , s (a)] and the movement associated with a ends before e(a). Therefore, τ witnesses a solution for a motion planning problem that is at least as con-strained (from the temporal point of view) as the one derived from ρ, which is strictly faster than the one used to generate the temporal refinement. But we assumed the motion plan-ner was optimal and complete, hence the contradiction. 
+
+Theorem 6 (Completeness) . Let ψ be SAMP problem ad-mitting at least one solution. SOLVE (ψ, opt, t p, ∞) even-tually returns a solution for ψ assuming a motion planner which is complete and optimal. Proof. Sketch. The theorem follows from four observations. First, no candidate schedule is evaluated twice by the algo-rithm because of Lemmas 2 and 3. Second, no solution is cut from the solution space because of Lemmas 4 and 5. Third, the set of candidate plans for a SAMP problem is finite (even though we formalized time over the natural numbers, there is an obvious time horizon defined by the sum of all the max-imal durations ov every activity). Fourth, assuming the mo-tion planner is complete and optimal, eventually we will ar-rive at a time bound tp sufficient to construct the trajectories for the solution. Therefore, a solution is eventually found if it exists. Finally, note that the approach is not a decision procedure, if no solution exists for the SAMP problem the algorithm might diverge. 
+
+Optimality 
+
+The goal is to prove that our framework is relatively optimal for makespan optimization. 
+
+Theorem 7 (Relative Optimality) . Assuming opt is the func-tion aiming to minimize the makespan of the schedule, a so-lution π returned by SOLVE (ψ, opt, t p, timeout ) is optimal, assuming the motion planner is complete and optimal w.r.t. the duration of motions. Proof. For the sake of contradiction, assume there exists a solution π′ with a makespan smaller than π. Since we as-sume that the scheduler is optimal, complete and correct, the candidate schedule ρ′ of π′ would be encountered before the candidate schedule ρ of π. Because of Lemmas 4 and 5 we know that no valid solution is discarded, therefore π′ would be returned instead of π, leading to the contradiction.

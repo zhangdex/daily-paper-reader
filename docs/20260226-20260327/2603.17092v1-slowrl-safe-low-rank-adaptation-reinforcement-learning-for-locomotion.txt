@@ -1,0 +1,315 @@
+Title: SLowRL: Safe Low-Rank Adaptation Reinforcement Learning for Locomotion
+
+URL Source: https://arxiv.org/pdf/2603.17092v1
+
+Published Time: Thu, 19 Mar 2026 00:12:45 GMT
+
+Number of Pages: 10
+
+Markdown Content:
+# SLowRL: Safe Low -Rank Adaptation Reinforcement Learning for Locomotion 
+
+Elham Daneshmand ∗† , Shafeef Omar §, Glen Berseth †‡ , Majid Khadiv §, Hsiu-Chin Lin ∗∗McGill University, †Mila - Quebec AI Institute, ‡Université de Montréal, §Technical University of Munich 
+
+Abstract —Sim-to-real transfer of locomotion policies often leads to performance degradation due to the inevitable sim-to-real gap. Naively fine-tuning these policies directly on hardware is problematic, as it poses risks of mechanical failure and suffers from high sample inefficiency. In this paper, we address the challenge of safely and efficiently fine-tuning reinforcement learning (RL) policies for dynamic locomotion tasks. Specifically, we focus on fine-tuning policies learned in simulation directly on hardware, while explicitly enforcing safety constraints. In doing so, we introduce SLowRL —a framework that combines Low-Rank Adaptation (LoRA) with training-time safety enforcement via a recovery policy. We evaluate our method both in simulation and on a real Unitree Go2 quadruped robot for jump and trot tasks. Experimental results show that our method achieves a 46 .5% reduction in fine-tuning time and near-zero safety violations compared to standard proximal policy optimization (PPO) baselines. Notably, we find that a rank-1 adaptation alone is sufficient to recover pre-trained performance in the real world, while maintaining stable and safe real-world fine-tuning. These results demonstrate the practicality of safe, efficient fine-tuning for dynamic real-world robotic applications. 
+
+I. I NTRODUCTION 
+
+Achieving high performance on real-world robotic systems remains a fundamental challenge in robotics due to hardware constraints and the persistent sim-to-real gap. The ideal pipeline involves leveraging massively parallelized simulation to explore complex environments and learn robust behaviors, followed by a transition to physical platforms for targeted real-world fine-tuning. The goal of this final stage is to achieve peak performance by adapting to the specific nuances of the robot and the world; however, executing this adaptation without damaging the robot remains a significant hurdle. Learning-based approaches, particularly deep reinforcement learning ( RL ), have demonstrated impressive performance and versatility across a wide range of locomotion behaviors [ 1]. Nevertheless, transfer to the real world often causes a certain degree of performance degradation, largely due to distributional mismatch between simulation and hardware. Reported results indicate that full-model fine-tuning requires hours of prohibitive real-world interaction, creating a significant bottleneck for scalable deployment and risking hardware damage during exploration [ 2 , 3 , 4 ]. As a result, there remains a lack of unified frameworks that can safely and efficiently improve policies in the real world. In this work, we hypothesize that effective sim-to-real adap-tation does not require retraining the entire policy, but can be achieved by optimizing a low-rank subspace of parameters. Our empirical results reveal that this adaptation can be achieved with 
+
+Main Policy (Layer i ∈ 1 . . . N )
+
+Robot 
+
+Frozen W0,i LoRA BiAi
+
+ELU 
+
+Recovery Policy Safety Filter 
+
+Observation s0
+
+Main Policy Action 
+
+Recovery Action Final Action 
+
+Fig. 1: The SLowRL architecture. A frozen main policy and a trainable LoRA adapter operate in parallel to generate the main action. A Safety Filter monitors the robot’s state and selects between the main action and a conservative Recovery Policy action to ensure safe operation during fine-tuning. extremely low-rank updates, with rank-1 adaptation consistently providing the fastest recovery of pre-trained performance. To test this hypothesis in a safety-critical real-world setting, we introduce SLowRL —a framework that combines low-rank policy adaptation with online safety enforcement. This combination of parameter-efficient fine-tuning and a learned safety filter enables us to minimize the duration of real-robot interactions while preventing hardware failures. Our experimental results demonstrate that this approach achieves a 46 .5% reduction in fine-tuning time with near-zero safety violations compared to standard Full Fine-Tuning ( FFT ) using proximal policy optimization (PPO) baselines. Unlike prior methods that treat real-world learning time as a secondary concern, we explicitly focus on minimizing the duration of real-robot fine-tuning with minimal falls, while achieving comparable or improved task performance. We validate our framework across multiple locomotion tasks using a single set of hyperparameters and demonstrate consistent 
+
+> arXiv:2603.17092v1 [cs.RO] 17 Mar 2026
+
+improvements in fine-tuning efficiency. Our results show more improvement during 60 minutes of training in the real-world compared to FFT baselines. In summary, this work argues that sim-to-real adaptation for legged locomotion is fundamentally a low-dimensional policy refinement problem. We show that effective real-world fine-tuning can be achieved through extremely low-rank policy updates, with a single rank-1 adaptation direction sufficient to recover and improve performance relative to FFT . We further demonstrate that stable real-world adaptation requires jointly adapting both the actor and critic, and that incorporating explicit safety mechanisms enables reliable real-world fine-tuning with substantially reduced failure rates and faster empirical convergence. These claims are validated through extensive sim-to-sim and sim-to-real experiments on a quadruped robot, including dynamic locomotion behaviors, demonstrating that safe and efficient real-world adaptation does not require full policy retraining. II. R ELATED WORK 
+
+Deep RL, specifically PPO [5], has become extensively uti-lized for the synthesis of legged locomotion controllers [ 1]. De-spite improvements in the quality of simulation environments, the sim-to-real gap remains a critical bottleneck to achieving multipurpose robots. Nevertheless, domain randomization ( DR )has proven to be effective in successfully transferring policies to the real world [ 6, 7 , 8, 9 ]. This comes at the cost of overly conservative policies that fail to exploit the robot’s full dynamic potential. Alternatives such as explicit system identification [ 10 , 11 ] or latent-space adaptation [ 12 , 13 ] have shown promise to circumvent this issue. However, these methods generally assume that the real world can be represented as in-distribution relative to ensembles of simulations, which is a strong and often unrealistic assumption. To address out-of-distribution scenarios, recent works have explored fine-tuning policies directly on hardware. A primary challenge in this domain is safety. Approaches like Recovery RL [ 3 ] or safety-constrained frameworks [ 14 ] utilize safety critics or constraint layers to intervene during dangerous states. However, relying on a critic or constraint model trained in simulation can be perilous, as the safety signal itself is subject to the sim-to-real gap. Furthermore, existing fine-tuning frameworks suffer from severe sample inefficiency. For instance, [ 4 ] reports adaptation times of approximately 115 minutes per task—a prohibitive duration for scaling to diverse behaviors. While [ 15 ] achieves faster learning (approx. 20 minutes), it relies on the assumption that the robot is statically stable within a restricted action space. This assumption renders the method inapplicable to underactuated platforms such as underactuated bipedal robots [16], which require continuous active balance. We bridge these gaps by introducing SLowRL , a framework that enables rapid, safe adaptation on real robots. In particular, we leverage Low-Rank Adaptation ( LoRA ) [ 17 , 18 ], a fine-tuning paradigm used in large language models (LLMs) to address similar inefficiencies by optimizing only a low-dimensional subspace. By restricting optimization to a low-rank manifold, we significantly reduce sample complexity and mitigate the safety risks associated with prolonged on-hardware fine-tuning. Furthermore, updating only a low-rank subspace prevents the bang-bang control spikes often seen in over-parameterized models. To the best of our knowledge, the application of Parameter-Efficient Fine-Tuning ( PEFT )techniques [ 19 ] to high-frequency robotic control has not been explored. On top of using LoRA, we explicitly integrate a learned recovery policy during fine-tuning of the policies, preventing the exploration of dangerous parts of the state space. III. B ACKGROUND 
+
+A. Reinforcement Learning Formulation 
+
+We formulate the robot control problem as a Markov Decision Processes ( MDP ) defined by the tuple (S, A, P, R, γ ).At each time step t, the robot is in state st ∈ S ⊆ Rn
+
+and executes an action at ∈ A ⊆ Rm according to a stochastic policy πθ (at|st) parameterized by weights θ. The environment dynamics are governed by the transition prob-ability P(st+1 |st, a t). The goal of the RL agent is to learn optimal parameters θ∗ that maximize the expected discounted cumulative reward: 
+
+J(πθ ) = Eτ ∼πθ
+
+" TX
+
+> t=0
+
+γtrt
+
+#
+
+where rt = R(st, a t) is the reward at time t, T is the horizon, and γ ∈ [0 , 1) is the discount factor. In this work, we utilize PPO [ 5], a widely adopted algorithm for legged locomotion control [ 20 , 7, 13 , 21 ], due to its stability and sample efficiency. In the remainder of the paper, we instantiate θ using neural network weights W , with W0 denoting the frozen pre-trained parameters. 
+
+B. Low-Rank Adaptation (LoRA) 
+
+Standard fine-tuning typically involves updating the entire pre-trained weight matrix W0 ∈ Rd×k to adapt to a new distribution. When referring to individual layers, we denote the corresponding frozen weights as W0,i ; for simplicity, we use 
+
+W0 to represent the collection of all frozen policy parameters. The adapted weights can be expressed as W = W0 + ∆ W ,where ∆W represents the environment-specific perturbation required to align the policy with the physical dynamics of the real robot. Low-Rank Adaptation (LoRA) [ 17 ] is a parameter-efficient fine-tuning method originally introduced for adapting large neural networks—especially large language models without updating all of their parameters. Low-Rank Adaptation (LoRA) hypothesizes that the change in weights ∆W during adaptation resides in a low intrinsic rank ρ ≪ min( d, k ). LoRA decom-poses the update into two low-rank matrices B ∈ Rd×ρ and 
+
+A ∈ Rρ×k. The forward pass for a linear layer is reformulated as: 
+
+h = W0x + ∆ W x = W0x + BAx (1) During policy refinement, W0 is frozen, and BA are refinable parameters. LoRA has proven effective for refining large language models; in this work, we repurpose it for sim-to-real policy refinement. IV. SLowRL : E FFICENT REAL -W ORLD ADAPTATION 
+
+A. System Overview 
+
+As illustrated in the conceptual diagram in Fig. 1, SLowRL 
+
+operates via a two-stage pipeline: 
+
+Stage 1: High-Fidelity Pre-training We assume we have a base policy πθ trained in a high-fidelity simulator. We adopt the contact-explicit architecture from [ 22 ], which conditions the agent on desired contact goals (e.g., foot placement locations and timings) rather than implicit task rewards. This enables the main policy πθ to learn a robust, unified representation of contact dynamics across diverse gaits. 
+
+Stage 2: Safe Low-Rank Adaptation Once the base policy 
+
+πθ converges in the source domain, our goal is to refine the policy in the target domain, and we adapted LoRA for the adaptation. As shown in Figure 1, our framework consists of the following key components:  
+
+> •
+
+Frozen Base Policy (Blue): We freeze the weights ( W0)of the pre-trained policy from Stage 1 to preserve the foundational locomotion priors. This ensures the robot retains its fundamental walking capabilities throughout the fine-tuning process.  
+
+> •
+
+LoRA Adapter (Green): We use LoRA modules to capture the environment-specific dynamics. These adapters are applied to individual linear layers within the network (as detailed in Section IV-B ), effectively bridging the source-to-target domain gap by optimizing only the low-rank matrices.  
+
+> •
+
+Recovery Policy (Orange): Since the primary objective is hardware safety, we also include a task-agnostic policy that brings the robots from any state to a pre-defined, safe, nominal state. (Section IV-C) 
+
+B. LoRA-PPO Configuration 
+
+Recent theoretical work has suggested that reinforcement learning operates in an information-limited regime, in which only a small number of effective update directions can be reliably identified from on-policy data. In particular, LoRA Without Regret [ 23 ] argues that low-rank—and even rank-1—updates may be sufficient for learning under idealized assumptions. We use LoRA for refining the policy πθ in the target domain. In the context of sim-to-real transfer, we interpret W0 as the foundational motor skill acquired in simulation, and the low-rank term BAx from Equation 1 as the environment-specific perturbation required to align the policy with the physical dynamics of the real robot. In particular, we freeze the pre-trained weights W0 and only optimize the matrices A and B. We initialize A ∼ N (0 , σ 2)
+
+and B = 0 , ensuring the policy starts exactly at the pre-trained behavior ( BA = 0 ). Crucially, this formulation is modular. LoRA can be selectively applied to any subset of dense layers within the network architecture, including specific layers of the Actor, or Actor and Critic. Figure 2 details the internal structure of this integration. The architecture is divided into the Critic (Value V ) and the Actor (Policy πθ ) networks. Within each dense layer, the forward pass is split into two parallel paths: 1) The Frozen Path (Blue): The input is processed by the pre-trained weights ( W0), ensuring the agent retains the foundational motor skills acquired in simulation. 2) The Adapter Path (Green): The input is processed simultaneously by the trainable low-rank matrices ( A and 
+
+B). As shown in the layer nodes, the adapter contribution is computed as αr BAx where α >0 is a hyperparameter. These outputs are summed prior to the ELU activation function. For the Actor network specifically, a trainable noise parameter is injected at the final output layer to regulate exploration variance during the fine-tuning process. Despite applying adapters to all layers, the low-rank con-straint (where ρ ≪ d) results in a dramatic reduction in computational overhead. This configuration reduces the number of trainable parameters by approximately 99 .09% over all tasks compared to FFT , significantly accelerating the optimization landscape traversal. We observe that the low-rank structure of LoRA acts as an intrinsic safety filter. By limiting the degrees of freedom available for adaptation, LoRA prevents the policy from overfitting to high-frequency noise or learning dangerous, bang-bang control, which causes spikes and is often associated with over-parameterized fine-tuning. In later sections, we will empirically validate that a rank of ρ = 1 is sufficient to capture the dominant correction direction required to align simulation-trained priors with physical hardware. This suggests that while simulation models may have unmodeled latencies, the foundational motor skills are largely correct; the reality gap is thus a linear manifold alignment problem rather than a task-relearning problem. 
+
+C. Safety Mechanisms 
+
+To prevent hardware damage during adaptation, we incorpo-rate a discrete safety trigger that serves as a final decision gate. The filter monitors the robot’s state st at every timestep. If the filter predicts a violation of safety constraints (e.g., pitch/roll exceeding safe limits), it overrides the main policy and activates the recovery policy πr . This mechanism ensures that the robot only explores safe states while the LoRA adapters refine the main policy. The recovery policy drives the system from a broad dis-tribution of recoverable states back into a nominal safe state 
+
+snom , rather than tracking a predefined recovery trajectory. In practice, snom corresponds to a dynamically stable upright configuration with bounded base orientation and low velocity (e.g., standing), defined using only proprioceptive signals. This definition is independent of the downstream task and does not rely on robot-specific heuristics. To ensure real-world robustness, πr is trained using extensive domain randomization, including variations in mass, friction coefficients, and external forces. Training episodes are initial-ized across the robot’s operational envelope, and the reward Obs 
+
+## s0
+
+## Actor Network (Policy π)             
+
+> WA
+> 0,1s0+bA
+> 1
+> αrBA
+> 1AA
+> 1s0
+> ELU
+> Layer 1
+> WA
+> 0,2sA
+> 1+bA
+> 2
+> αrBA
+> 2AA
+> 2sA
+> 1
+> ELU
+> Layer 2
+> sA
+> 1
+
+# . . .            
+
+> WA
+> 0,N sAN−1+bAN
+> αrBANAANsAN−1
+> ELU
+> Layer N
+> sAN−1
+
+Action 
+
+a ∼ N (μ, σ )
+
+## Critic Network (Value V )             
+
+> WC
+> 0,1s0+bC
+> 1
+> αrBC
+> 1AC
+> 1s0
+> ELU
+> Layer 1
+> WC
+> 0,2sC
+> 1+bC
+> 2
+> αrBC
+> 2AC
+> 2sC
+> 1
+> ELU
+> Layer 2
+> sC
+> 1
+
+# . . .            
+
+> WC
+> 0,N sCN−1+bCN
+> αrBCNACNsCN−1
+> ELU
+> Layer N
+> sCN−1
+
+Value 
+
+V (s)
+
+Fig. 2: Detailed schematic of the SLowRL framework. We freeze the pre-trained policy parameters (blue dashed blocks) to retain prior knowledge from IsaacLab. To enable adaptation to the target environment, we inject low-rank trainable adapters (green blocks) in parallel to the frozen weights. The outputs are summed before the ELU activation, ensuring a safe exploration process. encourages convergence toward snom while assigning a large negative penalty to terminations, thereby strictly penalizing leaving the safe set. As a result, the policy learns to reliably return the system to a safe configuration regardless of the specific task being executed. Since the primary objective is hardware safety rather than performance, the recovery policy is intentionally conservative, prioritizing successful recovery and avoiding mechanical failure. Crucially, because πr is task-agnostic and robustly trained, a single recovery controller suffices for multiple downstream tasks. V. E XPERIMENTAL RESULTS 
+
+In this section, we evaluate the performance, robustness, and safety of SLowRL for fine-tuning different locomotion policies. Specifically, our experiments are structured to investigate:  
+
+> •
+
+Safety and Robustness: The reduction of mechanical failure rates during the policy fine-tuning phase.  
+
+> •
+
+Sample Efficiency: The impact of low-rank parameteri-zation on minimizing the required samples for transition from simulation to deployment-ready behaviors.  
+
+> •
+
+Generalization and Transfer: The framework’s perfor-mance across diverse locomotion tasks and its empirical validity on physical hardware (sim-to-real).  
+
+> •
+
+Ablation Analysis: The degree to which performance gains are uniquely attributable to the SLowRL architec-ture versus standard Proximal Policy Optimization PPO hyperparameter tuning. 
+
+A. Experimental Setup 
+
+We validate our framework on the Unitree Go2 quadruped robot, a platform characterized by high-torque actuators and 
+
+Fig. 3: The Unitree Go2 robot performs a dynamic jump. Using 
+
+SLowRL , we fine-tune a low-rank adapter on top of a frozen simulation-trained policy, achieving substantially faster training with near-zero safety violations compared to standard PPO. dynamic agility, as shown in Figure 3. To assess the versa-tility of our framework, we evaluate two distinct locomotion behaviors: trotting, which tests endurance and cyclic stability, and jumping, a highly dynamic task requiring precise impulse coordination. We benchmark SLowRL against three established paradigms:  
+
+> •
+
+PPO (Zero-Shot): Represents the direct deployment of the robust simulation-trained policy without fine-tuning.  
+
+> •
+
+Full Fine-Tuning (FFT) w ith out safety: Represents the naive implementation of conventional full-parameter updates directly on the hardware. This baseline ex-cludes safety filters and recovery policies to quantify the mechanical-failure risks inherent in unconstrained exploration.  
+
+> •
+
+Full Fine-Tuning (FFT) w ith safety: Augments the standard full-parameter fine-tuning with our safety filter and recovery policy. This serves as a strong baseline to isolate the sample efficiency gains of LoRA from the benefits of the safety mechanism alone. To ensure a rigorous comparison, all methods utilize identical PPO hyperparameters and reward functions. The learning rates were optimized individually, 10 −2 for LoRA and 10 −3 for FFT, to allow each algorithm to achieve its peak convergence speed. We evaluate performance based on cumulative reward, wall-clock convergence time, and the frequency of safety violations. Fine-tuning a policy directly on robotic hardware could be dangerous, since the policy may temporarily or permanently degrade during refinement. Therefore, we develop two types of validation protocols:  
+
+> •
+
+Sim-to-Sim Protocol : To test distribution shift handling, we use a sim-to-sim transfer protocol in which the base policy is pre-trained in IsaacSim [ 24 ] (PhysX engine) and adapted to MuJoCo [ 25 ], running in real-time just like it would on the real robot. This sim-to-sim transfer has physics mismatch due to differences in contact solvers and integrators, as well as the constraints imposed by real-time execution on physical robots.  
+
+> •
+
+Sim-to-Real Protocol: For real-world experiments, we use a Vicon motion-capture system to provide ground-truth base position and velocity. To account for stochasticity, all experiments are averaged across 4 random seeds. Crucially, fine-tuning runs are executed in real time on a workstation (20-core CPU, RTX 3080 Ti), ensuring that the control loop maintains the required frequency with minimal computational bottlenecks. 
+
+B. Safety During Fine-tuning 
+
+In this section, we evaluate the safety of SLowRL against baseline methods by recording mechanical failures (e.g., falls, collisions, or joint limit violations) during the training period. Table I summarizes the mechanical failures recorded during fine-tuning. In this setting, the pre-trained policy is intentionally quite fragile, making it highly sensitive to aggressive gradient updates. As demonstrated in Table I, FFT without safety frequently failed to recover, with an average of 14 .25 failures for trot and x for jump forward. Even with safety mechanisms, FFT still averaged 7.5 failures for trot and 27 for jump. In contrast, 
+
+SLowRL maintained a zero-failure rate across all seeds. These results suggest that operating within a low-rank adaptation space effectively filters out destabilizing gradient directions, enabling SLowRL to function as an implicit recovery policy during fine-tuning. In addition to discrete failure counts, we evaluate control smoothness during training using the action rate, defined as 
+
+∥at − at−1∥. This metric directly reflects the presence of high-frequency, bang-bang control behavior discussed in Sec. IV-B .As shown in Table II, SLowRL consistently maintains a significantly lower action rate during fine-tuning. For the trot TABLE I: Safety Evaluation: Average failures (falls/crashes) during the training across 4 seeds.           
+
+> Task Trot Jump
+> FFT wo safety 14 .25 69 .0
+> FFT w safety 7.517 .5
+> SLowRL(Ours) 0.02.0
+
+gait, SLowRL achieved a 88 .9% reduction in action rate—a 
+
+50% improvement over the FFT baseline. Even in the more dynamic Jump gait, where FFT only reduced the action rate by 
+
+5.7% , SLowRL achieved a 35 .7% reduction. This indicates that the low-rank constraint effectively suppresses unsafe high-frequency control updates in practice. TABLE II: Smoothness: Percentage reduction in action rate 
+
+∥at − at−1∥ from start to finish.        
+
+> Gait FFT (Reduction %) SLowRL (Reduction %) Trot 38.9% 88.9% Jump 5.7% 35.7%
+
+C. Sample Efficiency during Fine-tuning 
+
+We use a sim-to-sim (IsaacLab to MuJoCo) setting to quantify the sample efficiency of SLowRL . Here, we use wall-clock convergence time as a proxy for sample efficiency during fine-tuning. Faster convergence directly corresponds to fewer physical interactions and reduced mechanical risk. Figures 4 and 5 show the results for trot and jump. Quantitatively, 
+
+SLowRL reduces the time required to match the original IsaacLab performance to 38% for trotting and 55% for jumping. Finally, because the failure count is low (under 20), FFT with and without safety mechanisms exhibits a nearly identical pattern of learning. 
+
+D. The Effect of Rank ( ρ)
+
+In Section IV-B , we argued that low-rank updates may be sufficient for learning under idealized assumptions. Whether such extreme low-rank adaptation remains effective in contact-rich, safety-critical robotic control, however, remains an open empirical question. To investigate this, we sweep the LoRA rank parameter 
+
+ρ ∈ {1, 2, 4, 8} while keeping all other hyperparameters fixed. All configurations are trained for the same fixed wall-clock duration of 75 minutes. This time horizon corresponds to the point at which the rank-1 configuration reaches the maximum reward achieved by the pre-trained simulation policy. Importantly, this budget is applied uniformly to all ranks. To further verify that this choice does not bias the comparison, we additionally ran all rank configurations for an extended duration of 230 minutes; across this longer horizon, lower-rank adapters consistently achieved the highest rewards in average, and higher-rank configurations did not surpass rank-1 performance. Fig. 4: Sim-to-Sim Sample Efficiency during Fine-tuning (Trot Task) Comparative learning curves showing mean reward over wall-clock time for the trotting task. SLowRL (blue) significantly outperforms the FFT and Zero-Shot baselines, achieving a 38% reduction in time-to-convergence while maintaining higher stability. 
+
+Fig. 5: Sim-to-Sim Sample Efficiency during Fine-tuning (Jump Task) Performance comparison for the dynamic jumping task on the Unitree Go2 robot. SLowRL demonstrates superior sample efficiency, reducing convergence time by 55% compared to baselines without incurring the safety violations observed in FFT. Figure 6 reports the resulting learning curves under this fixed-budget protocol. We observe that rank-1 adaptation (ρ = 1) 
+
+reaches the pre-trained performance level fastest and within the allotted time, while higher-rank configurations converge more slowly and, in some cases, fail to reach the same performance threshold within the same time budget. These results indicate that increasing the rank does not improve adaptation efficiency under fixed training budgets. While higher-rank adapters introduce greater expressive capac-ity, they also expand the dimensionality of the optimization problem, amplifying gradient noise in the presence of contact 
+
+Fig. 6: Impact of LoRA Rank ( ρ) on Adaptation An ablation study sweeping rank parameters ρ ∈ { 1, 2, 4, 8}. The results empirically validate that a minimal rank of ρ = 1 yields the highest final reward, confirming that effective sim-to-real adaptation can be achieved via a single principal direction of adjustment. discontinuities, delayed rewards, and safety-triggered resets. From a practical perspective, this suggests that the dominant mismatch between pre-trained and target dynamics can be corrected within a low-dimensional subspace for a fixed task. Rank-1 adaptation captures this dominant correction direction most efficiently, whereas additional degrees of freedom primar-ily delay convergence without improving final performance. Consequently, all subsequent experiments adopt rank-1 LoRA adapters. 
+
+E. Ablation Analysis 
+
+To determine the optimal configuration for using LoRA in a quadruped robotics setting to improve sample efficiency for online adaptation, we investigate multiple locations at which LoRA can be added to the policy architecture. Our study evaluates the placement of LoRA modules across two primary dimensions: the functional role of the sub-networks (actor vs. critic) and the specific depth of the internal layers being adapted. 
+
+1) Architectural Components, Actor vs. Critic: We first compared the necessity of adapting the value function versus the policy by evaluating configurations where adapters were applied exclusively to the Actor, and where they were applied to both the Actor and Critic. As illustrated in Figure 7, our experiments demonstrate that applying LoRA to both the Actor and Critic yields the highest performance and stability. Notably, the Actor Only configuration, where the Critic remains frozen at its pre-trained, it fails to converge to an optimal gait. We attribute this to the significant distribution shift between the source (IsaacLab) and target (MuJoCo/Real) environments. A frozen Critic continues to evaluate states based on simulation physics, providing inaccurate advantage estimates that destabilize the Fig. 7: Impact of Critic Adaptation A comparison of adaptation performance when applying LoRA to the Actor and Critic versus the Actor Only. The results show that adapting the critic is strictly necessary to realign the value function with real-world dynamics, whereas the Actor Only configuration fails to converge. Actor’s adaptation. Therefore, adapting the critic is strictly necessary to realign the value function with the physical reality of the target domain. This necessity is further evidenced by the final value-function loss recorded at the end of the fine-tuning phase. While the Actor and Critic configuration successfully minimizes the loss to a highly precise level of 0.007 , the Actor Only setup maintains a substantial residual loss of 0.2.This two-order-of-magnitude difference in error underscores the indispensable value of critic adaptation for sim-to-real transfer. In the Actor Only configuration, the critic remains anchored to the source environment’s dynamics, resulting in a persistent and severe estimation bias. Without fine-tuning, the pre-trained value function becomes fundamentally misaligned with the target domain’s reward manifold. Specifically, the frozen critic remains anchored to the source dynamics, resulting in a fundamental misalignment between the predicted state-values and the target domain’s reward manifold. This creates a divergent value baseline that provides the Actor with deceptive advantage estimates. The 0.2 loss plateau demonstrates that without recalibrating the critic, the agent’s internal performance metric is inaccurate, rendering stable policy refinement in a new domain mathematically untenable. 
+
+2) Structural Depth, Layer-wise Injection: We further ana-lyzed the impact of LoRA placement across network depths. We evaluated four configurations:  
+
+> •
+
+Output Layer Only: Adapting only the final action pro-jection.  
+
+> •
+
+Input & Output: Adapting the first feature encoder layer and the final projection.  
+
+> •
+
+All Layers: Injecting adapters into every dense layer of the policy. 
+
+Fig. 8: Evaluation of Adapter Placement Strategy Per-formance comparison of different LoRA injection depths, including partial layer adaptation. The All Layers configuration achieves the highest performance, demonstrating that deep correction across all levels of abstraction is required to robustly bridge the sim-to-real gap. Our empirical results in Figure 8 show that applying LoRA to All Layers yields the highest performance, surpassing the parallel residual adapter and partial-network methods. While the parallel residual adapter intuitively allows for direct action correction, we found it struggled to compensate for internal feature mismatches. By contrast, the All Layers configuration allows the policy to perform deep correction and adjust how the robot processes state features at every level of abstraction, resulting in the most robust transfer. 
+
+F. Real-World experiments 
+
+To demonstrate the effectiveness of SLowRL for fine-tuning the jump task in the real world, we compared its performance with FFT in Figure 9. Quantitatively, the SLowRL agent demonstrates superior adaptation compared to baselines. As illustrated in Figure 9, SLowRL rapidly improves the mean reward from −19 to −7 in 60 minutes, significantly outperform-ing FFT , which plateaus near −15 . Regarding gait quality, the agent achieves a 9% improvement in contact pattern consistency for the jumping task. VI. D ISCUSSION 
+
+In this work, we presented SLowRL , a unified framework for safe and efficient adaptation of locomotion policies from simulation to the real world. Our findings challenge the pre-vailing assumption in robotic reinforcement learning that sim-to-real transfer requires either massive domain randomization or computationally expensive full-parameter fine-tuning. By dissecting the fine-tuning process, we offer several key insights into the nature of the reality gap and the mechanisms required to bridge it. The Low-Rank Hypothesis of Sim-to-Real Transfer: Our most significant finding is the efficacy of extremely low-rank updates ( ρ = 1 ) in bridging the sim-to-real gap. The Fig. 9: Sim-to-Real Adaptation Efficiency (Jump Task) Acomparison of mean reward over wall-clock time. SLowRL 
+
+(blue) demonstrates faster convergence and higher asymptotic performance compared to FFT with safety constraints (orange). success of minimal rank adaptation suggests that the founda-tional motor skills learned in high-fidelity simulation ( W0)are largely correct; the reality gap does not necessitate a fundamental relearning of locomotion primitives, but rather a linear realignment of the policy’s manifold. This aligns with recent theoretical work in LoRA without regret [ 23 ], indicating that in the low-information regime of real-world RL , the effective dimensionality of the optimal policy update is small. By constraining the optimization to this low-rank subspace, 
+
+SLowRL implicitly regularizes the policy, preventing the forgetting of safe priors and the emergence of high-frequency, bang-bang control artifacts often seen in FFT. The Necessity of Value Re-Alignment: Our ablation studies reveal a critical, often overlooked component of fine-tuning: the adaptation of the critic. While previous work has sometimes focused exclusively on policy (Actor) adaptation, our results demonstrate that freezing the critic leads to convergence failure. The significant residual loss (0.2) in Actor Only configurations confirms that the perception of value is as susceptible to the sim-to-real gap as the control policy itself. When the critic remains anchored to simulation dynamics, it provides deceptive advantage estimates that destabilize learning. Therefore, we posit that robust sim-to-real transfer requires a synchronized realignment of both the actor’s control strategy and the critic’s value estimation. Safety as an Enabler of Efficiency: A central insight of our work is that safety constraints function as an enabler of learning efficiency rather than a hindrance. By offloading the risk of catastrophic failure to a task-agnostic Recovery Policy, the learning agent is free to explore the local solution space more aggressively. SLowRL achieved a 46 .5% reduction in conver-gence time precisely because it eliminated the conservative restarts and mechanical downtime associated with the frequent falls observed in FFT . The zero-failure rate observed during training stands in stark contrast to the frequent falls in FFT ,validating the architecture’s ability to decouple exploration from structural integrity. VII. L IMITATIONS AND FUTURE WORK 
+
+Although SLowRL demonstrates robust performance in dynamic gaits such as trotting and jumping, our current evaluation is limited to flat ground and moderate disturbances. Adapting to highly unstructured terrains (e.g., stairs, debris) may require a higher-rank adaptation ( ρ > 1) to capture more complex contact interactions. A significant limitation of the current Recovery Policy is its reliance on a human-designed safe region. Our results indicate that attempting to learn this safety manifold purely in simulation is often ineffective due to a significant critic mismatch; the boundaries optimized by the agent in a virtual environment do not accurately reflect the physical realities and contact dynamics of the real world. To address this, future work will focus on developing methods to learn these safety regions directly on physical hardware autonomously. Furthermore, reliance on PPO presents a significant bottle-neck for real-world deployment. As an on-policy algorithm, PPO is notoriously sample-inefficient and lacks the mechanism to utilize previous data collected during real-world interac-tions.Consequently, we plan to investigate off-policy algorithms and hybrid fine-tuning architectures that can leverage historical transitions and large-scale data to achieve faster, more robust adaptation than is currently possible with standard on-policy methods. VIII. C ONCLUSION 
+
+This paper introduced SLowRL , a parameter-efficient fine-tuning framework that resolves the safety paradox of real-world robotic learning: the tension between the need for physical interaction to improve performance and the risk that such interaction poses to hardware. By combining LoRA with a robust separate safety filter, we demonstrated that it is possible to adapt simulation-trained policies to physical robots rapidly and safely. Our extensive empirical evaluation on the Unitree Go2 quadruped validates that full-model retraining is unnecessary for handling sim-to-real dynamics mismatches. Instead, optimizing a low-rank subspace enables an adaptation that is, on average, 
+
+46 .5% faster than standard PPO baselines, thus eliminating safety violations. We further established that this efficiency relies on the simultaneous adaptation of both Actor and Critic to strictly realign the agent’s value expectations with physical reality. Ultimately, SLowRL provides a practical blueprint for the last mile of robotic deployment. As foundation models and large-scale simulations become the standard for pre-training, lightweight, safe, and efficient adaptation methods like SLowRL will be essential for grounding these generalist policies in the specific, unmodeled realities of the physical world. This work represents a significant step toward robots that can continuously adapt themselves to their environment without the intervention of engineers or the risk of self-destruction. REFERENCES 
+
+[1] Sehoon Ha, Joonho Lee, Michiel van de Panne, Zhaoming Xie, Wenhao Yu, and Majid Khadiv. Learning-based legged locomotion: State of the art and future perspec-tives. The International Journal of Robotics Research ,44(8):1396–1427, 2025. [2] Laura Smith, J. Chase Kew, Xue Bin Peng, Sehoon Ha, Jie Tan, and Sergey Levine. Legged robots that keep on learning: Fine-tuning locomotion policies in the real world, 2021. [3] Brijen Thananjeyan, Ashwin Balakrishna, Suraj Nair, Michael Luo, Krishna Parasuram Srinivasan, Minho Hwang, Joseph E. Gonzalez, Julian Ibarz, Chelsea Finn, and Ken Goldberg. Recovery rl: Safe reinforcement learning with learned recovery zones. IEEE Robotics and Automation Letters , 6:4915–4922, 2020. [4] Tsung-Yen Yang, Tingnan Zhang, Linda Luu, Sehoon Ha, Jie Tan, and Wenhao Yu. Safe reinforcement learning for legged locomotion. In 2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) ,pages 2454–2461, 2022. [5] John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov. Proximal policy optimization algorithms. CoRR , abs/1707.06347, 2017. [6] Josh Tobin, Rachel Fong, Alex Ray, Jonas Schneider, Woj-ciech Zaremba, and Pieter Abbeel. Domain randomization for transferring deep neural networks from simulation to the real world. In 2017 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) ,pages 23–30, 2017. [7] Jie Tan, Tingnan Zhang, Erwin Coumans, Atil Iscen, Yunfei Bai, Danijar Hafner, Steven Bohez, and Vincent Vanhoucke. Sim-to-real: Learning agile locomotion for quadruped robots. In Hadas Kress-Gazit, Siddhartha S. Srinivasa, Tom Howard, and Nikolay Atanasov, editors, 
+
+Robotics: Science and Systems XIV, Carnegie Mellon University, Pittsburgh, Pennsylvania, USA, June 26-30, 2018 , 2018. [8] Zeshi Yang and Zhiqi Yin. Efficient hyperparame-ter optimization for physics-based character animation. 
+
+Proceedings of the ACM on Computer Graphics and Interactive Techniques , 4:1 – 19, 2021. [9] Miroslav Bogdanovic, Majid Khadiv, and Ludovic Righetti. Model-free reinforcement learning for robust locomotion using demonstrations from trajectory opti-mization. Frontiers in Robotics and AI , 9, 2021. [10] Jemin Hwangbo, Joonho Lee, Alexey Dosovitskiy, Dario Bellicoso, Vassilios Tsounis, Vladlen Koltun, and Marco Hutter. Learning agile and dynamic motor skills for legged robots. Science Robotics , 4(26), January 2019. [11] Yevgen Chebotar, Ankur Handa, Viktor Makoviychuk, Miles Macklin, Jan Issac, Nathan Ratliff, and Dieter Fox. Closing the sim-to-real loop: Adapting simulation randomization with real world experience. In 2019 International Conference on Robotics and Automation (ICRA) , page 8973–8979. IEEE Press, 2019. [12] Ashish Kumar, Zipeng Fu, Deepak Pathak, and Jitendra Malik. RMA: rapid motor adaptation for legged robots. In Dylan A. Shell, Marc Toussaint, and M. Ani Hsieh, editors, Robotics: Science and Systems XVII, Virtual Event, July 12-16, 2021 , 2021. [13] Takahiro Miki, Joonho Lee, Jemin Hwangbo, Lorenz Wellhausen, Vladlen Koltun, and Marco Hutter. Learning robust perceptive locomotion for quadrupedal robots in the wild. Science Robotics , 7(62):eabk2822, 2022. [14] Zuxin Liu, Zijian Guo, Yihang Yao, Zhepeng Cen, Wenhao Yu, Tingnan Zhang, and Ding Zhao. Constrained decision transformer for offline safe reinforcement learn-ing. In Proceedings of the 40th International Conference on Machine Learning , ICML’23. JMLR.org, 2023. [15] Laura M. Smith, Yunhao Cao, and Sergey Levine. Grow your limits: Continuous improvement with real-world rl for robotic locomotion. 2024 IEEE International Conference on Robotics and Automation (ICRA) , pages 10829–10836, 2023. [16] Elham Daneshmand, Majid Khadiv, Felix Grimminger, and Ludovic Righetti. Variable horizon mpc with swing foot dynamics for bipedal walking control. IEEE Robotics and Automation Letters , 6(2):2349–2356, April 2021. [17] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean Wang, Lu Wang, and Weizhu Chen. LoRA: Low-rank adaptation of large language models. In International Conference on Learning Repre-sentations , 2022. [18] Ning Ding, Yujia Qin, Guang Yang, Fuchao Wei, Yusheng Su, Shengding Hu, Chi-Min Chan, Jing Chen, Weilin Zhao, Xiaozhi Wang, Zhiyuan Liu, Jie Tang, Juanzi Li, and Maosong Sun. Parameter-efficient fine-tuning of large-scale pre-trained language models. Nature Machine Intelligence , 5:220–235, 2023. [19] Zeyu Han, Chao Gao, Jinyang Liu, Jeff Zhang, and Sai Qian Zhang. Parameter-efficient fine-tuning for large models: A comprehensive survey. arXiv preprint arXiv:2403.14608 , 2024. [20] Nikita Rudin, David Hoeller, Philipp Reist, and Marco Hutter. Learning to walk in minutes using massively parallel deep reinforcement learning. In Aleksandra Faust, David Hsu, and Gerhard Neumann, editors, Conference on Robot Learning, 8-11 November 2021, London, UK , vol-ume 164 of Proceedings of Machine Learning Research ,pages 91–100. PMLR, 2021. [21] Xue Bin Peng, Erwin Coumans, Tingnan Zhang, Tsang-Wei Edward Lee, Jie Tan, and Sergey Levine. Learning agile robotic locomotion skills by imitating animals. In Marc Toussaint, Antonio Bicchi, and Tucker Hermans, editors, Robotics: Science and Systems XVI, Virtual Event / Corvalis, Oregon, USA, July 12-16, 2020 , 2020. [22] Shafeef Omar and Majid Khadiv. Learning to act through contact: A unified view of multi-task robot learning, 2025. [23] John Schulman and Thinking Machines Lab. Lora without regret. Thinking Machines Lab: Connectionism , 2025. https://thinkingmachines.ai/blog/lora/. [24] NVIDIA. Isaac Sim. [25] Emanuel Todorov, Tom Erez, and Yuval Tassa. Mujoco: A physics engine for model-based control. In 2012 IEEE/RSJ International Conference on Intelligent Robots and Systems , pages 5026–5033. IEEE, 2012.

@@ -1,0 +1,357 @@
+Title: Many-RRT*: Robust Joint-Space Trajectory Planning for Serial Manipulators
+
+URL Source: https://arxiv.org/pdf/2603.04547v1
+
+Published Time: Fri, 06 Mar 2026 01:06:53 GMT
+
+Number of Pages: 7
+
+Markdown Content:
+# Many-RRT ⋆: Robust Joint-Space Trajectory Planning for Serial Manipulators 
+
+Theodore M. Belmont 1, Benjamin A. Christie 1,2, and Anton Netchaev 1
+
+Abstract — The rapid advancement of high degree-of-freedom (DoF) serial manipulators necessitates the use of swift, sampling-based motion planners for high-dimensional spaces. While sampling-based planners like the Rapidly-Exploring Random Tree (RRT) are widely used, planning in the ma-nipulator’s joint space presents significant challenges due to non-invertible forward kinematics. A single task-space end-effector pose can correspond to multiple configuration-space states, creating a multi-arm bandit problem for the planner. In complex environments, simply choosing the wrong joint space goal can result in suboptimal trajectories or even failure to find a viable plan. To address this planning problem, we propose Many-RRT ⋆: an extension of RRT ⋆-Connect that plans to multiple goals in parallel. By generating multiple IK solutions and growing independent trees from these goal configurations simultaneously alongside a single start tree, Many-RRT ⋆ en-sures that computational effort is not wasted on suboptimal IK solutions. This approach maintains robust convergence and asymptotic optimality. Experimental evaluations across robot morphologies and diverse obstacle environments demonstrate that Many-RRT ⋆ provides higher quality trajectories (44.5% lower cost in the same runtime) with a significantly higher success rate (100% vs. the next best of 1.6%) than previous RRT iterations without compromising on runtime performance. 
+
+I. I NTRODUCTION 
+
+The rapid advancement of robotic platforms, such as high degree-of-freedom (DoF) manipulators or unmanned ground vehicles, has necessitated the use of swift, probabilistic mo-tion planners for high-dimensional spaces. Sampling-Based Planners (SBPs), such as Probabilistic Roadmaps (PRMs, [1]) or Rapidly-Exploring Random Trees (RRTs, [2]) are the backbone of many public and commercial motion planning libraries. These approaches offer probabilistic completeness, and in some cases, asymptotic stability. They are highly scalable and simple to implement, making them the standard approach for waypoint-based planning. However, forward kinematics for serial manipulators is non-invertable; a single end-effector pose can correspond to many unique joint configurations. This property makes 
+
+This study was conducted for the US Army Engineer Research and Development Center (ERDC), as part of the Civil Works Research and De-velopment area within the Next Generation Water Resources Infrastructure, under Funding Account Code U453885; AMSCO Code 008329. The views, opinions, findings, and conclusions reflected in this publication are solely those of the authors and do not necessarily represent the official policy or position of the U.S. Army Engineer Research and Development Center or the U.S. Army Corps of Engineers. 
+
+> 1
+
+are with the USACE ERDC, Information Technology Lab (ERDC), Vicksburg, MS 39180, USA. {theodore.m.belmont, benjamin.a.christie, anton.netchaev}@erdc.dren.mil 
+
+> 2
+
+is with the Collaborative Robotics Lab (Collab), Dept. of Mechanical Engineering, Virginia Tech, Blacksburg, VA 24061. benc00@vt.edu 
+
+Fig. 1. The trees created by RRT ⋆-Connect (top) vs. Many-RRT ⋆ (bottom) in the task-space (left) and joint-space (right). Despite having denser, more extensive trees, RRT ⋆-Connect chooses a suboptimal goal joint state from the preimage of the robot’s forward kinematics. Since our method samples multiple goal configurations, we can solve for many possible plans in parallel, improving success rate and decreasing path costs. 
+
+effective manipulator motion planning in the configuration-space non-trivial. When planning in configuration-space, the manipulator encounters a multi-armed bandit problem where choosing the wrong goal joint configuration can lead to suboptimal motions. In complex environments, this can result in planning failures — even when viable plans exists — simply because the planner chose the wrong goal state. A naive solution to this problem is to solve for all possible joint configurations resulting in the appropriate goal pose, but this is computationally infeasible. Even with manipulators with 6-DoF, the preimage of specific goal poses can have uncountably infinite solutions. The problem exacerbates as the DoFs grow. We propose a solution to this problem with Many-RRT ⋆,which is similar to RRT ⋆-Connect [3], but extends mul-tiple configuration-space goals in parallel. This approach maintains the robust convergence and asymptotic-optimality guarantees of RRT ⋆-Connect while offering significant ad-vantages. By rephrasing the sampling-based algorithm as a search over the configuration space and the preimage of the manipulator’s forward kinematics, we are able to achieve a lower bound on path length in configuration space. As the number of samples from the forward kinematics preimage in-creases, Many-RRT ⋆ changes from a locally asymptotically-
+
+> arXiv:2603.04547v1 [cs.RO] 4 Mar 2026
+
+optimal motion planning algorithm from a globally optimal one. Overall, we make the following contributions: 
+
+Formalizing Globally-Optimal Motion-Planners. We de-fine the context in which sampling-based motion planners (such as RRT ⋆) exhibit global asymptotic-optimality. When planning to known global optima (such as planning in task-space alone), existing planners exhibit global optimality. However, when planning in configuration-space, existing planners are not globally optimal, due to the many-to-one behavior of the manipulator’s forward kinematics. 
+
+Solving One-to-Many Motion Plans. We present a method for generating motion plans that samples from the preimage of the robot’s forward kinematics and optimizes over the path length of each plan independently. With a single sample, our method is identical to RRT ⋆-Connect. However, as the number of samples grows — according to our formalization above — the plan approaches global optimality. Each plan is independent, so this approach is trivially parallelizable on modern hardware with virtually no difference in planning time when compared to start-of-the-art implementations. 
+
+Experimental Validation. We test Many-RRT ⋆ against the state-of-the-art single-query asymptotically-optimal motion planners RRT ⋆ [4] and RRT ⋆-Connect [3] across robot morphologies and environments. We find that in the tested situations, Many-RRT ⋆ is able to find motion plans with 44.5% lower cost in the same runtime. Further, we find that Many-RRT ⋆ matches or exceeds the success rate of the baselines across environments and manipulators. II. R ELATED WORKS 
+
+Motion planning in robotic manipulators remains an open challenge, despite its long history. Approaches range from swift sampling-based position planners [3]–[6] to low-level receding-horizon control [7], [8]. Complement-ing the position-sampling approaches, some have leveraged machine-learning to improve sampling quality in higher-dimensional spaces [9], [10] or to condition samples on environment observations directly [11]. 
+
+Path Planning. Path planning has been a key interest in robotics since at least the mid-1970s. Early implementations focused on reducing the state representation to a 2D-plane and applying variants of Dijkstra’s algorithm [12], known to be (generally, see [13]) theoretically optimal. Initial research established core techniques such as cell decomposition [14], [15], visibility graphs [16], [17], and potential fields [17], [18]. As the computational power of consumer processors grew, sampling-based planners [19], [20] gained popularity. Sampling-based planners are now widely taken to be the de facto standard for high-level motion generators, specif-ically with the advent of bi-directional growth through RRT-Connect [21] and asymptotic optimality in RRT ⋆ [4]. 
+
+Extending RRT. A plethora of RRT variants have been pro-posed to improve the performance of RRT-style algorithms. We are focused on two variants (and their combination) specifically. The first is RRT-Connect [21]. This method      
+
+> Fig. 2. A 2DoF Arm in an environment with obstacles that fully split the configuration space. A naive seed for Equation (5) would produce Goal 2, which is impossible to reach from the initial configuration. Sampling the optimal goal configuration is necessary for sampling-based planners to converge quickly. The configuration space Cfree is represented in green.
+
+extends the original RRT algorithm to create two trees, with one rooted at the starting state and the other rooted at the goal state. Convergence is achieved when the trees can connect. This modification improves the success rate of the original RRT algorithm, especially in the presence of obstacles. The second is RRT ⋆ [4]. This algorithm offers asymptotic optimality by modifying the parentage of nodes near each new sample. Convergence is achieved when a node of the tree is within a goal zone. Klemm et. al [3] combined these approaches to create RRT ⋆-Connect, which leverages the robust convergence of RRT-Connect and the asymptotic op-timality of RRT ⋆. RRT ⋆-Connect grows bi-directionally and iteratively improves both trees using the same rewiring logic as RRT ⋆. However, although RRT ⋆-Connect has asymptotic optimality for a particular start-goal tuple, it is subject to the same failures as other methods that do not reason over multiple goal configurations. Following [3], there has been extensive research into using multiple RRTs in parallel. As discussed in [22], there are three levels of parallelism. The nearest to our approach is those that create multiple trees in parallel [22]–[24]. However, these approaches do not plan to multiple goals 
+
+in parallel. Using RRT to plan to multiple goals has been explored [25], however, this work demonstrates planning to 
+
+sequential non-compulsory goal positions. III. P ROBLEM STATEMENT 
+
+We consider settings in which a robotic manipulator is planning motions in configuration space with a position controller. The robotic manipulator starts in an initial joint configuration q0 ∈ C free ⊆ Q and intends to reach qN ∈ C free .Here, Cfree is the set of collision-free joint states and Q is the set of all robot joint states. The robot achieves this motion according to the continuous mapping q : R+ → Q :
+
+q(0) = q0
+
+q(1) = qN
+
+∀t ∈ [0 , 1] , q(t) ∈ C free 
+
+(1) where q maps a normalized time parameter to a robot state 
+
+q in the collision-free space Cfree . We represent the space of feasible motion plans as Q. We note that the goal position g
+
+provided to the robot is defined in task space. That is, g =
+
+f (qN ) where f : Q → X is the robot’s forward kinematics function and g ∈ X is the task space goal. 
+
+Optimal Motion Planning. Many possible q satisfy Equa-tion (1). An optimal plan q⋆ is found through Equation (2): 
+
+q⋆ = arg min 
+
+> q∈Q
+
+J(q) (2) where J is an objective function that should be minimized, such as path length or energy expenditure. In this work, we focus on high-level position-based planning. More specifi-cally, we focus on motion plans of the following form: 
+
+∀i ∈ { 0, . . . , N }, q(ti) = qi
+
+∀t ∈ [ti, t i+1 ], q(t) = qi + t − ti
+
+ti+1 − ti
+
+(qi+1 − qi)
+
+s.t. t0 = 0 , tN = 1 
+
+(3) where the robot linearly interpolates its movement through a set of waypoints {q0, q 1, . . . , q N −1, q N }. We do not consider differential constraints in this work (such as those arising from robot dynamics). 
+
+RRT-Style Planners. Rapidly-Exploring Random Trees (RRT, also referred to as Rapid-Random Trees) are asampling-based method for exploring configuration spaces according to a metric ρ [2]. This metric is typically taken to be the path cost , similar to J in Equation (2). RRT is designed to be a swift, single-query (i.e., not reusable) data structure and sampling scheme for searching high-dimensional spaces subject to algebraic and differential constraints [20]. RRT achieved this by iteratively extending the tree to a randomly sampled state in the environment along a vector of ϵ magnitude. This process is referred to as EXTEND .The probability of RRT converging to an optimal plan is 0. The introduction of asymptotically-optimal planners such as RRT ⋆ [4] showed that swift, single-query planners could be redesigned with REWIRE to produce optimal so-lutions without substantial overhead. However, using these asymptotically-optimal planners in isolation for motion in high-dimensional configuration spaces is still suboptimal. 
+
+Inverse Kinematics Solvers. Recall that we are interested in providing the goal position in task space, not configuration space. In manipulators (and robotics more broadly), the joint state q is mapped to the task space pose x ∈ X through the forward kinematics function f :
+
+x = f (q) (4) In general, f is highly nonlinear and not (analytically) invertible. Quickly finding q such that x = f (q) is a widely researched topic known as Inverse Kinematics (IK) [26]– [28]. The leading approach to generate IK solutions is solve the equivalent constrained optimization problem [28]: 
+
+min  
+
+> q
+
+E(q) = 12 ∥f (q) − x∥2 
+
+> W
+
++ 12 λ∥q − q′∥2
+
+s.t. qmin ≤ q ≤ qmax 
+
+(5) 
+
+Algorithm 1 Many-RRT ⋆
+
+Require: f, Cfree ▷ FK, Conf. Space 
+
+(x, q ) ← sample_from_KDTree (Cfree )
+
+q′ ← parallel_IK_solutions (f, x, q )
+
+q′ ← downsample (q′)
+
+N ← dim (q′)
+
+G ← { G0, . . . , G N } ▷ Goal Trees 
+
+GN +1 ← ∅ ▷ Start Tree 
+
+for i ∈ { 0, . . . , max iterations } do for j ∈ { 0, . . . , N } do ▷ Executed Parallel Async. 
+
+G ← single_iteration_RRT ⋆(Gj , Cfree )
+
+end for 
+
+vi ← sample_vertex (Cfree ) ▷ Equation (10) 
+
+GN +1 ← EXTEND (GN +1 , v i) ▷ See [4] 
+
+if vi ∈ G then 
+
+GN +1 ← CONN_TREE (GN +1 , G) ▷ Par. Async. 
+
+end if 
+
+GN +1 ← REWIRE (GN +1 ) ▷ See [4] 
+
+end for 
+
+where W and λ are weights, x is the target task pose, and 
+
+q′ is a seed joint configuration. Typically, Equation (5) is solved via SQP [29] using the gradient: 
+
+∇E(q) = ∇f (q)T W (f (q) − x) + λ (q − q′) (6) Recall that f is highly nonlinear. E(q) can be subject to many local minima, so finding the correct seed q′ is critical. Oftentimes, the current joint configuration is used as the seed. We will show in IV that this choice of seed is suboptimal; performance improves when q′ is carefully chosen. Other implementations (such as the Orocos Kinematics and Dynamics Library [30]) use the classic Newton-Rahpson iteration based on the pseudoinverse of the jacobian. Given 
+
+f and q0, KDL iteratively performs the following: 
+
+Jkq = ∇f (q) q=qk
+
+qk+1 = proj Cfree 
+
+
+
+qk + α  Jkq
+
+† (x − f (qk)) 
+
+ (7) until ∥qK+1 − qK ∥2 ≤ ϵ. This approach can be brittle near singularities, where the jacobian pseudoinverse becomes nu-merically unstable. Regardless, this IK solution is completely dependent on the initial configuration q0, so it is subject to becoming trapped in local minima. As previously mentioned, we are interested in finding optimal motion plans in configuration space with g ∈ X 
+
+as our goal pose. Without loss of generality, take Qg =
+
+{q ∈ Q | g = f (q)}. Let Qg = {∀ q ∈ Q g , ∃q ∈ Q |
+
+q(1) = q ∧ q = arg min q′ J(q′)} be the set of optimal motion plans for which the elements of Qg are the final position. There is no guarantee that the set of plans Qg
+
+have the same objective value. More precisely, J(q) for each 
+
+q ∈ Qg can be different. Thus, the optimal planning problem in configuration space reduces to a multi-arm bandit problem ,where the choice of q ∈ Q g matters as much as the plan 
+
+q. Even if the plan q is optimal from q0 to qN , if the goal Goals Start Fig. 3. Many-RRT ⋆ solves many bidirectional RRTs in parallel. (a) We sample many points from the preimage of g = f (q), which is a continuous manifold for redundant manipulators. (b) Asynchronously and in parallel, we execute a separate RRT ⋆ thread for each configuration sampled in (a). These configurations are the roots of these RRTs, and the start position is the goal. (c) We separately execute a RRT ⋆ algorithm rooted at the start configuration that tries to connect to members of the trees in (b). This process is asynchronous, keeping track of the best solution yet given the state at each iteration. 
+
+position qN is not ideal, then the original plan is suboptimal. Reasoning over the entire set Qg is required to ensure global optimality. However, while the forward kinematics function is a deterministic mapping, its inverse is generally ill-posed. For redundant manipulators, the preimage of a task-space configuration g constitutes a continuous manifold of dimension m−dim( X ), where m is the number of degrees of freedom of the manipulator. 1 The commonly used IK solutions presented in Equations (5) and (7) do not output a set of values: they produce singletons. Consequently, an exhaustive search of the configuration space is computation-ally intractable due to the uncountable cardinality of the null space — even with the IK solutions presented above. Additionally, in the presence of obstacles, the configuration space of a robot can be fully split, meaning that a given singleton IK solution may be unreachable from the current configuration (as shown in Figure 2). IV. M ANY -RRT ⋆
+
+Here we introduce our method for robust joint-space motion planning. Instead of finding a single feasible q such that g = f (x), with g being the goal pose in task space, we rephrase the optimization problem from Equation (2) as: 
+
+q⋆ = arg min 
+
+> q∈Q
+
+J(q)
+
+s.t. q(0) = q0
+
+q(1) ∈ Q g
+
+∀t ∈ [0 , 1] , q(t) ∈ C free 
+
+(8)               
+
+> 1Even if m≤dim( X),there are often symmetries in the robot kinematics that can cause the preimage of a task-space configuration gto have many possible joint-space configurations.
+
+where instead of the decision variables being over the set 
+
+{q1, . . . , q N −1} with constraint q(1) = qN , we let qN be a decision variable as well, but subject qN to the constraint manifold Qg .2 The solution to Equation (8) is the globally optimal plan in joint space. 
+
+Sampling IK Solutions. As previously mentioned, solving for Qg in realtime is infeasible. Instead, we sample K
+
+joint configurations from Qg using the following two step process. Prior to solving Equation (5), we generate a large set of unlabeled joint configurations M ⊆ (Cfree )K via rejection sampling with a uniform distribution over Q (in our experiments, we use 10 5 samples). This set M can be computed once per robot morphology and reused across plans or interactions. We structure M
+
+as a KD-Tree [31] for task- to joint-space querying using 
+
+K-nearest neighbors. Once we have obtained {q′
+
+> i
+
+}K 
+
+> 0
+
+seeds from M , we solve K IK problems using the constrained optimization solver presented in Equation (5): 
+
+min  
+
+> q
+
+E(q) = 12 ∥f (q) − x∥2 
+
+> W
+
++ 12 λ∥q − q′
+
+> i
+
+∥2
+
+s.t. qmin ≤ q ≤ qmax 
+
+(9) for each i ∈ { 0, . . . , K }. Empirically we find that using many possible seeds improves the convergence Equation (5) to minima it would not otherwise converge to. The resulting set of possible joint configurations is down-sampled to remove elements that satisfy ∥qi − qk∥ ≤ ϵ for each pair of IK solutions, where ϵ is parameter chosen by the designer (we use 1−4 in our experiments). This down-sampled set 
+
+{q′
+
+> i
+
+}N 
+
+> 0
+
+serves as the set of possible goal configurations for the N parallel trees in what follows.           
+
+> 2We note that the solution to Equation (8) should also be of the same form as Equation (3) TABLE I CONVERGENCE CHARACTERISTICS ACROSS 500 TRIALS FOR MANY -RRT ⋆AND BASELINES (M AX ITERATION :3000 , M AX RUNTIME :3000 MS ).
+
+Env. Algorithm Succ. Iteration of 1 st Sol. ( %) Median Cost Avg. Runtime (ms) Rate 10 th 50 th 90 th First Final First Final 
+
+6-DoF Manipulator 
+
+Table RRT ⋆ 98.2% 2.0 2.0 2.0 5.95 5.86 0.30 332.73 RRT ⋆-Connect 93.8% 73.0 147.5 597.4 9.96 7.41 31.87 261.82 
+
+Many-RRT ⋆ 100.0% 61.9 103.0 159.0 9.77 5.73 9.28 362.27 Wall RRT ⋆ 100.0% 61.9 130.0 236.2 7.33 5.38 27.42 411.77 RRT ⋆-Connect 100.0% 412.6 751.0 1180.0 10.95 6.49 73.50 328.08 
+
+Many-RRT ⋆ 100.0% 25.0 42.0 101.0 4.81 4.06 5.42 472.49 Passage RRT ⋆ 93.6% 3.0 3.0 12.0 2.09 1.94 46.99 439.53 RRT ⋆-Connect 100.0% 13.9 28.0 68.0 2.35 1.81 2.69 336.95 
+
+Many-RRT ⋆ 100.0% 11.0 24.0 73.0 2.41 1.81 3.41 918.49 Random RRT ⋆ 1.4% >3000 >3000 >3000 ∞ ∞ 448.07 454.48 RRT ⋆-Connect 1.6% >3000 >3000 >3000 ∞ ∞ 324.91 322.86 
+
+Many-RRT ⋆ 100.0% 135.9 225.0 468.3 16.57 12.97 41.98 569.91 
+
+7-DoF Manipulator 
+
+Table RRT ⋆ 100.0% 2.0 2.0 7.0 5.92 5.89 0.71 517.46 RRT ⋆-Connect 100.0% 43.0 60.0 90.0 7.62 6.29 7.41 382.89 
+
+Many-RRT ⋆ 100.0% 24.0 34.0 49.1 5.17 3.31 4.30 434.98 Wall RRT ⋆ 100.0% 8.0 129.0 348.4 9.38 8.32 52.89 748.32 RRT ⋆-Connect 100.0% 58.8 229.0 593.4 9.66 8.34 43.34 550.24 
+
+Many-RRT ⋆ 100.0% 39.0 54.0 91.0 7.16 5.27 10.36 764.34 Passage RRT ⋆ 58.1% 9.0 368.5 >3000 8.82 7.40 376.07 744.12 RRT ⋆-Connect 57.2% 72.0 337.0 >3000 9.33 7.02 254.73 534.55 
+
+Many-RRT ⋆ 100.0% 48.0 78.0 186.2 7.50 5.81 15.27 675.10 Random RRT ⋆ 5.0% >3000 >3000 >3000 ∞ ∞ 1799.51 1747.87 
+
+RRT ⋆-Connect 8.8% >3000 >3000 >3000 ∞ ∞ 2880.15 2843.35 Many-RRT ⋆ 96.8% 430.6 904.0 2878.0 14.36 7.25 1154.90 2479.62 
+
+Parallelizing Tree Generation. Core to our method is a set of directed graphs (trees) {G0, G 1, . . . , G N , G N +1 } with 
+
+Gi = {V i, E i} where V i is the set of vertices and Ei is the set of edges. The set {G0, . . . , G N } are trees that grow from each goal configuration to the start configuration using standard RRT ⋆ [4]. 3 These trees grow in parallel on separate threads, completely independently. The tree GN +1 is rooted at the start configuration. At each iteration i, GN +1 extends to a node according to the following sampling rule: 
+
+vi ∼
+
+(U [Cfree ] γ > γ 0
+
+U
+
+h
+
+{q′
+
+> k
+
+}N 
+
+> 0
+
+∪ Sk=Nk=0 {Eki − Ek
+
+> 0: i−1
+
+}
+
+i
+
+else (10) where γ ∼ U [0 , 1] and γ0 ∈ (0 , 1) . Put another way, the tree GN +1 explores the joint space with probability γ. With probability 1 − γ, the tree extends to new nodes added to the other trees or any of their goal configurations. This sampler ensures that GN +1 balances exploration with exploitation. 
+
+Implementation Details. Our method is summarized in Algorithm 1 and Figure 3. Multithreading is advantageous to our method. Each of the trees rooted at the goal positions are independent, so their growth is trivially parallelizable. We find that the worst case running time of our current implementation is O(mn 2) (where m = N + 1 and n =       
+
+> 3In practice, we use a much lower sampling threshold for these trees. In traditional RRT ⋆, a sampling ratio of 0.5is used. We use a sampling ratio much closer to 0to bias exploration instead of exploitation .
+
+nodes max ). While the extension of the tree is O(mn log n),we find that through parallelization, the time complexity reduces to O(n log n) (assuming nproc ≥ N + 2 ), matching time complexity of RRT ⋆. However, the bound is dictated by the costly CONN_TREE method, which must compare 
+
+n nodes in the start tree to n nodes in each of the m
+
+goal trees. Future iterations may aim to further parallelize the CONN_TREE method, but the parallel slackness of the method is very high, meaning that many available processors would be needed to achieve the speedup. In our testing, we implemented multithreading on a CPU, but this approach could be trivially extended to use GPU or NPU. V. E XPERIMENTS 
+
+To compare the algorithms, we tested the performance of each algorithm in creating path plans through a variety of environments on 6DoF and 7DoF arms (UR10e and Franka Panda, respectively). All of the environments used are represented as spheres for compatibility with our collision algorithm, which based off of the approach seen in [32]. We developed four test environments, shown in Figure 5. The environments are scaled to the advertised reach of the robot at full extension l
+
+(0.85m for the Franka Panda and 1.3m for the UR10e), with their origin being the base link of the arm. Fig. 4. The median cost per iteration across trials for the Random environ-ment with 500 trials per method. Not only does Many-RRT ⋆ converge to a feasible path before baselines, but it also finds lower-cost trajectories as the number of iterations increases. The performance difference widens as the dimension of the configuration-space increases: for the 7-DoF manipulator, Many-RRT ⋆ finds a feasible solution in 6 times fewer iterations.     
+
+> Fig. 5. The collision representations of the environments used in our simulated experiments. From left to right, the environments increase in relative difficulty. In Table , the manipulator must move from one pose to another while avoiding the flat table in the center of the frame. In
+> Wall , the manipulator must move from one side to another of the wall while avoiding both the table and the wall. Likewise, in Passage , the manipulator must move from one side to the other by navigating through the passage. In this environment, the strengths of bi-directional sampling-based planners becomes more evident, as methods like RRT ⋆-Connect are able to explore both areas to attempt to connect the joint-space through the narrow passage. In the most challenging environment, Random , a random configuration of spherical objects are scattered throughout the environment. Across environments, we ensure that both the goal and start positions are collision-free and that a feasible motion plan exists before experimentation.
+
+Each environment was designed to compare the perfor-mance of the algorithms in a different way. The table is meant to show performance in largely free space as a baseline. The wall is meant to show performance with a simple obstacle, meaning that some IK solutions will have a straight-line path from start to goal in the joint space, while other solutions will require more complex planning. The passage is meant to show performance with a fully bifurcated configuration space, that is, there are some valid IK solutions at each goal that are simply unreachable from certain IK solutions at the start pose. Finally, the random environment is meant to show a very difficult environment to plan through in order to stress-test the algorithms. We compared the performance of RRT ⋆, RRT ⋆-Connect, and Many-RRT ⋆ on 6DoF and 7DoF arms (UR10e and Franka Panda). For the multi-threaded algorithms — RRT ⋆-Connect and ManyRRT ⋆ — time benchmarking is measured from the beginning of the first thread starting to the end of the tree ascension (when a path is created). It does not include data structure initialization or destruction. For the single threaded RRT ⋆, time benchmarking is — similarly — measured from the beginning of the tree extension loop until the end of the tree ascension. Benchmarking is done over 500 trials, with task-space start and goal poses for each trial being the same for all three algorithms. Benchmarks for Wall and Passage trials used the same goal poses for both arms 4, whereas those for Random 
+
+and Table trials used poses based on each arm’s reachable positions in the Random environment. All convergence characteristic trials were performed using nodes max = 3000 with 3000ms timeout. We completed all trials for Many-RRT ⋆ using 10 IK solutions, resulting in 11 trees being built. Two sets of convergence characteristic trials were performed for each platform, with one exiting on first success and the other running until max nodes was reached. The results of the convergence rate trials for the 6DoF and 7DoF arms are seen in Table I. Importantly, the maximum nodes for Many-RRT ⋆ is dic-tated by the sum of any tree with the start tree. This means that any call to Many-RRT ⋆ can have up to nodes max  
+
+> 2
+
+(N + 1) 
+
+nodes. As a consequence of this, we define an iteration i
+
+at any given time t in terms of the number of nodes and trees: it = ⌊PN +1  
+
+> k=0
+
+2 · nodes (k)t/(N + 1) ⌋. This ensures that Many-RRT ⋆ will conform to the given iterations , though it is allowed more nodes .Benchmarks were performed on an AMD Ryzen 9 7950X CPU with virtual multithreading enabled and 128 GB of RAM operating at a clock rate of 4800 MHz. In addition to convergence rate testing, we performed comparative tests to characterize the best cost at each it-eration for each algorithm (cost-per-iteration). These trials were performed in the Random environment to highlight the discrepancy between each algorithm. The results of these trials are seen in Figure 4. These graphs show the median cost per iteration over 500 trials, each using 10 4 iterations. 
+
+Results. In the convergence rate trials, we find that while RRT ⋆ and RRT ⋆-Connect perform on-par with Many-RRT ⋆
+
+in simple environments such as Table and Wall , Many-RRT ⋆
+
+significantly outperforms in terms of median cost in complex environments such as Passage and Random .In the cost-per-iteration trials, we find not only that Many-RRT ⋆ consistently converges sooner than RRT ⋆-Connect or RRT ⋆, but also that it converges to a significantly lower cost than either baseline. 
+
+> 4Scaled to the advertised length of the arm
+
+VI. C ONCLUSION 
+
+In this paper we discuss challenges inherent when creating optimal trajectories for high DoF serial manipulators. We ad-dress these challenges and offer an asymptotically globally-optimal algorithm for planning in the configuration space of serial manipulators. Our key contribution is parallelizing bi-directional exploration to many valid inverse kinematics so-lutions to address the non-invertability of forward kinematics when planning in the configuration space. In practice, we find that the proposed approach offers more robust and optimal planning than previous iterations of the RRT algorithm when planning in the configuration space of high-DoF serial manipulators, and does so without significantly compromising on runtime. REFERENCES [1] L. Kavraki, P. Svestka, J.-C. Latombe, and M. Overmars, “Probabilistic roadmaps for path planning in high-dimensional configuration spaces,” 
+
+IEEE Transactions on Robotics and Automation , vol. 12, no. 4, pp. 566–580, 1996. [2] S. LaValle, “Rapidly-exploring random trees: A new tool for path planning,” Research Report 9811 , 1998. [3] S. Klemm, J. Oberländer, A. Hermann, A. Roennau, T. Schamm, J. M. Zollner, and R. Dillmann, “Rrt*-connect: Faster, asymptotically optimal motion planning,” in 2015 IEEE International Conference on Robotics and Biomimetics (ROBIO) , 2015, pp. 1670–1677. [4] S. Karaman and E. Frazzoli, “Sampling-based algorithms for optimal motion planning,” 2011. [Online]. Available: https://arxiv.org/abs/ 1105.1186 [5] J. D. Gammell, S. S. Srinivasa, and T. D. Barfoot, “Informed rrt*: Optimal sampling-based path planning focused via direct sampling of an admissible ellipsoidal heuristic,” in 2014 IEEE/RSJ international conference on intelligent robots and systems . IEEE, 2014, pp. 2997– 3004. [6] I. Noreen, A. Khan, and Z. Habib, “Optimal path planning using rrt* based approaches: A survey and future directions,” International Journal of Advanced Computer Science and Applications , vol. 7, no. 11, 2016. [7] G. P. Incremona, A. Ferrara, and L. Magni, “Mpc for robot manipula-tors with integral sliding modes generation,” IEEE/ASME Transactions on Mechatronics , vol. 22, no. 3, pp. 1299–1307, 2017. [8] T. Rybus, K. Seweryn, and J. Z. Sasiadek, “Control system for free-floating space manipulator based on nonlinear model predictive control (nmpc),” Journal of Intelligent & Robotic Systems , vol. 85, no. 3, pp. 491–509, 2017. [9] J. Carvalho, A. T. Le, A. Baier, D. Koert, and J. Peters, “Motion planning diffusion: Learning and planning of robot motions with diffusion models,” in 2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , 2023, pp. 1916–1923. [10] H. Huang, B. Sundaralingam, A. Mousavian, A. Murali, K. Goldberg, and D. Fox, “Diffusionseeder: Seeding motion optimization with diffusion for rapid motion planning,” arXiv preprint arXiv:2410.16727 ,2024. [11] T. Zhang, J. Wang, and M. Q.-H. Meng, “Generative adversarial net-work based heuristics for sampling-based path planning,” in IEEE/CAA Journal of Automatica Sinica , vol. 9, no. 1, 2022, pp. 64–74. [12] C. W. Warren, “Fast path planning using modified a* method,” in 
+
+[1993] Proceedings IEEE International Conference on Robotics and Automation . IEEE, 1993, pp. 662–667. [13] R. Duan, J. Mao, X. Mao, X. Shu, and L. Yin, “Breaking the sorting barrier for directed single-source shortest paths,” in Proceedings of the 57th Annual ACM Symposium on Theory of Computing , 2025, pp. 36–44. [14] H. Choset and P. Pignon, “Coverage path planning: The boustrophedon cellular decomposition,” in Field and service robotics . Springer, 1998, pp. 203–209. [15] J.-C. Latombe, “Exact cell decomposition,” in Robot motion planning .Springer, 1991, pp. 200–247. [16] J. A. Janet, R. C. Luo, and M. G. Kay, “The essential visibility graph: An approach to global motion planning for autonomous mobile robots,” in Proceedings of 1995 IEEE international conference on robotics and automation , vol. 2. IEEE, 1995, pp. 1958–1963. [17] K. Jiang, L. Seneviratne, and S. Earles, “Finding the 3d shortest path with visibility graph and minimum potential energy,” in Proceedings of 1993 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS’93) , vol. 1. IEEE, 1993, pp. 679–684. [18] Y. K. Hwang, N. Ahuja, et al. , “A potential field approach to path planning.” IEEE transactions on robotics and automation , vol. 8, no. 1, pp. 23–32, 1992. [19] M. Elbanhawi and M. Simic, “Sampling-based robot motion planning: A review,” Ieee access , vol. 2, pp. 56–77, 2014. [20] S. Lavalle and J. Kuffner, “Rapidly-exploring random trees: Progress and prospects,” Algorithmic and computational robotics: New direc-tions , 01 2000. [21] J. J. Kuffner and S. M. LaValle, “RRT-connect: An efficient approach to single-query path planning,” in Proceedings 2000 ICRA. Millennium Conference. IEEE International Conference on Robotics and Automa-tion , vol. 2. IEEE, 2000, pp. 995–1001. [22] C. H. Huang, P. Jadhav, B. Plancher, and Z. Kingston, “prrtc: Gpu-parallel rrt-connect for fast, consistent, and low-cost motion planning,” 
+
+arXiv preprint arXiv:2503.06757 , 2025. [23] M. Otte and N. Correll, “C-forest: Parallel shortest path planning with superlinear speedup,” IEEE Transactions on Robotics , vol. 29, no. 3, pp. 798–806, 2013. [24] A. Hidalgo-Paniagua, J. P. Bandera, M. Ruiz-de Quintanilla, and A. Bandera, “Quad-rrt: A real-time gpu-based global path planner in large-scale real environments,” Expert Systems with Applications ,vol. 99, pp. 141–154, 2018. [25] N. Pereira, A. F. Ribeiro, G. Lopes, and J. Lino, “Path planning towards non-compulsory multiple targets using twin-rrt,” Industrial Robot: An International Journal , vol. 43, no. 4, pp. 370–379, 2016. [26] R. Singh, V. Kukshal, and V. S. Yadav, “A review on forward and inverse kinematics of classical serial manipulators,” Advances in Engineering Design: Select Proceedings of ICOIED 2020 , pp. 417– 428, 2021. [27] A. Colomé and C. Torras, “Redundant inverse kinematics: Experimen-tal comparative review and two enhancements,” in 2012 IEEE/RSJ International Conference on Intelligent Robots and Systems . IEEE, 2012, pp. 5333–5340. [28] P. Beeson and B. Ames, “Trac-ik: An open-source library for improved solving of generic inverse kinematics,” in 2015 IEEE-RAS 15th Inter-national Conference on Humanoid Robots (Humanoids) . IEEE, 2015, pp. 928–935. [29] P. T. Boggs and J. W. Tolle, “Sequential quadratic programming,” Acta numerica , vol. 4, pp. 1–51, 1995. [30] R. Smits, “KDL: Kinematics and Dynamics Library,” http://www. orocos.org/kdl. [31] P. Ram and K. Sinha, “Revisiting kd-tree for nearest neighbor search,” in Proceedings of the 25th acm sigkdd international conference on knowledge discovery & data mining , 2019, pp. 1378–1388. [32] B. Sundaralingam, S. K. S. Hari, A. Fishman, C. Garrett, K. V. Wyk, V. Blukis, A. Millane, H. Oleynikova, A. Handa, F. Ramos, N. Ratliff, and D. Fox, “curobo: Parallelized collision-free minimum-jerk robot motion generation,” 2023. [Online]. Available: https://arxiv.org/abs/2310.17274

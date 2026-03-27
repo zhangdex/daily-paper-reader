@@ -1,0 +1,2248 @@
+Title: Distributed MPC For Coordinated Path-Following
+
+URL Source: https://arxiv.org/pdf/2603.24748v1
+
+Published Time: Fri, 27 Mar 2026 00:08:45 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+> 1
+
+# Distributed MPC For Coordinated Path-Following 
+
+Lusine Poghosyan ∗‡§ , Anna Manucharyan ‡, Mikayel Aramyan †, Naira Hovakimyan † and Tigran Bakaryan ∗‡§ §Yerevan State University, Armenia 
+
+> ‡
+
+Center For Scientific Innovation and Education, Armenia  
+
+> ∗
+
+Institute of Mathematics of National Academy of Sciences of Republic of Armenia, Armenia 
+
+> †
+
+Department of Mechanical Science & Engineering, University of Illinois Urbana-Champaign, USA 
+
+Abstract —In this paper, we consider a distributed model pre-dictive control (MPC) algorithm for coordinated path-following. Relying on the time-critical cooperative path-following frame-work, which decouples space and time and reduces the coor-dination problem to a one-dimensional setting, we formulate a distributed MPC scheme for time coordination. Leveraging properties of the normalized Laplacian, we decouple the MPC dynamics into independent modes and derive a recursive relation linking current and predicted states. Using this structure, we prove that, for prediction horizon K = 1 and a fixed connected communication network, the system is exponentially stable even in the presence of path-following errors. This provides a first result on the convergence analysis of discrete-time distributed MPC schemes within this framework. The proposed approach enables scalable and efficient real-time implementation with low communication overhead. More-over, in contrast to the time-critical cooperative path-following framework, the optimization-based structure relaxes the reliance on preplanning by allowing the incorporation of mission-specific requirements, such as vehicle limitations, collision avoidance, and conflict resolution. Simulation results demonstrate applicability to complex scenarios, highlighting agility and exponential con-vergence under communication failures. 
+
+Index Terms —Distributed MPC, Coordinated path-following, Convergence analysis, Exponential stability. 
+
+I. I NTRODUCTION 
+
+# Coordination of multiple unmanned vehicles and robots plays a key role in modern robotics applications, in-cluding cooperative mapping, inspection, surveillance, and search-and-rescue missions [1], [2]. In these missions, each vehicle must be carefully synchronized in time to achieve overall mission success. Ensuring such temporal coordination becomes particularly challenging when the vehicles operate under communication limitations, physical constraints, and uncertain environments, without reliable and efficient access to a central controller. To address these challenges, we consider a distributed MPC-based approach. The coordination problem investigated in this work relies on the well-known concept of time-critical cooperative path-following [3]–[6], which decouples space and time in the general problem formulation, see Section II. This separation allows the coordination challenge to be divided into three distinct subproblems: desired trajectory generation or mission planning, path-following (effective low-level controller) and 
+
+> The research is supported by the Higher Education and Science Committee of the MESCS RA under Research Project No. 24IRF-1A001 and in part by AFOSR grant #FA9550-21-1-0411 and NASA grant #80NSSC22M0070.
+
+mission execution (coordination). The advantage of this frame-work is that these subproblems can be addressed indepen-dently. The first, trajectory generation (see, e.g., [7], [8]), can be solved offline while accounting for vehicle dynamics. Path-following is an independent component implemented onboard each UAV (see, e.g., [9], [10]), which is typically very efficient and possesses desirable properties such as exponential conver-gence. Therefore, these two components do not affect real-time implementation and do not require significant computational resources; only the real-time operation of the final subprob-lem matters. The final subproblem, mission execution, is a one-dimensional coordination problem that does not involve vehicle dynamics and is therefore independent of the specific vehicle and can be solved efficiently. Given these advantages, we adopt this framework for multi-vehicle coordination, with particular focus on the coordination component, which we address using a distributed MPC approach. Although the framework is vehicle-independent, in this paper we focus on multirotor UAVs. The cooperative path-following problem has been exten-sively studied in the context of proportional–integral (PI) controllers, with applications to both marine vehicles [11] and UAVs [6]. The asymptotic stability of these methods has been established under various assumptions on the connectivity of the communication network [6], [12]. These approaches are efficient and applicable in real-world scenarios due to their low communication cost and computational efficiency. Nevertheless, they have a significant limitation: their strong reliance on preplanning restricts adaptability and reduces UAV autonomy, particularly when satisfying operational re-quirements or responding to time-varying mission objectives. To overcome these limitations, in [13], we reformulate the coordination problem within a game-theoretic framework (see Fig. 1). This approach offers greater generality and flexibility in accommodating operational constraints and dynamically evolving mission goals, while preserving the advantages of low communication and computational cost. In this paper, we investigate the numerical realization of this game-theoretic framework through a distributed MPC formulation. Note that existing stability analyses in the cooperative path-following framework (see, for example, [6] and references therein) are conducted in continuous time. To the best of our knowledge, this is the first work that directly studies the convergence properties of a discrete-time numerical method in this setting. As mentioned above, using the concept of virtual time (see Section II), we formulate the coordination problem as a 
+
+> arXiv:2603.24748v1 [math.DS] 25 Mar 2026 2
+
+one-dimensional distributed MPC (DMPC) problem (see Sec-tion III) with a strongly convex quadratic cost. To analyze the convergence of the DMPC scheme, we consider an auxiliary unconstrained MPC problem (see Section IV-A), where only the system dynamics are retained and constraints arising from vehicle limitations (such as velocity and acceleration bounds) are removed. This setting allows us to derive an explicit ex-pression for the MPC solution. Leveraging this representation, together with spectral properties of the normalized Laplacian, we show that, for prediction horizon K = 1 , the closed-loop dynamics decouple into independent modes. In particular, we establish an explicit relation between consecutive MPC steps via a 2 × 2 matrix that depends only on the Laplacian eigen-values (capturing the network connectivity) and the time step. Using this explicit recurrence relation and Gelfand’s formula, we prove that the associated matrix is a contraction under a fixed and connected communication network, which implies convergence of the unconstrained DMPC scheme, Theorem 1. Finally, we show that for sufficiently small time step h, there exists a domain such that, for all initial conditions in this domain, the unconstrained solution satisfies the constraints of the original DMPC problem, see Theorem 2. Consequently, the DMPC scheme is exponentially convergent, and the con-vergence rate is explicitly characterized. The analysis also accounts for disturbances arising from path-following errors. To the best of our knowledge, this is the first approach in the literature that proves exponential stability of a DMPC scheme through an explicit modal analysis, while also providing an explicit convergence rate. Existing convergence results have generally been established through Lyapunov- and invariance-based arguments, or through geometric properties of optimal trajectories; see, for example, Zhou and Li [14] and Ferrari-Trecate et al. [15]. The optimization-based formulation enables direct incor-poration of physical and mission-level constraints while pre-serving convergence guarantees, meaning the control inputs provided by our method are always feasible. In contrast, PI controller–based methods (see [6]) require problem-dependent parameter tuning, which becomes increasingly challenging as the number of vehicles and mission complexity grow. For a detailed comparison, see [13] (Version 2). Although the analysis assumes a fixed communication net-work, the proposed algorithm performs well under commu-nication failures. Environmental disturbances enter as path-following errors and do not affect convergence due to the strong convexity of the one-dimensional DMPC formulation. These properties are evident in the simulations of [13]. Here, we further validate the proposed method through simulations in RotorPy [16], an open-source simulator for mul-tirotor UAVs. We study the effect of the prediction horizon K
+
+and observe results consistent with our theoretical findings, in particular exponential stability for K = 1 , while also demon-strating real-time feasibility and scalability. In particular, the computational time remains nearly unchanged as the number of UAVs increases. The results show that K = 1 achieves the best computational performance, with an average update rate of approximately 100 Hz and an order-of-magnitude improvement over K = 5 and K = 10 (see Table I). However, 
+
+Fig. 1: Cooperative path-following control framework of multi-agent UAV systems. shorter horizons lead to slower coordination. In addition to this sensitivity analysis, we consider a chal-lenging scenario that further motivates the proposed game-theoretic approach. In this scenario, two modes are consid-ered: pure synchronization, and navigation through a narrow corridor that permits only single-UAV passage while avoiding inter-agent collisions. To address this problem, we consider two formulations: an offline ordering based on preplanning, and an autonomous game-based approach that determines the order during the mission (see Section V-B). In the presence of disturbances, preplanning-based methods may fail, as dis-turbances can alter the prescribed ordering. In contrast, the proposed approach yields efficient and adaptive coordination by incorporating operational objectives, ensuring collision-free passage of the group. This behavior is demonstrated in Section V-B. The proposed distributed MPC algorithm combines the scalability and low communication requirements of consensus-based methods with the predictive and constraint-handling capabilities of MPC, making it suitable for real-time imple-mentation in complex coordination missions. We establish exponential stability of the discrete-time scheme and provide an explicit convergence rate under a fixed connected commu-nication network and prediction horizon K = 1 . Simulation results demonstrate scalability and effectiveness in complex coordination scenarios. II. P RELIMINARIES 
+
+In this section, we review the time-critical cooperative path-following framework and formulate the coordination problem within this setting. In particular, we recall the notion of virtual time and the associated variables used throughout the paper. The cooperative path-following framework (see [6], [17]) comprises three main components: a trajectory-generation al-gorithm (see the light-blue block in Fig. 1) that produces a set of feasible and collision-free paths, a path-following controller (orange block in Fig. 1) that enables UAVs to follow assigned trajectories, and a time-coordination control algorithm (green block in Fig. 1) that allows UAVs to adjust their pace to maintain coordination with neighboring agents. Although the framework can be applied to heterogeneous multi-vehicle systems, in this paper we focus on multirotor UAVs. Section II-A introduces the notion of virtual time and discusses the constraints associated with trajectory generation. Section II-B defines the coordination objective in the virtual-time domain. 3
+
+Before introducing virtual time, we briefly review two key subproblems in cooperative path-following: mission planning and path-following. Mission planning is achieved through tra-jectory generation. For each UAV, trajectories can be designed using optimal-control formulations, waypoint-based schemes, or minimum-snap techniques commonly used in quadrotor mo-tion planning (see [7], [8], [18], [19]). Each UAV is equipped with a path-following controller (e.g., PID controllers [20], geometric controllers [9], and adaptive path-followers [10]) to ensure accurate tracking of its assigned trajectory. 
+
+A. Virtual Time 
+
+We introduce the notation and definitions required to for-mulate the coordination problem in the virtual-time domain. Consider a mission involving a group of N UAVs, where 
+
+N ∈ N. Each UAV i is assigned a desired trajectory generated during the mission planning stage. The desired trajectory is defined as xd,i : [0 , t ∗
+
+> d,i
+
+] → R3, where t∗ 
+
+> d,i
+
+denotes the desired completion time for UAV i. These trajectories satisfy the linear velocity and acceleration constraints given by: 
+
+0 ≤ vi 
+
+> min
+
+< v id, min ≤ ∥ ˙xd,i (t)∥ ≤ vid, max < v i
+
+> max
+
+,
+
+∥¨xd,i (t)∥ ≤ aid, max < a i
+
+> max
+
+, (1) where vi 
+
+> min
+
+and vi 
+
+> max
+
+are the UAV’s physical speed limits, and ai 
+
+> max
+
+is the maximum acceleration. The mission-specific bounds vid, min , v id, max , a id, max are chosen to ensure feasible and safe motion. Moreover, throughout the mission, a min-imum separation distance E is enforced for safety: 
+
+min 
+
+> i,j =1 ,...,N i̸=j
+
+∥xd,i (t) − xd,j (t)∥2 ≥ E2 > 0, for all t ≥ 0. (2) In this work, we focus on the simultaneous-arrival mission, as other time-critical mission specifications can be analyzed using similar arguments. Accordingly, a common nominal final time t∗ 
+
+> d
+
+∈ R+ is assigned to all UAVs; that is, 
+
+t∗ 
+
+> d,i
+
+= t∗
+
+> d
+
+, i = 1 , . . . , N. (3) This ensures synchronized arrival under ideal conditions. Virtual time is defined as a mapping γi : R+ → [0 , t ∗
+
+> d
+
+]
+
+(see [5], [6]), which encodes the progress of the ith UAV along its nominal mission timeline. By mapping real time to this shared timeline, γi acts as a coordination variable that regulates deviations in mission progress across the UAVs. The resulting time-parameterized trajectory xγ,i (t) = xd,i (γi(t)) 
+
+is then used as the reference input for the path-following controller, defining the overall structure of the method (see Fig. 1). We denote by γ0 
+
+> i
+
+:= γi(0) the initial virtual time of UAV 
+
+i, which represents its initial progress along the nominal mission timeline. For convenience, we assume γ0 
+
+> i
+
+≥ 0 for all i = 1 , . . . , N , corresponding to defining the mission start time as the instant when the last UAV begins execution. Other initialization choices can be handled similarly without affecting the formulation. The mission of UAV i is completed when its virtual time reaches the terminal value t∗ 
+
+> d
+
+at some time tif ; that is, γi(tif ) = 
+
+t∗
+
+> d
+
+.Note that ˙γi(t) > 1 corresponds to an accelerated pro-gression along the path, ˙γi(t) < 1 indicates a decelerated progression, and ˙γi(t) = 1 implies that the UAV follows the desired trajectory at the nominal pace. The physical constraints in (1) impose limits on the virtual time function: 
+
+> vi
+> min
+> vid, min
+
+≤ ˙γi, min ≤ ˙γi(t) ≤ ˙γi, max ≤ vi
+
+> max
+> vid, max
+
+, (4) 
+
+¨γi
+
+> max
+
+vid, max +   ˙γi
+
+> max
+
+2 aid, max ≤ ai
+
+> max
+
+, |¨γi(t)| ≤ ¨γi, max (5) For a detailed derivation, see [6] or [21]. 
+
+B. Time-Coordination 
+
+Depending on the mission specifications, the coordination problem in terms of virtual time can take different forms. In this work, we focus on the synchronization (simultaneous-arrival) case, for which we provide a theoretical analysis. Accordingly, we present only the formulation of the synchro-nization problem here. Other mission formulations, such as sequential arrival and competitive scenarios, are illustrated in the simulation section, see Section V. The goal is to achieve simultaneous arrival of all UAVs while preserving the desired speed profiles, without strictly enforcing the nominal arrival time t∗
+
+> d
+
+. This requirement is expressed as a coordination condition on the virtual time variables: 
+
+γi(t) − γj (t) = 0 , ∀ i, j ∈ { 1, 2, . . . , N }. (6) Additionally, each UAV should maintain its nominal progres-sion rate along the trajectory: 
+
+˙γi(t) = 1 , ∀ i ∈ { 1, 2, . . . , N }. (7) III. M AIN APPROACH 
+
+This section describes the MPC-based algorithm for dis-tributed time coordination of UAVs, originally introduced in [13]. The algorithm computes virtual-time trajectories that en-force the synchronization and pace-keeping objectives defined in (6) and (7). Recall that pace keeping requires 
+
+˙γi(t) → 1,
+
+while synchronization requires 
+
+γi(t) − γj (t) → 0.
+
+These objectives motivate describing the coordination dynam-ics in terms of the deviation variables 
+
+δi(t) = γi(t) − t, ˙δi(t) = ˙ γi(t) − 1, ¨δi(t) = ¨ γi(t),
+
+which represent, respectively, the deviation of the virtual time from its nominal evolution and the deviation of its rate from the desired unit value. In terms of these new variables, the time-coordination objectives are 
+
+˙δi(t) → 0, δi(t) − δj (t) → 0.
+
+As in standard DMPC formulations, at each discrete time instant tk = kh , UAV i computes a predicted deviation trajectory by solving a local finite-horizon optimal control 4
+
+problem. The optimization is carried out over a prediction horizon of length K and uses the decision variables 
+
+δki = ( δki, 0, . . . , δ ki,K )T , ˙δki = ( ˙δki, 0, . . . , ˙δki,K )T ,
+
+uki = ( uki, 0, . . . , u ki,K −1)T .
+
+The index τ = 0 corresponds to the current sampling instant 
+
+tk, whereas the indices τ = 1 , . . . , K correspond to predicted future values within the finite-horizon optimization problem. The coordination state is described by the deviation variables 
+
+δki, 0, ˙δki, 0, while uki, 0 denotes the control input computed at time tk. For τ > 0, δki,τ and ˙δki,τ denote the corresponding predicted deviation variables. Only the first input uki, 0 is applied to the system, while the remaining components are auxiliary prediction variables used to compute the optimal control action. The algorithm is initialized at time t0 = 0 , so the initial variables are 
+
+δ0 
+
+> i, 0
+
+= γ0 
+
+> i
+
+− t0 = γ0 
+
+> i
+
+, ˙δ0 
+
+> i, 0
+
+= ˙ γ0 
+
+> i
+
+− 1.
+
+At k = 0 , before any optimization is performed, the predicted deviation trajectory is initialized by propagating the initial state with zero input: 
+
+δ0  
+
+> i,τ +1
+
+= δ0 
+
+> i,τ
+
++ h ˙δ0 
+
+> i,τ
+
+, ˙δ0  
+
+> i,τ +1
+
+= ˙δ0 
+
+> i,τ
+
+, τ = 0 , . . . , K − 1.
+
+For k ≥ 1, the initial values δki, 0 and ˙δki, 0 are determined from the optimal prediction computed at the previous time step according to the MPC update rule. Using the bounds (4) and (5) on the virtual-time rate and acceleration, we define the admissible set associated with 
+
+zki = ( δki , ˙δki , uki )
+
+as 
+
+Aki =
+
+n
+
+zki : ˙δi, min ≤ ˙δki,τ ≤ ˙δi, max , τ = 0 , . . . , K, 
+
+|uki,τ | ≤ ¨γi, max , τ = 0 , . . . , K − 1
+
+o
+
+,
+
+(8) where 
+
+˙δi, min = ˙ γi, min − 1, ˙δi, max = ˙ γi, max − 1.
+
+The local finite-horizon optimization problem of UAV i at time tk is given by 
+
+min  
+
+> zki∈Aki
+
+Ji
+
+ zki , δk−1
+
+> −i
+
+
+
+subject to δki,τ +1 = δki,τ + h ˙δki,τ + h2
+
+2 uki,τ ,
+
+˙δki,τ +1 = ˙δki,τ + hu ki,τ ,δki, 0 = δk−1 
+
+> i, 1
+
+− αki ,
+
+˙δki, 0 = ˙δk−1 
+
+> i, 1
+
+,
+
+(9) for k = 1, 2, . . . and τ = 0, . . . , K − 1, where 
+
+δk−1 
+
+> −i
+
+:= δk−11 , . . . , δk−1 
+
+> i−1
+
+, δk−1 
+
+> i+1
+
+, . . . , δk−1
+
+> N
+
+ denotes the pre-dicted virtual-time deviation sequences received from the other UAVs. The constraints in (9) relate the prediction variables across the horizon, enforce the discrete-time double-integrator dy-namics in deviation coordinates, and implement the MPC shift together with the path-following correction. The cost function Ji is defined as follows: 
+
+Ji
+
+ zki , δk−1
+
+> −i
+
+ = (( F cm i
+
+ δki , δk−1
+
+> −i
+
+ , ∥ ˙δki ∥22, ∥uki ∥22), w) (10) with w = ( w1, w 2, w 3) and 
+
+F cm i
+
+ δki , δk−1
+
+> −i
+
+ = 1
+
+|N i,k |
+
+X
+
+> j∈N i,k
+
+∥δki − δk−1 
+
+> j
+
+∥22. (11) Here, Ni,k denotes the set of UAVs that communicate with UAV i at time tk. The first term of the cost function penalizes deviations between the predicted trajectory (solution) of UAV 
+
+i and the most recently received deviation trajectories of its neighbors, thereby promoting synchronization. The second term penalizes deviations from the desired unit pace, while the third term penalizes excessive control effort. The positive weights w1, w 2, w 3 determine the relative emphasis of each component. Path-following errors that arise in uncertain and dynamic environments are incorporated into the initial condition of the optimization problem enabling the UAV to decelerate to reduce forward overshoot or to accelerate in order to catch up with the reference trajectory. In particular, we introduce the correction term αki defined as 
+
+αki = αki (xi(tk)) = β (xγ,i (tk) − xi(tk)) T ˙xγ,i (tk)
+
+|| ˙xγ,i (tk)|| + δ , (12) where β, δ are positive parameters and xi(tk) represents i-th UAV position at time tk. αki is negative when the projection of the UAV’s actual position onto the desired trajectory lies ahead of the reference position xγi (tk) and positive otherwise. The parameter δ in the correction term αki is introduced to prevent division by zero; it can be set as a small positive constant. The parameter β regulates the influence of the path-following error on the coordination process. Increasing β accelerates time coordination but may cause constraint violations if chosen excessively large. The algorithm accounts for both time-varying communica-tion topology and path-following errors. Although the network topology may change from one time step to the next, it is assumed to remain fixed throughout each optimization interval. At each time step tk, each UAV solves the local problem in (9) using the most recent information δk−1 
+
+> −i
+
+received from its neighbors, and transmits the resulting virtual-time deviation sequence δki to the UAVs in Ni,k +1 at the next sampling instant tk+1 . This distributed MPC procedure, summarized in Algorithm 1 that together with the initialization at k = 0 ,generates a sequence {zki }∞
+
+> k=0
+
+.Under suitable assumptions on the communication network and the path-following error, the virtual-time deviations syn-chronize and the rate deviations converge to zero; that is, 
+
+(δki, 0 − δkj, 0) → 0, ˙δki, 0 → 0, as k → ∞ .
+
+In the next section, for the prediction horizon K = 1 , we prove the convergence. 5
+
+Algorithm 1 Distributed MPC for multi-agent time coordina-tion  
+
+> 1:
+
+Initialize: number of UAVs N , desired trajectories xd,i ,bounds ˙γi, min , ˙γi, max , ¨γi, max , initial conditions γ0 
+
+> i
+
+, ˙γ0 
+
+> i
+
+,prediction horizon K, final time T , sampling period h 
+
+> 2:
+
+Set δ0 
+
+> i, 0
+
+← γ0 
+
+> i
+
+, ˙δ0 
+
+> i, 0
+
+← ˙γ0 
+
+> i
+
+− 1, i = 1 , . . . , N  
+
+> 3:
+
+k ← 1 
+
+> 4:
+
+while tk = kh ≤ T do  
+
+> 5:
+
+for i = 1 to N do  
+
+> 6:
+
+Measure the actual position xi(tk) 
+
+> 7:
+
+Compute the path-following correction αki =
+
+αki (xi(tk))  
+
+> 8:
+
+Set the initial conditions for the local MPC prob-lem: 
+
+δki, 0 ← δk−1 
+
+> i, 1
+
+− αki , ˙δki, 0 ← ˙δk−1 
+
+> i, 1
+> 9:
+
+Solve the local optimization problem (9) using δki, 0,
+
+˙δki, 0, and δk−1 
+
+> −i
+
+, obtaining δki , ˙δki , uki 
+
+> 10:
+
+Transmit δki to the UAVs in Ni,k +1  
+
+> 11:
+
+end for  
+
+> 12:
+
+k ← k + 1  
+
+> 13:
+
+end while 
+
+IV. C ONVERGENCE PROOF 
+
+In this section, we establish convergence of the proposed DMPC scheme under a fixed communication topology with an undirected and connected communication graph, and for prediction horizon K = 1 .We first analyze an unconstrained DMPC problem, obtained by removing from the admissible set Aki the bounds on ˙δ and the control input u. For this simplified problem, we prove convergence of the resulting scheme. We then show that, for sufficiently small time step h and for a suitable class of initial conditions, the solution of the unconstrained problem satisfies the constraints of the original DMPC formulation at every step. Consequently, for such initial conditions, the convergence result extends to the constrained problem. Now, we state the assumptions used in the convergence analysis.The assumptions on the communication network are summarized as follows. 
+
+Assumption 1: The communication topology is fixed, i.e., 
+
+Ni,k = Ni, i = 1 , . . . , N, k ≥ 0,
+
+and the associated communication graph is undirected and connected. In addition, we assume that each UAV is equipped with an asymptotically stable path-following controller. 
+
+Assumption 2: The path-following correction satisfies 
+
+|αki | ≤ de −νt k = de −νkh , i = 1 , . . . , N, k ≥ 0,
+
+for some constants d > 0 and ν > 0.
+
+A. Unconstrained Case 
+
+In this subsection, we study the corresponding uncon-strained DMPC problem. This setting admits an explicit ex-pression for the solution. Using this representation, we derive a recurrence relation between consecutive MPC solutions and analyze the resulting closed-loop dynamics to establish convergence. Before stating the main result, we introduce auxiliary vari-ables based on the explicit solution of the unconstrained problem and on the spectral properties of the Laplacian and degree matrices. This transformation decouples the system into independent modes and leads to a recurrence relation for each mode governed by a 2 × 2 matrix. Since the prediction horizon is K = 1 , the index τ in (9) takes only the value 0. Therefore, at each sampling instant tk,UAV i solves the following minimization problem: 
+
+Problem 1: 
+
+min 
+
+> zki
+
+Ji
+
+ zki , δk−1
+
+> −i
+
+
+
+subject to δki, 1 = δki, 0 + h ˙δki, 0 + h2
+
+2 uki, 0,
+
+˙δki, 1 = ˙δki, 0 + hu ki, 0,δki, 0 = δk−1 
+
+> i, 1
+
+− αki ,
+
+˙δki, 0 = ˙δk−1 
+
+> i, 1
+
+.
+
+By substituting the one-step prediction dynamics into the cost function, Problem 1 reduces, up to additive constants independent of uki, 0, to the minimization of the quadratic function 
+
+¯Ji(uki, 0) = w2( ˙δk−1 
+
+> i, 1
+
++ hu ki, 0)2 + w3(uki, 0)2
+
++ w1
+
+> |N i|
+
+X
+
+> j∈N i
+
+(δk−1 
+
+> i, 1
+
++ h ˙δk−1 
+
+> i, 1
+
+− αki + h2 
+
+> 2
+
+uki, 0 − δk−1 
+
+> j, 1
+
+)2. (13) Since w1, w 2, w 3 > 0, the coefficient of (uki, 0)2 is strictly positive, and therefore ¯Ji is strictly convex. The unique minimizer of the quadratic function ¯Ji on R is given by 
+
+uki, 0 = −ah 1
+
+> |N i|
+
+X
+
+> j∈N i
+
+(δk−1 
+
+> i, 1
+
+− δk−1 
+
+> j, 1
+
+) − bh ˙δk−1 
+
+> i, 1
+
++ ah αki , (14) where 
+
+ah = w1h2   
+
+> 2( w3+w2h2+w1h44)
+
+, bh = w2h+w1 h32 
+
+> w3+w2h2+w1h44
+
+.
+
+Let L be the Laplacian matrix of the fixed communication graph and let 
+
+D = diag( |N 1|, . . . , |N N |)
+
+be the corresponding degree matrix. Since the graph is con-nected, D is invertible. Then the control law in (14) can be written compactly as 
+
+U k = −ahD−1L ∆k−1 − bh ˙∆k−1 + ahαk, (15) where 
+
+U k := [ uk
+
+> 1,0
+
+, . . . , u kN, 0]T , ∆k := [ δk
+
+> 1,1
+
+, . . . , δ kN, 1]T ,
+
+˙∆k := [ ˙δk
+
+> 1,1
+
+, . . . , ˙δkN, 1]T , αk := [ αk 
+
+> 1
+
+, . . . , α kN ]T . (16) The discrete-time state update for the network is 
+
+
+
+∆k = ∆k−1 − αk + h ˙∆k−1 + h2
+
+2 U k,
+
+˙∆k = ˙∆k−1 + hU k.
+
+(17) 6
+
+Substituting (15) into (17) yields the closed-loop affine system 
+
+"∆k
+
+˙∆k
+
+#
+
+= A
+
+"∆k−1
+
+˙∆k−1
+
+#
+
++
+
+"( h2 
+
+> 2
+
+ah − 1) αk
+
+ahh αk
+
+#
+
+, (18) where A ∈ R2N ×2N is given by 
+
+A =
+
+I − ahh2
+
+2 D−1L
+
+
+
+h − bhh2
+
+2
+
+
+
+I
+
+−ahhD −1L  1 − bhh I
+
+ . (19) Since the communication graph is undirected, the Laplacian matrix L is symmetric. Therefore, the normalized Laplacian 
+
+L = D−1/2LD −1/2
+
+is also symmetric. Although the random-walk normalized Laplacian D−1L is generally not symmetric, it is similar to 
+
+L, since 
+
+D−1L = D−1/2 L D1/2.
+
+Hence D−1L is diagonalizable and has the same eigenvalues as L. Since L is symmetric and positive semidefinite, all eigenvalues of D−1L are real and nonnegative. Moreover, for an undirected, connected graph, these eigenvalues satisfy 
+
+0 = λ1 < λ 2 ≤ · · · ≤ λN ≤ 2
+
+(see, e.g., [22]). Therefore, 
+
+D−1L = V ΛV −1,
+
+where Λ = diag( λ1, . . . , λ N ), and the columns of V are eigen-vectors of D−1L. The eigenvector corresponding to λ1 = 0 is the constant vector 
+
+1 = [1 , . . . , 1] T .
+
+Since D−1L = V ΛV −1, we introduce the transformed variables 
+
+¯∆k = V −1∆k, ˙¯∆k = V −1 ˙∆k, ¯αk = V −1αk. (20) Here, ∆k, ˙∆k, αk ∈ RN , and V ∈ RN ×N is the matrix of eigenvectors of D−1L.Under this change of coordinates, the Laplacian term be-comes diagonal. More precisely, applying the block-diagonal transformation 
+
+diag( V −1, V −1)
+
+to (18) and using 
+
+∆k = V ¯∆k, ˙∆k = V ˙¯∆k, D−1L = V ΛV −1,
+
+the closed-loop system (18) becomes 
+
+" ¯∆k
+
+˙¯∆k
+
+#
+
+= Qh
+
+" ¯∆k−1
+
+˙¯∆k−1
+
+#
+
++
+
+"( h2 
+
+> 2
+
+ah − 1) ¯ αk
+
+ahh ¯αk
+
+#
+
+, k ≥ 1, (21) where 
+
+Qh := 
+
+I − ahh2
+
+2 Λ
+
+
+
+h − bhh2
+
+2
+
+
+
+I
+
+−ahhΛ (1 − bhh)I
+
+ ∈ R2N ×2N .
+
+Iterating (21), we obtain 
+
+" ¯∆k
+
+˙¯∆k
+
+#
+
+=  Qhk
+
+" ¯∆0
+
+˙¯∆0
+
+#
+
++
+
+" ¯vk
+
+¯wk
+
+#
+
+, (22) where " ¯vk
+
+¯wk
+
+#
+
+=
+
+> k
+
+X
+
+> s=1
+
+ Qhk−s
+
+"( h2 
+
+> 2
+
+ah − 1) ¯ αs
+
+ahh ¯αs
+
+#
+
+. (23) In the eigenvector coordinates of D−1L, the transformed system decouples into N independent 2×2 subsystems. Hence, for each i = 1 , . . . , N , the pair 
+
+(¯δki, 1, ˙¯δki, 1)
+
+evolves according to a decoupled 2 × 2 subsystem associated with the eigenvalue λi. More precisely, (22) yields 
+
+"¯δki, 1
+
+˙¯δki, 1
+
+#
+
+= ( Qhi )k
+
+"¯δ0
+
+> i, 1
+
+˙¯δ0
+
+> i, 1
+
+#
+
++
+
+" ¯vki
+
+¯wki
+
+#
+
+, (24) where 
+
+Qhi =
+
+1 − h2
+
+2 ahλi h − h2
+
+2 bh
+
+−ha hλi 1 − hb h
+
+ , Bh := 
+
+
+
+ahh2
+
+2 − 1
+
+ahh
+
+ ,
+
+and ¯vk = [¯ vk 
+
+> 1
+
+, . . . , ¯vkN ]T , ¯wk = [ ¯ wk 
+
+> 1
+
+, . . . , ¯wkN ]T are defined componentwise by 
+
+" ¯vki
+
+¯wki
+
+#
+
+=
+
+> k
+
+X
+
+> s=1
+
+(Qhi )k−s Bh ¯αsi , k = 1 , 2, . . . . (25) Having obtained the recurrence relation in (24), we analyze the matrices defining these relations. The following result shows that, for sufficiently small time step h, the spectral radius of the matrices associated with the positive eigenvalues of D−1L (i.e., for i = 2 , . . . , N ) is strictly less than 1.
+
+Lemma 1: For every eigenvalue λi > 0 of D−1L, there exists hi > 0 such that, for all h ∈ (0 , h i),
+
+ρ(Qhi ) < 1,
+
+where ρ(Qhi ) denotes the spectral radius of Qhi .
+
+Proof. Since Qhi ∈ R2×2, its eigenvalues can be computed explicitly as the roots of the characteristic polynomial 
+
+μ2 − tr( Qhi )μ + det( Qhi ) = 0 .
+
+By use the exact dependence of eigenvalues on the time step 
+
+h, we obtain the result. So, the eigenvalues are 
+
+μ±(h) = 12
+
+
+
+tr( Qhi ) ±
+
+q
+
+tr( Qhi )2 − 4 det( Qhi )
+
+
+
+.
+
+Moreover, 
+
+tr( Qhi ) = 2 − hb h − h2
+
+2 ahλi,
+
+and 
+
+det( Qhi ) = 1 − hb h + h2
+
+2 ahλi = w3 + w1h4 
+
+> 4
+
+(λi − 1) 
+
+w3 + w2h2 + w1h4
+
+> 4
+
+. (26) 7
+
+Also, 
+
+tr( Qhi )2 − 4 det( Qhi ) = 
+
+
+
+hb h + h2
+
+2 ahλi
+
+2
+
+− 4h2ahλi. (27) There are two possible cases for the eigenvalues of Qhi ∈
+
+R2×2. If 
+
+tr( Qhi )2 − 4 det( Qhi ) < 0,
+
+then the eigenvalues of Qhi form a complex-conjugate pair 
+
+μ, ¯μ. Hence, by Vieta’s theorem 
+
+ρ(Qhi )2 = |μ|2 = μ¯μ = det( Qhi ).
+
+Since λi ∈ (0 , 2] , we have λi − 1 ≤ 1, and thus by (26), 
+
+det( Qhi ) ≤ w3 + w1h4
+
+> 4
+
+w3 + w2h2 + w1h4
+
+> 4
+
+< 1.
+
+Since the eigenvalues form a complex-conjugate pair, one has 
+
+det( Qhi ) = |μ|2 > 0.
+
+Therefore, from det( Qhi ) < 1, it follows that 
+
+ρ(Qhi ) = |μ| =
+
+q
+
+det( Qhi ) < 1.
+
+In the second case, 
+
+tr( Qhi )2 − 4 det( Qhi ) ≥ 0, (28) then the eigenvalues of Qhi are real. Since Qhi → I as h →
+
+0, both real eigenvalues converge to 1. Hence, for h > 0
+
+sufficiently small, both eigenvalues are positive, and therefore the spectral radius coincides with the larger eigenvalue: 
+
+ρ(Qhi ) = 12
+
+
+
+tr( Qhi ) + 
+
+q
+
+tr( Qhi )2 − 4 det( Qhi )
+
+
+
+.
+
+Using (27), we obtain 
+
+ρ(Qhi ) = 1 − 12 ηh 1 −
+
+s
+
+1 − 4h2ahλi
+
+η2
+
+> h
+
+!
+
+,
+
+where 
+
+ηh := hb h + h2
+
+2 ahλi.
+
+Since ah > 0, bh > 0, and λi > 0, we have ηh > 0. Moreover, by (28), we get 
+
+0 < 4h2ahλi
+
+η2
+
+> h
+
+≤ 1,
+
+which implies 
+
+1 −
+
+s
+
+1 − 4h2ahλi
+
+η2
+
+> h
+
+> 0.
+
+Therefore, ρ(Qhi ) < 1. □
+
+Theorem 1: Suppose that Assumptions 1–2 hold. Then, for sufficiently small h > 0, there exist 
+
+rh ∈ (0 , 1) , M h 
+
+> 0
+
+> 0, ˙M h 
+
+> 0
+
+> 0,
+
+such that, for all k ≥ 1,
+
+|δki, 0 − δkj, 0| ≤ M h 
+
+> 0
+
+rkh, | ˙δki, 0| ≤ ˙M h 
+
+> 0
+
+rkh, i, j = 1 , . . . , N. (29) In particular, 
+
+δki, 0 − δkj, 0 → 0, ˙δki, 0 → 0, as k → ∞ .
+
+Proof. We first establish convergence results for the auxiliary variables defined in (20). In particular, we distinguish two cases based on the spectrum of D−1L: strictly positive eigen-values and the zero eigenvalue. For the first case, Lemma 1 implies exponential convergence of the corresponding vari-ables to zero. For the second case, we show convergence to a constant. Combining these results and mapping them back to the original variables concludes the proof. Since the communication graph is undirected and connected, the eigenvalues of D−1L satisfy 
+
+0 = λ1 < λ 2 ≤ · · · ≤ λN ≤ 2.
+
+Hence, for i = 2 , . . . , N , one has λi > 0, and Lemma 1 implies that, for sufficiently small h > 0,
+
+ρ(Qhi ) < 1, i = 2 , . . . , N. 
+
+Fix such an h > 0, and choose rh ∈ (0 , 1) such that 
+
+ρ(Qhi ) < r h < 1, i = 2 , . . . , N, r h > e −νh , r h > 1 − hb h.
+
+By Gelfand’s formula, 
+
+lim  
+
+> k→∞
+
+∥(Qhi )k∥1/k  
+
+> ∞
+
+= ρ(Qhi ) < r h, i = 2 , . . . , N. 
+
+Therefore, for each i = 2, . . . , N , there exists a constant 
+
+Chi, ∞ > 0 such that 
+
+∥(Qhi )k∥∞ ≤ Chi, ∞ rkh, ∀k ∈ N.
+
+Since the set {2, . . . , N } is finite, defining 
+
+Ch 
+
+> ∞
+
+:= max  
+
+> i=2 ,...,N
+
+Chi, ∞,
+
+we obtain 
+
+∥(Qhi )k∥∞ ≤ Ch 
+
+> ∞
+
+rkh, ∀k ∈ N, i = 2 , . . . , N. 
+
+For i = 2 , . . . , N , relation (24) gives 
+
+"¯δki, 1
+
+˙¯δki, 1
+
+#
+
+= ( Qhi )k
+
+"¯δ0
+
+> i, 1
+
+˙¯δ0
+
+> i, 1
+
+#
+
++
+
+" ¯vki
+
+¯wki
+
+#
+
+.
+
+Using the bound above, (25), submultiplicativity of induced norms, we obtain 
+
+"¯δki, 1
+
+˙¯δki, 1
+
+#
+
+> ∞
+
+≤ Ch
+
+> ∞
+
+rkh
+
+"¯δ0
+
+> i, 1
+
+˙¯δ0
+
+> i, 1
+
+#
+
+> ∞
+
++ Ch
+
+> ∞
+
+∥Bh∥∞
+
+> k
+
+X
+
+> s=1
+
+rk−sh |¯αsi |.
+
+Moreover, by Assumption 2 for i = 1 , . . . , N ,
+
+|¯αsi | ≤ ∥ ¯αs∥∞ ≤ ∥ V −1∥∞∥αs∥∞ ≤ ∥ V −1∥∞d e −νsh .
+
+Therefore, 
+
+"¯δki, 1
+
+˙¯δki, 1
+
+#
+
+> ∞
+
+≤ Ch
+
+> ∞
+
+rkh∥V −1∥∞ max {∥ ∆0∥∞, ∥ ˙∆0∥∞}
+
++ Ch
+
+> ∞
+
+∥Bh∥∞∥V −1∥∞d
+
+> k
+
+X
+
+> s=1
+
+rk−sh e−νsh .8
+
+Since rh > e −νh ,
+
+> k
+
+X
+
+> s=1
+
+rk−sh e−νsh = rkhkX
+
+> s=1
+
+ e−νh 
+
+rh
+
+s
+
+≤ rkh
+
+e−νh 
+
+rh − e−νh .
+
+Hence, for all i = 2 , . . . , N and all k ≥ 0,
+
+"¯δki, 1
+
+˙¯δki, 1
+
+#
+
+> ∞
+
+≤ Ah 
+
+> 1
+
+max {∥ ∆0∥∞, ∥ ˙∆0∥∞} rkh +Ah 
+
+> 2
+
+d r kh, (30) where 
+
+Ah 
+
+> 1
+
+:= Ch
+
+> ∞
+
+∥V −1∥∞, A h 
+
+> 2
+
+:= Ch
+
+> ∞
+
+∥Bh∥∞∥V −1∥∞
+
+e−νh 
+
+rh − e−νh .
+
+We now consider the case i = 1 , corresponding to λ1 = 0 .In this case, 
+
+Qh 
+
+> 1
+
+=
+
+1 h − h2
+
+2 bh
+
+0 1 − hb h
+
+ ,
+
+so Qh 
+
+> 1
+
+∈ R2×2 has two distinct eigenvalues 
+
+μ1 = 1 , μ2 = q := 1 − hb h, 0 < q < 1.
+
+Its characteristic polynomial is 
+
+χ(x) = ( x − 1)( x − q).
+
+By the Cayley–Hamilton theorem, 
+
+(Qh 
+
+> 1
+
+)2 − (1 + q)Qh 
+
+> 1
+
++ qI = 0 .
+
+Hence, for every k ∈ N, (Qh 
+
+> 1
+
+)k can be written in the form 
+
+(Qh 
+
+> 1
+
+)k = ckQh 
+
+> 1
+
++ dkI. 
+
+Imposing this identity at the eigenvalues 1 and q gives 
+
+ck + dk = 1 , ckq + dk = qk,
+
+and therefore 
+
+(Qh 
+
+> 1
+
+)k = 11 − q (Qh 
+
+> 1
+
+− qI ) + qk
+
+1 − q (I − Qh 
+
+> 1
+
+).
+
+Setting 
+
+P := 11 − q (Qh 
+
+> 1
+
+− qI ), F := 11 − q (I − Qh 
+
+> 1
+
+),
+
+we have 
+
+(Qh 
+
+> 1
+
+)k = P + qkF. (31) Because 0 < q < 1, we deduce that 
+
+lim 
+
+> k→∞
+
+(Qh 
+
+> 1
+
+)k = P. 
+
+Since the second row of P is zero, (31) implies 
+
+"
+
+(Qh 
+
+> 1
+
+)k
+
+"¯δ01,1
+
+˙¯δ01,1
+
+## 
+
+> 2
+
+≤ qk∥F ∥∞
+
+"¯δ01,1
+
+˙¯δ01,1
+
+#
+
+> ∞
+
+≤ rkh∥F ∥∞∥V −1∥∞ max {∥ ∆0∥∞, ∥ ˙∆0∥∞}.
+
+Also, substituting (31) into (25), we obtain 
+
+" ¯vk
+
+> 1
+
+¯wk
+
+> 1
+
+#
+
+= P B hkX
+
+> s=1
+
+¯αs 
+
+> 1
+
++ F B hkX
+
+> s=1
+
+qk−s ¯αs
+
+> 1
+
+.
+
+The first term converges as k → ∞ , since P∞ 
+
+> s=1
+
+¯αs 
+
+> 1
+
+converges absolutely, while the second component of the first term is identically zero. Moreover, 
+
+> k
+
+X
+
+> s=1
+
+qk−s|¯αs
+
+> 1
+
+| ≤ ∥ V −1∥∞d
+
+> k
+
+X
+
+> s=1
+
+qk−se−νsh ≤ Chq rkh
+
+for some constant Chq > 0, because q < r h and e−νh < r h.Therefore, there exists fM h > 0 such that 
+
+| ˙¯δk
+
+> 1,1
+
+| ≤ fM hrkh.
+
+Returning to the original coordinates, since 
+
+˙∆k = V ˙¯∆k,
+
+we obtain 
+
+| ˙δki, 1| ≤ ∥ V ∥∞ max  
+
+> s=1 ,...,N
+
+| ˙¯δks, 1|, i = 1 , . . . , N. 
+
+Using (30) for s = 2 , . . . , N and the previous estimate for 
+
+s = 1 , we conclude that there exists ˙M h > 0 such that 
+
+| ˙δki, 1| ≤ ˙M hrkh, i = 1 , . . . , N. (32) Next, since ¯δk 
+
+> 1,1
+
+is common to all agents in the reconstruc-tion of ∆k, and the first column of V is 1 = [1 , . . . , 1] T , we have 
+
+δki, 1 − δkj, 1 =
+
+> N
+
+X
+
+> s=2
+
+(vi,s − vj,s ) ¯δks, 1, i, j = 1 , . . . , N. 
+
+Hence, by (30), 
+
+|δki, 1 − δkj, 1| ≤ 
+
+> N
+
+X
+
+> s=2
+
+|vi,s − vj,s | | ¯δks, 1|≤ 2∥V ∥∞ max  
+
+> s=2 ,...,N
+
+|¯δks, 1|≤ M h 
+
+> 1
+
+rkh, i, j = 1 , . . . , N, 
+
+for some constant M h 
+
+> 1
+
+> 0.Finally, using the shift conditions 
+
+δki, 0 = δk−1 
+
+> i, 1
+
+− αki , ˙δki, 0 = ˙δk−1 
+
+> i, 1
+
+, k ≥ 1,
+
+we obtain 
+
+| ˙δki, 0| = | ˙δk−1 
+
+> i, 1
+
+| ≤ ˙M hrk−1 
+
+> h
+
+= ˙M h
+
+rh
+
+rkh, i = 1 , . . . , N, 
+
+and 
+
+|δki, 0 − δkj, 0| ≤ | δk−1 
+
+> i, 1
+
+− δk−1 
+
+> j, 1
+
+| + |αki | + |αkj |≤ M h 
+
+> 1
+
+rk−1 
+
+> h
+
++ 2 d e −νhk 
+
+≤
+
+ M h
+
+> 1
+
+rh
+
++ 2 d
+
+
+
+rkh, i, j = 1 , . . . , N, 
+
+since e−νh < r h. Therefore, the claim follows with 
+
+˙M h 
+
+> 0
+
+:= ˙M h
+
+rh
+
+, M h 
+
+> 0
+
+:= M h
+
+> 1
+
+rh
+
++ 2 d. 
+
+This completes the proof. □
+
+Lemma 2: Suppose that Assumptions 1–2 hold. Then, for sufficiently small h > 0, there exist constants 
+
+Sh 
+
+> 1
+
+> 0, Sh 
+
+> 2
+
+> 0,9
+
+such that, for every i, j = 1 , . . . , N and every ℓ ≥ 1,
+
+|δℓi, 1 − δℓj, 1| ≤ Sh 
+
+> 1
+
+max {∥ ∆0∥∞, ∥ ˙∆0∥∞} + Sh 
+
+> 2
+
+d. 
+
+Proof. Under Assumptions 1–2, for sufficiently small h > 0,the proof of Theorem 1 shows that there exist rh ∈ (0 , 1) ,
+
+Ah 
+
+> 1
+
+> 0, and Ah 
+
+> 2
+
+> 0 such that for s = 2 , . . . , N ,
+
+"¯δℓs, 1
+
+˙¯δℓs, 1
+
+#
+
+> ∞
+
+≤ Ah 
+
+> 1
+
+max {∥ ∆0∥∞, ∥ ˙∆0∥∞}rℓh + Ah 
+
+> 2
+
+d r ℓh,
+
+for every ℓ ≥ 1; see (30). In particular, 
+
+|¯δℓs, 1| ≤ Ah 
+
+> 1
+
+max {∥ ∆0∥∞, ∥ ˙∆0∥∞} + Ah 
+
+> 2
+
+d, s = 2 , . . . , N. 
+
+Using the reconstruction formula 
+
+δℓi, 1 − δℓj, 1 =
+
+> N
+
+X
+
+> s=2
+
+(vi,s − vj,s ) ¯δℓs, 1,
+
+and arguing exactly as in the proof of Theorem 1, we obtain 
+
+|δℓi, 1 − δℓj, 1| ≤ 2∥V ∥∞ max  
+
+> s=2 ,...,N
+
+|¯δℓs, 1|≤ 2∥V ∥∞Ah 
+
+> 1
+
+max {∥ ∆0∥∞, ∥ ˙∆0∥∞} + 2 ∥V ∥∞Ah 
+
+> 2
+
+d. 
+
+Therefore the claim holds with 
+
+Sh 
+
+> 1
+
+:= 2 ∥V ∥∞Ah 
+
+> 1
+
+, Sh 
+
+> 2
+
+:= 2 ∥V ∥∞Ah 
+
+> 2
+
+.
+
+□
+
+B. Original Problem 
+
+e now return to the original constrained problem. 
+
+Problem 2: At each sampling instant tk, each UAV i solves the following minimization problem: 
+
+min  
+
+> zki∈Aki
+
+Ji
+
+ zki , δk−1
+
+> −i
+
+
+
+subject to δki, 1 = δki, 0 + h ˙δki, 0 + h2
+
+2 uki, 0,
+
+˙δki, 1 = ˙δki, 0 + hu ki, 0,δki, 0 = δk−1 
+
+> i, 1
+
+− αki ,
+
+˙δki, 0 = ˙δk−1 
+
+> i, 1
+
+,
+
+for k = 1 , 2, . . . .We next show that, under suitable smallness assumptions, the minimizer of the unconstrained problem satisfies the constraints of Problem 2 at every step. Consequently, along the resulting trajectory, the constrained and unconstrained problems coincide. 
+
+Theorem 2: Suppose that Assumptions 1–2 hold, and as-sume that the initial predicted rates satisfy 
+
+˙δi, min ≤ ˙δ0 
+
+> i, 1
+
+≤ ˙δi, max , i = 1 , . . . , N. 
+
+Then, for sufficiently small h > 0, there exist constants νh > 0
+
+and dh > 0 such that, if 
+
+max {∥ ∆0∥∞, ∥ ˙∆0∥∞} < ν h, 0 < d < d h,
+
+then, for all i = 1 , . . . , N and all k ≥ 1,
+
+˙δi, min ≤ ˙δki, 1 ≤ ˙δi, max , |uki, 0| ≤ ¨γi, max ,
+
+and the estimates in (29) hold. 
+
+Proof. For each i = 1 , . . . , N , let 
+
+˙¯δi := max {| ˙δi, min |, ˙δi, max }.
+
+Also define 
+
+ηk−1 
+
+> i
+
+:= ah
+
+|N i|
+
+X
+
+> j∈N i
+
+δk−1 
+
+> i, 1
+
+− δk−1 
+
+> j, 1
+
+.
+
+We first derive sufficient conditions for the control and rate constraints. From (14) and the triangle inequality, 
+
+|uki, 0| ≤ ηk−1 
+
+> i
+
++ bh| ˙δk−1 
+
+> i, 1
+
+| + ah|αki |.
+
+Hence, if 
+
+˙δi, min ≤ ˙δk−1 
+
+> i, 1
+
+≤ ˙δi, max , |αki | ≤ d, 
+
+then 
+
+|uki, 0| ≤ ηk−1 
+
+> i
+
++ bh ¯˙δi + ahd. 
+
+Therefore, a sufficient condition for 
+
+|uki, 0| ≤ ¨γi, max 
+
+is 
+
+ηk−1 
+
+> i
+
+≤ ¨γi, max − bh ¯˙δi − ahd. (33) Next, using (14), we write 
+
+˙δki, 1 = ˙δk−1 
+
+> i, 1
+
++ h u ki, 0 = (1 − hb h) ˙δk−1 
+
+> i, 1
+
++ h ξ k−1 
+
+> i
+
+,
+
+where 
+
+ξk−1 
+
+> i
+
+:= − ah
+
+|N i|
+
+X
+
+> j∈N i
+
+ δk−1 
+
+> i, 1
+
+− δk−1
+
+> j, 1
+
+ + ahαki .
+
+Assume that 0 < hb h < 1 and 
+
+˙δi, min ≤ ˙δk−1 
+
+> i, 1
+
+≤ ˙δi, max .
+
+Then a sufficient condition for 
+
+˙δi, min ≤ ˙δki, 1 ≤ ˙δi, max 
+
+is 
+
+bh ˙δi, min ≤ ξk−1 
+
+> i
+
+≤ bh ˙δi, max .
+
+Moreover, if |αki | ≤ d, then 
+
+|ξk−1 
+
+> i
+
+| ≤ ηk−1 
+
+> i
+
++ ahd. 
+
+Therefore, a sufficient condition for the previous double in-equality is 
+
+ηk−1 
+
+> i
+
+≤ bh min { ˙δi, max , − ˙δi, min } − ahd. (34) We now use Lemma 2. For every i = 1 , . . . , N and every 
+
+k ≥ 1,
+
+ηk−1 
+
+> i
+
+≤ ah max 
+
+> j∈N i
+
+δk−1 
+
+> i, 1
+
+− δk−1
+
+> j, 1
+
+and therefore 
+
+ηk−1 
+
+> i
+
+≤ ah
+
+Sh 
+
+> 1
+
+max {∥ ∆0∥∞, ∥ ˙∆0∥∞} + Sh 
+
+> 2
+
+d
+
+
+
+.
+
+Since ah = O(h2) and bh = O(h), for sufficiently small h > 0
+
+one has 0 < hb h < 1, and the quantities 
+
+¨γi, max − bh ¯˙δi − ahd, bh min { ˙δi, max , − ˙δi, min } − ahd, 10 
+
+are positive. Hence there exist νh > 0 and dh > 0 such that, whenever 
+
+max {∥ ∆0∥∞, ∥ ˙∆0∥∞} < ν h, 0 < d < d h,
+
+both sufficient conditions (33) and (34) hold for all i =1, . . . , N and all k ≥ 1.Since 
+
+˙δi, min ≤ ˙δ0 
+
+> i, 1
+
+≤ ˙δi, max , i = 1 , . . . , N, 
+
+it follows by induction that 
+
+˙δi, min ≤ ˙δki, 1 ≤ ˙δi, max , i = 1 , . . . , N, k ≥ 1,
+
+and simultaneously 
+
+|uki, 0| ≤ ¨γi, max , i = 1 , . . . , N, k ≥ 1.
+
+This completes the proof. □
+
+V. S IMULATIONS 
+
+We evaluate the proposed framework through a series of high-fidelity simulations, focusing on scalability, computa-tional efficiency, practical implementation of the method, and validation of the theoretical results. We consider multiple simulation scenarios. First, we perform a sensitivity (see Section V-A) analysis with respect to the MPC prediction horizon K for varying numbers of UAVs. This study highlights the scalability of the proposed method and provides empirical validation of the theoretical results, in particular the exponen-tial stability for K = 1 . As a second scenario, we consider a challenging coordination setting that highlights the advantages of the proposed game/optimization-based formulation (see Section V-B). The simulations were implemented using RotorPy [16], an open-source simulator optimized for multi-rotor research. For all test cases, the Bitcraze Crazyflie was selected as the primary aerial platform. The RotorPy framework allows for precise integration of the platform’s equations of motion while accounting for critical aerodynamic effects. All simulations were conducted on a GIGABYTE G5 MF5 laptop equipped with an Intel Core i7-13620H processor (16 cores) and 32 GiB of RAM, running Ubuntu 22.04.5 LTS. 
+
+A. MPC Horizon 
+
+Initially, we investigate a baseline scenario where the MPC horizon is set to one. We evaluate the coordination perfor-mance across a varying number of agents N , under identical environmental settings. To ensure a rigorous comparative analysis of the consensus-reaching time and the maximum MPC step calculation time, it is important to maintain con-sistent initial conditions. Thus, we use a fixed set of initial values γ0 = [4 .5, 6, 0, 3.5, 2.5, 5, 3.5, 6, 2, 4, 5.5, 1, 6, 3.5, 2] .For a given number of agents N , the first N components of this vector are assigned to the corresponding UAVs. In this way, the initial conditions of the original agents remain unchanged as the swarm size increases, while additional agents are introduced with comparable initial values in order to reduce variability in the baseline comparison. The reference trajectories used in this scenario are circles of varying radii, sharing a common center, with a total mission duration of 70 seconds. All agents communicate with one another throughout the mission, and no external disturbances are considered. The simulation results presented in Table I imply that, while shorter horizons lead to a delay in reaching consensus, the maximum MPC calculation time observed throughout the mission decreases. Given that the MPC step is calculated at each time step h for each of the N UAVs throughout the mission, these incremental delays might accumulate in case of longer horizons, accounting for the increased computation time, which may be heavy for small and low-resource UAVs. Furthermore, the results show the scalability of the ap-proach; as the number of agents increases, consensus is reached faster, while the associated increase in computation time remains practically unchanged. The simulation results provide empirical support for the exponential stability of the DMPC scheme established in Theorem 2. 
+
+(a) 
+
+Fig. 2: Agent trajectories. UAV icons represent the initial positions of the agents. 
+
+B. Corridor Navigation: Predefined and Autonomous Passage Ordering 
+
+In this scenario, we highlight the flexibility and adaptability of the proposed approach by incorporating operational objec-tives directly into the cost function, thereby enabling the UAVs to autonomously navigate and pass through a narrow corridor that permits only one UAV at a time. We consider two cost functions to address this problem. The first relies on offline predefined ordering of the UAVs, while the second enables the UAVs to determine the passage order autonomously during the mission through a game-theoretic competition, where each UAV competes to pass first. The agent trajectories in 3D space are illustrated in Fig. 2, where UAV icons denote the initial position of each agent 11 
+
+TABLE I: Consensus time and maximum MPC step computation time for varying prediction horizons and number of agents.                                                        
+
+> N= 5 Agents N= 10 Agents N= 15 Agents
+> K= 1 K= 5 K= 10 K= 25 K= 1 K= 5 K= 10 K= 25 K= 1 K= 5 K= 10 K= 25
+> Consensus Time (s) 26.95 6.55 5.45 4.85 11.35 5.7 4.8 3.75 6.35 5.4 4.45 3.65 MPC Solve Time (s) 0.0083 0.0423 0.0101 0.0215 0.0055 0.0102 0.0100 0.0177 0.0060 0.0110 0.0106 0.0186
+
+and the dashed line represents the desired reference trajectory over the 100-second mission. The mission start times are set to 
+
+γ0 = [0 , 3, 7, 31] for UAV 1 through UAV 4, respectively. The agents have z-axis oscillations throughout the flight, except while passing the corridor. Between the 35th and 55th seconds of the mission, the agents must navigate through the corridor, requiring sequential entry to avoid inter-agent collisions, and temporary incoordination. Upon exiting the tunnel, the agents must establish coordination. 
+
+1) Offline Ordering via Predefined Priority: The first mod-ified objective function penalizes each drone i for deviating from a desired separation ∆ relative to its neighbors during a pre-specified phase of the mission. An initial ordering is used to order the drones offline. Drones with a lower index ( j < i )should maintain a relative lead, while those with a higher index (j > i ) should remain behind. This ordering logic is embedded into the cost function (10) by redefining F cm i
+
+ δki , δk−1
+
+> −i
+
+ as follows: 
+
+F cm i
+
+ δki , δk−1
+
+> −i
+
+ =
+
+> K
+
+X 
+
+> τ=1
+
+" 1 − I kiτ 
+
+ NX 
+
+> j=1 , j ̸=i
+
+ δkiτ − δk−1
+
+> jτ
+
+2
+
++ Ikiτ NX 
+
+> j=1 , j ̸=i
+
+ δkiτ − δk−1 
+
+> jτ
+
++ ( i − j)∆ 2
+
+#
+
+,
+
+(35) where Ikiτ is defined as 
+
+Ikiτ := 1γ∗ 
+
+> 1
+
+≤ δkiτ + tk ≤ γ∗
+
+> 2
+
+ 
+
+> ,
+
+(36) with 1[·] denoting the indicator function. γ∗ 
+
+> 1
+
+and γ∗ 
+
+> 2
+
+are predetermined values that define the interval during which the separation should be maintained. The parameter ∆ prescribes the ordering of the UAVs and the magnitude of their separa-tion. The simulation is conducted with ∆ = −3, γ∗ 
+
+> 1
+
+= 0 , and 
+
+γ∗ 
+
+> 2
+
+= 85 .In this scenario, despite their initial spatial configuration, the UAVs are reordered due to disturbances as they approach the passage. In particular, the fourth UAV becomes closest to the bottleneck, while the first UAV is the furthest. As a result, the UAVs pass through the corridor according to the prescribed ordering determined by the index i and the parameter ∆.As the γ values suggest in Fig. 3(a), the fourth UAV was successful in hovering and waiting for its scheduled turn to pass. However, UAV-1 failed to enter the corridor first; instead, the 3rd UAV entered first, followed by the 2nd. Consequently, reordering occurred already inside the corridor, resulting in three collisions between each pair of UAVs (see Fig. 4(a)). The mission therefore fails, though the simulator allows the experiment to continue in the presence of collisions. 
+
+2) Autonomous Ordering via Agent Competition/Game: 
+
+To address the limitations of the offline ordering approach, a 
+
+(a) 
+
+(b) Fig. 3: Consensus parameter γ over time. (a) simulation under the cost function (35); (b) simulation under the cost function (37). game-theoretic formulation is introduced, in which the UAVs determine the passage order autonomously at the time of the mission rather than relying on a predefined ordering. The modified objective function again follows the same structure as in (10), with the exception that the second term is now defined as: 
+
+Fi(δki , δk−1 
+
+> −i
+
+) = 
+
+> K
+
+X 
+
+> τ=1
+
+"
+
+(1 − I kiτ )
+
+> N
+
+X 
+
+> j=1 , j ̸=i
+
+ δkiτ − δk−1
+
+> jτ
+
+2
+
++Ikiτ NX 
+
+> j=1 , j ̸=i
+
+h
+
+max  0, δ kjτ − δk−1
+
+> iτ
+
+2 + ξ(δkjτ − δk−1 
+
+> iτ
+
+)ψi
+
+i#
+
+,
+
+(37) where ξ denotes the discrete Dirac delta (Kronecker delta), defined as 
+
+ξ(x) = 
+
+(
+
+1, x = 0 0, x̸ = 0 
+
+and ψ represents a weighting vector that assigns relative importance to individual UAVs in the case where γi = γj
+
+for all i, j . It serves as an artificial ordering mechanism to resolve ambiguity in equally favorable cases. It is required that all elements of ψ be mutually distinct, i.e. ψi̸ = ψj , ∀ i̸ = j.
+
+Ikiτ is as defined in (36). 12 
+
+The coordination term is active outside the interval [γ∗ 
+
+> 1
+
+, γ ∗ 
+
+> 2
+
+],encouraging drones to coordinate. Inside the interval, the coordination term is replaced by a competitive term that penalizes drone i for every neighbor that is ahead of it. This creates a racing incentive inside the corridor and ensuring successful execution of the mission. The simulation parameters are set to γ∗ 
+
+> 1
+
+= 0 , γ∗ 
+
+> 2
+
+= 85 as in the previous case, and ψ = [15 , 25 , 35 , 45] . As observed in Fig. 4(b), the UAVs completed the mission without any collisions, successfully and autonomously determining the passage order, with the closest UAV to the bottleneck entering the corridor first, followed by the remaining ones accord-ingly. After exiting the tunnel, coordination is achieved (see Fig. 3(b)), particularly once the competition term is deactivated (i.e., after γ = 85 ). Thus, the offline ordering approach may fail depend-ing on the disturbances, resulting in inter-agent collisions, whereas the game-theoretic approach successfully determines the passage order at the time of the mission regardless of the disturbances and ensures a safe mission execution. The game/competing cost function (e.g. see (37)) is therefore more reliable and better suited for real-world use. 
+
+(a) 
+
+(b) Fig. 4: Minimum distance maintained between any two UAVs over time: (a) simulation under the cost function (35); (b) simulation under the cost function (37). The implementation code for all simulations presented in this work is publicly available at https://github.com/amanucha/ rotorpy coordination. VI. C ONCLUSION AND FUTURE WORK 
+
+In this paper, we analyzed a distributed model predic-tive control (DMPC) approach within the cooperative path-following framework. We established exponential stability of the proposed discrete-time DMPC scheme under a fixed and connected communication network for the prediction horizon 
+
+K = 1 . The analysis relies on an explicit characterization of the closed-loop dynamics and establishes contraction prop-erties that ensure convergence while providing an explicit convergence rate. Simulation results demonstrate the real-time applicability and agility of the proposed method. In particular, they high-light scalability with respect to the number of UAVs and illustrate the advantages of the approach in scenarios where preplanned coordination may fail. These results emphasize the role of the game/optimization-based structure in enabling adaptive and robust coordination, while also providing numer-ical validation of the theoretical findings. Future work will focus on extending the theoretical analysis to time-varying communication networks and larger prediction horizons K > 1, as well as to non-quadratic cost functions, enlarging the range of mission settings. We also plan to pursue experimental validation on real UAV platforms. REFERENCES [1] R. Olfati-Saber, J. A. Fax, and R. M. Murray, “Consensus and coop-eration in networked multi-agent systems,” Proceedings of the IEEE ,vol. 95, no. 1, pp. 215–233, 2007. [2] Y. U. Cao, W. Yu, W. Ren, and G. Chen, “An overview of recent progress in the study of distributed multi-agent coordination,” IEEE Transactions on Industrial Informatics , vol. 9, no. 1, pp. 427–438, 2013. [3] L. Lamport, “Time, clocks, and the ordering of events in a distributed system,” Commun. ACM , vol. 21, no. 7, p. 558–565, Jul. 1978. [Online]. Available: https://doi.org/10.1145/359545.359563 [4] R. Ghabcheloo, I. Kaminer, A. P. Aguiar, and A. Pascoal, “A general framework for multiple vehicle time-coordinated path following control,” in 2009 American Control Conference , 2009, pp. 3071– 3076. [Online]. Available: https://ieeexplore.ieee.org/abstract/document/ 5160564 [5] V. Cichella, I. Kaminer, V. Dobrokhodov, E. Xargay, R. Choe, N. Hovakimyan, A. P. Aguiar, and A. M. Pascoal, “Cooperative path following of multiple multirotors over time-varying networks,”                                           
+
+> IEEE Transactions on Automation Science and Engineering , vol. 12, no. 3, pp. 945–957, 2015. [Online]. Available: https://ieeexplore.ieee. org/abstract/document/7065327 [6] I. Kaminer, A. M. Pascoal, E. Xargay, N. Hovakimyan, V. Cichella, and V. Dobrokhodov, Time-Critical cooperative control of autonomous air vehicles .Butterworth-Heinemann, 2017. [Online]. Available: https://books.google.com/books?hl=en&lr=&id=8FufDAAAQBAJ&oi= fnd&pg=PP1&dq=Time-Critical+cooperative+control+of+autonomous+ air+vehicles&ots=iad7AUxId6&sig=CK2Xi4IstzCYXdAdy220SpYsirI [7] L. E. Dubins, “On curves of minimal length with a constraint on average curvature, and with prescribed initial and terminal positions and tangents,” American Journal of Mathematics , vol. 79, p. 497, 1957. [Online]. Available: https://api.semanticscholar.org/CorpusID: 124320622 [8] D. Mellinger and V. Kumar, “Minimum snap trajectory generation and control for quadrotors,” in 2011 IEEE International Conference on Robotics and Automation , 2011, pp. 2520–2525. [Online]. Available: https://ieeexplore.ieee.org/abstract/document/5980409 [9] T. Lee, M. Leok, and N. H. McClamroch, “Geometric tracking control of a quadrotor UAV on SE(3),” in 49th IEEE Conference on Decision and Control (CDC) ,2010, pp. 5420–5425. [Online]. Available: https://ieeexplore.ieee.org/abstract/document/5717652 [10] B. Zhou, H. Satyavada, and S. Baldi, “Adaptive path following for unmanned aerial vehicles in time-varying unknown wind environments,” in 2017 American Control Conference (ACC) ,2017, pp. 1127– 1132. [Online]. Available: https://ieeexplore.ieee.org/abstract/document/ 7963104 13
+
+[11] F. Vanni, A. P. Aguiar, and A. Pascoal, “Nonlinear motion control of multiple autonomous underwater vehicles,” IFAC Proceedings Volumes , vol. 40, no. 17, pp. 75–80, 2007, 7th IFAC Conference on Control Applications in Marine Systems. [Online]. Available: https://www.sciencedirect.com/science/article/pii/S1474667015320735 [12] H. Kang, I. Kaminer, V. Cichella, and N. Hovakimyan, “Coordinated path following of UAVs over time-varying digraphs connected in an integral sense,” in 2024 American Control Conference (ACC) , 2024, pp. 2586–2591. [Online]. Available: https://ieeexplore.ieee.org/abstract/ document/10644374 [13] M. Aramyan, A. Manucharyan, L. Poghosyan, R. Madhavan, T. Bakaryan, and N. Hovakimyan, “Game-theoretic coordination for time-critical missions of UAV systems,” 2025. [Online]. Available: https://doi.org/10.48550/arXiv.2504.09022 [14] L. Zhou and S. Li, “Distributed model predictive control for consensus of sampled-data multi-agent systems with double-integrator dynamics,” 
+
+IET Control Theory & Applications , vol. 9, no. 12, pp. 1774–1780, 2015. [15] G. Ferrari-Trecate, L. Galbusera, M. P. E. Marciandi, and R. Scattolini, “Model predictive control schemes for consensus in multi-agent systems with single- and double-integrator dynamics,” IEEE Transactions on Automatic Control , vol. 54, no. 11, pp. 2560–2572, 2009. [16] S. Folk, J. Paulos, and V. Kumar, “RotorPy: A Python-based multirotor simulator with aerodynamics for education and research,” 
+
+arXiv preprint arXiv:2306.04485 , 2023. [Online]. Available: https: //doi.org/10.48550/arXiv.2306.04485 [17] R. Ghabcheloo, A. P. Aguiar, A. Pascoal, C. Silvestre, I. Kaminer, and J. Hespanha, “Coordinated path-following in the presence of communication losses and time delays,” SIAM Journal on Control and Optimization , vol. 48, no. 1, pp. 234–265, 2009. [Online]. Available: https://doi.org/10.1137/060678993 [18] R. W. Beard and T. W. McLain, Small Unmanned Aircraft: Theory and Practice . Princeton University Press, 2012. [On-line]. Available: https://books.google.com/books?id=YqQtjhPUaNEC& printsec=frontcover#v=onepage&q&f=false [19] A. E. Bryson, Y.-C. Ho, and G. M. Siouris, “Applied optimal control: Optimization, estimation, and control,” IEEE Transactions on Systems, Man, and Cybernetics , vol. 9, no. 6, pp. 366–367, 1979. [Online]. Available: https://ieeexplore.ieee.org/document/4310229 [20] A. Salih, M. Moghavvemi, and H. A. Mohamed, “Flight PID controller design for a UAV quadrotor.” Scientific Research and Essays (SRE) , vol. 5, no. 23, pp. 3660–3667, 2010. [Online]. Available: https://hal.science/hal-04348986/ [21] V. Cichella, R. Choe, S. B. Mehdi, E. Xargay, N. Hovakimyan, I. Kaminer, and V. Dobrokhodov, “A 3d path-following approach for a multirotor uav on so (3),” IFAC Proceedings Volumes , vol. 46, no. 30, pp. 13–18, 2013. [22] N. Biggs, Algebraic Graph Theory . Cambridge University Press, 1993.

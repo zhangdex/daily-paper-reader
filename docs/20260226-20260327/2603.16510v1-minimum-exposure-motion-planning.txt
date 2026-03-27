@@ -1,0 +1,986 @@
+Title: Minimum Exposure Motion Planning
+
+URL Source: https://arxiv.org/pdf/2603.16510v1
+
+Published Time: Wed, 18 Mar 2026 01:14:46 GMT
+
+Number of Pages: 21
+
+Markdown Content:
+# Minimum Exposure Motion Planning 
+
+# Sarita de Berg #
+
+Department of Computer Science, IT University of Copenhagen, Denmark 
+
+# Joachim Gudmundsson #
+
+School of Computer Science, University of Sydney, Australia 
+
+# Peter Kramer #
+
+Department of Computer Science, TU Braunschweig, Germany 
+
+# Christian Rieck #
+
+Institute of Mathematics, University of Kassel, Germany 
+
+# Sampson Wong #
+
+Department of Computer Science, University of Copenhagen, Denmark 
+
+Abstract 
+
+We investigate multiple fundamental variants of the classic coordinated motion planning (CMP) problem for unit square robots in the plane under the L1 metric. In coordinated motion planning, we are given two arrangements of k robots and are tasked with finding a movement schedule that minimizes a certain objective function. The two most prominent objective functions are the sum of distances traveled ( Min-Sum ) and the latest time of arrival ( Min-Makespan ). Both objectives have previously been studied extensively. We introduce a new objective function for CMP in the plane. The proposed Min-Exposure objective function defines a set of polygonal regions in the plane that provide cover and asks for a schedule with minimal elapsed time during which at least one robot is partially or fully outside of these regions. We give an O(n4 log n) time algorithm that computes exposure-minimal schedules for k = 2 robots, and an XP algorithm for arbitrary k. As a result of independent interest, we leverage new insights to prove that both the Min-Makespan and Min-Sum 
+
+objectives are fixed-parameter tractable ( FPT ) parameterized by the number of robots. Our parameterized complexity results generalize known FPT results for rectangular grid graphs [Eiben, Ganian, and Kanj, SoCG’23]. 
+
+2012 ACM Subject Classification Theory of computation → Computational geometry; Computing methodologies 
+
+→ Motion path planning 
+
+Keywords and phrases Coordinated motion planning, square robots, parameterized complexity, rectilinear movement, weighted regions 
+
+Funding Sarita de Berg : Supported by VILLUM Foundation grant VIL37507 “VIL37507 Efficient Recomputations for Changeful Problems”. 
+
+Peter Kramer : Partially funded by a fellowship of the German Academic Exchange Service (DAAD) and the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation), grant number 530918134. 
+
+Christian Rieck : Funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) – 522790373. 
+
+Sampson Wong : Partially funded by the European Union’s Marie Skłodowska-Curie Actions Postdoctoral Fellowship, grant number 101146276. 
+
+> arXiv:2603.16510v1 [cs.CG] 17 Mar 2026
+
+S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 1
+
+# 1 Introduction 
+
+The growing deployment of autonomous systems in domains such as search and rescue [ 14 , 35 ], warehouse automation [ 31 , 44 ], and hazardous-material handling [ 23 , 43 ] has intensified the need for efficient coordinated multi-robot motion planning (CMP). From the early days of computational geometry, researchers have recognized the deep algorithmic challenges inherent in planning the coordinated motion of many robots simultaneously. In such settings, avoiding both obstacles and collisions between robots lifts the problem into a high-dimensional configuration space whose complexity grows rapidly with the number of robots, as already demonstrated by foundational results like those of Schwartz and Sharir [ 38 ]. Meeting practical performance demands, such as minimizing the sum of distances traveled or the latest time of arrival (makespan), therefore requires sophisticated geometric and algorithmic techniques. In this paper, we consider a novel variant of continuous coordinated motion planning in which multiple agents must move to their respective target positions in the plane, while minimizing the total time during which at least one agent is exposed . In general, cover is provided by a finite set of bounded regions; an agent is covered exactly if it is fully contained in one of them, as illustrated in Figure 1. These bounded regions could model, for example, transmission radii in a wireless network, where agents want to stay in contact with each other as much as possible. We call this the Min-Exposure CMP problem. Closely related are the two classical objectives in motion planning problems of minimizing the total distance traveled ( Min-Sum ) and latest time of arrival ( Min-Makespan ); both are known to be 
+
+NP -hard [ 12 , 13 , 15 , 16 , 18 ]. Recent work has therefore focused on optimal motion for just two robots, which remains a challenging task, particularly in the Euclidean plane. While this has been characterized for various types of robots in the Min-Sum objective [ 17 , 28 , 27 ], no such result exists for latest time of arrival: Although swapping two unit disks might seem straightforward, finding optimal trajectories is an open problem [13], demonstrating the complexity of seemingly trivial problems in this setting. A vast and growing body of research has concerned itself with the parameterized complexity of CMP. A problem is FPT in the parameter k if there exists an algorithm with runtime f (k) · nO(1) , where f
+
+is a computable function and n is the input size (in our setting, the number of bits representing the coordinates). Min-Sum CMP is FPT parameterized by the number of robots k for congruent disks on integer coordinates [ 16 ] and vertex robots in rectangular grid graphs, as well as FPT parameterized by the objective [ 15 ]. Moreover, an FPT algorithm parameterized by k for rectangular robots in the plane is claimed in [ 16 ], although no formal proof is given. While Min-Makespan CMP is FPT parameterized by k in grid graphs, it remains NP -hard even for constant makespan [15] if k is part of the input. 
+
+# 1.1 Our contributions 
+
+We investigate multiple variants of coordinated motion planning for square robots in the plane under the 
+
+L1 metric. In Sections 3, 4, and 7, we give an O(n4 log n) time algorithm to solve the Min-Exposure 
+
+problem optimally for two robots among polygonal covering regions (possibly containing holes) with n
+
+vertices, building on new insights for Min-Sum and Min-Makespan as key components. In Section 5, we extend our results for Min-Sum CMP and Min-Makespan CMP (in the plane) to show that both are fixed-parameter tractable ( FPT ) parameterized by the number of robots k. These results generalize and moving (covered) standing still (covered) moving (exposed) R1R2  
+
+> Figure 1 An example instance and schedule, including a timeline, for Min-Exposure CMP . While both robots are in a covered region (light blue), they can move to any position within this region for free. The robots are exposed (red) when at least one of the robots is not fully covered.
+
+2 Minimum Exposure Motion Planning 
+
+improve upon known tractability results from more restricted settings [ 15 ]. In Section 6, we formulate an 
+
+XP (that is, runtime O(ng(k)) for some function g(k)) algorithm that solves the Min-Exposure CMP 
+
+problem for arbitrarily many robots. A summary of our results and related work is shown in Table 1.                                                       
+
+> Objective Robots Workspace Runtime Reference
+> Min-Sum CMP 2rectilinear polygonal domain O(n4log n)[3]
+> krectangular grid graph FPT in k[15]
+> kR2FPT in kTheorem 16
+> Min-Makespan CMP 2rectilinear polygonal domain NP -hard [3]
+> krectangular grid graph and R2NP -hard [15]
+> krectangular grid graph FPT in k[15]
+> kR2FPT in kTheorem 14
+> Min-Exposure CMP 2R2O(n4log n)Theorem 11
+> kR2XP in kTheorem 19
+> kR2PSPACE -hard [1, 24, 41]
+> Table 1 Our results and related work on the studied variants of Coordinated Motion Planning .
+
+# 1.2 Related work 
+
+Research on coordinated motion planning and multi-agent path finding (MAPF) is extensive, making a comprehensive overview infeasible in this work. In addition to the work mentioned in the introduction, we give a brief overview of literature most relevant to our contributions and refer readers to existing surveys and books for broader perspectives [2, 6, 21, 22, 29, 37, 40, 42]. 
+
+Min-Sum. The Min-Sum CMP problem in the Euclidean plane (without obstacles) is very well-understood for two convex, centrally-symmetric robots [ 17 , 27 , 28 ]. For two square robots, an O(n4 log n)
+
+time algorithm [ 3 ] was recently presented for solving Min-Sum CMP optimally in a rectilinear polygonal domain using the L1-distance, and under the Euclidean metric, polynomial-time approximation schemes have been proposed first for two [ 4], and more recently constantly many robots in a polygonal domain [ 5]. 
+
+Min-Makespan. Minimizing the overall completion time is considerably more difficult than minimizing the total distance traveled. When the number of robots k is part of the input, the problem is NP -hard in the plane [ 12 , 13 ], even for constant makespan [ 15 ]. More recently, NP -hardness has also been shown for the case of just two robots in a rectilinear polygon [3]. 
+
+Feasibility. It has been shown across various models and problem variants where the robots move among obstacles, that deciding whether a feasible reconfiguration schedule exists is PSPACE -hard when the number of robots is included as part of the input, even in simple settings [ 1 , 24 , 41 ]; however, there exist O(nk) algorithms for k robots [36] in a polygonal domain defined over n vertices. 
+
+Weighted regions. Weighted regions in the plane provide a framework for modeling spaces where movement incurs different costs depending on the area being traversed; the problem is then to find a shortest path in the plane of minimum cost according to the weighted Euclidean metric [ 32 , 33 ]. Even very restricted cases are unsolvable within the Algebraic Computation Model over the Rational Numbers [ 10 , 11 ]. There is some previous work on the {0, 1, ∞} -weighted region problem [ 19 , 20 ]. Note that {0, 1}-weighted regions can model minimum exposure for a single, but not multiple, robots. 
+
+# 2 Preliminaries 
+
+We denote the set {1, . . . , n } by [n] for n ∈ N+. For a set S and i ∈ N+, the set Si refers to the 
+
+ith Cartesian power of S, i.e., S × . . . × S. For a point p ∈ R2, we denote by x(p) and y(p) its 
+
+x- and y-coordinate. Unless otherwise stated, we measure distances using the L1-norm defined as 
+
+∥p∥ = |x(p)| + |y(p)|. In some cases, we make use of the L∞-norm ∥p∥∞ = max( {| x(p)|, |y(p)|} ).S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 3
+
+# 2.1 Coordinated motion in the plane 
+
+We study the coordinated motion of k robots R1, . . . , R k in the plane. Each robot uniquely occupies a subset of the plane that corresponds to a unit square translated by some vector. We denote by 
+
+⊡ = { p ∈ R2 | ∥ p∥∞ ≤ 1/2} the unit square at the origin. A configuration of R1, . . . , R k is an ordered sequence of positions P = ( p1, . . . , p k) with pi ∈ R2, such that the robots are pairwise interior disjoint, i.e., ∥pi − pj ∥∞ ≥ 1 for i̸ = j ∈ [k], see Figure 2(a) and (b). Let Fk ⊆ R2×k refer to the configuration space , consisting of all configurations of k robots. Robots move along polygonal trajectories at speed (w.r.t. the L1 distance) up to 1. A trajectory from a ∈ R2 to b ∈ R2 over the time interval T = [ t0, t 1] ⊂ R is a metric map m : T → R2, with m(t0) = a
+
+and m(t1) = b whose image m[T ] is a polygonal chain, see Figure 2(c). A turn in m is then any point on its image where two segments with different orientations meet. Note that we do not require changes in velocity to be continuous. In fact, our schedules only move robots at speed 0 or 1, and we predominantly use rectilinear trajectories, which is sufficient for optimal reconfiguration in the plane (without covering regions) under the L1-distance. An ordered set of trajectories M = ( m1, . . . , m k) describes a schedule 
+
+over a time interval T ; with a slight abuse of notation, we write M (t) = ( m1(t), . . . , m k(t)) for t ∈ T .A schedule is then feasible exactly if M (t) is feasible for every t ∈ T . Clearly, if M is feasible over 
+
+T = [ t0, t 1], then its reverse , t 7 → M (t1 − t + t0), is also feasible over the same interval. 
+
+Objectives. Let M be a feasible schedule for k robots over the interval T = [ t0, t 1]. Its makespan is 
+
+ϕ(M ) = |t1 − t0|, and its total traveled length ∥M ∥ refers to the sum of the polygonal chains’ length. 
+
+Problem statement. In general, the Coordinated Motion Planning problem (CMP) takes two feasible configurations A, B ∈ F k and asks for a schedule M from A to B that minimizes a given objective function. The Min-Makespan CMP problem asks for the smallest ℓ such that there exists a schedule 
+
+M with makespan at most ℓ, i.e., ϕ(M ) ≤ ℓ. Similarly, the Min-Sum CMP asks a for a schedule M
+
+with traveled length ∥M ∥ ≤ ℓ.Natural lower bounds for both arise from the geometry of the configurations. For makespan, the bound is the diameter of the configuration d(A, B ) = max i∈[k]∥ai − bi∥, i.e., the maximum distance any robot must travel. For total traveled length, the bound is the sum of distances, i.e., the aggregate travel required across all robots D(A, B ) = ∑
+
+> i∈[k]
+
+∥ai − bi∥.
+
+# 2.2 Feasibility of motion in polygonal environments 
+
+In our algorithm for solving a Min-Exposure CMP problem, we encounter the Coordinated Motion Planning problem in polygonal environments, i.e. among polygonal obstacles, as a subproblem. We thus extend our notation to this setting. Let S be a polygonal domain with n vertices V (S), i.e. an outer (simple) polygon that may contain one or more polygonal holes. Each boundary cycle, outer or around a hole, is described by an ordered list of vertices. A feasible configuration of k robots P ∈ F k is 
+
+in S exactly if the interior of each robot is fully contained in S, as shown in Figure 3. We denote these configurations by the set Fk[S] ⊆ F k. Containment of a robot within S can be determined by the inner Minkowski sum of S and the unit square ⊡, inner (S). Intuitively, this subtracts half the size of a robot from the interior of the polygon along its boundary ∂S , see Figure 3. Formally, this corresponds to: 
+
+▶ Definition 1. Let ∂S be the boundary of S, i.e., the set of points on edges of S. The inner Minkowski sum of S, with respect to the unit square ⊡, is defined as inner (S) := {x ∈ S | min y∈∂S (∥y − x∥∞) ≥ 1/2}.11p1p2
+
+> (a)
+
+q2q1 (b) m[T ]ab (c)        
+
+> Figure 2 Configurations are (a) feasible or (b) infeasible. (c) A trajectory mfrom ato bwith four turns.
+
+4 Minimum Exposure Motion Planning ∂S S \ inner (S)∂inner (S)      
+
+> (a) (b)
+> Figure 3 (a) A polygonal domain S, its inner Minkowski sum inner (S), and a feasible configuration of two robots in S. (b) The horizontal decomposition of inner (S).
+
+The Feasibility problem takes a polygonal domain S and a pair of configurations A, B ∈ F [S] in S
+
+and asks whether there exists a schedule from A to B such that every intermediate configuration of the robots is feasible and in S. A common tool for such problems are trapezoidal decompositions [ 7 , 29 ]. These divide a polygonal domain into trapezoids, by casting either vertical or horizontal rays from every vertex and cutting the polygon along the resulting line segments, see Figure 3(b). 
+
+# 2.3 Minimum Exposure Motion Planning 
+
+Finally, we introduce a novel problem variant, Min-Exposure CMP . An instance of this problem consists of two configurations of k robots in the plane and a set of polygonal domains S = {S1, . . . , S m}
+
+with a total number of n vertices, that provide cover but do not restrict movement, see Figure 1. A configuration P ∈ F k is covered if every robot is fully contained in a polygonal domain in S, and 
+
+exposed otherwise. We denote this by ξ(P, S), which is equal to 1 exactly if P is exposed, and 0 otherwise. The exposure ξ(M, S) of a schedule M over T = [ t0, t 1] is then defined as the total time during which the robots are in an exposed configuration, i.e. for each time interval that the robots are exposed, we add the maximum length traveled by any robot during this interval. Finally, the Min-Exposure CMP problems asks for the smallest ℓ such that there exists a schedule M from A to B that satisfies ξ(M, S) ≤ ℓ.
+
+# 3 Coordinated motion planning for two robots 
+
+In this section, we show how to compute optimal schedules for k = 2 unit square robots in the plane in both the Min-Makespan CMP and Min-Sum CMP problem variants. Central to our approach is the discretization of the configuration space using a transition graph . We give a formal description of this graph here, and generalize to any fixed k in Section 5. 
+
+Transition graph. Recall that F2 refers to the configuration space of two square robots in the plane. By definition, every feasible configuration in F2 permits an axis-parallel bisection into two half-planes such that the interior of each robot lies in exactly one of the two. We leverage this fact to cover the configuration space by four orderings that represent the relative position of the two robots along either axis of the plane as shown in Figure 4. The ordering F→ 
+
+> 2
+
+contains all feasible configurations in which robot R1 is located “to the right of” 
+
+robot R2, i.e., F→ 
+
+> 2
+
+:= { (p1, p 2) ∈ F 2 | x(p1) ≥ x(p2) + 1 }. The opposite and orthogonal orderings are defined analogously, see Figure 4(a). If two configurations exist in the same ordering of F2, we speak of commonly ordered configurations. Clearly, it is possible for a robot to be located “to the right of” 
+
+and “above” another, implying that there exist configurations that are both in F→ 
+
+> 2
+
+and F↑ 
+
+> 2
+
+, as shown in Figure 4(b). We refer to these configurations in the intersection of orderings as diagonal .Finally, we define the transition graph as the intersection graph of the orderings covering the space. For the case of two robots, this transition graph is a four-cycle. In the remainder of this section, we show that finding an optimal schedule for both the Min-Makespan CMP and Min-Sum CMP problems can be reduced to enumerating paths in the transition graph that can then be mapped to sequences of optimal sub-trajectories. S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 5F↑
+
+> 2
+
+F↓
+
+> 2
+
+F←
+
+> 2
+
+F→
+
+> 2
+
+F2   
+
+> (a) The four possible orderings within F2and the transition graph induced by their intersections.
+
+F↓
+
+> 2
+
+F→   
+
+> 2
+> (b) The intersections of orderings consist of diagonal con-figurations, in which orthogonal separators exist.
+> Figure 4 We divide the configuration space into ordering groups based on the order of robots wrt. axis-aligned bisectors (dashed) that separate them. Shown here is F2, split into four orderings.
+
+# 3.1 Minimum makespan 
+
+As a first step, we show how to solve instances of commonly ordered configurations optimally, and that the resulting schedule’s makespan matches the trivial lower bound, i.e., the diameter. Recall from Section 2 that the diameter d(A, B ) = max (|| a1 − b1|| , || a2 − b2|| ) is the maximum distance any robot must travel. We actually provide a more general schedule for any makespan greater or equal to the diameter, i.e., ϕ(M ) ≥ d(A, B ). This general schedule is a crucial building block for the k robots case. 
+
+▶ Lemma 2. Let A, B ∈ F 2 be commonly ordered configurations. For any fixed d ≥ d(A, B ), there is a schedule M from A to B with ϕ(M ) = d in which each robot makes at most one turn. 
+
+Proof. We provide a schedule M = ( m1, m 2) over the time interval [0 , d ], where the trajectory mi of robot Ri, i ∈ { 1, 2} is defined in three steps: 
+
+1. Move along the x-axis toward x(bi) at unit speed. |x(bi) − x(ai)|
+
+2. Wait there until the total elapsed time is d − | y(bi) − y(ai)|. d − ∥ bi − ai∥
+
+3. Move along the y-axis toward y(bi) at unit speed. |y(bi) − y(ai)|
+
+It is trivially true that the makespan of this schedule is exactly d; for clarity, each step has its respective makespan indicated. It remains to argue that the schedule is feasible. We distinguish two cases based on the orientation of separating bisectors that exist in A and B.For case (i), assume that either A, B ∈ F → 
+
+> 2
+
+or A, B ∈ F ← 
+
+> 2
+
+, and let t ∈ [0 , d ] refer to the first moment in time at which one of the two robots has completed step one. In the time interval [0 , t ], the relative position of the two robots does not change; both moved along the x-axis at identical speed. It follows that the configuration M (t) is commonly ordered with A and B, and that any collision would have to occur in the remaining time (t, d ]. Assume without loss of generality that R1 completed step one first. Then its x-coordinate will not change at all during (t, d ], while the x-coordinate of R2 may still change. However, R2 is guaranteed to occupy a disjoint interval along the x-axis at all times while finishing step one: As it moves exclusively towards its destination coordinate, a common ordering existing in the start and target configuration would be contradicted otherwise. Since its position along the x-axis does not change throughout steps two or three, we conclude that the schedule is collision-free and feasible. For case (ii), assume that either A, B ∈ F ↑ 
+
+> 2
+
+or A, B ∈ F ↓ 
+
+> 2
+
+, and let M refer to a schedule derived as above. We argue analogously, but based on the schedule’s reverse, i.e., if the two robots first moved along the y-axis and then along the x-axis. Using the exact argument from above, no collision can occur prior to a robot completing step one, and all remaining movement occurs within disjoint y-intervals. As feasibility of the reverse implies feasibility of the original schedule, this concludes the proof. ◀
+
+By triangle inequality, we can now immediately derive that there always exists an optimal schedule that does not repeat any ordering: If a schedule exits and re-enters an ordering, we can replace the schedule during this time interval using a schedule computed according to Lemma 2, which has optimal makespan. The resulting schedule will thus never have a greater makespan than the original, and does not exit and re-enter the ordering. 6 Minimum Exposure Motion Planning 
+
+▶ Corollary 3. For any instance of Min-Makespan CMP , there exists an optimal schedule that does not repeat an ordering, i.e., it will follow a simple path in the transition graph. 
+
+Knowing that there is an optimal schedule that is a simple path in the transition graph, we can enumerate the relevant (constantly many) simple paths in the transition graph and compute the best possible schedule for each using a constant-size linear program. 
+
+▶ Theorem 4. Min-Makespan CMP can be solved in O(1) time for two robots. 
+
+Proof. Our approach is to define a procedure that maps a simple path in the transition graph to a shortest feasible schedule that visits the corresponding orderings in the given order. By Lemma 2 and Corollary 3, it suffices to define this procedure for paths of length one, two, and three; a path of length four is non-simple and paths of length zero are already covered. All relevant paths in the transition graph can be enumerated, e.g., by depth-first search. We give an exact description of the procedure for paths of length one; the remaining cases can be covered by a straightforward extension of the method. Let A, B ∈ F 2 be two configurations that are contained in two intersecting orderings. Assume that these are F↑ 
+
+> 2
+
+and F→ 
+
+> 2
+
+, all other cases are symmetric. Clearly, every schedule that goes directly from one ordering to the other must pass through their intersection in the form of a diagonal configuration 
+
+I ∈ F ↑ 
+
+> 2
+
+∩F → 
+
+> 2
+
+. Due to Lemma 2, we can then compute a schedule of makespan d(A, I )+ d(I, B ) ≥ d(A, B ),and thus reduce our problem to determining a choice of I that minimizes the overall cost. This problem can be expressed as a linear program. Note that each of the ∥·∥ terms can be transformed into a linear equation with a constant number of additional variables for each |·| term. minimize ϕ
+
+subject to ϕ ≥ ∥ i1 − a1∥ + ∥i1 − b1∥ (candidates for the makespan) 
+
+ϕ ≥ ∥ i1 − a1∥ + ∥i2 − b2∥ ... 
+
+ϕ ≥ ∥ i2 − a2∥ + ∥i1 − b1∥
+
+ϕ ≥ ∥ i2 − a2∥ + ∥i2 − b2∥
+
+x(i1) ≥ x(i2) + 1 (enforce I ∈ F → 
+
+> 2
+
+)
+
+y(i1) ≥ y(i2) + 1 (enforce I ∈ F ↑ 
+
+> 2
+
+).
+
+After solving the above linear program for I = ( i1, i 2), an exact schedule can be determined using Lemma 2, applied once to the instance (A, I ) and once to the instance (I, B ).For paths of length two and three, we can extend the program to solve for two or three intermediate configurations instead by adding new variables for each additional edge. For every given pair of orderings, there are at most two relevant paths, so constantly many LPs suffices to find an optimal schedule. ◀
+
+# 3.2 Minimum sum of distances 
+
+This technique extends directly to the setting in which our objective is minimizing the sum of distances traveled, rather than the time of latest arrival. In particular, the schedules due to Lemma 2 actually minimize both makespan and total traveled length simultaneously: 
+
+▶ Corollary 5. Let A, B ∈ F 2 be commonly ordered configurations of two robots. There exists a schedule M
+
+from A to B with ∥M ∥ = D(A, B ) in which each robot makes at most one turn. 
+
+Using this information, we again conclude that it suffices to study simple paths in the transition graph of the two robots. We can therefore follow the same approach. 
+
+▶ Theorem 6. Min-Sum CMP can be solved in O(1) time for two robots. S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 7   
+
+> (a) (b)
+> Figure 5 Two states. In (b), the robots cannot change their relative order along the y-axis.
+
+Proof. We again enumerate all relevant, simple paths in the transition graph and determine a sequence of diagonal states using a linear program, just as in Theorem 4. Let A, B ∈ F 2 be two configurations that are contained in two intersecting orderings. Assume that these are F↑ 
+
+> 2
+
+and F→ 
+
+> 2
+
+, all other cases are symmetric. The following linear program determines a diagonal state I ∈ F ↑ 
+
+> 2
+
+∩ F → 
+
+> 2
+
+that has minimal distance sum to both A and B, serving as a drop-in replacement for the prior linear program. minimize Σ
+
+subject to Σ ≥ ∥ i1 − a1∥ + ∥i1 − b1∥ + ∥i2 − a2∥ + ∥i2 − b2∥ (distance sum) 
+
+x(i1) ≥ x(i2) + 1 (enforce I ∈ F → 
+
+> 2
+
+)
+
+y(i1) ≥ y(i2) + 1 (enforce I ∈ F ↑ 
+
+> 2
+
+) ◀
+
+# 3.3 Moving between trapezoids 
+
+For our minimum exposure algorithm, we require the start and end positions of the two robots to be more general than two fixed points in the plane. Instead, we consider the minimum distance between two states . Intuitively, a state specifies that each robot may be anywhere within a given horizontal trapezoid. Additionally, the state may specify a restriction on the relative position of the two robots using the integer σ. We will later use σ to fix the relative order of the robots when both lie in the same trapezoid and this trapezoid is narrow, or in two narrow trapezoids that are close to each other. In this case, the robots cannot swap positions, as visualized in Figure 5. Formally, we define a state as follows: 
+
+▶ Definition 7. A state is a triple (X, Y, σ ), where X and Y are two horizontal trapezoids that are either interior disjoint or the same trapezoid (i.e. X = Y ), and σ ∈ {− 2, −1, 0, 1, 2}. A configuration P ∈ F 2
+
+is in state (X, Y, σ ) if: 
+
+p1 ∈ X and p2 ∈ Y , and if σ = 0 , then there is no restriction on the relative position of p1 and p2, and if σ = 1 , then x(p1) ≤ x(p2) + 1 , if σ = −1, then x(p1) ≥ x(p2) − 1, and if σ = 2 , then y(p1) ≤ y(p2) + 1 , if σ = −2, then y(p1) ≥ y(p2) − 1.
+
+▶ Theorem 8. Min-Makespan CMP between any two states can be solved in O(1) time for two robots. 
+
+Proof. We use the same approach as in Theorem 4, we map a simple path in the transition graph to a shortest feasible schedule that visits those orderings in the given order. For a state (X, Y, σ ) with σ̸ = 0 ,all feasible configurations in this state are commonly ordered. However, when σ = 0 , we do not have this property. In this case, we apply the approach of Theorem 4 for all four possible orderings in the state. Note that some orderings may not be valid based on the dimensions (and placement) of X and Y , but the linear program will simply return that there is no solution in such a case. We further adapt each linear program of Theorem 4 to account that the points a1, a 2, b 1, b 2 are now no longer constants, since a robot can be anywhere inside a given trapezoid, but can be expressed as several linear equations themselves. We also enforce the ordering of the start and end configurations by adding two additional equations reflecting these orderings. We thus add 18 additional inequality terms with respect to the linear program in Theorem 4 in total. ◀
+
+By applying the approach of Theorem 8 to Theorem 6 instead, we obtain the following. 
+
+▶ Corollary 9. Min-Sum CMP between any two states can be solved in O(1) time for two robots. 8 Minimum Exposure Motion Planning σ = 0 σ = 1 σ = −1σ = 2 σ = −2                                 
+
+> Figure 6 An illustration of X(blue dashed), Y(orange dashed) and Z(gray) in different cases σ∈{− 2,−1,0,1,2}. If Zcontains a 1×1square then σ= 0 is added. Otherwise, if the width is ≥1, then σ= 1 ,−1
+> is added; if the height is ≥1, then σ= 2 ,−2is added.
+
+# 4 Minimum exposure CMP for two robots 
+
+In this section, we solve the Min-Exposure CMP problem. Recall that the input consists of the starting and ending configurations of two unit square robots R1 and R2, and a set of polygonal domains S = {S1, . . . , S m} that act as the covered regions. The output is a (polygonal) collision-free and minimum-exposure schedule of the two robots (R1, R 2).This can be broken down into two subproblems: Deciding whether robots can go from one covered configuration to another without being exposed and, if exposure cannot be avoided, finding a schedule that efficiently moves them into the next covered configuration. The latter problem corresponds to a variant of Min-Makespan CMP as seen in Section 3, and the prior to Feasibility of reconfiguration in a polygonal domain, for which O(n2) time algorithms are known to exist [ 36 ]. In Section 7, we give a simple algorithm that is more suitable for our application, obtaining the following: 
+
+▶ Theorem 10. Let S be a polygonal domain with n vertices. There exists a data structure that can be computed in O(n2) time and O(n2) space that decides Feasibility for any start and target configuration in F2[S] in O(log n) time. 
+
+To leverage these results for Min-Exposure CMP , we then define a graph G and compute the shortest path distance in G. The graph will be defined in such a way that: (i) the graph contains not too many vertices, (ii) for two vertices A and B in G, the shortest path distance dG(A, B ) matches the 
+
+Min-Exposure CMP between states A and B, and (iii) the weight of each edge in the graph can be computed using an individual call to either CMP (Theorem 8) or Feasibility (Theorem 10). The vertices of the graph G will be the states as defined in Definition 7. So, the vertices will be in the form (X, Y, σ ), where X and Y are horizontal trapezoids and σ ∈ {− 2, −1, 0, 1, 2}. Here, X and Y
+
+are covered, so R1 can move in X with zero exposure and same with R2 in Y . If X and Y are either equal or close enough to one another, then R1 and R2 may not be able to move freely in their respective rectangles due to collisions with the other robot. In this case, σ ∈ { 1, −1, 2, −2} will correspond to the constraint that R1 remains to the left of, right of, below, or above R2. If σ = 0 then the positions of R1
+
+and R2 within X and Y have no constraints of this kind, in other words, any feasible configuration of 
+
+R1 ∈ X and R2 ∈ Y is reachable from any other feasible configuration. 
+
+The vertices of G. Next, we formalize the definition of the vertices of G and their construction. Recall the inner Minkowski sum inner (S) from Definition 1. We construct inner (Si) for all Si ∈ S , and then compute the horizontal decomposition of inner (Si) into a set of trapezoids. Let W be the set of trapezoids in all horizontal decompositions of {inner (Si) | Si ∈ S} . Let X, Y ∈ W . First, we construct the vertices in G of the form (X, Y, σ ). Let Z be the convex hull of X ∪ Y , and let h and w denote the height and width of the bounding box of Z. We have three cases, as illustrated in Figure 6: If Z contains a 1 × 1 square, then add (X, Y, 0) to G.If Z does not contain a 1 × 1 square, and w ≥ 1, then add (X, Y, 1) and (X, Y, −1) to G.If Z does not contain a 1 × 1 square, and h ≥ 1, then add (X, Y, 2) and (X, Y, −2) to G.Note that for X = Y , we consider the trapezoid Z = X.
+
+The edges of G. Next, we construct the edges of the graph G. The edges of G are divided into two types: zero exposure edges and positive exposure edges. S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 9
+
+First, we construct the zero exposure edges. Construct the Feasibility data structure in Theorem 10 for all Si ∈ S . Consider a pair of vertices (X, Y, σ ) and (X′, Y ′, σ ′) in G, with X, X ′ ∈ Si and Y, Y ′ ∈ Sj .Use (X, Y, σ ) to construct a configuration (p1, p 2) by choosing p1, p 2 such that ∥p1 − p2∥∞ ≥ 1, and: If σ = 0 , then choose p1 and p2 to be any point in X and Y , respectively. If σ = 1 , then choose p1 to be a leftmost point of X, and p2 a rightmost point of Y .If σ = −1, then choose p1 to be a rightmost point of X, and p2 a leftmost point of Y .If σ = 2 , then choose p1 to be on the bottom side of X, and p2 on the top side of Y .If σ = −2, then choose p1 to be on the top side of X, and p2 on the bottom side of Y .Similarly, construct (p′
+
+> 1
+
+, p ′
+
+> 2
+
+) from (X′, Y ′, σ ′). Query the Feasibility data structure to decide whether there is a feasible zero exposure schedule between (p1, p 2) and (p′
+
+> 1
+
+, p ′
+
+> 2
+
+). Finally, add a zero exposure edge between (X, Y, σ ) and (X′, Y ′, σ ′) if and only if there is a feasible schedule between (p1, p 2) and (p′
+
+> 1
+
+, p ′
+
+> 2
+
+).Second, we construct the positive exposure edges. For these edges, we ignore the covering regions S,and therefore, all edges constructed in this step have positive weight. Consider a pair of vertices in G that have no zero exposure edge connecting them, let them be (X, Y, σ ) and (X′, Y ′, σ ′). We use Theorem 8 directly on (X, Y, σ ) and (X′, Y ′, σ ′) to compute the Min-Makespan CMP between the two states, and we set the weight of the positive exposure edge between (X, Y, σ ) and (X′, Y ′, σ ′) to be this value. 
+
+▶ Theorem 11. Min-Exposure CMP can be solved in O(n4 log n) time for two robots. 
+
+Proof. Recall that our input is a pair of starting and ending configurations A, B ∈ F 2, as well as a set of polygonal domains S = {Si} with n vertices in total. We begin by constructing the graph G for the polygonal domains {Si}, using the procedure described in Section 4. Then, we add the starting configuration A as a vertex to the graph G. Note that A can be thought of as a state where X and 
+
+Y are single points and σ = 0 . If both robots are contained in covered regions in configuration A, we perform a point location for a1 and a2 to find the state A′ in G that contains A, and we add a zero exposure edge from A to A′. Otherwise, we apply Theorem 8 to compute a positive exposure edge from 
+
+A to every other vertex of G. We add B as a vertex to the graph G in the same way. We also add a positive exposure edge between A and B and compute its weight using Theorem 8. Finally, we use a shortest path algorithm to compute the minimum weight path from A to B in the graph G, and we return this shortest path distance dG(A, B ) between A and B. From this shortest path in G, we can reconstruct a minimum exposure schedule between A and B using Theorem 8 and Theorem 10. We prove the correctness of the above algorithm. Consider any optimal solution M , i.e., any minimum exposure schedule, between configurations A and B. The first case is that M never visits a configuration where R1 and R2 are entirely inside a covered region. If so, since our algorithm adds a positive exposure edge between A and B, and Theorem 8 correctly computes the Min-Makespan CMP between A and B
+
+in the case where there are no covered regions, our algorithm outputs an optimal solution. The second case is that M does visit at least one configuration where R1 and R2 are entirely inside covered regions. Define a critical configuration to be a configuration in the optimal solution where the robots R1 and 
+
+R2 switch from either both being covered to being exposed, or vice versa. More formally, for a critical configuration T at time t, we have that both robots are covered in T , but there is an ε > 0 such that for all 0 < ε ′ ≤ ε at least one of the robots is exposed at time t − ε′ or t + ε′. Let the set of critical configurations, sorted chronologically, be {T1, T 2, . . . }. The remainder of our proof is to show that our algorithm correctly computes the minimum exposure schedule between A and T1, between Ti and Ti+1 ,and between the last Tj and B. We can show that each configuration Ti is contained in a state: 
+
+▷ Claim. Any covered configuration A ∈ F 2, has a state (X, Y, σ ) in G such that A is in this state. 
+
+Proof. Let X and Y be the trapezoids in the horizontal decomposition that contain a1 and a2, respectively. If (X, Y, 0) ∈ G, then the lemma follows. Otherwise, the convex hull Z of X ∪ Y does not contain a 1 × 1
+
+square. Let h and w denote the height and width of the bounding rectangle of Z.If A ∈ F → 
+
+> 2
+
+or A ∈ F ← 
+
+> 2
+
+, then |x(a2) − x(a1)| ≥ 1, and thus w ≥ 1. So, both (X, Y, 1) and (X, Y, −1) 
+
+are in G, and A is in one of these states. Similarly, if A ∈ F ↑ 
+
+> 2
+
+or A ∈ F ↓ 
+
+> 2
+
+, then |y(a2) − y(a1)| ≥ 1, and thus h ≥ 1. So, both (X, Y, 2) and (X, Y, −2) are in G, and A is in one of these states. ◁10 Minimum Exposure Motion Planning 
+
+Consider a minimum exposure schedule between A and T1. Let T1 be contained in the state (X, Y, σ ).If there is a zero exposure schedule between A and T1, then Proposition 21 and Theorem 10 imply that we add a zero exposure edge between the state representing A and (X, Y, σ ). Otherwise, there is no configuration between A and T1 where both robots are covered, and therefore, Theorem 8 returns the correct weight for the positive exposure edge between the state representing A and (X, Y, σ ). The same argument can be applied to prove the correctness of the minimum exposure schedule between B
+
+and the last Tj . Therefore, it remains only to prove the correctness between Ti and Ti+1 . Let (X, Y, σ )
+
+be the state containing Ti and (X′, Y, σ ′) be the state containing Ti+1 . We have two cases. Either all configurations between Ti and Ti+1 are covered, or all configurations between Ti and Ti+1 are exposed. In the first case, the correctness of the Feasibility data structure in Theorem 10 implies that all the zero exposure edges in the graph G are correctly computed, so there will be a sequence of zero exposure edges between (X, Y, σ ) and (X′, Y, σ ′). In the second case, the correctness of Theorem 8 implies that the weight of the positive exposure edge between (X, Y, σ ) and (X′, Y, σ ′) is equal to the Min-Makespan CMP between Ti and Ti+1 . This completes the proof of correctness. Finally, we analyze the runtime. Computing the inner Minkowski sums inner (S) and the horizontal decompositions takes O(n log n) time [ 9, 30 ]. Enumerating all triples (X, Y, σ ) takes O(n2) time. The number of vertices in the graph G is O(n2). Constructing the Feasibility data structure in Theorem 10 takes O(n2) time. For every pair of vertices, querying the Feasibility data structure takes O( log n)
+
+time, and computing the Min-Makespan CMP takes O(1) time. Therefore, constructing all O(n4)
+
+edges in the graph G takes O(n4 log n) time. Adding A and B as vertices to the graph G takes O(n2 log n)
+
+time. Finally, running Dijkstra’s algorithm between A and B takes O(n4 + n2 log n) = O(n4) time. ◀
+
+# 5 Coordinated motion planning for k robots 
+
+In this section, we extend our results for Min-Sum CMP and Min-Makespan CMP from Section 3 to any fixed number k of robots. This represents a generalization and simplification of results by Eiben, Ganian, and Kanj [ 15 ], who studied CMP in the integer grid. A key statement concerning the decision variant of Min-Makespan CMP extends directly to our setting, motivating our subsequent results: 
+
+▶ Theorem 12 (Eiben, Ganian, and Kanj [ 15 ], Theorem 21) . The decision variant of Min-Makespan CMP in the integer grid is NP -hard, even for constant makespan. 
+
+In their reduction from a variant of 3Sat , each variable and clause gadget operates in two phases. In the first phase, the “free” variable and clause robots are confined to move only within corridors formed by other robots that move to their designated positions; to reach these positions in time, they must move permanently. In the second phase, the free robots can move to their targets without any further interactions with other robots. The robots are forced to move according to rectilinear trajectories in their model, and we will show due to Theorem 14, that this is also optimal for our setting. Consequently, the possibility of continuous motion (permitted in our model) in either phase yields no additional benefit. We show that both the Min-Makespan CMP and the Min-Sum CMP problem are FPT parameter-ized by the number of robots, based on a generalization of the transition graph from Section 3. 
+
+Transition graph. Every feasible configuration in Fk permits an axis-parallel bisection between each pair of robots, and an ordering for k robots specifies this relation. There are thus 4(k
+
+> 2
+
+) possible orderings. Note that not every possible ordering is feasible. For example, if R2 is right of R1, and R3 is right of 
+
+R2, then R3 cannot be left of R1. Two orderings O1, O 2 are adjacent in the transition graph exactly if for every pair of robots Ri, R j , the relative orderings of Ri and Rj in O1 and O2 are adjacent in the transition graph of F2. In other words, the orderings do not have opposing relative orders for any pair of robots. This implies that the degree of every vertex in the transition graph is bounded by 3(k
+
+> 2
+
+).We start by showing that for any two commonly ordered configurations of k robots, there exists an optimal schedule in which every robot makes at most one turn. 
+
+▶ Lemma 13. Let A, B ∈ F k be commonly ordered configurations of k robots. There exists a schedule with makespan d(A, B ) in which each robot makes at most one turn. S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 11 
+
+Proof. We generalize the schedule of Lemma 2. Let d refer to the diameter d(A, B ). We provide a schedule M over the time interval [0 , d ], where each robot Ri, i ∈ { 1, . . . , k } follows these three steps: 
+
+1. Move along the x-axis towards x(bi) at unit speed. |x(bi) − x(ai)|
+
+2. Wait there until the total elapsed time is d − | y(bi) − y(ai)|. d − ∥ bi − ai∥
+
+3. Move along the y-axis towards y(bi) at unit speed. |y(bi) − y(ai)|
+
+The makespan of this schedule is trivially equal to d; it remains to prove that this schedule is collision-free. Consider any two robots Ri and Rj , and let A′, B ′ be the start and end configurations of just these two robots. Let M ′ = ( m′
+
+> i
+
+, m ′ 
+
+> j
+
+) be the schedule produced by Lemma 2 for makespan d on A′, B ′. Then 
+
+M ′ = ( mi, m j ), so Lemma 2 implies that there is no collision in the schedule M between Ri and Rj . ◀
+
+It follows that there exists an optimal schedule which follows a simple path in the transition graph of 
+
+k robots. After bounding the size of the transition graph by a function of k, we can apply the techniques from Section 3 to compute optimal schedules in FPT time. 
+
+▶ Theorem 14. Min-Makespan CMP is FPT parameterized by the number of robots. 
+
+Proof. Let A, B ∈ F k be two feasible configurations of k robots. By Lemma 13, there exists a minimum-makespan schedule from A to B which does not re-enter an ordering, i.e., that follows a simple path in the transition graph. We proceed in two steps, first showing that if we can correctly guess a simple path in the transition graph that an optimal schedule follows, we can determine that schedule in O(g(k)) 
+
+time for some computable function g. Then we show that we can find an optimal path deterministically, using exhaustive search to enumerate at most h(k) candidates for some computable function h.
+
+▷ Claim 15. Given a pair of configurations A, B ∈ F k and a sequence of ℓ orderings in the transition graph, we can determine a schedule with minimal makespan that obeys the given sequence in O(( k2ℓ)2.5)
+
+time, if it exists. 
+
+Proof. We formulate this problem as a linear program using O(kℓ ) many variables and constraints; our approach is almost identical to that in Theorem 4. To find a schedule that obeys the sequence of orderings, we need only to determine an intermediate configuration in the intersection of successive orderings. Between every pair of successive configurations, we can then find a schedule that matches the lower bound (the diameter) due to Lemma 13. We denote the ℓ intermediate configurations by I1, . . . , I ℓ with Iu = ( iu 
+
+> 1
+
+, . . . , i uk ) for u ∈ [ℓ] and denote by I0 = A and Iℓ+1 = B the start and target configurations. To measure the makespan between intermediate configurations, we split the objective ϕ into ℓ + 1 terms: minimize ϕ
+
+subject to ϕ = ϕ0 + ϕ1 + . . . + ϕℓ (makespan is sum of transition terms) .
+
+The variable ϕu defines exactly the elapsed time between configuration Iu and Iu+1 :
+
+ϕu ≥ ∥ iu 
+
+> 1
+
+− iu+1 1 ∥ (lower bound for R1)
+
+ϕu ≥ . . . . . . (1) 
+
+ϕu ≥ ∥ iuk − iu+1  
+
+> k
+
+∥ (lower bound for Rk).
+
+It remains to force each intermediate configuration into the intersection of two specific orderings as defined by the input sequence. For every intermediate configuration Iu and every pair of robots Rs and 
+
+Rt, we add two inequality term resembling, e.g., x(ius ) ≥ x(iut ) + 1 to enforce the separators dictated by the orderings. The resulting linear program then has O(k2ℓ) many variables and (in)equalities. Using a conventional LP solver as in [8], we can thus compute the schedule in O(k5ℓ5/2) time. ◁
+
+As the length ℓ of a simple path of the transition graph cannot exceed the number of vertices 4(k
+
+> 2
+
+),the worst-case runtime due to Claim 15 is bounded by g(k) ∈ O (2 5/2(k−1) kk5).It remains to argue that we can enumerate all relevant paths in time bounded by a function of k.Recall that the transition graph has degree at most 3 (k
+
+> 2
+
+) and, consequently, has |E| ≤ 1/2 · 3 (k
+
+> 2
+
+) 4 (k
+
+> 2
+
+) edges, 12 Minimum Exposure Motion Planning 
+
+so the number of paths is trivially bounded by 2|E|. We can then exhaustively enumerate elements of the power set of |E|, determining whether a given edge set is a simple path in O(4 (k
+
+> 2
+
+) ) time using, e.g., BFS, and finally verifying that the orderings at the start and end vertices of a given path contain the two configurations A and B, respectively, which takes O((k
+
+> 2
+
+)) time. The total runtime of our algorithm using exhaustive search to find and eliminate candidate paths is bounded by O(h(k) · g(k)) :
+
+O(21/2·3(k
+
+> 2
+
+)4(k
+
+> 2
+
+) · 4(k
+
+> 2
+
+)
+
+︸ ︷︷ ︸
+
+> h(k)
+
+· 25/2(k−1) kk5
+
+︸ ︷︷ ︸
+
+> g(k)
+
+)
+
+= O(2 1/2·31/2( k−1) k 2(k−1) k
+
+· 25/2(k−1) kk5 · 2(k−1) k)= O(2 1/2·31/2( k−1) k 2(k−1) k
+
+· 27/2(k−1) k · k5). ◀
+
+The same principles can be directly transferred to the Min-Sum CMP problem, requiring only minor changes to the linear program. While the total number of variables and constraints is actually smaller than for Min-Makespan CMP , the asymptotic runtime remains identical. 
+
+▶ Theorem 16. Min-Sum CMP is FPT parameterized by the number of robots. 
+
+Proof. The proof is analogous to that of Theorem 14; we exhaustively enumerate possible sequences of orderings and determine the best schedule for each sequence using a linear program. We now briefly outline the necessary changes to Claim 15. In particular, we drop the constraints from Equation (1) and replace the initial equality term for our objective. minimize Σ
+
+subject to Σ = ∥i11 − i21∥ + . . . + ∥iℓ 
+
+> 1
+
+− iℓ+1 1 ∥ (distance traveled by R1)
+
++∥i12 − i22∥ + . . . + ∥iℓ 
+
+> 2
+
+− iℓ+1 2 ∥ (distance traveled by R2)
+
+· · · 
+
++∥i1 
+
+> k
+
+− i2
+
+> k
+
+∥ + . . . + ∥iℓk − iℓ+1  
+
+> k
+
+∥ (distance traveled by Rk).
+
+Taking into account the ordering-enforcing constraints imposed on each of the intermediate configurations, the size of this linear program is asymptotically identical to that from Claim 15, yielding the same runtime for the full algorithm; we refer to the analysis in Theorem 14. ◀
+
+# 5.1 Extension to related settings 
+
+Our results for both the Min-Sum CMP and Min-Makespan CMP problems have direct extensions to two closely related variants of Coordinated Motion Planning . While some of the following statements are known due to related work, our algorithm offer significantly simpler and faster approaches. 
+
+Rectangular robots in the plane. In this setting, each robot Ri takes the shape of a rectangle of size 
+
+wi × hi rather than the unit square ⊡; the model otherwise remains the same. Our algorithm is applicable with only minor adjustments: In particular, a separating axis-parallel bisector must exist for every pair of robots, meaning that no technical changes to the arguments of Lemma 13 are necessary. Similarly, the linear programs in the proofs of Theorems 14 and 16 require only minor changes. To enforce a bisector such that Ri is, for instance, to the right of Rj in a configuration P , we simply add a constraint of the form x(pi) ≥ x(pj ) + 1/2(wi + wj ). A related variant of this problem has been studied in [ 25 ], where an FPT algorithm for the number of straight-line moves necessary is given. We note that, while this algorithm extends to an FPT algorithm for Min-Sum CMP according to [ 16 ], the authors’ proposed runtime exceeds that of our algorithm. 
+
+Extension to the integer grid. All of our methods have straight-forward extensions to the integer grid. In this setting, each of the robots R1, . . . , R k occupies each at a unique vertex pi∈Z2 of the grid. We denote the feasible grid configurations by Gk ⊂ F k.S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 13 
+
+Robots can then change their position in discrete time steps. During each step, a robot can move to an adjacent ( L1-distance 1) vertex in the grid exactly if (i) no other robot is attempting to move to the same vertex and (ii) this would not constitute a swap with a robot at the target vertex. For a detailed model description, we refer to [15]. To demonstrate the applicability of our results to the grid setting, we highlight that both the transition graph of Fk and Lemma 13 do not rely at all on the configuration space being continuous, transferring immediately to Gk. For the case of the infinite integer grid, it follows that Theorems 14 and 16 are immediately applicable. Furthermore, the inclusion of rectangular constraints as outlined in Section 3.3 allows us to restrict the configuration space from Gk to arbitrary solid grid graphs. It should be noted, however, that switching from polynomial-time solvable linear programs (LP) to integer linear program (ILP) of the same size incurs a significant overhead, as solving ILPs is NP -hard in general [ 34 ]. In [ 15 , Theorems 14 and 19], the authors prove that all instances of Min-Sum CMP and Min-Makespan CMP in the grid permit optimal solutions in which each robot makes at most ρ(k) turns for some fixed ρ(k) > k k. Due to the bounded diameter of the transition graph of Gk, we can immediately derive an upper bound of 2 · 4 (k
+
+> 2
+
+) on the necessary number of turns made by each robot in an optimal solution. As our approach, like theirs, relies on the enumeration of combinatorial snapshots of turns made by each robots, this bound directly reduces the search space size and implies a significant improvement in efficiency. 
+
+# 6 Minimum exposure CMP with constantly many robots 
+
+Our approach for k robots Min-Exposure CMP is very similar to that for two robots. We again define a graph G such that the shortest path distance dG(A, B ) between a pair of states A and B is equal to the Min-Exposure CMP between states A and B. As the states in Definition 7 are specific to the two robot case, we start by generalizing states to the k robot case. 
+
+▶ Definition 17. Let k ∈ N. A state is a pair of tuples (X , Σ) where |X | = k and |Σ| = (k
+
+> 2
+
+). The 
+
+k-tuple X = ( Xi)1≤i≤k consists of k horizontal trapezoids such that Xi and Xj are either interior disjoint or the same trapezoid. The (k
+
+> 2
+
+)-tuple Σ = ( σi,j )1≤i<j ≤k consists of (k
+
+> 2
+
+) integers σi,j , where each 
+
+σi,j ∈ {− 2, −1, 0, 1, 2}. A configuration P ∈ F k is in state (X , Σ) if: 
+
+pi ∈ Xi for all 1 ≤ i ≤ k,for all 1 ≤ i < j ≤ k, we have if σi,j = 0 , then there is no restriction on the relative position of pi and pj ,if σi,j = 1 , then x(pi) ≤ x(pj ) + 1 ,if σi,j = −1, then x(pi) ≥ x(pj ) − 1,if σi,j = 2 , then y(pi) ≤ y(pj ) + 1 , and if σi,j = −2, then y(pi) ≥ y(pj ) − 1.
+
+Since the conditions pi ∈ Xi and σi,j can be written as linear inequalities, it is not too difficult to combine Theorems 8 and 14 to obtain the following. 
+
+▶ Corollary 18. Min-Makespan CMP between any two states is FPT parameterized by the number of robots. 
+
+We proceed in an analogous way to Section 4 to define the graph G.
+
+The vertices of G. For each polygonal domain Si ∈ S , compute its inner Minkowski sum inner (Si).Let W be the set of trapezoids in all horizontal decompositions of {inner (Si)|Si ∈ S} . Fix X = {Xi}ki=1 
+
+to be a k-tuple of trapezoids in W . For all 1 ≤ i < j ≤ k, we define Σi,j , which we will then use to define the states (X , Σ) that X participates in. Let Zi,j be the convex hull of Xi ∪ Xj . We have four cases: If Zi,j contains a 1 × 1 square, then Σi,j = {0}.If Zi,j does not contain a 1 × 1 square, and w ≥ 1 and h ≥ 1, then Σi,j = {− 1, 1, −2, 2}.If Zi,j does not contain a 1 × 1 square, and w ≥ 1 and h < 1, then Σi,j = {− 1, 1}.If Zi,j does not contain a 1 × 1 square, and w < 1 and h ≥ 1, then Σi,j = {− 2, 2}.14 Minimum Exposure Motion Planning 
+
+For a state (X , Σ) , we have that Σ is (k
+
+> 2
+
+)-tuple {σi,j }1≤i<j ≤k where σi,j ∈ Σi,j . To define all states involving X , we construct the Cartesian product of the (k
+
+> 2
+
+) sets {Σi,j : 1 ≤ i < j ≤ k}. Then, for every (k
+
+> 2
+
+)-tuple Σ in this Cartesian product, we add the state (X , Σ) as a vertex in the graph G. We repeat this for all O(nk) choices of k-tuples X ∈ W k. This completes the construction of the vertices of G.
+
+The edges of G. Recall that the edges of G are divided into two types: zero exposure edges and positive exposure edges. For constructing these edges, we adapt the approach in Section 4. For the zero exposure edges, we replace the two robot Feasibility algorithm in Theorem 10 with the k robot 
+
+Feasibility algorithm in Sharir and Sifrony [ 39 ], which has O(nk) (i.e. XP ) running time. For the positive exposure edges, we replace the two robot Min-Makespan CMP algorithm in Theorem 8 with the k robot Min-Makespan CMP algorithm in Theorem 18. This completes the construction of G. By running a shortest path algorithm on the graph G, we can compute a minimum exposure schedule. 
+
+▶ Theorem 19. Min-Exposure CMP is slicewise polynomial ( XP ) in the number of robots. 
+
+# 7 Feasibility of motion for two robots in a polygonal environment 
+
+A critical subproblem of Min-Exposure CMP is determining whether robots can swap positions within a covering polygon without incurring any exposure time. This problem corresponds to a variant of 
+
+Coordinated Motion Planning in a polygonal domain. While O(n2) time algorithms for two robots are known [ 36 ], we provide a simpler algorithm. Moreover, our algorithm is optimized for repeated querying. Our approach consists of two steps. We first preprocess the polygonal domain to create an efficient query structure in O(n2) time, where n is the number of vertices. Upon completion, any query to this data structure takes O(log n) time. 
+
+▶ Theorem 10. Let S be a polygonal domain with n vertices. There exists a data structure that can be computed in O(n2) time and O(n2) space that decides Feasibility for any start and target configuration in F2[S] in O(log n) time. 
+
+Let S be a polygonal domain with n vertices, and let inner (S) be its inner Minkowski sum with the unit square ⊡, see Definition 1. On a high level, we reduce the problem by showing that for any configuration of two robots in a polygonal domain S, there exists a schedule that places both robots at vertices of inner (S), while preserving the ordering of the two robots along a chosen axis. We then partition the finite set of resulting configurations into mutually reachable sets. We start by defining two relevant properties of configurations of two robots within polygonal domains. A configuration (p1, p 2) ∈ F 2[S] is a boundary configuration if both p1 and p2 are on the boundary of 
+
+inner (S). In the special case that both robots are placed on vertices of inner (S), we speak of a corner configuration . By this definition, the configuration shown in Figure 3 is a boundary configuration, but not a corner configuration. We start by showing that every feasible configuration can be normalized ,that is, transformed into a commonly ordered boundary configuration. 
+
+▶ Lemma 20. Any feasible configuration within a polygonal domain S can be normalized to a boundary configuration by a schedule in which neither robot makes a turn, or a corner configuration by a schedule in which both robots make at most one turn. 
+
+Proof. Recall that F2[S] ⊆ F 2, and there always exists an axis-parallel bisector ℓ that separates the two robots. Let P ∈ F 2[S] ∩ F → 
+
+> 2
+
+, all other cases are symmetric. To normalize, we then move both robots away from that bisector until both reach the boundary of inner (S).If we require the resulting configuration to be a corner configuration, let ei = {ui, v i} be the edge of ∂inner (S) that Ri reaches at w ∈ R2. If ei runs parallel to the separator ℓ, then Ri can simply travel along the edge to one of its incident vertices, which will never result in the robot crossing the bisector. Otherwise, one of vectors in {−−→wivi, −−→wiui} points away from the bisector ℓ. Moving Ri to this vertex will S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 15 ℓ
+
+> (a)
+
+ℓ (b)  
+
+> Figure 7 Moving to a boundary or corner configuration can be done in an order-preserving manner.
+
+then also never result in it crossing the bisector, resulting in a feasible schedule if both robots apply these rules symmetrically. Both steps are illustrated in Figure 7. Note that in a diagonal configuration, we can normalize horizontally or vertically, but can only preserve both orderings if we do not require the normalization to result in a corner configuration. ◀
+
+Normalization can be used to implement an efficient data structure that gives a reachable corner configuration for an arbitrary configuration, discretizing the search space for feasibility. 
+
+▶ Lemma 21. Let S be a polygonal domain with n vertices. There exists a data structure that can be computed in O(n log n) time that maps feasible configurations of two robots in S to reachable corner configurations in O(log n) query time and O(n) space. 
+
+Proof. Algorithm 1 maps an arbitrary configuration P ∈ F 2[S] to a corner configuration. Note that finding the relevant edges on line three takes Ω( n) time without preprocessing.  
+
+> Algorithm 1 Determining a reachable corner configuration
+
+Input: A configuration P = ( p1, p 2) in a polygonal domain S.
+
+Output: A reachable corner configuration P ′ = ( p′
+
+> 1
+
+, p ′
+
+> 2
+
+). 
+
+> 1:
+
+ℓ ← axis-parallel bisector that separates R1 and R2 in P 
+
+> 2:
+
+for i ∈ { 1, 2} do  
+
+> 3:
+
+{u, v } ← first edge of inner (S) that Ri will hit when moving away from ℓ 
+
+> 4:
+
+w ← the point on the edge uv that Ri will hit  
+
+> 5:
+
+p′ 
+
+> i
+
+← v if −→wv points away from ℓ else u 
+
+> 6:
+
+end for  
+
+> 7:
+
+return (p′
+
+> 1
+
+, p ′
+
+> 2
+
+)
+
+We accelerate applications of Algorithm 1 by precomputing the following information. Start by computing the inner Minkowski sum inner (S) of the boundary ∂S , which includes the boundary of the holes, and the unit square ⊡ in O(n log n) time [ 30 ]. We then compute both a horizontal and a vertical decomposition of inner (S), dividing it into trapezoidal regions in O(n log n). In the same time, we can construct a point-location data structure, such that such queries can be answered in O( log n) time [ 26 ]. Every face in the horizontal decomposition is then bounded from the left and right by edges of inner (S)
+
+and from above and below by two cuts introduced by the decomposition (or a cut and an edge of the polygonal domain), and analogously for the vertical decomposition, see Figure 3. Assume without loss of generality that Ri moves away from ℓ to the right. The center pi of Ri can be mapped uniquely to a trapezoidal region using a point location query in the horizontal decomposition in O( log n) time. The right edge of this trapezoid in inner (S) is then always the first edge that Ri will hit. Looking up the relevant incident vertex is a constant-time query, depending on the representation of the polygonal domain S. ◀
+
+Having reduced the search space to boundary configurations within the given polygonal domain, we additionally restrict the class of schedules that need to be considered. Due to [ 4, Lemma 3.1], if an instance is feasible, there exists a schedule that is decoupled , i.e., only one of the two robots is moving 16 Minimum Exposure Motion Planning p1q1ℓ    
+
+> (a) The vertical projection from m1[T′](purple).
+
+p1q1ℓ (b) The resulting trajectory from p1 to q1.  
+
+> Figure 8 We determine piecewise replacements for trajectories along the boundary of inner (S).
+
+at given point in time. Robots then either wait or move at exactly unit speed. Note that additionally we may assume that the robots move along polygonal trajectories, as such a solution always exists in a polygonal domain. We now show that in a polygonal domain S (with or without holes), it suffices to consider trajectories along edges of inner (S) and its vertical and horizontal decompositions. 
+
+▶ Lemma 22. Let S be a polygonal domain. For any pair of corner configurations in F2[S], if there exists a feasible schedule within S, then there is also a schedule that travels only along edges of inner (S)
+
+and its vertical and horizontal decompositions. 
+
+Proof. Let A, B ∈ F 2[S] be two feasible corner configurations in S. Let M = ( m1, m 2) be a decoupled schedule from A to B over the time interval T = [ t0, ϕ (M )] . We split T at every point in time at which a robot starts, stops, makes a turn, or enters another ordering of F2 and denote these by t0, . . . , t ρ = ϕ(M ).This divides T into ρ − 1 intervals such that (i) in each interval Ti = [ ti, t i+1 ] with 0 ≤ i < ρ , either both robots are waiting or exactly one robot Rj is moving and the image of its trajectory mj [Ti] is a straight line, and (ii) that any pair of configurations M (ti) and M (ti+1 ) has a common ordering with respect to the plane transition graph from Section 3. Our approach relies on Lemma 20 to determine (boundary) normalizations of intermediate configura-tions that preserve all separating bisectors. We first show that for each of the ρ time intervals, we can determine a schedule between uniform (i.e., along the same axis) normalizations of its start and end configurations. 
+
+▷ Claim 23. For each time interval Ti = [ ti, t i+1 ], if M (ti) and M (ti+1 ) can be normalized along the same axis, there exists a schedule from one normalization to the other that moves modules along the edges of inner (S) and its vertical and horizontal decomposition. 
+
+Proof. Consider now an arbitrary time interval Ti = [ ti, t i+1 ]. We assume, without loss of generality, that R1 moves along a straight line segment during Ti, while R2 does not move at all, and that the configurations P = M (ti) and Q = M (ti+1 ) have a common horizontal separator ℓ such that R1 lies above. We denote by P and Q the vertical normalizations of P and Q, respectively. Note that p2 = q2,since R2 does not move. Furthermore, if m1[Ti] is a vertical line, it follows that p1 = q1 and we are done. We thus assume that x(p1)̸ = x(q1) as shown in Figure 8(a). To determine a path between p1 and q1
+
+that follows edges of inner (S) and its vertical decomposition, we can now simply move each point on the line segment m1[Ti] upwards onto the boundary of inner (S) and output the corresponding boundary points, see Figure 8(b). ◁
+
+To obtain a schedule from A to B with the desired properties, we iteratively assign every event point a normalization axis and then show that there exists a schedule from the normalization of M (ti) to the normalization of M (ti+1 ), for every 0 ≤ i < ρ .We argue by induction. For the base case, assume without loss of generality that M (t0) = A has a horizontal separator. The configuration can then be normalized vertically by a schedule that has the desired properties, i.e., that only moves robots along edges of inner (S) and its vertical and horizontal decompositions, as A itself is a corner configuration. S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 17 
+
+Let ti be an event point such that there exists a schedule with the desired properties from A to 
+
+some fixed normalization of M (ti). Without loss of generality, let that normalization axis be vertical. We show that the schedule from A to the normalization of M (ti) can then be extended to reach some normalization of M (ti+1 ). If M (ti+1 ) can also be normalized vertically, we can simply assign it this axis and by Claim 23, we are done. Assume therefore that M (ti+1 ) can only be normalized horizontally. This implies that M (ti) can be normalized horizontally as well, as the two configurations must share a common ordering. It thus suffices to show that there exists a schedule from the vertical normalization of 
+
+M (ti) to its horizontal normalization, which then yields the previous case and concludes our proof. Let Ph (Pv ) be the horizontal (vertical) normalization of a diagonal configuration P to the boundary. By definition of the normalization procedure, both Ph and Pv are also diagonal, and there exists a schedule from P to Ph (Pv ) in which neither robot makes a turn. We can then normalize P and Pv
+
+horizontally and compute a schedule from one normalization to the other by Claim 23, as they are uniformly normalized. This implies that we can get from Ph to the horizontal normalization of Pv . The schedule from its horizontal normalization to Pv is trivial (straight line), so we are done. ◀
+
+We now have all the necessary tools to prove Theorem 10: 
+
+▶ Theorem 10. Let S be a polygonal domain with n vertices. There exists a data structure that can be computed in O(n2) time and O(n2) space that decides Feasibility for any start and target configuration in F2[S] in O(log n) time. 
+
+Proof. For the sake of readability, let n = |V (inner (S)) |, which is O(|V (S)|).We proceed as follows, starting by computing the inner Minkowski sum inner (S) of S and the unit square ⊡. We then compute the data structure from Lemma 21 in O(n log n) time. To construct the reachability data structure, we define a graph GS , which has the vertex set V (GS ) = 
+
+V (inner (S)) 2, i.e., n2 vertices. For every vertex (a, b ) ∈ V (GS ), we first determine whether it represents a feasible configuration, which can be done by an intersection check. If (a, b ) is feasible, we check whether it is possible to move each of the two robots along each of (i) the clockwise and counterclockwise incident edges of the respective boundary cycle of inner (S), and (ii) the incident edges induced by the vertical and horizontal decompositions of inner (S). For each of the (up to) twelve relevant edges, a simple intersection check of constant complexity suffices to check whether a collision would occur. We then add an edge to 
+
+E(GS ) exactly if the movement along the respective edge of inner (S) is collision-free. The resulting graph GS is sparse: every vertex has degree at most twelve. We finally compute the set of connected components of the graph in O(|V (GS )| + |E(GS )|) = O(n2) time using breadth-first search and enter all vertices into, e.g., a hash table that maps each vertex to an identifier for its connected component. To query the resulting structure for feasibility of reconfiguration, we determine a reachable corner configurations from the input using the first structure in O( log n) time. We check our component table in O(1) expected time to determine whether these corner configurations can be reconfigured into one another. ◀
+
+# 8 Conclusions 
+
+We have presented the Min-Exposure CMP problem and provided an O(n4 log n) time algorithm to solve it optimally for two square robots between polygonal domains with n vertices in total under the L1
+
+metric. We generalized this algorithm to a fixed number of robots. As notable result of independent interest, we leverage new insights to prove that both Min-Sum CMP and Min-Makespan CMP are 
+
+FPT parameterized by the number of robots. In particular, we showed that the number of turns that each robot needs to make in an optimal solution is bounded by 2 · 4(k
+
+> 2
+
+), improving upon known bounds on the size of witnesses even for the restricted integer grid setting. Our work raises a number of follow-up questions. In particular, Min-Makespan CMP is known to be NP -hard even for constant objective, but its containment in NP is, to the best of our knowledge, 18 Minimum Exposure Motion Planning 
+
+still open. Further investigating the transition graph could provide additional insight: If the length of relevant paths is polynomial in k, membership in NP follows. Furthermore, our approaches appear applicable to higher dimensional spaces, although this likely to hinges on a generalization of Lemma 13. Finally, the exposure objective could be refined to account for partial exposure, rather than the binary definition used in our work. Defining ξ(P, S) as the total uncovered area, for instance, seems like a natural extension. 
+
+References 
+
+1 Mikkel Abrahamsen, Kevin Buchin, Maike Buchin, Linda Kleist, Maarten Löffler, Lena Schlipf, André Schulz, and Jack Stade. Reconfiguration of unit squares and disks: PSPACE-hardness in simple settings. In 
+
+Symposium on Computational Geometry (SoCG) , pages 1:1–1:18, 2025. doi:10.4230/LIPIcs.SoCG.2025.1 .
+
+2 Mikkel Abrahamsen and Dan Halperin. Ten problems in geobotics, 2024. doi:10.48550/arXiv.2408.12657 .
+
+3 Pankaj K. Agarwal, Mark de Berg, Benjamin Holmgren, Alex Steiger, and Martijn Struijs. Optimal motion planning for two square robots in a rectilinear environment. In Symposium on Computational Geometry (SoCG) , pages 5:1–5:17, 2025. doi:10.4230/LIPIcs.SoCG.2025.5 .
+
+4 Pankaj K. Agarwal, Dan Halperin, Micha Sharir, and Alex Steiger. Near-optimal min-sum motion planning for two square robots in a polygonal environment. In Symposium on Discrete Algorithms (SODA) , pages 4942–4962, 2024. doi:10.1137/1.9781611977912.176 .
+
+5 Pankaj K. Agarwal, Benjamin Holmgren, and Alex Steiger. Near-optimal min-sum multi-robot motion planning in a planar polygonal environment. In Symposium on Discrete Algorithms (SODA) , pages 727–741, 2026. doi:10.1137/1.9781611978971.28 .
+
+6 Luke Antonyshyn, Jefferson Silveira, Sidney Givigi, and Joshua A. Marshall. Multiple mobile robot task and motion planning: A survey. ACM Computing Surveys , 55(10):213:1–213:35, 2023. doi:10.1145/3564696 .
+
+7 Bernard Chazelle. Approximation and decomposition of shapes. In Algorithmic and Geometric Aspects of Robotics , volume 1, pages 145–185. Routledge, 1987. doi:10.4324/9781315471457 .
+
+8 Michael B. Cohen, Yin Tat Lee, and Zhao Song. Solving linear programs in the current matrix multiplication time. In Symposium on Theory of Computing (STOC) , pages 938–942, 2019. doi:10.1145/3313276. 3316303 .
+
+9 Mark de Berg, Otfried Cheong, Marc J. van Kreveld, and Mark H. Overmars. Computational Geometry: Algorithms and Applications . Springer, 2008. doi:10.1007/978-3-540-77974-2 .
+
+10 Sarita de Berg, Guillermo Esteban, Rodrigo I. Silveira, and Frank Staals. Exact solutions to the weighted region problem. In Canadian Conference on Computational Geometry (CCCG) , pages 91–102, 2024. 
+
+doi:10.48550/arXiv.2402.12028 .
+
+11 Jean-Lou De Carufel, Carsten Grimm, Anil Maheshwari, Megan Owen, and Michiel Smid. A note on the unsolvability of the weighted region shortest path problem. Computational Geometry , 47(7):724–727, 2014. 
+
+doi:10.1016/j.comgeo.2014.02.004 .
+
+12 Erik D. Demaine, Sándor P. Fekete, Phillip Keldenich, Henk Meijer, and Christian Scheffer. Coordinated motion planning: Reconfiguring a swarm of labeled robots with bounded stretch. In Symposium on Computational Geometry (SoCG) , pages 29:1–29:15, 2018. doi:10.4230/LIPICS.SOCG.2018.29 .
+
+13 Erik D. Demaine, Sándor P. Fekete, Phillip Keldenich, Henk Meijer, and Christian Scheffer. Coordinated motion planning: Reconfiguring a swarm of labeled robots with bounded stretch. SIAM Journal on Computing , 48(6):1727–1762, 2019. doi:10.1137/18M1194341 .
+
+14 Daniel S. Drew. Multi-agent systems for search and rescue applications. Current Robotics Reports ,2(2):189–200, 2021. doi:10.1007/s43154-021-00048-3 .
+
+15 Eduard Eiben, Robert Ganian, and Iyad Kanj. The parameterized complexity of coordinated motion planning. In Symposium on Computational Geometry (SoCG) , pages 28:1–28:16, 2023. doi:10.4230/ LIPIcs.SoCG.2023.28 .
+
+16 Eduard Eiben, Iyad Kanj, and Salman Parsa. Motion planning of disk and rectangular robots. In Canadian Conference on Computational Geometry (CCCG) , 2025. URL: https://cccg-wads-2025.eecs.yorku.ca/ cccg-papers/7A1.pdf .
+
+17 Guillermo Esteban, Dan Halperin, and Rodrigo I. Silveira. Shortest coordinated motions for square robots. 
+
+Autonomous Robots , 49(2):1–22, 2025. doi:10.1007/s10514-025-10198-4 .S. de Berg, J. Gudmundsson, P. Kramer, C. Rieck, and S. Wong 19 
+
+18 Tzvika Geft and Dan Halperin. Refined hardness of distance-optimal multi-agent path finding. In 
+
+International Conference on Autonomous Agents and Multiagent Systems (AAMAS) , pages 481–488, 2022. 
+
+doi:10.5555/3535850.3535905 .
+
+19 Laxmi Gewali, Alex Meng, Joseph S. B. Mitchell, and Simeon C. Ntafos. Path planning in 0/1/∞ weighted regions with applications. In Symposium on Computational Geometry (SoCG) , pages 266–278, 1988. 
+
+doi:10.1145/73393.73421 .
+
+20 Joachim Gudmundsson, Zijin Huang, André van Renssen, and Sampson Wong. Spanner for the 0/1/∞
+
+weighted region problem. In Symposium on Algorithms and Data Structures (WADS) , pages 33:1–33:15, 2025. doi:10.4230/LIPIcs.WADS.2025.33 .
+
+21 Dan Halperin, Lydia E. Kavraki, and Kiril Solovey. Robotics. In Handbook of Discrete and Computational Geometry , pages 1343–1376. CRC Press LLC, 2017. 
+
+22 Dan Halperin, Oren Salzman, and Micha Sharir. Algorithmic motion planning. In Handbook of Discrete and Computational Geometry , pages 1311–1342. CRC Press LLC, 2017. 
+
+23 William R. Hamel and Reid L. Kress. Elements of telerobotics necessary for waste clean up automation. In 
+
+International Conference on Robotics and Automation (ICRA) , pages 393–400, 2001. doi:10.1109/ROBOT. 2001.932583 .
+
+24 J.E. Hopcroft, J.T. Schwartz, and M. Sharir. On the complexity of motion planning for multiple independent objects; PSPACE-hardness of the “Warehouseman’s problem”. The International Journal of Robotics Research , 3(4):76–88, 1984. doi:10.1177/027836498400300405 .
+
+25 Iyad Kanj and Salman Parsa. On the parameterized complexity of motion planning for rectangular robots. In Symposium on Computational Geometry (SoCG) , pages 65:1–65:15, 2024. doi:10.4230/LIPIcs.SoCG. 2024.65 .
+
+26 David G. Kirkpatrick. Optimal search in planar subdivisions. SIAM Journal on Computing , 12(1):28–35, 1983. doi:10.1137/0212002 .
+
+27 David G. Kirkpatrick and Paul Liu. Characterizing minimum-length coordinated motions for two discs. In 
+
+Canadian Conference on Computational Geometry (CCCG) , pages 252–259, 2016. doi:10.48550/arXiv. 1607.04005 .
+
+28 David G. Kirkpatrick and Paul Liu. Minimum-length coordinated motions for two convex centrally-symmetric robots. In European Workshop on Computational Geometry (EuroCG) , pages 485–492, 2025. 
+
+doi:10.48550/arXiv.2503.02010 .
+
+29 Steven M. LaValle. Planning Algorithms . Cambridge University Press, 2006. doi:10.1017/ CBO9780511546877 .
+
+30 Daniel Leven and Micha Sharir. Planning a purely translational motion for a convex object in two-dimensional space using generalized Voronoi diagrams. Discrete and Computational Geometry , 2:9–31, 1987. doi:10.1007/BF02187867 .
+
+31 Jiaoyang Li, Andrew Tinka, Scott Kiesel, Joseph W. Durham, T. K. Satish Kumar, and Sven Koenig. Lifelong multi-agent path finding in large-scale warehouses. In Conference on Artificial Intelligence (AAAI) ,pages 11272–11281, 2021. doi:10.1609/AAAI.V35I13.17344 .
+
+32 Joseph S. B. Mitchell. Shortest paths and networks. In Handbook of Discrete and Computational Geometry ,pages 633–702. CRC Press LLC, 2017. 
+
+33 Joseph S. B. Mitchell and Christos H. Papadimitriou. The weighted region problem: Finding shortest paths through a weighted planar subdivision. Journal of the ACM , 38(1):18–73, 1991. doi:10.1145/102782. 102784 .
+
+34 Christos H. Papadimitriou. On the complexity of integer programming. Journal of the ACM , page 765–768, 1981. doi:10.1145/322276.322287 .
+
+35 Rahim Ali Qamar, Mubashar Sarfraz, Atta Rahman, and Sajjad A. Ghauri. Multi-criterion multi-uav task allocation under dynamic conditions. Journal of King Saud University - Computer and Information Sciences , 35(9):101734, 2023. doi:10.1016/j.jksuci.2023.101734 .
+
+36 G. Ramanathan and V. Alagar. Algorithmic motion planning in robotics: Coordinated motion of several disks amidst polygonal obstacles. In International Conference on Robotics and Automation , pages 514–522, 1985. doi:10.1109/ROBOT.1985.1087248 .
+
+37 Oren Salzman. Sampling-based robot motion planning. Communications of the ACM , 62(10):54–63, 2019. 
+
+doi:10.1145/3318164 .
+
+38 Jacob T. Schwartz and Micha Sharir. On the “piano movers” problem i. the case of a two-dimensional rigid polygonal body moving amidst polygonal barriers. Communications on Pure and Applied Mathematics ,36(3):345–398, 1983. doi:10.1002/cpa.3160360305 .20 Minimum Exposure Motion Planning 
+
+39 Micha Sharir and Shmuel Sifrony. Coordinated motion planning for two independent robots. Annals of Mathematics and Artificial Intelligence , 3(1):107–130, 1991. doi:10.1007/BF01530889 .
+
+40 Kiril Solovey. Complexity of planning, 2020. doi:10.48550/arXiv.2003.03632 .
+
+41 Kiril Solovey and Dan Halperin. On the hardness of unlabeled multi-robot motion planning. International Journal on Robotics Research , 35(14):1750–1759, 2016. doi:10.1177/0278364916672311 .
+
+42 Roni Stern, Nathan R. Sturtevant, Ariel Felner, Sven Koenig, Hang Ma, Thayne T. Walker, Jiaoyang Li, Dor Atzmon, Liron Cohen, T. K. Satish Kumar, Roman Barták, and Eli Boyarski. Multi-agent pathfinding: Definitions, variants, and benchmarks. In Symposium on Combinatorial Search (SOCS) , pages 151–158, 2019. doi:10.1609/SOCS.V10I1.18510 .
+
+43 James Trevelyan, William R. Hamel, and Sung-Chul Kang. Robotics in Hazardous Applications , pages 1521–1548. 2016. doi:10.1007/978-3-319-32552-1_58 .
+
+44 Sumanth Varambally, Jiaoyang Li, and Sven Koenig. Which MAPF model works best for automated warehousing? In Symposium on Combinatorial Search (SOCS) , pages 190–198, 2022. doi:10.1609/SOCS. V15I1.21767 .

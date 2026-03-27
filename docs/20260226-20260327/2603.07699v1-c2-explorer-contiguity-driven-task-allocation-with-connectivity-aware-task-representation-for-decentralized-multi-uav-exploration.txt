@@ -1,0 +1,418 @@
+Title: C$^2$-Explorer: Contiguity-Driven Task Allocation with Connectivity-Aware Task Representation for Decentralized Multi-UAV Exploration
+
+URL Source: https://arxiv.org/pdf/2603.07699v1
+
+Published Time: Tue, 10 Mar 2026 01:23:38 GMT
+
+Number of Pages: 9
+
+Markdown Content:
+# C2-Explorer: Contiguity-Driven Task Allocation with Connectivity-Aware Task Representation for Decentralized Multi-UAV Exploration 
+
+Xinlu Yan 1,*, Mingjie Zhang 2,3,*, Yuhao Fang 1, Yanke Sun 1,Jun Ma 2, Youmin Gong 1, Boyu Zhou 3,†, Jie Mei 1,†
+
+* Equal Contribution † Co-corresponding Author  
+
+> Fig. 1. Real-World Demonstration of the 3-UAV C 2-Explorer . The system explores an unstructured woodland with trees (left) and a structured building with pillars (right). Inset images display the corresponding generated point cloud maps and flight trajectories.
+
+Abstract — Efficient multi-UAV exploration under limited communication is severely bottlenecked by inadequate task representation and allocation. Previous task representations either impose heavy communication requirements for coor-dination or lack the flexibility to handle complex environ-ments, often leading to inefficient traversal. Furthermore, short-horizon allocation strategies neglect spatiotemporal contiguity, causing non-contiguous assignments and frequent cross-region detours. To address this, we propose C 2-Explorer, a decentral-ized framework that constructs a connectivity graph to de-compose disconnected unknown components into independent task units. We then introduce a contiguity-driven allocation formulation with a graph-based neighborhood penalty to dis-courage non-adjacent assignments, promoting more contiguous task sequences over time. Extensive simulation experiments show that C 2-Explorer consistently outperforms state-of-the-art (SOTA) baselines, reducing average exploration time by 43.1% and path length by 33.3%. Real-world flights further demonstrate the system’s feasibility. The code will be released at https://github.com/Robotics-STAR-Lab/C2-Explorer. 
+
+I. INTRODUCTION Autonomous exploration with unmanned aerial vehicles (UAVs) is critical for various applications, such as rapid 3D reconstruction [1], search-and-rescue [2, 3], and structural inspection [4, 5]. However, single-UAV exploration is ham-pered by insufficient flight endurance, resulting in limited      
+
+> 1School of Intelligence Science and Engineering, Harbin Institute of Technology, Shenzhen, Guangdong, China
+> 2Robotics and Autonomous Systems Thrust, The Hong Kong University of Science and Technology (Guangzhou), Guangzhou, Guangdong, China
+> 3Department of Mechanical and Energy Engineering, Southern Univer-sity of Science and Technology, Shenzhen, Guangdong, China
+> 24s153069@stu.hit.edu.cn ,zagerzhang@gmail.com zhouby@sustech.edu.cn ,jmei@hit.edu.cn
+
+coverage capability. To achieve wider coverage, recent works [6]–[8] have increasingly focused on multi-UAV exploration. Nevertheless, realizing effective team collaboration for effi-cient exploration remains a significant challenge. Appropriate task allocation is crucial for efficient multi-UAV exploration, as it ensures workload balance and avoids redundant task assignments. However, existing methods re-main limited by bottlenecks in task representation and spa-tiotemporal contiguity in task allocation. On the one hand, many approaches [8]–[11] employ frontiers or viewpoints as task units, which demand real-time globally consistent map sharing among UAVs and impose strict requirements on communication. In large-scale environments with frequent occlusions, such seamless map sharing is often impractical. While some works [6, 7] adopt region-based task representa-tion via space partitioning to mitigate this issue, they rely on uniform grid decomposition that assumes regular structure, leading to degraded performance in structurally complex spaces. On the other hand, current methods fail to satisfy the critical requirement of spatiotemporal contiguity, which refers to the consistent assignment of spatially adjacent tasks to a single UAV over consecutive time steps, thereby reduc-ing inefficient cross-regional traversal. Specifically, greedy methods [10]–[12] select a locally optimal viewpoint for each UAV at each decision instant, ignoring temporal consistency. This leads to frequent switching among spatially disjoint tar-gets and degrades operational efficiency. Although methods [6, 9, 13] account for inter-regional traversal costs, they lack explicit contiguity regularization. Consequently, they may still assign disconnected tasks to individual UAVs, making contiguous task subsets difficult to maintain over time. 
+
+> arXiv:2603.07699v1 [cs.RO] 8 Mar 2026
+
+Connectivity -aware 
+
+Task Representation 
+
+Contiguity -driven 
+
+Task Allocation 
+
+> Incremental Connectivity Graph
+> Task Units & Task Info
+> CVRP with Graph -adjacency
+> Contiguity Penalty
+
+Drone 1 
+
+CP -guided Planning for Single UAV 
+
+> Global CP Planning Local Tour Planning Trajectory Generation
+
+Volumetric Mapping   
+
+> LIO
+> Point Cloud & Odom
+> Voxel Map
+> ESDF
+
+Drone 2 Map Chunks 
+
+Drone N    
+
+> Within Communication Range
+> UAV -specific Task List
+> Drone States Trajectories
+> Allocated Task
+> Sequences
+> Controller Fig. 2. System Architecture of C 2-Explorer. Within communication range, Drone 1 (the lowest-ID UAV) acts as a temporary host. It builds volumetric maps via LIO and extracts task units using a connectivity-aware representation. The host then solves a contiguity-regularized CVRP to generate per-UAV task sequences and disseminates them to the other drones. Each drone subsequently executes CP-guided planning for navigation. In parallel, drones exchange local map updates, states, and trajectories within communication range to reduce redundant exploration and support collision avoidance.
+
+To address the limitations, we present C2-Explorer , a decentralized multi-UAV exploration framework designed to enhance flexibility and contiguity in task allocation. First, we introduce a connectivity-aware task representation to address the topology-agnostic limitation of grid-based partitioning in structurally complex environments. Specifically, we build a connectivity graph upon a coarse grid partitioning and split spatially disconnected unknown regions within each grid into independent task units. This avoids unnecessary detours caused by merging disjoint regions into one task, yielding more reasonable task units for efficient task allocation. To overcome the lack of spatiotemporal contiguity in traditional allocation strategies, we formulate an optimization problem that accounts for both the total traversal distance of the UAV team and allocation adjacency constraints. Specifically, we leverage topological adjacency information from the connec-tivity graph to penalize task assignments that span spatially disconnected regions. This mechanism promotes grouping of spatially connected tasks and improves allocation consistency across replanning steps, reducing interleaved trajectories and cross-region detours. We validate C 2-Explorer through extensive simulations and real-world experiments. In simulation benchmarks, C 2-Explorer reduces exploration time by 43.1% and total path length by 33.3% on average compared to SOTA baselines. We further deploy C 2-Explorer on real UAV platforms to demonstrate its practical effectiveness and robustness. In summary, our key contributions are 1) A connectivity-aware task representation that models connectivity over the partitioned space and splits spatially disconnected unknown regions into independent task units, reducing unnecessary traversal and improving efficiency. 2) A contiguity-driven task allocation, formulated as an optimization over traversal cost with adjacency constraints, penalizing disconnected assignments to encourage spatially and temporally contiguous task sets. 3) Extensive validation in simulation and real-world ex-periments demonstrating the effectiveness and efficiency of C2-Explorer. The source code will be released. II. RELATED WORK 
+
+A. Single-UAV Exploration 
+
+Autonomous exploration has been widely studied, and classical methods can be roughly categorized into sampling-based [14]–[16] and frontier-based methods [17, 18]. How-ever, these methods are often locally greedy, causing back-and-forth motion and redundant revisits. Hierarchical frame-works [19]–[21] introduce global guidance to enhance con-sistency but may overlook the underlying environment topol-ogy, leading to occasional deviations from the intended global guidance. Conversely, recent work [22] incrementally builds a connectivity graph to explicitly encode topologi-cal structure for more reliable coverage path (CP) guid-ance. Nevertheless, single-UAV exploration is inherently constrained by insufficient flight endurance, motivating in-creasing interest in multi-UAV collaborative exploration. 
+
+B. Task Representation for Multi-UAV Exploration 
+
+In multi-UAV exploration, an effective task representation is fundamental to flexible task allocation. Many approaches [8]–[11, 13] adopt frontiers or viewpoints as task units, abstracting exploration objectives as frontier-derived targets or informative viewpoints. While [8, 9, 11] group adjacent frontiers into clusters, Hui et al . [10] condense task-related information into the viewpoints sampled around frontier clusters. To reduce the scale of task allocation, Gao et al .[13] integrate spatially proximal viewpoints into super view-points. However, these representations rely on continuous global map sharing, which becomes a critical limitation in large-scale environments with limited communication and frequent occlusions. To address this, some works [6, 7, 12] embrace region-based task representation by partitioning the exploration into subregions. Zhou et al . [6] decompose the unknown space into hierarchical grids, utilizing disjoint cells of varying resolutions as elementary task units. Additionally, Cao et al . [7] incorporate a dual-resolution representation, with uniform cuboid subspaces as coarse-grained global task units. Dong et al . [12] introduce Exploration Regions of Interest to represent the uniform decomposition, structured as nodes within a multi-robot dynamic topological graph to facilitate coordination. Nevertheless, such uniform decom-position imposes a rigid geometric structure that is topolog-ically inconsistent with complex environments, resulting in inappropriate task allocation. To tackle this challenge, we propose connectivity-aware task representation that models the connectivity of the decomposed spatial regions and parti-tions spatially disconnected unknown areas into independent task units, enabling more flexible task allocation. 
+
+C. Task Allocation for Multi-UAV Exploration 
+
+Building upon the established task representation, rea-sonable task allocation is essential to achieving efficient multi-UAV collaborative exploration. In early work [23], each UAV selects the frontier closest to itself as the next target. To mitigate the allocation of redundant task units, recent approaches have incorporated a repulsion mechanism. Bartolomei et al . [8] utilize repulsive potential fields to spatially separate UAVs’ areas of interest. Moreover, Hui 
+
+et al . [10] penalize the utility of overlapping viewpoints to implicitly guide UAVs toward distinct exploration regions. However, relying solely on instantaneous decisions often neglects temporal consistency, leading to frequent target switching. Unlike greedy methods, some works [6, 7, 13] for-mulate task allocation as a Vehicle Routing Problem (VRP). Specifically, Cao et al . [7] solve a min-max VRP to assign a sequence of sub-regions to each UAV, minimizing the maximum traversal cost. Similarly, Gao et al . [13] establish a cost matrix from traversal distances for VRP modeling. In addition to path cost, Zhou et al . [6] construct a CVRP with workload as the capacity constraint, and the consistency term is implemented as a constant bias added in the cost matrix. These methods neglect explicit spatial contiguity regularization and thus fail to generate spatially contiguous and temporally consistent task assignments for UAVs. We develop a contiguity-driven task allocation method, formu-lated as an adjacency-constrained traversal cost optimization that penalizes disconnected assignments to promote spatially contiguous tasks over time.         
+
+> TABLE I DATA CONTAINED BY A TiTASK UNIT .
+> Data Explanation
+> pu,i Unknown vertex position
+> Hi2D convex hull (if split)
+> giParent grid ID (if not split) NUM iNumber of unknown voxels diUAV ID
+
+III. P ROBLEM FORMULATION 
+
+We consider a decentralized multi-UAV system to explore an unknown and spatially limited 3D space V ⊂ R3
+
+enclosed by a bounding box B. Our system comprises N
+
+UAVs equipped with a LiDAR sensor for rapid exploration. UAVs can only communicate with each other within a given distance rcomm . When communication is available, UAVs collaboratively allocate tasks and share map chunks [6]. Each UAV becomes idle when no frontier remains in its assigned task units. Exploration is complete only when all valid task units have been completed and no frontier remains globally. IV. METHODOLOGY As illustrated in Fig. 2, the proposed C 2-Explorer sys-tem consists of three main components. First, each UAV incrementally builds a 3D occupancy map and maintains a topology-aware connectivity graph. This graph organizes the unknown space into flexible task units with online status and workload updates (Sec. IV-A). Second, when within com-munication range, the UAVs coordinate in a decentralized manner to compute a contiguous task assignment, effectively minimizing redundant exploration and cross-region detours (Sec. IV-B). Finally, based on the allocated tasks, each UAV executes CP-guided global task sequencing and generates smooth, collision-free trajectories to explore the designated regions (Sec. IV-C). 
+
+A. Connectivity-aware Task Representation 
+
+Traditional region-based task representation [6, 7] adopts the centroids of unknown voxels within the grid as task units, as shown in Fig. 3(c). However, this topology-agnostic representation overlooks the underlying connectivity of the regions, often leading to unreasonable task units. Specifi-cally, when a grid contains multiple spatially disconnected unknown regions, the resulting centroid merges these disjoint regions into one task (e.g., Grid 1, 5 and 7 in Fig. 3(d)), causing unnecessary cross-region detours during exploration. Moreover, the lack of filtering for obstacle-enclosed un-known voxels causes inherently invalid task units. Grid 6 shown in Fig. 3(d) has already been completely explored, yet the unreachable unknown region within it is still treated as a valid task unit, which compromises the rationality of task allocation and reduces the efficiency of exploration. To enable task units to encode the topological information of the environment and eliminate the ambiguity in task exploration status, we incrementally construct a connectivity graph, based on which we propose a connectivity-aware task representation. Proposed  
+
+> Task Representation
+> Traditional
+> Task Representation
+> 00
+
+(a)  (b) 
+
+(c)  (d) 
+
+Unknown edge ℇ𝑢 
+
+Free edge ℇ𝑓 
+
+Portal edge ℇ𝑝 
+
+Communication range 
+
+Task assigned to drones 
+
+Allocated task sequences 
+
+Grids 
+
+with ID 
+
+Invalid task        
+
+> 543
+> 210
+> 876
+
+Obstacle 
+
+Unknown 
+
+Free 
+
+Unknown vertex 𝒱 𝑢 
+
+Free vertex 𝒱 𝑓 
+
+Frontier Fig. 3. Comparison of Connectivity-Aware and Traditional Task Representations. (a) and (c) contrast environmental modeling: (a) shows our connectivity graph modeling the topology of free and unknown spaces, while (c) uses uniform grid decomposition based on unknown voxel centroids. (b) and (d) compare task representation and allocation outcomes: (b) illustrates our connectivity-aware approach, treating spatially disjoint unknown regions as task units and excluding obstacle-enclosed areas. Conversely, (d)’s topology-agnostic approach merges disconnected regions and retains unreachable tasks. 
+
+1) Connectivity Graph Construction : Inspired by [22], the entire exploration space is first coarsely uniformly decomposed into grids. Within each grid, the Connected Component Labeling (CCL) is adopted to segment it into disjoint free-space and unknown regions, and the anchor of each region is computed as the average position of its voxels. Based on these regions, we incrementally construct a connectivity graph G = ( V, E) = ( Vf ∪ V u, Ef ∪ E u ∪ E p), as illustrated in Fig. 3(a). The vertex set V consists of region anchors, divided into free vertices Vf and unknown vertices 
+
+Vu. All edges E are generated via restricted A* searches and fall into three categories: free edges Ef , unknown edges Eu and portal edges Ep. Specifically, Ef and Eu are updated through restricted A* searches constrained in their corresponding regions across neighboring grids, for Vf and 
+
+Vu respectively. In terms of Ep, A* searches are strictly constrained within the same grid between Vf and Vu.
+
+2) Task Unit Representation : Building upon the topo-logical structure encoded in our incrementally constructed connectivity graph, we define each spatially disjoint un-known region as an independent task unit, with its cor-responding unknown vertex Vu serving as the topological representative, as shown in Fig. 3(b). This connectivity-aware task representation endows each task unit with explicit topological connectivity and unambiguous spatial bound-aries, based on which we formalize a standardized discrete state specification and a dedicated information structure for each unit. Specifically, each task unit maintains a discrete task status s ∈ { PENDING , COMPLETED , INVALID }, with all units initialized to PENDING . A unit is marked COMPLETED 
+
+when its corresponding unknown region is fully explored, with no remaining unknown vertices or associated frontiers. Unreachable unknown regions connected solely to other unknown vertices are identified via the CCL algorithm, marked INVALID as illustrated in Fig. 3(b), and excluded from subsequent task allocation. To support efficient transmission of task allocation re-sults and lightweight inter-UAV assignment information ex-change under limited communication, a dedicated task unit information structure Ti is instantiated for each task unit during spatial decomposition. It stores the corresponding unknown vertex position pu,i , which supports the evaluation of traversal distance for task allocation and exploration planning. If a grid is split into multiple independent task units, the convex hull Hi of the associated unknown region is maintained. Rather than transmitting the complete unknown voxels within the region, this convex hull serves as the minimal enclosing shape to approximate the spatial scope of the corresponding task unit, while enabling lightweight inter-UAV communication through its compact geometric encoding. Otherwise, the unique ID gi of the parent grid is stored directly. Furthermore, Ti records the number NUM i
+
+of unknown voxels in the region to quantify the exploration workload of the task unit and support workload balancing in the subsequent allocation process. In addition, the drone ID di indicates the ownership of the task unit. Data stored by a 
+
+Ti is listed in Table I. 𝐶 2-Explorer  RACER  FAME   
+
+> Cubicle Office Open -plan Office Octa Maze Fig. 4. Benchmark Results of 4-UAV Decentralized Multi-UAV Exploration. Visualizations of the final executed flight trajectories for C 2-Explorer, RACER, and FAME are presented across three complex scenarios: (a) Cubicle Office, (b) Open-plan Office, and (c) Octa Maze. Additionally, the rightmost column presents curves illustrating the evolution of the environment coverage ratio against exploration time for each method.
+
+B. Contiguity-driven Task Allocation 1) Contiguity-driven CVRP : Existing multi-UAV explo-ration task allocation methods [6, 7, 13] only take traversal costs into account in their task assignment optimization. However, these methods lack explicit contiguity regulariza-tion in their problem formulation, which tends to assign topo-logically non-adjacent task units to a single UAV. This will result in interleaved tasks among UAVs, incurring frequent cross-region traversal and overlapping exploration regions, which ultimately degrades the overall exploration efficiency. To address this, we propose contiguity-driven task allocation, leveraging the topological adjacency information from the constructed connectivity graph to penalize non-contiguous task assignments and promote spatially contiguous task grouping for each UAV. Following [6], we formulate the multi-UAV collaborative exploration task allocation problem as a CVRP [6]. Suppose there are Nc UAVs within the communication range, collec-tively sharing a total of NT valid task units to be allocated. Therefore, the formulated CVRP involves Nc+NT +1 nodes, where one additional node is set to the virtual depot. To balance the workload among UAVs, we model the capacity via task-specific demands by setting Di = NUM i for each task unit. Let W ≜ P 
+
+> i∈T
+
+NUM i denote the total workload of all valid task units. The capacity constraint for each UAV is then given by 
+
+X
+
+> i∈T
+
+Dixk,i ≤ σQWNc
+
+, ∀k ∈ { 1, . . . , N c}, (1) where T denotes the set of all valid task units to be allocated, 
+
+xk,i ∈ { 0, 1} is a binary variable indicating whether task unit 
+
+i is assigned to d k, and σQ ≥ 1 is a capacity scaling factor. To solve CVRP, the corresponding cost matrix Ccvrp ∈
+
+R(Nc+NT +1) ×(Nc+NT +1) has the following form: 
+
+Ccvrp =
+
+
+
+Minf 01×Nc Minf 11×NT
+
+0Nc×1 0Nc×Nc Cd, T
+
+0NT ×1 Minf 1NT ×Nc CT
+
+ (2) where Minf denotes a sufficiently large positive constant to block infeasible connections. Cd, T is a Nc × NT block for UAV-to-task connection cost, while CT represents inter-task connection costs, which is a NT × NT block. The two core cost blocks are defined as: 
+
+CT (i, j ) = CT (j, i ) = ψ(ρij )li,j ,
+
+Cd, T (k, i ) = ψ(ρdk ,i )ldk ,i , (3) where i, j ∈ { 1, · · · , N T }, k ∈ { 1, · · · , N c}. li,j denotes the traversal cost between any two nodes pi and pj , ψ(·) is the graph-adjacency contiguity penalty kernel, and ρij is the normalized adjacency ratio between node pairs. In terms of traversal cost li,j , we define it as the length of a navigation path computed by a hybrid A∗ strategy: 
+
+li,j ≜
+
+
+
+Len 
+
+
+
+A∗
+
+> vox
+
+(pi, pj ; M)
+
+
+
+, if di,j < d thr ,
+
+Len 
+
+
+
+A∗
+
+> graph
+
+(Π( pi), Π( pj ); G)
+
+
+
+, if di,j ≥ dthr .
+
+(4) Here, di,j ≜ ∥pi − pj ∥2 denotes the Euclidean distance. While A∗
+
+> vox
+
+(·) performs voxel-based A∗ search on the map 
+
+M, treating unknown voxels as traversable, A∗
+
+> graph
+
+(·) per-forms graph-based A∗ search on the connectivity graph G.The projection operator Π( ·) maps a position to its nearest vertex in G, defined as Π( p) ≜ arg min v∈V ∥p − v∥2.However, optimizing the multi-UAV task assignment solely based on traversal cost fails to ensure the spatial contiguity of the tasks assigned to each UAV, often yield-ing unreasonable cross-region assignments and redundant detours that degrade exploration efficiency. Thus, we in-troduce a graph-adjacency contiguity penalty to penalize non-contiguous task assignments, encouraging connectivity-compliant task grouping. The penalty kernel is given by 
+
+ρij ≜ li,j 
+
+Rc
+
+= li,j 
+
+λc · Lg
+
+,ψ(ρij ) = 
+
+(
+
+1, ρij ≤ 1,
+
+1 + ( ρij − 1) 2, ρij > 1,
+
+(5) where Lg denotes the scale of the uniform grid, λc ≥ 1
+
+is a tunable coefficient for the admissible local connectivity range, and Rc = λc · Lg is the connectivity radius threshold. The normalized adjacency ratio ρij quantifies the relative separation of a task pair from the allowable neighborhood: 
+
+ρij ≤ 1 means the pair lies within the admissible range, while ρij > 1 measures its excess beyond this range. This kernel applies no additional penalty to topologically adjacent task pairs in the connectivity graph, while introducing a quadratically increasing penalty to pairs outside the admis-sible neighborhood. Integrating this penalty into the CVRP cost matrix explicitly regularizes assignment continuity, ef-fectively mitigating interleaved trajectories and minimizing redundant cross-region detours. 
+
+2) Commit-Style Task Dispatch : Given the CVRP cost matrix Ccvrp , within each group of UAVs that are currently able to communicate, the lowest-ID UAV is selected as a temporary host. The host solves the CVRP and unicasts UAV-specific task sequences {S k}Nc 
+
+> k=1
+
+to all participating UAVs, where Sk = ( Tk, 1, . . . , Tk,n k ) and nk ∈ Z≥0, and Nc
+
+denotes the number of UAVs in the component. To maintain consistent task states under lossy and out-of-order links, we adopt a lightweight, timestamped commit-style handshake with three phases: Proposal → Commit → Finalize , and a 
+
+Cancel message to abort the process. In Proposal , the host broadcasts a versioned allocation (with timestamp) and each UAV validates it, caches its previous assignment, and replies ACCEPT /R EJECT . In Commit , the host proceeds only after collecting all A CCEPT replies; UAVs then apply the update provisionally and acknowledge. In Finalize , the host confirms activation of the new task lists. Any rejection or timeout                                                                                                                                                                                                                                                                       
+
+> TABLE II COMPARISON OF EXPLORATION PERFORMANCE
+> Scene Drone Num Method Exploration Time (s) Total Path Length (m) Flight Vel. (m/s)
+> RACER 128.1 ±24.1 372.6 ±57.9 1.84 ±0.03
+> FAME 142.6 ±11.0 473.8 ±35.9 1.71 ±0.05
+> 73.1 ±4.9 253.1 ±14.4
+> 2
+> Ours (↓42.9%) (↓32.1%) 1.85 ±0.01
+> RACER 106.2 ±8.5 408.0 ±43.3 1.84 ±0.03
+> FAME 115.9 ±14.8 560.5 ±62.9 1.70 ±0.05
+> 58.8 ±5.6 280.2 ±11.4
+> 3
+> Ours (↓44.6%) (↓31.3%) 1.84 ±0.02
+> RACER 90.7 ±11.1 445.8 ±74.7 1.80 ±0.06
+> FAME 100.8 ±20.0 614.1 ±59.7 1.74 ±0.07
+> 50.9 ±4.2 301.7 ±14.9
+> Cubicle Office 4
+> Ours (↓43.9%) (↓32.3%) 1.82 ±0.04
+> RACER 125.7 ±28.9 319.3 ±54.0 1.78 ±0.07
+> FAME 169.9 ±19.1 553.9 ±85.5 1.67 ±0.08
+> 67.3 ±6.7 214.5 ±24.1
+> 2
+> Ours (↓46.5%) (↓32.8%) 1.81 ±0.04
+> RACER 116.1 ±19.6 342.8 ±40.7 1.81 ±0.05
+> FAME 128.0 ±24.4 607.8 ±107.6 1.67 ±0.05
+> 53.8 ±2.9 226.9 ±9.0
+> 3
+> Ours (↓53.7%) (↓33.8%) 1.81 ±0.04
+> RACER 89.3 ±27.5 372.2 ±65.5 1.80 ±0.03
+> FAME 102.1 ±13.3 640.5 ±65.3 1.74 ±0.05
+> 43.0 ±2.0 243.9 ±8.2
+> Open-plan Office 4
+> Ours (↓51.8%) (↓34.5%) 1.82 ±0.06
+> RACER 140.7 ±20.3 420.2 ±29.3 1.64 ±0.07
+> FAME 163.7 ±15.8 478.7 ±45.1 1.63 ±0.02
+> 89.5 ±2.7 282.7 ±21.4
+> 2
+> Ours (↓36.4%) (↓32.7%) 1.70 ±0.04
+> RACER 114.5 ±21.5 473.7 ±52.4 1.71 ±0.05
+> FAME 105.8 ±22.6 508.2 ±80.0 1.65 ±0.02
+> 72.5 ±3.8 304.6 ±44.6
+> 3
+> Ours (↓31.5%) (↓35.7%) 1.72 ±0.02
+> RACER 83.7 ±14.3 495.0 ±53.6 1.69 ±0.03
+> FAME 96.3 ±13.3 586.9 ±63.0 1.67 ±0.05
+> 52.8 ±7.1 324.2 ±32.9
+> Octa Maze 4
+> Ours (↓36.9%) (↓34.5%) 1.70 ±0.03
+> Note: All results are reported as mean ±std. Best and second-best results are shown in black bold and gray bold , respectively. Percentages in parentheses denote ours’ improvement over the second-best method.
+
+triggers Cancel , upon which all UAVs roll back to the cached assignment. Versioned messages enable idempotent processing of duplicates and late arrivals, while bounded retries with backoff mitigate oscillations caused by frequent reallocations. Overall, this protocol is designed to tolerate packet loss and out-of-order delivery and to keep task states consistent among connected UAVs. 
+
+C. CP-guided Planning for Single UAV 
+
+Upon receiving its task list, each UAV executes CP-guided hierarchical planning to efficiently cover the assigned re-gions. Inspired by [22], we formulate the global CP planning over the allocated task units as an Asymmetric Traveling Salesman Problem (ATSP). To ensure motion feasibility and smoothness, we incorporate velocity consistency into the edge cost rather than relying solely on path length. For a searched path Pij = {p0, p1, · · · , pK } between target positions p0 and pK , the segment-wise traversal time Tij with a velocity-consistency penalty is defined as: 
+
+Tij = lij 
+
+vm
+
++
+
+> K−1
+
+X
+
+> k=0
+
+(vm − | ˆvk|)2
+
+2vmam
+
++ 2|ˆvk|
+
+am
+
+H(−ˆvk)
+
+!
+
+, (6) where lij is the path length derived from the connectivity graph, vm and am are the maximum velocity and acceler-ation, and H(·) is the Heaviside step function. The term 
+
+ˆvk represents the scalar projection of the initial velocity vk
+
+along the direction pk → pk+1 :
+
+ˆvk = vk · pk+1 − pk
+
+∥pk+1 − pk∥ , (7) where the initial velocity vk is defined as v0 = v1,
+
+vk = vm · pk − pk−1
+
+∥pk − pk−1∥ , k ≥ 1. (8) For local planning, we adopt the method in [6]. We incre-mentally update frontiers, and cluster them using Principal Component Analysis. For each frontier cluster, we uniformly sample candidate viewpoints around the cluster centroid, and select the viewpoint covering the most frontier voxels as the viewpoint representative. Under the guidance of the global CP, we compute the local exploration tour within the target task unit via a variant of TSP with fixed start and end points, where the start point is the UAV’s current position and the end point is the vertex of the next task unit along the CP. Finally, minimum-time B-spline trajectory generation converts this discrete sequence into a smooth, dynamically feasible flight trajectory, incorporating explicit inter-UAV collision-avoidance constraints for safe coordination. V. EXPERIMENTS 
+
+A. Simulation Experiments 1) Implementation Details : We set rcomm = 5 m, σQ =1.1 in Eq. (1) and λc = 1 .2 in Eq. (5). The UAV dynamic motion limits are specified as: vmax = 2 .0 m/s, ωmax =2.0 rad/s, and amax = 2 .0 m/s 2. All simulations are conducted in MARSIM [24], where each UAV is equipped with a Livox MID360 LiDAR, with a perception range of 10 m for vol-umetric mapping. The CVRP and TSP are solved using the Lin-Kernighan-Helsgaun Solver [25]. All the aforementioned modules run on an Intel Core i5-12400F CPU. 
+
+2) Benchmark Comparison : We evaluate C 2-Explorer in 3 scenarios: Cubicle Office (30 ×30 ×5 m3), Open-plan Office 
+
+(35 × 30 × 5 m3), and Octa Maze (35 × 35 × 5 m3). We com-pare our approach against SOTA decentralized multi-UAV exploration methods, RACER [6] and FAME [8]. Exploration efficiency is measured by exploration time, total path length, and average flight velocity. Results averaged over 10 trials per scenario are presented in Fig. 4 and Table II. Across all scenarios, C 2-Explorer consistently outperforms both baselines, reducing the exploration time by 43.8%, 50.7% and 34.9% and the total path length by 31.9%, 33.7% and 34.3% in the Cubicle Office , Open-plan Office and Octa Maze , respectively. Furthermore, it maintains a comparable flight velocity while achieving the lowest standard deviations in exploration time and path length, demonstrating superior         
+
+> TABLE III ABLATION ON CORE MODULES .
+> Method Exploration Time (s) Path Length (m)
+> Ours 43.0 243.9
+> No-Con 51.7 329.6 No-Graph 90.1 391.4
+
+robustness and stability. In particular, the significant im-provements in the Cubicle Office and Open-plan Office stem from the inherent limitations of both baselines. FAME relies on greedy, instantaneous local-frontier decisions, causing severe redundant exploration during communication failures. Meanwhile, RACER’s topology-agnostic grid decomposition improperly merges disconnected regions (causing detours in the Open-plan Office ) and retains unreachable enclosed areas as valid tasks (yielding unreasonable allocations in the Cubi-cle Office ). In contrast, our connectivity-aware representation isolates disconnected components and filters out unreachable regions. In addition, our contiguity-driven allocation penal-izes non-adjacent assignments via graph-based constraints, encouraging spatially contiguous tasks. As the UAV team scales up, C 2-Explorer demonstrates robust scalability by effectively balancing exploration-time reduction and path-length growth. When scaling from 2 to 4 UAVs, our method achieves an average time reduction of 35.8%. Although this relative scaling effect appears compara-ble to the baselines (RACER 32.9%, FAME 36.8%), it is pri-marily because C 2-Explorer already achieves exceptionally short times with just 2 UAVs. The true scalability advantage of our method emerges from suppressing redundant traversal: C2-Explorer confines the average path length growth to merely 15.9%, whereas RACER and FAME suffer from 18.0% and 22.6% inflation, respectively. This indicates that C2-Explorer successfully harnesses additional UAVs without the severe path redundancy exhibited by the baselines. 
+
+B. Ablation Studies 
+
+To validate the effectiveness of two core modules in C 2-Explorer and evaluate its performance under communication constraints, we conduct two groups of ablation experiments in the challenging Open-plan Office scenario with 4 UAVs. 
+
+1) Ablation of Core Modules : The graph-adjacency con-tiguity penalty is built upon our connectivity-aware task representation; without the connectivity graph, the penalty degenerates into a coarse grid-adjacency heuristic. Hence, it is not meaningful to ablate the connectivity-aware rep-resentation alone while keeping the same penalty defini-tion. Instead, we evaluate two comparable variants, with results summarized in Table III. For No-Con , we retain the connectivity-aware task representation and the connectivity graph, but remove the graph-adjacency contiguity penalty from the CVRP cost matrix, solving task allocation using traversal cost only. For No-Graph , we discard the entire connectivity graph module and revert to a grid-based task representation by using the average position of unknown voxels in each uniform grid as a task unit. 5 10 15     
+
+> rcomm (m)
+> 32
+> 36
+> 40
+> 44
+> Exploration Time (s)
+> 43.0
+> 36.2
+> 31.8 30.0
+> Exploration Time (s)
+> Path Length (m)
+> 210
+> 220
+> 230
+> 240
+> Path Length (m)
+> 243.9
+> 232.1
+> 227.2
+> 214.7 Fig. 5. Ablation on Communication Range . Exploration time and total path length of C 2-Explorer under different communication ranges rcomm .
+
+Compared with the C 2-Explorer, No-Con increases ex-ploration time by 20.2% and total path length by 35.1%, indicating that the contiguity penalty is crucial for maintain-ing spatially contiguous task sequences and avoiding ineffi-cient cross-region traversal. No-Graph yields an even larger performance drop, confirming that our connectivity-aware task representation enables a more reasonable topological partition of the exploration space and reduces unnecessary detours caused by merging disconnected unknown regions into a single task unit. 
+
+2) Ablation of Communication Range : Although C 2-Explorer already achieves strong performance under the strict communication limit of rcomm = 5 m, we further evaluate its adaptability under more relaxed communication conditions. Specifically, we test the system with rcomm ∈{5 m, 10 m, 15 m} and an idealized infinite-communication setting ( rcomm = ∞). The results are shown in Fig. 5. As the communication range increases, exploration perfor-mance consistently improves and gradually approaches the upper bound given by infinite communication. Compared with the strict 5 m setting, the infinite-communication up-per bound further reduces the exploration time by 30.2% and shortens the total path length by 12.0%. These results indicate that our framework not only remains stable and efficient under tight communication constraints, but also effectively leverages improved connectivity when available, demonstrating strong scalability and practical adaptability across varying communication conditions. 
+
+C. Real-World Experiments 
+
+To further demonstrate the robustness and effectiveness of C 2-Explorer, we conduct real-world experiments in an outdoor environment with 3 quadrotor UAVs. Each quadrotor UAV platform is equipped with an Intel NUC 13 for onboard computing, a Livox Mid-360 LiDAR for environment sens-ing, and an NxtPx4 for flight control. The state estimation module is based on FAST-LIO2 [26], and the maximum flight velocity of all UAVs is set to 1.0 m/s. As shown in Fig. 1, we perform real-world flight valida-tions in two outdoor scenarios: an unstructured woodland with randomly distributed trees ( 40 × 31 × 3 m3) and a structured teaching building with pillars ( 48 × 20 × 3 m3). The UAVs explored the scenarios in 69 s and 52 s, respec-tively. The experimental results validate the feasibility of C 2-Explorer, demonstrating its capability to achieve efficient col-laborative exploration through online task allocation. More details are provided in the submitted video. VI. CONCLUSIONS We present C 2-Explorer, a decentralized multi-UAV explo-ration framework that enhances task allocation flexibility and spatiotemporal contiguity under limited communication. By integrating a connectivity-aware task representation with a contiguity-driven allocation, C 2-Explorer achieves efficient exploration while reducing cross-region detours. Simula-tions and real-world experiments confirm that our method outperforms SOTA baselines, while demonstrating strong scalability regarding fleet size and communication range. As future work, we will extend C 2-Explorer along two directions. First, we will augment passive communication with proactive connectivity maintenance, allowing the team to adaptively trade off exploration progress and coordination quality. Second, we will investigate tighter integration with localization-aware mapping and drift-resilient coordination to improve long-duration autonomy. These extensions are expected to further enhance robustness and scalability in dynamic, large-scale environments. VII. ACKNOWLEDGMENT We would like to express our sincere gratitude to Yenan Wu, Yude Li, Junda Wu, Yichen Lai, Chenlin Gao, and Fangyu He from MASLab for their valuable assistance during the real-world experiments. We also sincerely thank Tengkai Zhuang from STARLab for his help in resolving the communication issues. REFERENCES [1] M. Zhang, C. Feng, Z. Li, G. Zheng, Y. Luo, Z. Wang, J. Zhou, S. Shen, and B. Zhou, “SOAR: Simultaneous exploration and pho-tographing with heterogeneous UAVs for fast autonomous recon-struction,” in 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , 2024, pp. 10 975–10 982. [2] M. Petrl´ ık, P. Petr´ aˇ cek, V. Kr´ atk´ y, T. Musil, Y. Stasinchuk, M. Vrba, T. B´ aˇ ca, D. Heˇ rt, M. Pecka, T. Svoboda, and M. Saska, “UAVs beneath the surface: Cooperative autonomy for subterranean search and rescue in darpa subt,” IEEE Transactions on Field Robotics , vol. 2, pp. 643– 689, 2025. [3] M. Zhang, Y. Du, C. Wu, J. Zhou, Z. Qi, J. Ma, and B. Zhou, “ApexNAV: An adaptive exploration strategy for zero-shot object navigation with target-centric semantic fusion,” IEEE Robotics and Automation Letters , vol. 10, no. 11, pp. 11 530–11 537, 2025. [4] G. A. Hollinger, B. Englot, F. S. Hover, U. Mitra, and G. S. Sukhatme, “Active planning for underwater inspection and the benefit of adaptiv-ity,” The International Journal of Robotics Research , vol. 32, no. 1, pp. 3–18, 2013. [5] M. Cao, T.-M. Nguyen, S. Yuan, A. Anastasiou, A. Zacharia, S. Pa-paioannou, P. Kolios, C. G. Panayiotou, M. M. Polycarpou, X. Xu, M. Zhang, F. Gao, B. Zhou, B. M. Chen, and L. Xie, “Cooperative aerial robot inspection challenge: A benchmark for heterogeneous multi-uncrewed-aerial-vehicle planning and lessons learned,” IEEE Robotics & Automation Magazine , pp. 2–13, 2025. [6] B. Zhou, H. Xu, and S. Shen, “RACER: Rapid collaborative explo-ration with a decentralized multi-UAV system,” IEEE Transactions on Robotics , vol. 39, no. 3, pp. 1816–1835, 2023. [7] C. Cao, H. Zhu, Z. Ren, H. Choset, and J. Zhang, “Representation granularity enables time-efficient autonomous exploration in large, complex worlds,” Science Robotics , vol. 8, no. 80, p. eadf0970, 2023. [8] L. Bartolomei, L. Teixeira, and M. Chli, “Fast multi-UAV decentral-ized exploration of forests,” IEEE Robotics and Automation Letters ,vol. 8, no. 9, pp. 5576–5583, 2023. [9] T. Zhang, H. Shen, Y. Yin, J. Xu, J. Yu, and Y. Pan, “LECES: A low-bandwidth and efficient collaborative exploration system with distributed multi-UAV,” IEEE Robotics and Automation Letters , vol. 9, no. 9, pp. 7795–7802, 2024. [10] Y. Hui, G. Chang, J. Lu, X. Zhang, Z. Li, and B. Tian, “PC-Explorer: Decentralized multi-UAV exploration in bandwidth-limited environments,” IEEE Robotics and Automation Letters , vol. 10, no. 9, pp. 9200–9207, 2025. [11] J. Lewis, M. Basiri, and P. U. Lima, “Frontier Shepherding: A bio-inspired multi-robot framework for large-scale exploration,” in 2025 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) . IEEE, 2025, pp. 793–800. [12] Q. Dong, H. Xi, S. Zhang, Q. Bi, T. Li, Z. Wang, and X. Zhang, “Fast and communication-efficient multi-uav exploration via voronoi partition on dynamic topological graph,” in 2024 IEEE/RSJ Interna-tional Conference on Intelligent Robots and Systems (IROS) , 2024, pp. 14 063–14 070. [13] Y. Gao, Y. Wang, X. Zhong, T. Yang, M. Wang, Z. Xu, Y. Wang, Y. Lin, C. Xu, and F. Gao, “Meeting-Merging-Mission: A multi-robot coordinate framework for large-scale communication-limited explo-ration,” in 2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) . IEEE, 2022, pp. 13 700–13 707. [14] A. Bircher, M. Kamel, K. Alexis, H. Oleynikova, and R. Siegwart, “Receding horizon ”next-best-view” planner for 3d exploration,” in 
+
+2016 IEEE international conference on robotics and automation (ICRA) . IEEE, 2016, pp. 1462–1468. [15] F. Yang, D.-H. Lee, J. Keller, and S. Scherer, “Graph-based topological exploration planning in large-scale 3d environments,” in 2021 IEEE International Conference on Robotics and Automation (ICRA) , 2021, pp. 12 730–12 736. [16] D. Duberg and P. Jensfelt, “UFOExplorer: Fast and scalable sampling-based exploration with a graph-based planning structure,” IEEE Robotics and Automation Letters , vol. 7, no. 2, pp. 2487–2494, 2022. [17] B. Yamauchi, “A frontier-based approach for autonomous exploration,” in Proceedings 1997 IEEE International Symposium on Computational Intelligence in Robotics and Automation CIRA’97.’Towards New Com-putational Principles for Robotics and Automation’ . IEEE, 1997, pp. 146–151. [18] T. Cieslewski, E. Kaufmann, and D. Scaramuzza, “Rapid exploration with multi-rotors: A frontier selection method for high speed flight,” in 2017 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , 2017, pp. 2135–2142. [19] B. Zhou, Y. Zhang, X. Chen, and S. Shen, “FUEL: Fast uav exploration using incremental frontier structure and hierarchical planning,” IEEE Robotics and Automation Letters , vol. 6, no. 2, pp. 779–786, 2021. [20] J. Yu, H. Shen, J. Xu, and T. Zhang, “ECHO: An efficient heuristic viewpoint determination method on frontier-based autonomous explo-ration for quadrotors,” IEEE Robotics and Automation Letters , vol. 8, no. 8, pp. 5047–5054, 2023. [21] N. Bu, G. Xu, H. Zheng, X. Wei, W. Chen, L. Lv, X. Zhang, J. Xiao, and Z. Li, “RUSH: Rapid uav spatial hierarchical exploration via regional viewpoint generation for large-scale environments,” IEEE Robotics and Automation Letters , vol. 10, no. 10, pp. 10 698–10 705, 2025. [22] Y. Zhang, X. Chen, C. Feng, B. Zhou, and S. Shen, “FALCON: Fast autonomous aerial exploration using coverage path guidance,” IEEE Transactions on Robotics , vol. 41, pp. 1365–1385, 2025. [23] B. Yamauchi, “Decentralized coordination for multirobot exploration,” 
+
+Robotics and Autonomous Systems , vol. 29, no. 2-3, pp. 111–118, 1999. [24] F. Kong, X. Liu, B. Tang, J. Lin, Y. Ren, Y. Cai, F. Zhu, N. Chen, and F. Zhang, “MARSIM: A light-weight point-realistic simulator for lidar-based UAVs,” pp. 2954–2961, 2023. [25] K. Helsgaun, “An extension of the lin-kernighan-helsgaun tsp solver for constrained traveling salesman and vehicle routing problems,” 
+
+Roskilde: Roskilde University , vol. 12, pp. 966–980, 2017. [26] W. Xu, Y. Cai, D. He, J. Lin, and F. Zhang, “FAST-LIO2: Fast direct lidar-inertial odometry,” IEEE Transactions on Robotics , vol. 38, no. 4, pp. 2053–2073, 2022.

@@ -1,0 +1,216 @@
+Title: Efficient Trajectory Optimization for Autonomous Racing via Formula-1 Data-Driven Initialization
+
+URL Source: https://arxiv.org/pdf/2603.07126v1
+
+Published Time: Tue, 10 Mar 2026 00:38:39 GMT
+
+Number of Pages: 7
+
+Markdown Content:
+# Efficient Trajectory Optimization for Autonomous Racing via Formula-1 Data-Driven Initialization 
+
+Samir Shehadeh Lukas Kutsch Nils Dengler Sicong Pan Maren Bennewitz 
+
+Abstract — Trajectory optimization is a central component of fast and efficient autonomous racing. However practical optimization pipelines remain highly sensitive to initialization and may converge slowly or to suboptimal local solutions when seeded with heuristic trajectories such as the centerline or minimum-curvature paths. To address this limitation, we leverage expert driving behavior as a initialization prior and propose a learning-informed initialization strategy based on real-world Formula 1 telemetry. To this end, we first construct a multi-track Formula 1 trajectory dataset by reconstructing and aligning noisy GPS telemetry to a standardized reference-line representation across 17 tracks. Building on this, we present a neural network that predicts an expert-like raceline offset directly from local track geometry, without explicitly modeling vehicle dynamics or forces. The predicted raceline is then used as an informed seed for a minimum-time optimal control solver. Experiments on all 17 tracks demonstrate that the learned initialization accelerates solver convergence and significantly reduces runtime compared to traditional geometric baselines, while preserving the final optimized lap time. 
+
+I. I NTRODUCTION 
+
+Trajectory optimization is a central problem in au-tonomous racing and general vehicle control [1], [2]. How-ever, solving for globally optimal racing trajectories remains challenging in practice due to the extreme nonlinearity of vehicle dynamics, tire behavior, and track constraints [3], [4], [5]. In particular, many optimization strategies are highly sensitive to initialization, as poor initial trajectories often lead to slow convergence, local minima, or solver failure [6]. A common strategy is to initialize optimization using heuristic geometric trajectories, such as the track center-line paths [7], [8], [9]. While computationally cheap, these trajectories are typically far from the optimal racing line, especially in complex corner sequences such as chicanes or closely spaced S-bends, where braking, turn-in, and accel-eration phases strongly interact across multiple corners [5]. As a result, optimization initialized from such baselines may require many iterations to result in competitive solutions or may converge only to a local optimum. One source of such informed initializations is human expert driving data. Professional drivers operate near the physical limits of the vehicle and track, producing trajectories that reflect implicit trade-offs between corner entry speed, exit speed, curvature, and vehicle stability. In particular,  
+
+> All authors are with the University of Bonn, Germany. M. Bennewitz, S. Pan, N. Dengler, and L. Kutsch are additionally with the Lamarr Institute for Machine Learning and Artificial Intelligence and the Center for Robotics, Bonn, Germany. This work has partly been supported by the German Federal Ministry of Research, Technology and Space (BMFTR) under the Robotics Institute Germany (RIG). Formula 1 Data
+> Centerline Raceline
+> Geometric Raceline predictor Min-Time Trajectory Optimization
+> Human Expert Transfer
+> Execution
+> Initially unknown map
+> Initialize
+
+Lukas version RoboRacer (1:10) 
+
+Fig. 1: Overview of our proposed learning-informed initialization method. First, expert Formula 1 telemetry (left) is used to train a geometric raceline predictor that captures structural properties of near-optimal racing behavior. The predicted raceline then serves as an initialization for a minimum-time trajectory optimization solver. Finally, the resulting optimized trajectory is transferred to a RoboRacer [10] platform (right), demonstrating robustness to domain shift from full-scale Formula 1 data to a 1:10 autonomous racing system operating on an initially unknown map. 
+
+Formula 1 (F1) racing lines represent near-optimal solu-tions for a given vehicle–track combination. Using these trajectories as initialization can provide a strong prior for optimization, neglecting the need of the solver to discover the global structure of the optimal solution from scratch. To address the sensitivity of trajectory optimization to initialization quality, we introduce a learning-based raceline prediction approach that leverages real-world F1 teleme-try (see Fig. 1). Beyond improving optimization initial-ization, our goal is to enable fast raceline inference on tracks where no expert trajectory is available. To this end, we construct a novel multi-track dataset by reconstructing and aligning expert racelines from publicly available race telemetry into a standardized track-centered representation. Based on this dataset, we propose a network model that predicts a geometric racing line directly from track geom-etry, without explicitly modeling vehicle dynamics or tire forces. By learning recurring structural patterns from expert demonstrations, the network provides a data-driven prior that captures realistic driving strategies and trade-offs, and can be used as an informed initialization for trajectory optimization. Finally, we use the predicted raceline as an informed initialization for a minimum-time optimal control solver [11]. Starting from the learned geometric seed, the optimizer refines the trajectory to satisfy dynamic feasibility and 
+
+> arXiv:2603.07126v1 [cs.RO] 7 Mar 2026
+
+minimize lap time. We evaluate the proposed initialization strategy against conventional baselines, including the cen-terline and minimum-curvature trajectories. Across multiple Formula 1 tracks, our approach improves solver convergence speed while preserving lap time performance. Our contributions can be summarized as follows:  
+
+> •
+
+The introduction of a large-scale Formula 1 trajectory dataset for autonomous racing optimization.  
+
+> •
+
+A data-driven initialization strategy for minimum-time racing trajectory optimization, leveraging supervised learning to improve convergence and solution quality.  
+
+> •
+
+A systematic evaluation of convergence behavior and lap-time performance, highlighting the role of initial-ization quality. II. R ELATED WORK 
+
+The Minimum Lap Time Problem (MLTP) aims to com-pute control inputs that minimize lap time for a given vehicle and track while satisfying track limits and dynamic feasibility [11], [2]. MLTP is commonly studied within Race Trajectory Optimization (RTO), where methods are typically categorized as free-trajectory or fixed-trajectory approaches depending on whether path and speed are optimized jointly or sequentially [7], [12]. Free-trajectory methods formulate MLTP as a minimum-time optimal control problem and solve it via direct transcrip-tion into a nonlinear program (NLP), often using interior-point solvers such as IPOPT [11], [5], [13]. While these approaches can produce highly accurate trajectories using detailed vehicle and tire models, they often require com-putation times on the order of minutes, limiting real-time applicability [14], [13], [15]. Moreover, NLP-based solvers are highly sensitive to initialization and can converge slowly or to suboptimal local minima when seeded poorly [16], [6]. In contrast, fixed-trajectory methods reduce computational complexity by decoupling the problem into geometric race-line optimization followed by velocity profile computation under quasi-steady-state assumptions. Kapania et al. [8] pro-posed alternating curvature and lap-time optimization, while Heilmeier et al. [7] formulated curvature minimization as a quadratic program with improved curvature computation. These methods typically achieve computation times of sec-onds by computing velocity profiles with forward–backward solvers subject to acceleration limits. However, comparative studies highlight the resulting trade-off between efficiency and optimality. Van den Eshof et al. [12] benchmarked minimum-curvature methods [7], [8] against joint minimum-time optimization and reported a measurable lap-time deficit for fixed-trajectory approaches, attributing this gap to the missing coupling between path curvature and achievable speed. However, while these works compare modeling as-sumptions and lap-time performance, they do not system-atically analyze how the choice of geometric initialization influences convergence behavior in minimum-time solvers. Recent work has explored strategies to overcome the limitations by improving numerical behavior and runtime of classical formulations, including quasi-steady-state reformu-lations [11] and spline-based parameterizations to improve solver stability [17]. Warm-starting has also been explored in related nonlinear optimization settings to reuse solutions across repeated instances [18], but does not address single-shot optimization on unseen tracks. Finally, learning-based approaches have been pro-posed to approximate or complement racing pipelines. Garlick et al. [19] proposed networks that directly predict racing trajectories for fast inference, while simulation bench-marks based on human driving facilitate data-driven evalu-ation [20]. In a related direction, learned model predictive control methods iteratively improve lap performance using previously executed trajectories [9], but typically require repeated laps and online data collection. In contrast to these methods, our approach retains aphysics-based minimum-time optimal control formulation and employs learned racelines solely as geometric initializa-tion priors. Rather than replacing the optimization backend or relying on iterative online learning, we aim to improve solver convergence and robustness by injecting structural information derived from expert Formula 1 telemetry into the initialization stage of the optimization process. III. P ROBLEM DEFINITION 
+
+The goal of racing trajectory optimization is to compute a dynamically feasible trajectory that minimizes lap time while satisfying track and vehicle constraints. In this work, we formulate this problem as a continuous Optimal Control Problem (OCP), defined along the track arc-length s between two racing waypoints wn, w n+1 ∈ W . The optimization variables are the planar racing trajectory, expressed as x(s)
+
+and y(s), and the speed profile v(s). When optimized, the solution must satisfy two main types of constraints: (i) the trajectory must remain within the track boundaries at all times and (ii) the motion must satisfy the vehicle dynamics, which limit feasible accelerations, velocities, and tire forces. To evaluate the influence of different initialization strate-gies on convergence behavior and final lap time performance, we employ a state-of-the-art minimum-time optimal control solver [11]. Our novel track representation allows the opti-mizer to enforce boundary constraints directly in the track-aligned frame IV. F ORMULA 1 T RAJECTORY DATASET 
+
+To enable data-driven learning of expert racing behav-ior, we construct a standardized Formula 1 (F1) trajectory dataset by reconstructing and aligning real-world telemetry to track-consistent geometric representations. In particular, professional motorsport racing data provides near-optimal driving behavior under real-world conditions. In this con-text, F1 represents driving at performance limits, making it valuable for learning high-quality racing line geometry. However, to the best of our knowledge, no standardized dataset of processed racing trajectories aligned to track geometry currently exists. Therefore, we propose a raceline reconstruction pipeline that converts raw telemetry into a Left Track Border Centerline Raceline c(s 2 )c(s 1 )d 1y2y 1x1 x2b right (s 1)b left (s 1 )b left (s 2 )b right (s 2)d 2Right Track Border Fig. 2: The racing track is described by a centerline parameterized by the arc length, with track boundaries and racelines expressed as lateral offsets relative to this reference. 
+
+track-consistent racing line representation and construct our own dataset, which we make available upon publication. 
+
+A. Track Representation 
+
+To enable a compact and consistent formulation of the OCP, we use a reference-line-based representation of the track geometry, as shown in Fig. 2. We model the racing track by using a reference line c(s) parameterized by its arc-length s. The local geometric properties of the track are then described by the curvature κ(s) = dθ ds , where θ denotes the heading angle of c, and the track boundaries bleft (s) and 
+
+bright (s), defined as the normal offsets from c to the left and right track bounds respectively. Although positions within the track can be expressed through global cartesian coordinates, we additionally express each position within the local Frenet-frame (s, d ) relative to the reference line. Here, d denotes the lateral offset from the centerline, where a racing line can be compactly expressed as a scalar function d(s). Note that we standardized all parts of our dataset according to this representation definition. 
+
+B. Racetrack and Raceline Extraction 
+
+To reliably obtain data of different F1 race tracks, we used two primary data sources. First, we extracted track geometries from the Assetto Corsa racing simulation, arealistic simulator that provides laser-scanned track models and has already been used in other research [20]. Fur-thermore, we used the TUM racetrack database 1 to obtain additional track geometries. We removed tracks that showed a mismatches between the available F1 raceline data and the track geometry. In total, we extracted geometry data from 17 F1 tracks for our dataset (see Table I). To obtain geometrically consistent F1 data for each of the considered race tracks, we reconstruct racelines from real-world race telemetry and transform them into the track-aligned Frenet frame for trajectory planning. The telemetry data is obtained using the FastF1 library 2, which has been                                                       
+
+> 1https://github.com/TUMFTM/racetrack-database
+> 2https://github.com/theOehrly/Fast-F1
+> Track Source Season Driver
+> Baku AC 2025 Max Verstappen Barcelona AC 2025 Oscar Piastri COTA AC 2025 Max Verstappen Hungaroring AC 2025 Charles Leclerc Imola AC 2025 Max Verstappen Interlagos AC 2025 Lando Norris Jeddah AC 2025 Oscar Piastri Melbourne AC 2024 Carlos Sainz Mexico TUM 2025 Lando Norris Montreal TUM 2025 George Russell Monza AC 2025 Max Verstappen Sakhir TUM 2025 Oscar Piastri Shanghai AC 2025 Oscar Piastri Silverstone TUM 2025 Oscar Piastri Singapore AC 2025 George Russell Spa TUM 2025 Oscar Piastri Spielberg AC 2025 Lando Norris
+
+TABLE I: Used racetracks for raceline reconstruction and dataset generation. Track geometries were obtained from the Assetto Corsa racing simulation (AC) and the TUM Racetrack Database (TUM) 1. Melbourne 2024 was used due to race-wide rain conditions in 2025. 
+
+used in prior research for motorsport data analysis and modeling [12], [21], [22], and provides global planar GPS position measurements at approximately 3 Hz. In this work, we use telemetry race-day data from race sessions of 2024 and 2025. To increase spatial sampling density, we combine telemetry from 15 consecutive laps of a single driver by computing the mean trajectory across all laps. The driver with a fast time and highest number of valid laps is chosen. Table I summarizes the selected drivers and years. To ensure representative driving behavior, we filter teleme-try segments to include only laps that are not affected by rain, safety car phases, and without nearby traffic, i.e., when no other car is directly in front or behind. Additional preprocessing removes duplicate samples according to their GPS position similarity. Since the GPS telemetry is provided in global coordinates and may not be aligned with the track reference frame, we perform a global similarity registration between telemetry data and track geometry. In particular, let P = {pi}Ni=1 denote the telemetry raceline points and 
+
+C = {cj }Mj=1 the track reference geometry, i.e., the center-line. We estimate the optimal rotation R(θ), translation t,and an optional scale σ by minimizing a nearest-neighbor alignment loss: 
+
+Lalign = min 
+
+> θ, t, σ
+
+1
+
+N
+
+> N
+
+X
+
+> i=1
+
+σR (θ) pi + t − cπ(i) 2 ,π(i) = arg min  
+
+> j
+
+∥σR (θ) pi + t − cj ∥2 .
+
+(1) The optimization is solved using a coarse-to-fine grid search strategy. Here, we first perform a coarse search over the rotation angle, followed by local refinement around the best candidate solution. Consequently, the transformation yielding the minimum alignment loss is selected. After alignment, the raceline is projected onto the corresponding tracks reference line to compute the lateral offset representation. The offset between raceline and centerline is computed using cubic spline interpolation [23]. Inputs Encoders Fusion Module                          
+
+> History Window
+> B×W×F1
+> Future Window
+> B×W×F2
+> Target Window
+> B×W×T
+> F1 Dataset
+> Dilated TCN
+> B×C×W
+> Dilated TCN
+> B×C×xW
+> Avg. Pool
+> xW →W
+> +
+> +
+> Conv. Fusion
+> Multi-Head Temp. Layer
+> Flatten
+> Flatten
+> Flatten
+> +MLP
+> Predicted Raceline
+> Min. Time Optimizer
+> Optimized Raceline
+
+Fig. 3: Network architecture for raceline prediction. History and future windows are encoded using dilated temporal convolutional networks and fused with the target window via convolutional and multi-head temporal attention layers. The fused features are flattened and processed by an MLP to predict a raceline, which is subsequently used as initialization seed for a minimum-time optimizer. 
+
+C. Dataset Structure 
+
+Overall, our proposed reconstruction pipeline yields a unified and standardized representation of expert Formula 1 racing trajectories across multiple circuits according to the reference-line formulation described in Sec. IV-A. Each track is resampled at a constant spatial resolution of ∆s = 2 .0 malong arc length and represented by uniformly spaced way-points. For every track, the dataset contains c(s) in global Cartesian coordinates, κ(s), and the border offsets relative to c(s). In addition, the reconstructed expert raceline is stored as a lateral offset drace (s), aligned with the same arc-length discretization to ensure that track geometry and expert trajectories are directly comparable across circuits of varying length and complexity. V. L EARNING -B ASED RACELINE PREDICTION 
+
+Building on the reconstructed F1 trajectory dataset, we learn a data-driven mapping from local track geometry and expert driving history to future raceline geometry. 
+
+A. Network Architecture 
+
+The goal of our proposed raceline network is to predict the lateral offset dtarget from the track centerline within a given target look-ahead window (see Fig. 3). To this end, we us a sliding window approach, i.e., the network processes two centerline-aligned input windows, a history raceline and a future racetrack window. Both windows contain local track geometry features, including the reference-line curvature κ
+
+and the left and right track border offsets bleft and bright . In ad-dition, the history window includes the expert raceline offset 
+
+drace , providing contextual information about the expected driving style. The target window is defined as the first T
+
+samples of the future window and represents the prediction horizon of the network. As shown in Fig. 3, each input window is encoded using a dilated Temporal Convolutional Network (TCN) [24] com-posed of two residual 1D convolutional blocks with batch normalization. The use of dilation allows the network to capture both local geometric features and broader contextual structure along the track while maintaining efficient com-putation. The encoded history and future features are then combined using two complementary fusion mechanisms. A convolutional fusion module captures local cross-window interactions, while a multi-head temporal attention layer models longer-range dependencies between past driving be-havior and upcoming track geometry. The fused features are flattened and concatenated with the target window represen-tation, forming a unified feature vector. This representation is processed by a two-layer multilayer perceptron (MLP), which predicts the raceline offset d(s) for the target segment. To reconstruct a full-lap raceline, the network predicts the raceline offset for one target segment at a time. After each prediction, the input windows are shifted forward along the centerline of the track and the process is repeated. The predicted segments are then concatenated to form the global raceline representation. 
+
+B. Training Setup 
+
+During training, the reconstructed F1 racelines are used as ground-truth data. The history window contains the ground-truth raceline offset, while the network learns to predict the offset for the upcoming target segment based solely on track geometry and contextual history. We split the dataset by track, using 14 tracks for training and 3 tracks for testing cross-track generalization and train the network using a weighted hybrid loss function that combines global trajectory alignment and pointwise spatial accuracy. The loss is defined as: 
+
+Ltrain = 0 .5 · (1 − cos( pflat , g flat )) + 0 .5 · mean (∥p − g∥2) ,
+
+(2) where p and g denote the predicted and ground-truth raceline offsets, respectively. The cosine alignment term encourages global directional consistency of the predicted trajectory sequence, while the Euclidean distance term enforces local geometric accuracy in metric space. The final loss is com-puted as the mean of both components. VI. E XPERIMENTAL EVALUATION 
+
+To validate the proposed learning-informed initialization strategy, we conduct experimental evaluations across all Formula 1 tracks contained in our dataset. Our goal is to quantify how expert data–driven raceline priors influence both geometric prediction quality and downstream trajectory optimization performance. In particular, we first assess the geometric quality in comparison to the ground truth data of the predicted trajectories themselves and then investigate how different initialization strategies affect solver convergence speed, robustness, and final lap time performance. Further-more, we perform a hardware validation on a RoboRacer platform [10] to demonstrate the practical applicability of the proposed approach in a real-world autonomous racing system showing adaptability also to a significant domain shift. 
+
+A. Minimum-Time Trajectory Optimization 
+
+To evaluate how different initialization strategies influ-ence convergence behavior, we employ the minimum-time optimal control formulation by Christ et al. [11] as the common optimizer for all experiments. Longitudinal forces are determined by braking and driving control inputs, while lateral tire forces are modeled using a simplified version [3]. The model includes vehicle mass, inertia, wheelbase, and tire parameters, which are chosen to approximate a real Formula 1 vehicle. For simplicity, a constant tire-road friction coefficient is assumed along the track. The resulting solution corresponds to a dynamically feasible racing trajectory and velocity profile that minimizes lap time. We solve the OCP using a nonlinear program (NLP) and optimize it using the IPOPT interior-point solver. For a detailed mathemat-ical derivation and implementation specifics, refer to [11]. After convergence, the solver outputs a time-optimal racing trajectory together with its corresponding velocity profile. 
+
+B. Baselines and Metrics 
+
+In total, we compare three different trajectory initialization strategies: (i) the centerline (CL) extracted directly from the track geometry serves as a standard baseline in trajectory optimization due to its simplicity and guaranteed feasibil-ity with respect to track boundaries, (ii) the minimum-curvature (MC) trajectory which is more geometrically re-fined and generated using the optimization method proposed by Heilmeier et al. [7], where curvature minimization is formulated as a quadratic program and yields a geometrically smoother path that more closely resembles typical racing behavior, and (iii) our raceline predictor ( F1-NN ) obtained from the neural network described in Sec. V. To ensure a fair evaluation of generalization performance, we train the network six times using different 14/3 track-level splits such that each track is excluded from training at least once. For each evaluated track, we therefore use a model that has not been trained on that specific track. As we assume that no expert raceline is available for the tracks during inference we initialize the first window with the centerline and our network predicts the rest of the track. To assess geometric prediction quality, we compare the predicted racelines against the reconstructed expert trajec-tory ( F1-GT ) using the Root Mean Square Error ( RMSE )and Mean Absolute Error ( MAE ) of the lateral offset d(s)
+
+in the Frenet frame. Furthermore, to evaluate optimization performance, we measure the number of IPOPT iterations required until convergence, the total solver runtime, and the final optimized lap time after convergence. All initialization strategies are evaluated under identical solver settings to ensure fair and consistent comparison.                               
+
+> Method RMSE [m] MAE [m]
+> CL (Centerline) 3.07 ±0.61 2.57 ±0.55 MC (Min Curve) 3.12 ±0.72 2.57 ±0.61 F1-NN (Ours) 3.02 ±0.69 2.45 ±0.63
+> TABLE II: Mean geometric deviation with respect to the re-constructed expert raceline (F1-GT) across all 17 tracks of our dataset. RMSE and MAE are computed in the Frenet frame using the lateral offset d(s). Although the geometric improvement of F1-NN over CL is moderate, this small structural offset proves crucial for improving initialization quality in nonlinear minimum-time trajectory optimization. Notably, geometric agreement alone does not fully explain optimization performance, highlighting that initialization quality depends on structural properties beyond simple pointwise deviation.
+
+C. Neural Network Prediction Performance 
+
+First, we evaluate the proposed raceline predictor in terms of (i) training stability, (ii) quantitative geometric accuracy w.r.t. the reconstructed expert raceline, and (iii) qualitative behavior on representative circuits. 
+
+1) Training Stability : Fig. 4.a shows smooth and sta-ble convergence of both training and validation loss. The two curves closely follow each other throughout training, indicating well-conditioned optimization and no pronounced overfitting, i.e., the model generalizes to unseen tracks under the track-level split strategy. 
+
+2) Quantitative Geometric Deviation : Tab. II reports the average RMSE and MAE of the predicted lateral offset d(s)
+
+in the Frenet frame relative to the reconstructed expert raceline (F1-GT). Across all 17 tracks, F1-NN achieves slightly lower error than the geometric baselines. However, these improvements are small and not statistically signifi-cant, suggesting that pointwise geometric deviation alone is not sufficient to explain initialization quality for nonlinear minimum-time optimization. 
+
+3) Qualitative Track Behavior : Figs. 4.b–d visualize pre-dicted racelines (green) against the centerline (black dashed) and expert reference (blue) on Spielberg, Monza, and COTA. On Spielberg and Monza, the network reproduces character-istic expert behaviors in the corner entry and exit, clearly deviating from the geometric centerline in a racing-consistent manner. On COTA, residual deviations are larger, due to the long straights before the curve where acceleration profiles are difficult to predict. Overall, these examples illustrate that the model learns circuit-dependent structural patterns that resemble expert driving and provides a racing-oriented geometric prior for downstream optimization. 
+
+D. Influence of Initialization Strategies 
+
+To quantify the impact of initialization quality on conver-gence and final raceline solution quality, we compare dif-ferent trajectory seeds under identical minimum-time solver settings. The results averaged for all 17 tracks are summa-rized in Tab. III. As can be seen, initialization strongly affects convergence efficiency. The centerline baseline requires the most itera-tions and longest optimization time, while the minimum-curvature (MC) trajectory reduces both metrics by about 7–9%, confirming the benefit of geometric preprocessing. Fig. 4: Neural network training behavior and qualitative raceline prediction results. (a) Training and validation loss curves show stable convergence and similar trends, indicating good generalization without overfitting. (b–d) Predicted racelines (green) compared to the reconstructed expert Formula 1 raceline (blue) and the track centerline (black dashed) on representative circuits (Spielberg, Monza, and COTA). The predicted trajectories closely follow the expert racing line, particularly in corner entry and exit regions, while clearly deviating from the geometric centerline, demonstrating that the network captures expert driving structure from track geometry alone. On COTA the deviation is slightly higher, due to the long straights before the curve where acceleration profiles are difficult to predict.                                                                         
+
+> Init. Iter. ↓Opt. Time [s] ↓Gen. Time [s] ↓Total Runtime [s] ↓Lap Time [s] ↓
+> CL 521.6 ±149.0 149.5 ±47.5 –149.5 ±47.5 85.70 ±11.20 MC 483.1 ±112.1 136.2 ±38.7 121.4 ±50.3 257.6 ±63.4 85.26 ±11.17 F1-NN (Ours) 434.5 ±103.1 ∗123.4 ±40.5 ∗0.63 ±0.1 †124.0 ±40.5 ∗† 85.22 ±11.21 ∗
+> F1-GT 400.1 ±67.6 112.3 ±26.2 –112.3 ±26.2 85.14 ±11.13 TABLE III: Comparison of initialization strategies for minimum-time optimization. Reported are the mean and standard deviation of solver iterations, optimized lap time, optimization runtime, initialization generation time, and total runtime across all evaluated tracks. Lower values indicate improved efficiency and solution quality. CL denotes the centerline, MC the minimum-curvature trajectory, F1-NN the raceline predicted by our neural network, and F1-GT the reconstructed Formula 1 ground-truth trajectory. ∗indicates statistical significance compared to CL ( p < 0.05 ), and †indicates statistical significance compared to MC ( p < 0.05 ).
+
+Our proposed F1-NN initialization further improves conver-gence, reducing solver iterations by 17% and optimization time by 26 s compared to the centerline. This indicates that the learned raceline places the optimizer significantly closer to the optimal solution compared to the centerline. However, initialization cost must also be considered. The MC trajectory requires substantial preprocessing, resulting in the highest total overall runtime. In contrast, F1-NN 
+
+generates racelines in only 0.63 s , yielding the lowest overall runtime, nearly halving total computation compared to MC and reducing runtime by 17% compared to the centerline baseline. Finally, the small remaining gap to the F1-GT 
+
+initialization confirms that the network successfully transfers expert trajectory structure into improved optimization perfor-mance. Overall, these results highlight that learning-based initialization substantially improves solver efficiency while maintaining or slightly improving final trajectory quality, achieving near-expert performance at negligible computa-tional cost. 
+
+E. Hardware Validation 
+
+We conducted Real-world experiments on a self-built RoboRacer 1:10 autonomous racing platform [10], [25] to validate practical feasibility of our approach and demon-strate that the proposed F1-NN initialization transfers from simulation to a real system, despite significant domain shift. Therefore, we constructed a dedicated test track with an L-shaped layout, including straights and both left- and right-hand corners to cover varying curvature conditions. To generate global racelines, we use the same minimum-time optimal control solver described in Sec. VI-A, pa-rameterized with RoboRacer-specific vehicle dynamics. The proposed F1-NN model, trained exclusively on full-scale Formula 1 data, predicts an initialization raceline for the experimental track, representing a substantial domain shift to a previously unseen, downscaled environment. The vehicle tracks the optimized trajectory using a predictive pure pursuit controller operating on the minimum-time trajectory and corresponding speed profile. In this experiment, we compare centerline initializa-tion ( CL ) against the proposed F1-NN initialization by exe-cuting the resulting optimized racelines and velocity profiles on the vehicle. Each configuration is evaluated over 10 au-tonomous laps under identical environmental conditions. Feasibility is assessed by counting crash-free runs, while performance metrics are derived from recorded lap times and tracking data. In addition, we report the lateral tracking error, defined as the perpendicular distance between the planned raceline and the executed vehicle trajectory, which reflects how well the controller can follow the optimized path. The quantitative results in Tab. IV show that F1-NN 
+
+initialization achieves significantly faster lap times while also reducing lateral tracking error compared to the centerline baseline. The reduced lateral error indicates that the result-ing trajectories are not only faster but also easier for the controller to track reliably, suggesting improved geometric Init. Lap Time [s] Speed [m/s] Lat. Err [m] 
+
+CL 7.090 ± 0.061 3.504 ± 1.010 0.165 ± 0.155 F1-NN (Ours) 6.640 ± 0.069 ∗ 3.672 ± 1.014 ∗ 0.109 ± 0.075 ∗
+
+TABLE IV: Real-world RoboRacer evaluation comparing center-line (CL) and our proposed F1-NN initialization. Reported are mean ± standard deviation across 10 autonomous laps. Lat. Err 
+
+denotes the lateral tracking error between the planned raceline and the executed vehicle trajectory. ∗ indicates statistically significant improvement over CL ( p < 0.01 ). 
+
+Fig. 5: Qualitative example of the optimized raceline on the RoboRacer test track. The F1-NN-initialized trajectory (red) follows smooth cornering arcs resulting in high speed and trackability. 
+
+smoothness and dynamic feasibility. Furthermore, the higher average speed confirms that the optimizer can exploit more aggressive yet executable trajectories when initialized with the learned raceline prior. Fig. 5 shows a qualitative example of the optimized trajectory on the real test track, illustrating how the F1-NN initialization produces a smoother and more corner-efficient racing line. VII. C ONCLUSION 
+
+In this paper, we presented a learning-informed initial-ization strategy for minimum-time trajectory optimization in autonomous racing. Motivated by the sensitivity of nonlinear optimal control solvers to the initial guess, we leverage expert Formula 1 driving behavior as a prior for optimization. To this end, we constructed a multi-track dataset by recon-structing real-world Formula 1 telemetry across 17 tracks, and trained a windowed CNN model to predict expert-like raceline geometry directly from local track features. Experimental results across all tracks show that our learned initialization significantly improves solver efficiency under identical settings. Compared to centerline and minimum-curvature seeds, F1-NN reduces iterations and optimization time, while approaching the performance of initialization with the reconstructed expert raceline. Due to its negligible inference cost, F1-NN yields the lowest total runtime among baseline initializations. Finally, real-world experiments on a 1:10 RoboRacer platform confirm that the learned initializa-tion transfers under domain shift, achieving faster lap times and lower tracking error than a centerline-based baseline. REFERENCES [1] B. Paden, M. ˇ C´ ap, S. Z. Yong, D. Yershov, and E. Frazzoli, “A Survey of Motion Planning and Control Techniques for Self-Driving Urban Vehicles,” IEEE Transactions on intelligent vehicles , vol. 1, 2016. [2] J. Betz, H. Zheng, A. Liniger, U. Rosolia, P. Karle, M. Behl, V. Krovi, and R. Mangharam, “Autonomous vehicles on the edge: A survey on autonomous vehicle racing,” IEEE Open Journal of Intelligent Transportation Systems , 2022. [3] H. Pacejka, Tire and vehicle dynamics . Elsevier, 2005. [4] R. Rajamani, Vehicle dynamics and control . Springer, 2006. [5] G. Perantoni and D. J. Limebeer, “Optimal control for a formula one car with variable parameters,” Vehicle System Dynamics , vol. 52, 2014. [6] J. T. Betts, Practical methods for optimal control and estimation using nonlinear programming . SIAM, 2010. [7] A. Heilmeier, A. Wischnewski, L. Hermansdorfer, J. Betz, M. Lienkamp, and B. Lohmann, “Minimum curvature trajectory planning and control for an autonomous race car,” Vehicle System Dynamics , 2020. [8] N. R. Kapania, J. Subosits, and J. Christian Gerdes, “A sequential two-step algorithm for fast generation of vehicle racing trajectories,” 
+
+Journal of Dynamic Systems, Measurement, and Control , vol. 138, no. 9, 2016. [9] U. Rosolia and F. Borrelli, “Learning model predictive control for iterative tasks: A data-driven control framework,” IEEE Transactions on Automatic Control , vol. 63, no. 7, 2017. [10] I. Charles, H. Maghsoumi, and Y. Fallah, “Advancing autonomous racing: A comprehensive survey of the roboracer (f1tenth) platform,” in Proc. of the IEEE Intl. Conf. on Artificial Intelligence, Robotics and Control (AIRC) , 2025. [11] F. Christ, A. Wischnewski, A. Heilmeier, and B. Lohmann, “Time-optimal trajectory planning for a race car considering variable tyre-road friction coefficients,” Vehicle System Dynamics , vol. 59, 2021. [12] E. v. d. Eshof, J. van Kampen, and M. Salazar, “A computationally efficient framework for free-trajectory minimum-lap-time optimization of racing cars,” arXiv preprint arXiv:2511.13522 , 2025. [13] G. Perantoni and D. J. Limebeer, “Optimal control of a formula one car on a three-dimensional track—part 1: Track modeling and iden-tification,” Journal of Dynamic Systems, Measurement, and Control ,vol. 137, 2015. [14] B. Lenzo and V. Rossi, “A simple mono-dimensional approach for lap time optimisation,” Applied Sciences , vol. 10, no. 4, 2020. [15] D. J. Limebeer and G. Perantoni, “Optimal control of a formula one car on a three-dimensional track—part 2: Optimal control,” Journal of Dynamic Systems, Measurement, and Control , vol. 137, no. 5, 2015. [16] M. Kelly, “An introduction to trajectory optimization: How to do your own direct collocation,” Society for Industrial and Applied Mathematics Review , vol. 59, no. 4, 2017. [17] H. Xue, T. Yue, and J. M. Dolan, “Spline-based minimum-curvature trajectory optimization for autonomous racing,” arXiv preprint arXiv:2309.09186 , 2023. [18] S. Banerjee, A. Cauligi, and M. Pavone, “Deep learning warm starts for trajectory optimization on the international space station,” in Space Robotics Workshop at Robotics: Science and Systems (RSS) , 2025. [19] S. Garlick and A. Bradley, “Real-time optimal trajectory planning for autonomous vehicles and lap time simulation using machine learning,” 
+
+Vehicle System Dynamics , vol. 60, no. 12, 2022. [20] A. Remonda, N. Hansen, A. Raji, N. Musiu, M. Bertogna, E. E. Veas, and X. Wang, “A simulation benchmark for autonomous racing with large-scale human data,” Advances in Neural Information Processing Systems , vol. 37, 2024. [21] A. Sasikumar, A. A. Leema, and P. Balakrishnan, “Data-driven pit stop decision support for formula 1 using deep learning models,” Frontiers in Artificial Intelligence , vol. 8, 2025. [22] V. Mistry and W. A. P. Smith, “Autof1: An rnn-based approach to simulating strategic decision-making in formula 1,” in Proc. of the IEEE Intl. Conf. on Intelligent Transportation Systems (ITSC) , 2025. [23] E. Maeland, “On the comparison of interpolation methods,” IEEE Transactions on Medical Imaging , vol. 7, no. 3, 1988. [24] C. Lea, M. D. Flynn, R. Vidal, A. Reiter, and G. D. Hager, “Tem-poral convolutional networks for action segmentation and detection,” in Proc. of the IEEE/CVF Conf. on Computer Vision and Pattern Recognition (CVPR) , 2017. [25] N. Baumann, E. Ghignone, J. K¨ uhne, N. Bastuck, J. Becker, N. Imholz, T. Kr¨ anzlin, T. Y. Lim, M. L¨ otscher, L. Schwarzenbach, et al. , “Forza-ETH Race Stack—Scaled Autonomous Head-to-Head Racing on Fully Commercial Off-the-Shelf Hardware,” Journal of Field Robotics , 2024.

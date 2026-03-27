@@ -1,0 +1,1254 @@
+Title: TSC: Topology-Conditioned Stackelberg Coordination for Multi-Agent Reinforcement Learning in Interactive Driving
+
+URL Source: https://arxiv.org/pdf/2602.23896v1
+
+Published Time: Mon, 02 Mar 2026 02:09:53 GMT
+
+Number of Pages: 12
+
+Markdown Content:
+> UNDER REVIEW 1
+
+# TSC: Topology-Conditioned Stackelberg Coordination for Multi-Agent Reinforcement Learning in Interactive Driving 
+
+Xiaotong Zhang, Gang Xiong, Senior Member, IEEE, Yuanjing Wang, Siyu Teng, Student Member, IEEE, Alois Knoll, Fellow, IEEE, Long Chen, Senior Member, IEEE 
+
+Abstract —Safe and efficient autonomous driving in dense traffic is fundamentally a decentralized multi-agent coordination problem, where interactions at conflict points such as merging and weaving must be resolved reliably under partial observabil-ity. With only local and incomplete cues, interaction patterns can change rapidly, often causing unstable behaviors such as oscillatory yielding or unsafe commitments. Existing multi-agent reinforcement learning (MARL) approaches either adopt syn-chronous decision-making, which exacerbate non-stationarity, or depend on centralized sequencing mechanisms that scale poorly as traffic density increases. To address these limitations, we propose Topology-conditioned Stackelberg Coordination (TSC), a learning framework for decentralized interactive driving under communication-free execution, which extracts a time-varying directed priority graph from braid-inspired weaving relations be-tween trajectories, thereby defining local leader–follower depen-dencies without constructing a global order of play. Conditioned on this graph, TSC endogenously factorizes dense interactions into graph-local Stackelberg subgames and, under centralized training and decentralized execution (CTDE), learns a sequential coordination policy that anticipates leaders via action prediction and trains followers through action-conditioned value learning to approximate local best responses, improving training stability and safety in dense traffic. Experiments across four dense traffic scenarios show that TSC achieves superior performance over representative MARL baselines across key metrics, most notably reducing collisions while maintaining competitive traffic efficiency and control smoothness. 
+
+Index Terms —Multi-agent systems, Reinforcement learning, Decentralized control, Stackelberg game 
+
+I. I NTRODUCTION This work was supported by the National Natural Science Foundation of China under Grant 62373356 and U1909204, the National Key R&D Program of China under Grant 2022YFB4703700 and Key-Area Research and Development Program of Guangdong Province (2020B0909050001). 
+
+(Xiaotong Zhang and Gang Xiong are co-first authors.) (Corresponding author: Long Chen.) 
+
+Xiaotong Zhang is with the State Key Laboratory of Multimodal Artificial Intelligence Systems, Institute of Automation, Chinese Academy of Sciences, Beijing 100190, China, and also with School of Artificial Intelligence, University of Chinese Academy of Sciences, Beijing 100049, China (e-mail: zhangxiaotong2023@ia.ac.cn). Gang Xiong is with the State Key Laboratory of Multimodal Artificial Intelligence Systems, Institute of Automation, Chinese Academy of Sciences, Beijing 100190, China (e-mail: gang.xiong@ia.ac.cn). Yuanjing Wang is with the Department of Natural Sciences, Univer-sity of Durham, Durham DH1 3LE, United Kingdom (e-mail: yuanjing-wang23@gmail.com). Siyu Teng is with the College of Civil and Transportation Engineering, Shenzhen University, Guangdong, 518060, China (e-mail: siyuteng@ieee.org). Alois Knoll is with the Chair of Robotics, Artificial Intelligence and Realtime Systems, Technical University of Munich, 80333 Munich, Germany (e-mail: k@tum.de). Long Chen is with the State Key Laboratory of Management and Control for Complex Systems, Institute of Automation, Chinese Academy of Sciences, Beijing, 100190, China, and also with Waytous Inc., Qingdao 266109, China (e-mail: long.chen@ia.ac.cn). 
+
+# AUTONOMOUS vehicles (AVs) must coordinate safely and efficiently in dense traffic, which is a key capability for next-generation intelligent transportation systems [1]–[7]. In contrast to single-vehicle planning, multi-vehicle coordi-nation must satisfy safety and kinematic constraints while forming consistent right-of-way patterns in shared spaces such as intersections, merges, and on-ramps [8]–[16]. Recently, MARL has emerged as a practical paradigm for modeling such interactions, enabling distributed agents to learn coordination strategies through trial and error across diverse transportation tasks [8], [17]–[20]. This paradigm is particularly attractive under decentralized execution, where accurate system dynam-ics are difficult to obtain, communication between vehicles and infrastructure is constrained, and relying on long-horizon centralized global information is often impractical [21]–[25]. Nevertheless, learning stable right-of-way patterns from local observations remains challenging in dense conflict regions, where multiple vehicles compete for the same spatiotemporal gaps and must implicitly negotiate a passage order with-out communication. Reciprocal reaction loops and concurrent policy updates then render the effective game highly non-stationary, often manifesting as oscillatory yielding, deadlocks, or unsafe commitments [26], [27]. From a game-theoretic perspective, decentralized coordi-nation can be cast as a partially observed dynamic non-cooperative game, where agents choose control actions to optimize safety–efficiency objectives under coupled collision-avoidance constraints, and stable behavior corresponds to an equilibrium that implicitly defines a consistent right-of-way or-dering [12], [14], [28]. According to decision timing, existing MARL-based coordination methods can be broadly grouped into two classes. The first class formulates coordination as a simultaneous-move (joint-action) Markov game, where all agents select actions synchronously at each time step [1], [8]– [10]. Since agents update their policies concurrently during learning, the induced environment becomes non-stationary from any individual agent’s viewpoint, which can destabilize training and hinder convergence [17]–[19], [23], [25]. The sec-ond class introduces sequential decision structures or priority mechanisms to impose an explicit or implicit order of play, approximating Stackelberg-style leader–follower interactions in which some agents commit earlier and others respond, thereby encouraging more consistent and stable coordination patterns [12], [13], [26]–[30]. However, many such approaches depend on constructing a global order of play or unrolling a fixed multi-agent decision sequence, causing representational and computational costs to grow quickly with the number of vehicles and limiting scalability in large, heterogeneous dense  
+
+> arXiv:2602.23896v1 [cs.RO] 27 Feb 2026 UNDER REVIEW 2
+
+Fig. 1: Topology-conditioned Stackelberg coordination from trajectory weaving in multi-vehicle traffic. traffic settings. Topological structures have been widely used to describe multi-agent interaction patterns that arise from trajectory weaving, merging, and overtaking [31], [32]. In particular, braid-theoretic formulations abstract crossings and precedence relations into topological braids or directed graphs, where the crossing order of intertwined trajectories induces a di-rected precedence structure that supports compact reasoning about interaction complexity and priority constraints in multi-robot coordination [31]. In autonomous driving, related braid-inspired abstractions have been adopted to organize multi-vehicle interaction prediction and planning, for example by grouping joint futures into topological equivalence classes based on relative crossing order, or by leveraging lane con-nectivity and homotopy cues to obtain more consistent and rule compliant behaviors [32]–[35]. Despite these advances, topology is typically introduced as an external representation [31], [32], rather than being embedded into the underlying multi-agent decision structure to induce feasible orders of play and directly guide policy learning under communication constrained decentralized execution [21]–[24]. To address these limitations, we propose Topology-conditioned Stackelberg Coordination (TSC), a multi-agent learning framework for safe and efficient cooperative in-teractive driving in dense traffic under communication-free execution. In shared conflict regions, interactions are governed by an evolving local precedence structure, whereas enforcing a global order of play is brittle and scales poorly with increasing traffic density [12], [14], [26]–[30]. Instead, TSC infers a time-varying directed priority graph from braid-inspired trajectory weaving cues, which reflect prospective crossing order and the strength of interaction coupling from ego-centric observations. This graph provides a compact interaction scaffold. Using this graph, each agent selects a limited number of interaction-critical neighbors to form a sparse decision state, and the resulting directed relations define local leader-follower depen-dencies that support graph-local Stackelberg reasoning rather than a centralized decision sequence. By coupling priority-guided sparsification with local sequential reasoning, TSC reduces training non-stationarity in dense interactions and concentrates learning on safety-critical conflicts. To implement TSC, we propose a topology-conditioned priority inference and policy learning network (TSC-Net) trained under cen-tralized training and decentralized execution. TSC-Net jointly learns priority graph inference and topology-conditioned pol-icy, with consistency-driven supervision that links edge-wise priority probabilities with score-induced precedence so that inferred priorities remain stable and decision-relevant. At execution time, each agent acts only from compact priority-filtered local observations, enabling communication-free yet coherent leader-follower behavior. 
+
+Contributions. We summarize our contributions as follows:  
+
+> •
+
+We propose TSC, a Topology-conditioned Stackelberg Coordination framework for dense multi-vehicle interac-tion under communication-free decentralized execution, which infers a time-varying directed priority graph from braid-inspired weaving cues to induce graph-local leader-follower dependencies without constructing a global order of play.  
+
+> •
+
+We develop TSC-Net, a CTDE actor-critic instantiation of TSC that jointly learns edge-wise priority probabilities and node-wise priority scores with a consistency regu-larizer, and conditions value learning on predicted leader actions to enable stable local sequential reasoning without explicit communication.  
+
+> •
+
+We evaluate TSC in four dense traffic scenarios, showing consistent collision reduction and improved interaction stability, with ablations that validate the impact of pri-ority inference, topology-guided sparsification, and local Stackelberg reasoning. UNDER REVIEW 3
+
+II. P ROBLEM FORMULATION 
+
+A. Task and Objective 
+
+We consider an interactive driving scenario with N ≥ 2
+
+connected and automated vehicles evolving in discrete time [9], [36], [37]. Each vehicle is controlled by an agent and we use the same index i for both. Let I = {1, . . . , N } and 
+
+T = {1, . . . , T } denote the agent set and episode time indices. We model the problem as a partially observable stochastic game with tuple: 
+
+N, S, {A i}Ni=1 , {O i}Ni=1 , {Ωi}Ni=1 , P, {ri}Ni=1 , T, γ , (1) where S ⊆ Rds is the global state space and Ai = A ⊆ Rda .At time step t, the system is at a global state st ∈ S.Each agent i chooses an action ati ∈ Ai and receives a local observation oti ∈ Oi given by oti = Ωi(st), where 
+
+Ωi maps the global state to the observable information of agent i. The stochastic transition function is denoted by 
+
+P : S ×A 1 ×· · ·×A N → ∆( S), and the next state is sampled as st+1 ∼ P  st, a t
+
+> 1
+
+, . . . , a tN
+
+. Agent i receives a scalar reward 
+
+rti = ri
+
+ st, a t
+
+> 1
+
+, . . . , a tN
+
+, and γ ∈ (0 , 1] is the discount factor. 
+
+Local observation. At time t, the set of agents observable to agent i is denoted by N ti ⊆ {1, . . . , N } \ { i}. For implementation, N ti is represented as a fixed-size candidate set of capacity M ∈ N, padding when fewer are available. The local observation is represented as oti = {˜oti, {oti,j }j∈N ti },where ˜oti collects ego-related features of agent i and oti,j 
+
+encodes features of neighbor j as seen from agent i. This can be obtained from on-board sensing without inter-agent communication. 
+
+Policy and objective. Each agent follows a decentralized policy πθ : oi → ∆( Ai) that maps its local observation to an action distribution. Under CTDE with parameter sharing [38], [39], we optimize shared parameters θ to maximize the average discounted return 
+
+θ∗ = arg max  
+
+> θ
+
+Eπθ
+
+" TX
+
+> t=1
+
+γt 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+ri
+
+ st, a t
+
+> 1
+
+, . . . , a tN
+
+#
+
+. (2) This setting is challenging due to non-stationarity induced by mutual reactions and the need for consistent implicit ordering in dense conflict regions. 
+
+B. Topological Interaction Graph 
+
+In dense interactions, purely distance-based neighborhoods may be insufficient to capture behaviorally coupled relations such as merging or crossing. We therefore introduce a directed topological interaction graph that models local precedence and influence as directed dependencies among agents and supports priority-aware coordination under decentralized execution. At time t, the scene is represented by a directed graph 
+
+Gt = ( Vt, E t, W t), (3) where each node vti ∈ Vt corresponds to agent i with node feature xti ∈ Rdx . For j̸ = i, an edge (j, i ) ∈ Et indicates that agent j can constrain the feasible maneuvers of agent i and carries a nonnegative weight wti←j ∈ R≥ 0 that is not neces-sarily symmetric and will be instantiated as a directed priority strength in our construction. To respect partial observability, edge features zi ← jt ∈ Rdz are computed from quantities available to agent i via on-board sensing. Under decentralized execution, agent i constructs an ego-centric local view Gti
+
+induced by i ∪ N ti and performs subsequent inference and decision making from Gti using only this local view without global scene access or communication [32]. III. M ETHOD 
+
+Fig. 1 summarizes the proposed framework and its instantia-tion in TSC-Net. Sec. III-A formalizes the trajectory weaving-based priority formulation and constructs a directed prior-ity graph with asymmetric edge weights that encodes local precedence among potentially conflicting vehicles. Sec. III-B then presents TSC-Net, which infers an ego-centric local priority graph and performs topology-conditioned Stackel-berg coordination using predicted leader actions to support communication-free execution. Sec. III-C describes the learn-ing objective and the CTDE training procedure. 
+
+A. Topological Priority Formulation 1) Agent-centric future-trajectory representation: Let Yt =
+
+{Yti }Ni=1 denote the multi-agent future trajectories over a finite horizon H, where Yti = {Xt+hi }Hh=0 ∈ R(H+1) ×2 and 
+
+Xt+hi = pt+hx,i , p t+hy,i , ]⊤ ∈ R2 collects 2D position. These future rollouts are used only for training supervision and are unavailable at decentralized execution. We are interested in how these trajectories intertwine in the neighborhood of each agent and in representing such interactions in a structured form that can be exploited by a graph-based decision model. For each ego agent i, we introduce an agent-centric lateral-longitudinal coordinate frame. Let θti ∈ R denote its heading over the horizon and Rti ∈ R2×2 the rotation matrix that aligns the x-axis of this frame with θti . The future position of any agent j is mapped into this local frame over a horizon H as: 
+
+˜X(i) 
+
+> j
+
+(t + h) = Ri
+
+ Xt+hj − Xti
+
+ ∈ R2, h = 0 , . . . , H (4) We denote its lateral coordinate by y(n) 
+
+> k
+
+(t+h), and {y(i) 
+
+> j
+
+(t+
+
+h)}Hh=0 ∈ RH+1 describes, from the viewpoint of agent i, the sideways motion of j relative to i.
+
+2) Weaving distance and soft pairwise topological priority: 
+
+Consider two distinct agents (i, j ) at time t. In the ego-centric lateral-longitudinal frame of agent i, define the lateral gap as: 
+
+∆(i) 
+
+> i←j
+
+(h) = y(i) 
+
+> i
+
+(t + h) − y(i) 
+
+> j
+
+(t + h), h = 0 , . . . , H. (5) Intuitively, strong weaving occurs when the two future lateral profiles approach each other and tend toward a braid crossing, i.e., ∆(i) 
+
+> i←j
+
+(h) becomes small in magnitude and exhibits a sign change over consecutive steps. This crossing event induces a local crossing-order cue, which we use to define directed precedence between the pair and to supervise the corresponding edge in the priority graph. To quantify this effect, for h = 0 , . . . , H − 1 we define a per-step near-crossing score: 
+
+δ(i) 
+
+> i←j
+
+(h) = min  |∆(i) 
+
+> i←j
+
+(h)|, |∆(i) 
+
+> i←j
+
+(h + 1) |
+
+ε + max  0, −∆(i) 
+
+> i←j
+
+(h) ∆ (i) 
+
+> i←j
+
+(h + 1)  ∈ R+,
+
+(6) UNDER REVIEW 4
+
+where ε > 0 is a stabilizing constant. The numerator measures the closest lateral separation over two consecutive steps, while the denominator downweights non-interleaving cases and yields smaller values when a sign change is likely (since 
+
+−∆( h)∆( h + 1) > 0). We then aggregate over the horizon by taking the most critical (closest) interleaving event, defining the directed weaving distance: 
+
+dti←j = min  
+
+> h=0 ,...,H −1
+
+δ(i) 
+
+> i←j
+
+(h). (7) Smaller dti←j indicates stronger topological coupling be-tween the future motions of i and j as viewed from agent 
+
+i’s frame, whereas larger values indicate weak or negligible weaving. Repeating the same construction with roles swapped (i.e., in the local frame of agent j) yields dtj←i.Given the two directed distances, we assign asymmetric pairwise priority probabilities via a two-class softmax: 
+
+pti←j = exp( −dti←j /τ )exp( −dti←j /τ ) + exp( −dtj←i/τ ) , ptj←i = 1 −pti←j ,
+
+(8) where τ > 0 controls the softness. With the arrow convention 
+
+i ← j (meaning influence from j to i), a larger pti←j indicates that j is more dominant relative to i within their intertwined region. Collecting agents as vertices Vt, the pairwise prob-abilities {pti←j } define the edge weights of the topological interaction graph Gt = ( Vt, E t, W t) introduced in Sec. II-B, by setting wti←j = pti←j for each interaction relevant ordered pair (j, i ) ∈ Et. The general asymmetry pti←j̸ = ptj←i thus encodes directional influence on Gt.
+
+3) Scalar priority field from pairwise probabilities: The pairwise probabilities {pti←j } specify edge-level preferences between interacting agents, but do not directly yield a compact ordering over the whole interaction graph. We therefore assign each agent i at time t a scalar topological priority score sti ∈ R,where a larger value indicates that i tends to dominate (i.e., be yielded to by) its neighbors. The collection {sti} can be viewed as a scalar potential on the nodes of Gt whose pairwise differences summarize directed priority relations. To derive supervision from these probabilities, we define an antisymmetric preference signal for each ordered pair: 
+
+Ati←j = ptj←i − pti←j , Atj←i = −Ati←j . (9) With this convention, Ati←j > 0 indicates that i should be assigned higher priority than j. We then recover node scores by fitting score differences to these signed preferences via a weighted least-squares objective: 
+
+{st,⋆ i } = arg min 
+
+> {si}
+
+12
+
+X
+
+> (j,i )∈Et
+
+cti←j
+
+ (si − sj ) − Ati←j
+
+2, (10) subject to the gauge constraint PNi=1 si = 0 , which removes the global shift ambiguity of {si}. Here the summation is taken over interaction-relevant directed edges (j, i ) ∈ Et, and 
+
+cti←j weights the confidence of the corresponding preference, downweighting uncertain pairs (e.g., when pti←j ≈ 12 ), and we set cti←j = pti←j − 12
+
+> α
+
+. Solving this problem yields, for each time t, a scalar priority field {st,⋆ i } that provides a graph-level ordering consistent (in the least-squares sense) with the edge-wise preferences. 
+
+4) Joint prediction and supervision of pairwise and scalar priorities: At each time step t, agent i predicts edge-wise priority probabilities ˆpti←j ∈ [0 , 1] for each neighbour j ∈ N ti
+
+and a node-wise scalar priority score ˆsti ∈ R for itself from its ego-centric observation oti. The training objective combines three terms. An edge-level loss fits the priorities, 
+
+Ledge = X
+
+> t
+
+X
+
+> (j,i )∈Et
+
+BCE  ˆpti←j , p ti←j
+
+, (11) a node-level loss aligns the predicted scalar field with the least-squares solution, 
+
+Lnode = X
+
+> t
+
+X
+
+> i
+
+ˆsti − st,⋆ i
+
+> 22
+
+, (12) and a consistency term encourages the edge probabilities to agree with the ordering induced by the node scores. Specifi-cally, we construct 
+
+˜pti←j = σ
+
+ ˆstj − ˆsti
+
+τs
+
+
+
+, (13) with temperature τs > 0 and logistic sigmoid σ(·), and penalise their discrepancy via 
+
+Lcons = X
+
+> t
+
+X
+
+> (j,i )∈Et
+
+ ˆpti←j − ˜pti←j
+
+2. (14) The overall topological loss is: 
+
+Ltopo = Ledge + λnode Lnode + λcons Lcons , (15) with trade-off weights λnode , λ cons > 0. At test time, each agent only requires its own observation oti to compute ˆsti
+
+and ˆpti←j , enabling decentralized estimation of both pairwise and scalar priorities without any central coordinator or inter-vehicle communication. 
+
+B. Topology-conditioned Stackelberg Coordination Network (TSC-Net) 
+
+As shown in Fig. 2, we present the Topology-conditioned Stackelberg Coordination Network (TSC-Net), which instan-tiates TSC under centralized training and decentralized ex-ecution. Guided by the topological priority formulation in Sec. III-A, TSC-Net infers an ego-centric local priority graph from observations and uses it to enable topology-conditioned leader–follower coordination under decentralized, communication-free execution. 
+
+1) Trajectory weaving for local priority graph inference: 
+
+Given the ego-centric observation oti defined in Sec. II-A, agent i constructs an agent-centric representation for local priority graph inference. We encode the ego part and each neighbor part separately to obtain latent features: 
+
+hti = Encoder ego (˜ oti), hti,j = Encoder nbr (oti,j ), j ∈ N ti ,
+
+(16) where hti ∈ Rde is the ego embedding, hti,j ∈ Rdn encodes the interaction from neighbor j as observed by agent i.Stacking the ego and neighbor embeddings yields an ego-centric interaction representation: 
+
+Hti = hti; {hti,j }j∈N ti
+
+ ∈ Rde+M d n , (17) UNDER REVIEW 5
+
+Fig. 2: The TSC-Net architecture. Ego and neighbor encoders construct an interaction representation Hti, from which the TopoDecoder predicts pairwise priorities ˆpti←j and node scores ˆsti to form a local priority graph. Guided by this graph, a TopK filter and TopoAttention aggregate the most influential neighbors into a compact decision state uti, which the PolicyHead maps to the continuous action ati. The same priority structure defines the local leader set Lti. The PredictHead estimates leader actions {ˆatj|i}j∈L ti , and the ValueHead conditions on these predictions to approximate the local Stackelberg value, yielding TD advantages ˆAti for actor optimization under CTDE. where {hti,j }j∈N ti denotes the collection of neighbour embed-dings defined over N ti with padding when fewer neighbors are available. On top of Hti we introduce a topological priority decod-ing stream that recovers edge-wise and node-wise priorities induced by trajectory weaving: 
+
+Qtopo  
+
+> i
+
+= TopoDecoder( Hti), (18) 
+
+ˆpti = TopoHead( Qtopo  
+
+> i
+
+), (19) 
+
+ˆsti = NodeHead( Qtopo  
+
+> i
+
+). (20) Specifically, the agent-centric representation Hti is first mapped to per-neighbor topology features Qtopo  
+
+> i
+
+∈ RM ×dt .These features are then fed into two lightweight heads to produce edge-wise priority probabilities ˆpti ∈ [0 , 1] M and a node-wise scalar priority score ˆsti ∈ R.During training, the priority inference branch is supervised by the topological priority labels pti←j and st,⋆ i . The edge labels satisfy the reciprocity constraint 
+
+pti←j + ptj←i = 1 . (21) The edge labels are de-cycled offline to suppress short directed loops in the induced priority graph. Consequently, each agent can infer a consistent local ordering signal from 
+
+Hti under decentralized execution. 
+
+2) Priority-Conditioned Local Decision Interface: Before performing Stackelberg coordination, each agent compresses its raw neighborhood into a compact, priority filtered subset. The pairwise priorities ˆpti←j provide a directional yielding cue under our arrow convention i ← j. Larger values indicate that neighbor j is more dominant in the inferred weaving relation and should therefore receive greater attention when agent i
+
+plans. To keep the per-agent control input bounded while retain-ing the most influential interactions, agent i selects the K
+
+neighbors with the largest priorities and aggregates their latent features: 
+
+N ti,K = TopK K
+
+ {ˆpti←j }j∈N ti
+
+, (22) 
+
+Cti = TopoAttn 
+
+
+
+[hti; {hti,j }j∈N ti,K ]
+
+
+
+∈ Rdc , (23) where N ti,K ⊆ N ti denotes the selected neighbor set. This priority-guided compression focuses the policy on strongly coupled interactions and supports scalability as traffic density increases. On top of the aggregated context, we define the actor branch of TSC-Net. The context Cti and scalar priority 
+
+ˆsti are mapped to a local decision state uti, which parametrizes a stochastic policy: 
+
+uti = EgoDecoder  Cti , ˆsti
+
+, (24) 
+
+ati ∼ πθ (· | uti) = PolicyHead θ (uti). (25) The PolicyHead outputs mean and diagonal standard devi-ation of a Gaussian distribution. The sampled action is then squashed by tanh and rescaled to continuous control space. This subsection specifies the actor interface only. The critic is introduced in Sec. III-B3, where it conditions on uti together with predicted actions of priority-selected neighbors to evalu-ate the priority-guided leader-follower structure, while keeping such predictions out of the policy input for training stability. 
+
+3) Stackelberg Coordination on the Topological Priority Graph: We define a Stackelberg-style local decision rule on the inferred priority graph by identifying, for each agent i, a subset of neighbors that are treated as local leaders at time t.Among the Top-K neighbors N ti,K selected in (22), we define: 
+
+Lti =
+
+n
+
+j ∈ N ti,K ˆpti←j > 12 + ∆ p
+
+o
+
+, (26) where ∆p ≥ 0 is a small margin to avoid unstable ties around 
+
+0.5. Under the arrow convention i ← j, Lti collects those neighbors whose inferred weaving relation suggests that i
+
+should yield to j.UNDER REVIEW 6
+
+Under parameter sharing, agents execute different instances of the same policy πθ . However, the realized leader actions 
+
+atj ∼ πθ (· | utj ) are not observable to agent i at decision time. We therefore predict one-step neighbor actions using the priority-filtered embeddings Hti,K = {hti,j }j∈N ti,K and priorities ˆpti,K = {ˆpti←j }j∈N ti,K 
+
+ˆati = PredictHead  Hti,K , ˆpti,K 
+
+, (27) where ˆati = {ˆatj|i}j∈N ti,K are the predicted neighbor actions as perceived by agent i. We use {ˆatj|i}j∈L ti as topology-guided approximations of the (unobserved) leader actions in the local coordination game. Given the ego decision state uti and predicted leader actions, we implement a Stackelberg-conditioned critic via 
+
+V iϕ
+
+ uti, {ˆatj|i}j∈L ti
+
+ = ValueHead 
+
+
+
+uti, {ˆatj|i}j∈L ti
+
+
+
+, (28) trained by temporal-difference learning to estimate the ex-pected discounted return of agent i under the induced local hierarchy. We formalize this target through the local Stackel-berg state-value V SE  
+
+> i
+
+(uti) and enforce 
+
+V iϕ
+
+ uti, {ˆatj|i}j∈L ti
+
+ ≈ V SE  
+
+> i
+
+(uti). (29) This construction can be interpreted through classical Stack-elberg games, where a leader commits to a policy and a follower responds optimally. While the standard equilibrium is defined by the bilevel program: 
+
+π⋆L = arg max 
+
+> πL
+
+JL
+
+ πL, BR( πL), π⋆F = BR( π⋆L), (30) Our objective is not to solve (30) globally, but to realize follower-side evaluation locally on the priority graph. For agent i, treating Lti as leaders yields the Bellman recursion: 
+
+V SE  
+
+> i
+
+(uti) = E
+
+h
+
+rti + γV SE  
+
+> i
+
+(ut+1  
+
+> i
+
+) uti, a ti ∼ πθ (· | uti),atj ∼ πθ (· | utj ), ∀j ∈ L ti
+
+i
+
+,
+
+(31) where neighbors in Lti act as local leaders for i under parameter sharing. Maximizing JSE  
+
+> i
+
+(πθ ) = E[V SE  
+
+> i
+
+(u0 
+
+> i
+
+)] thus corresponds to seeking a local best response to the leader set: 
+
+BR i({πθ }j∈L ti ) ∈ arg max 
+
+> πθ
+
+JSE  
+
+> i
+
+(πθ ). (32) In decentralized execution, the leader actions in (31) are unavailable and are replaced by predictions ˆatj|i. Conditioning 
+
+V iϕ on {ˆatj|i}j∈L ti therefore yields a biased but tractable approximation to the local Stackelberg backup. Under mild assumptions on the priority graph and bounded prediction error, the induced value bias remains controlled and the resulting advantage estimates support stable policy-gradient updates. Lemma 1 and Lemma 2 in Appendix provide a formal statement and connect the induced update to the underlying local bilevel structure. Crucially, the actor depends only on uti and does not take 
+
+{ˆatj|i} as direct inputs. Predicted leader actions shape the value landscape through the critic, rather than being hard-coded into the policy parameterization, which empirically improves training stability while preserving topology-conditioned coor-dination. 
+
+C. Learning Objective and Training Procedure 
+
+We train TSC-Net under CTDE paradigm. The overall objective consists of (i) supervised learning of the topological priority graph, (ii) neighbor-action prediction loss, and (iii) actor-critic objective for topology-conditioned control. The priority inference branch (Sec. III-B1) predicts edge probabilities ˆpi ← jt and node scores ˆsi t from oti and is su-pervised by the trajectory-derived labels pi ← jt and st,⋆ i . We adopt the priority inference loss Ltopo defined in Sec. III-B1 to train this branch. The prediction head outputs ˆatj|i and is trained on leaders 
+
+j ∈ L ti with 
+
+Llead = X
+
+> t,i
+
+X
+
+> j∈L ti
+
+ℓact 
+
+ ˆatj|i, a tj
+
+, (33) where ℓact is a regression loss. Given rewards rti and discount γ, we train the Stackelberg-conditioned critic with a squared temporal-difference loss: 
+
+Lvalue = X
+
+> t,i
+
+
+
+V iϕ
+
+ uti, {ˆatj|i}j∈L ti
+
+ − yti
+
+2
+
+, (34) where yti is a one-step bootstrapped target computed using a target critic. The actor is updated with an advantage-weighted log-likelihood objective: 
+
+Lpolicy = − X
+
+> t,i
+
+log πθ (ati | uti) ˆAti, (35) with detached advantages: 
+
+ˆAti = yti − V iϕ
+
+ uti, {ˆatj|i}j∈L ti
+
+. (36) We minimize the aggregate objective: 
+
+L = Lpolicy + λV Lvalue + λtopo Ltopo + λlead Llead , (37) with non-negative weights λV , λ topo , λ lead . Training proceeds by collecting joint trajectories with the current decentralized policy and storing them in a replay buffer. Mini-batches sampled from the buffer are used to minimize L, jointly updating the priority inference modules and the topology-conditioned actor-critic. IV. E XPERIMENTS 
+
+A. Evaluation Platform 
+
+We build our multi-agent traffic environment on VMAS [40] and follow the environment design and evaluation protocol of SigmaRL [9]. The simulator enables efficient parallel rollouts with low-level continuous control for all vehicles. Fig. 3 shows representative maps. We evaluate on four traffic scenarios: 
+
+Clover: A cloverleaf interchange with repeated merge-diverge segments and frequent short-range conflicts (initialize 20 vehicles). 
+
+Weave: A compact skewed intersection with tightly coupled turning and crossing flows (initialize 8 vehicles). 
+
+Merge: An on-ramp merging task requiring gap acceptance and cooperative speed adjustment (initialize 8 vehicles). 
+
+Bypass: A looped bypass connecting parallel road segments via an alternative curved path (initialize 8 vehicles). UNDER REVIEW 7
+
+Fig. 3: Evaluation scenarios for dense multi-vehicle interaction. We report three evaluation metrics: collision rate (CR), average speed (AS), and smoothness (SM). CR is decomposed into agent-agent and agent-map events. Let T be the episode length and I[·] the indicator: 
+
+CR AA ≜ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+I
+
+h
+
+∃i : collide ti, agent 
+
+i
+
+× 100 ,
+
+CR AM ≜ 1
+
+T
+
+> T
+
+X
+
+> t=1
+
+I
+
+h
+
+∃i : collide ti, map 
+
+i
+
+× 100 ,
+
+(38) and CR = CR AA + CR AM .AS measures traffic efficiency as the mean speed magnitude over agents and time steps, normalized by vmax :
+
+AS ≜ 1
+
+N T 
+
+> N
+
+X
+
+> i=1
+> T
+
+X
+
+> t=1
+
+∥vti ∥
+
+vmax 
+
+× 100 . (39) SM measures control variability via step-to-step changes in longitudinal and steering commands: 
+
+SM ≜ 1
+
+N (T − 1) 
+
+> N
+
+X
+
+> i=1
+> T
+
+X
+
+> t=2
+
+β
+
+cti, lon − ct−1
+
+> i, lon
+
+clon ,max 
+
++(1 − β) cti, steer − ct−1
+
+> i, steer
+
+csteer ,max 
+
+× 100 ,
+
+(40) where the first and second terms define the longitudinal and lateral components SM LO and SM LA , respectively. Here 
+
+clon ,max and csteer ,max normalize the command ranges and we set β = 0 .5.
+
+B. Experiment Setting 
+
+We compare TSC with three baselines: MFPO, SigmaRL, and XP-MARL. MFPO uses a mean-field aggregation of nearby vehicles instead of explicit pairwise interactions, en-abling scalable learning and execution as the number of agents grows [41], [42]. SigmaRL is a MARL approach that emphasizes sample-efficient and generalizable value learning for multi-vehicle motion planning [9]. XP-MARL extends SigmaRL with sequential coordination through auxiliary pri-oritization [23]. XP-MARL relies on a centralized controller to assign priorities and propagate higher-priority actions, whereas our method infers priorities locally under decentral-ized, communication-free execution. All methods are trained and evaluated in VMAS on the four environments. Each episode consists of a horizon of 1200 steps with ∆t = 0 .05 s . Under partial observability we set |N ti | = 4 
+
+TABLE I: Testing results on four scenarios from different MARL methods. Collision rate (CR [%] ) measures safety and is decomposed into agent-agent collisions CR AA and agent-map collisions CR AM . Average speed (AS [%] ) measures traffic ef-ficiency. Smoothness (SM [%] ) measures control stability. Best is bold and second best is underlined within each scenario. 
+
+MFPO SigmaRL XP-MARL TSC Clover 
+
+CR AA ↓ 1.71 1.67 0.19 0.04 
+
+CR AM ↓ 0.00 0.00 0.03 0.03 
+
+CR ↓ 1.71 1.67 0.22 0.07 
+
+AS ↑ 86.6 87.1 84.8 88.2 
+
+SM LO ↓ 2.63 2.58 2.27 1.95 
+
+SM LA ↓ 11.2 10.4 8.95 8.89 
+
+SM ↓ 6.92 6.50 5.61 5.42 
+
+> Weave
+
+CR AA ↓ 5.46 5.45 0.69 0.18 
+
+CR AM ↓ 2.29 0.95 0.98 0.81 
+
+CR ↓ 7.75 6.40 1.66 0.99 
+
+AS ↑ 72.5 79.2 78.2 81.8 
+
+SM LO ↓ 9.44 7.59 5.58 5.29 
+
+SM LA ↓ 16.5 14.9 9.51 9.38 
+
+SM ↓ 12.9 11.3 7.54 7.33 
+
+> Merge
+
+CR AA ↓ 4.37 4.28 0.24 0.03 
+
+CR AM ↓ 0.00 0.00 0.00 0.00 
+
+CR ↓ 4.37 4.28 0.24 0.03 
+
+AS ↑ 78.6 83.1 81.4 84.7 
+
+SM LO ↓ 5.85 5.23 5.57 5.09 
+
+SM LA ↓ 10.0 8.56 5.32 6.58 
+
+SM ↓ 7.95 6.90 5.45 5.84 Bypass 
+
+CR AA ↓ 4.80 5.02 0.56 0.08 
+
+CR AM ↓ 0.78 0.03 0.07 0.03 
+
+CR ↓ 5.57 5.06 0.62 0.10 
+
+AS ↑ 76.4 81.4 78.0 79.4 
+
+SM LO ↓ 6.93 6.18 5.94 7.44 
+
+SM LA ↓ 14.5 14.4 9.02 9.16 
+
+SM ↓ 10.7 10.3 7.48 8.30 
+
+for priority inference and |N ti,K | = 2 for policy learning and execution. Each run is trained for 250 iterations and collects 
+
+4096 environment steps per iteration, which yields about 1.0×
+
+10 6 total steps. We set λnode = 1 .0 and λcons = 1 .0. All experiments are conducted on an AMD Ryzen 9 7945HX CPU with 32 GB RAM. UNDER REVIEW 8
+
+Fig. 4: Comparison of safety, efficiency, and smoothness across four scenarios. 
+
+Fig. 5: Collision rate of different methods under varying numbers of vehicles at test time. 
+
+Fig. 6: Visualization of vehicle trajectories in one test episode. Black dots indicate collision events. 
+
+C. Main Results 
+
+Table I summarizes performance on four scenarios. TSC achieves the lowest total collision rate in all scenarios while maintaining competitive average speed, which indicates that the safety improvement is not obtained by conservative slow-downs. The gain is most pronounced in Weave , where TSC attains a collision rate of 0.99% with the highest AS of 81.8. In comparison, MFPO and SigmaRL exhibit substantially higher collision rates in the same scenario, at 7.75% and 6.40% respectively. Similar safety improvements appear in Clover ,
+
+Merge , and Bypass , where TSC consistently reduces collisions to near-zero levels and preserves traffic efficiency. Decomposed results show that the reduction is mainly driven by fewer agent-agent collisions. This is consistent with our design that infers a directed local priority graph and uses it to structure interactions under decentralized execution. For example, in Weave the agent-agent collision rate drops to 0.18% under TSC, compared with 5.46% under MFPO and 5.45% under SigmaRL. XP-MARL also improves safety through sequential coordination, but it relies on centralized priority management. TSC attains lower total collision rates across all scenarios under communication-free execution, sug-gesting that locally inferred priorities can replace centralized ordering in dense traffic. TSC also achieves the best or second best smoothness in most cases, with the main exceptions on 
+
+Merge and Bypass , where XP-MARL yields smoother control on SM LA or SM LO .Fig. 4 presents radar plots over collision rate, average speed, and smoothness. For each scenario, we normalize each metric to its maximal and minimal values over all evaluated episodes and all methods, and use the negative collision rate for safety normalization. The plots show that XP-MARL and TSC both expand the safety axis, highlighting the benefit of sequential Stackelberg-style coordination, whereas TSC yields a more balanced profile across all axes due to topology-guided sparsification and graph-local leader–follower reason-ing, which stabilizes interactions and avoids over-conditioning on centralized action propagation. To further evaluate the generalization under varying traffic density, we execute the learned policies in the same test UNDER REVIEW 9
+
+Fig. 7: Qualitative trajectory visualization of TSC across four interaction scenarios, highlighting emergent behaviors including yielding, queuing, cutting in, bypassing, and reversing. For each vehicle, we plot a 25-step trajectory segment with distinct colors, where the luminosity fades from light to deep to indicate earlier to later positions. scenarios while changing the number of vehicles. As shown in Fig. 5, MFPO and SigmaRL are more sensitive to the number of vehicles, with collision rates increasing rapidly as the traffic becomes denser. In contrast, XP-MARL and TSC maintain substantially lower collision rates across all tested densities. Notably, TSC consistently yields the lowest collision rates and exhibits the slowest degradation as the number of vehicles increases, suggesting that the topology-conditioned Stackelberg decision structure enables scalable, stable coordination by converting dense couplings into sparse leader-follower dependencies. 
+
+D. Behavior Analysis 
+
+In Fig. 6, MFPO and SigmaRL show dense trajectory crossings and collision clusters around the conflict region, which indicates unresolved right-of-way interactions under de-centralized control. XP-MARL reduces collisions by enforcing sequential reactions, yet residual collision markers remain near merging and crossing areas. TSC produces clearer precedence patterns with better separated traffic streams and only sparse collision events, illustrating how topology-conditioned priority inference can stabilize local leader follower responses without communication. Across four scenarios, Fig. 7 highlights recurrent interaction patterns induced by TSC, including yielding and queuing near conflict points, and proactive gap creation behaviors such as cutting in, bypassing, and occasional reversing. These behaviors arise from local observations with a shared policy, showing that the inferred priority graph provides a compact coordination signal that transfers across different geometries and traffic densities. 
+
+E. Ablation Studies 
+
+We conduct ablation studies to verify the effectiveness of the proposed coordination design. Table II compares TSC with three variants. “TSC with random priority” replaces the inferred topological priorities with random pairwise priorities, TABLE II: Ablation study on total collision rate (CR [%] )across different scenarios.                      
+
+> Method Clover Weave Merge Bypass
+> TSC w/ random priority 0.30 1.62 1.11 1.79 TSC w/o Stackelberg 0.27 1.08 0.78 1.91 TSC w/o Top-KFilter 1.00 2.92 0.97 1.87
+> TSC 0.07 0.99 0.03 0.10
+
+which consistently increases collisions, especially in Weave 
+
+and Bypass . This indicates that the priority structure must reflect the interaction topology rather than being arbitrary. “TSC without Stackelberg” removes the leader–follower con-ditioning and yields higher collision rates in most scenar-ios, suggesting that the Stackelberg-style dependency helps stabilize interactive decisions under non-stationarity. “TSC without Top-K filter” disables topological sparse selection and considers all neighbors, leading to the worst safety outcomes across scenarios, showing that sparse selection is not only a computational choice but also a safety-critical mechanism that suppresses irrelevant interactions. Fig. 8 further studies the influence of neighborhood size for sparse selection on agent-agent collision rate. We compare TopoNbr-1/2/3/5, where the policy conditions on the topo-logically most relevant K neighbors. As illustrated in Fig. 8, TopoNbr-2 achieves the lowest collision rate and the fastest reduction during training, indicating improved stability and sample efficiency. TopoNbr-1 tends to miss secondary conflict partners, While larger K includes weakly coupled neighbors, which dilutes the influence of the truly critical vehicles and injects inconsistent interaction cues, resulting in less stable learning and more agent–agent collisions. Overall, the results confirm that meaningful topological priorities, Stackelberg-style conditioning, and a small but informative neighborhood jointly contribute to safer coordination. UNDER REVIEW 10 
+
+Fig. 8: Comparison of TSC with different TopoNbr-K settings. V. C ONCLUSION 
+
+This paper introduced TSC, a topology-conditioned Stack-elberg coordination framework for resolving spatiotemporal conflicts among decentralized autonomous agents in dense traffic. A weaving-induced directed priority graph encodes asymmetric local precedence, and its edges are interpreted as leader–follower constraints that couple local Stackelberg subgames without constructing a global order of play. Based on this formulation, TSC-Net infers ego-centric priority struc-tures from local observations and leverages predicted leader behaviors to train a Stackelberg-conditioned actor–critic under CTDE, enabling communication-free execution. Empirical results across representative dense traffic scenar-ios demonstrate substantial collision reduction while main-taining competitive system efficiency and smooth control, and show slower performance degradation under increased agent densities. Future work will consider richer heterogeneity such as mixed dynamics and intent classes, improved robustness to perception uncertainty and occlusion, and the integration of explicit safety constraints or formal guarantees. REFERENCES [1] S. Wang, Q. Li, L. Han, and J. Yan, “A multi-agent reinforcement learning-based longitudinal and lateral control of cavs to improve traffic efficiency in a mandatory lane change scenario,” Transportation Research Part C: Emerging Technologies , vol. 161, p. 104558, 2024. [2] A. Khalil, K. F. Aljanaideh, and M. Al Janaideh, “On connected autonomous vehicles with unknown human driven vehicles effects using transmissibility operators,” IEEE Transactions on Automation Science and Engineering , vol. 20, no. 3, pp. 1876–1889, 2022. [3] Y. Liu, B. Xie, Y. Long, J. Chen, and G. Xu, “Learning-based hetero-geneous autonomous vehicles scheduling for on-demand last-mile trans-portation,” IEEE Transactions on Automation Science and Engineering ,2025. [4] M. Al-Sharman, L. Edes, B. Sun, V. Jayakumar, H. Tahir, M. A. Daoud, B. J. Emran, D. Rayside, and W. Melek, “Autonomous driving at unsignalized intersections: A review of decision-making challenges and reinforcement learning-based solutions,” IEEE Transactions on Automation Science and Engineering , vol. 23, pp. 1434–1461, 2025. [5] X. Meng and C. G. Cassandras, “Eco-driving of autonomous vehicles for nonstop crossing of signalized intersections,” IEEE Transactions on Automation Science and Engineering , vol. 19, no. 1, pp. 320–331, 2020. [6] X. Wang and Z. Jin, “Collaborative optimization of multi-equipment scheduling and intersection point allocation for u-shaped automated sea-rail intermodal container terminals,” IEEE Transactions on Automation Science and Engineering , vol. 22, pp. 7373–7393, 2024. [7] X. Liang, H. Wang, Y.-H. Liu, Z. Liu, and W. Chen, “Leader-following formation control of nonholonomic mobile robots with velocity ob-servers,” IEEE/ASME Transactions on Mechatronics , vol. 25, no. 4, pp. 1747–1755, 2020. [8] S. Chen, G. Li, H. Xu, X. Liang, and Y. Zhu, “Marl-based decision mak-ing for twin-vehicles cooperative driving at unsignalized intersection,” in Proceedings of the IEEE International Intelligent Transportation Systems Conference . IEEE, 2022, pp. 1253–1258. [9] J. Xu, P. Hu, and B. Alrifaee, “Sigmarl: A sample-efficient and general-izable marl framework for motion planning,” in Proceedings of the IEEE International Intelligent Transportation Systems Conference , 2024. [10] A. Ji, R. Wang, S. Wang, and Q. Li, “A marl approach for cooperative ramp merging in mixed traffic,” in Proceedings of the Engineering Applications of Artificial Intelligence , 2025. [11] A. Aksjonov and V. Kyrki, “Rule-based decision-making system for autonomous vehicles at intersections with mixed traffic environment,” in Proceedings of the IEEE International Intelligent Transportation Systems Conference . IEEE, 2021, pp. 1566–1573. [12] N. Li, J. Li, and Z. Wang, “Game-theoretic modeling of multi-vehicle interactions at uncontrolled intersections,” IEEE Transactions on Intel-ligent Transportation Systems , vol. 23, no. 2, pp. 1782–1793, 2022. [13] J. Liu, J. Gong, J. Liu, C. Deng, and Y. Lu, “Cooperative decision-making for cavs at unsignalized intersections with right-of-way col-laboration awareness,” IEEE Transactions on Intelligent Transportation Systems , 2023. [14] K. Shu, Z. Deng, R. Liu, and J. Ma, “Decision making in urban traffic: A game theoretic approach for autonomous driving vehicles,” IEEE Transactions on Intelligent Transportation Systems , 2025. [15] C. Sun, J. Leng, and B. Lu, “Interactive left-turning of autonomous ve-hicles at uncontrolled intersections,” IEEE Transactions on Automation Science and Engineering , vol. 21, no. 1, pp. 204–214, 2022. [16] L. Bal, S. Mbakop, G. Espindola-Winck, C. Sueur, and R. Merzouki, “Cooperative curve-based synchronized control of a fleet of autonomous robots,” IEEE/ASME Transactions on Mechatronics , vol. 30, no. 4, pp. 2900–2909, 2025. [17] R. Lowe, Y. Wu, A. Tamar, J. Harb, P. Abbeel, and I. Mordatch, “Multi-agent actor-critic for mixed cooperative-competitive environments,” in 
+
+Proceedings of the Advances in Neural Information Processing Systems ,2017. [18] T. Rashid, M. Samvelyan, C. De Turck, J. Mattar, J. Foerster, and S. Whiteson, “Qmix: Monotonic value function factorisation for deep multi-agent reinforcement learning,” in Proceedings of the International Conference on Machine Learning , 2018. [19] J. Foerster, Y. Assael, N. de Freitas, and S. Whiteson, “Counterfactual multi-agent policy gradients,” in Proceedings of the AAAI Conference on Artificial Intelligence , vol. 32, no. 1, 2018. [20] J. Feng, X. Zhao, H. Liu, H. Wang, and Z. Wu, “Right-of-way based marl for collaborative decision-making at unsignalized intersection,” Expert Systems with Applications , vol. 262, p. 124671, 2025. [21] Z. Zheng and S. Gu, “Safe multi-agent reinforcement learning with bilevel optimization in autonomous driving,” IEEE Transactions on Artificial Intelligence , 2024. [22] D. Ding, G. Hu, H. Zhou, J. Chen, Y. Li, Z. Li, Z.-Q. Zhang, Y. Xu, and Q. Wei, “Provably efficient generalized lagrangian policy optimization for safety-constrained marl,” in Proceedings of the Advances in Neural Information Processing Systems , 2023. [23] J. Xu, O. Sobhy, and B. Alrifaee, “Xp-marl: Auxiliary prioritization in marl to address non-stationarity,” arXiv preprint arXiv:2409.11852 ,2024. [24] Y. Liu, C. Wang, H. Xu, and J. Zhang, “A safe marl algorithm using constraint update projection,” Engineering Applications of Artificial Intelligence , 2025. [25] L. Lin, T. Chen, Y. Wang, and Z. Li, “Robust multi-agent reinforcement learning for autonomous vehicle in noisy highway environments,” in 
+
+Proceedings of the Asian Conference on Machine Learning , 2025. [26] B. Zhang, X. Li, J. Pan, and M. Zhang, “Inducing stackelberg equi-librium through spatio-temporal sequential decision-making in marl,” in Proceedings of the International Joint Conference on Artificial Intelligence , 2023. [27] Zhang, Boyu and Li, Xiaofei and Pan, Jiaqi and Zhang, Min, “Sequential asynchronous action coordination in multi-agent systems: A stackelberg decision transformer approach,” in Proceedings of the International Conference on Machine Learning , 2024. [28] Y. Zhu, K. Zhang, X. Ma, and S. Li, “A bi-hierarchical game-theoretic approach for network-wide traffic signal control using trip-based data,” 
+
+IEEE Transactions on Intelligent Transportation Systems , vol. 23, no. 10, pp. 18 783–18 797, 2022. UNDER REVIEW 11 
+
+[29] H. Hu, M. Tognon, Z. Al-Omaishi, S. Liu, and J. Chen, “Who plays first? optimizing the order of play in stackelberg games with many robots,” in Proceedings of the Robotics: Science and Systems , 2024. [30] X. Zhang, H. Liu, P. Xu, Z. Chen, and R. Li, “Coupled vehicle-signal control based on stackelberg game enabled multi-agent reinforcement learning,” Physica A: Statistical Mechanics and Its Applications , vol. 639, p. 129759, 2025. [31] C. Mavrogiannis, J. DeCastro, and S. Srinivasa, “Abstracting road traffic via topological braids: Analysis of interaction complexity and priority structures,” The International Journal of Robotics Research (WAFR Special Issue) , 2023. [32] H. Liu, S. Chen, Y. Wang, J. Chen, F. Ma, and Y. Zhu, “Reasoning multi-agent behavioral topology for interactive autonomous driving,” in 
+
+Proceedings of the Advances in Neural Information Processing Systems ,2024. [33] L. Xiao, Z. Pan, Z. Wang, Z. Cao, and W. Li, “Srefiner: Soft-braid attention for multi-agent trajectory refinement,” in Proceedings of the IEEE/CVF International Conference on Computer Vision , 2025, pp. 960–969. [34] T. Mascetta, E. I. Liu, and M. Althoff, “Rule-compliant multi-agent driving corridor generation using reachable sets and combinatorial ne-gotiations,” in Proceedings of the IEEE Intelligent Vehicles Symposium .IEEE, 2024. [35] Y. Chen, Y. Li, and M. Liu, “From static to dynamic: A survey of topology-aware perception in autonomous driving,” in Proceedings of the International Conference on Computer Vision Workshops , 2025. [36] F. He, Y. Huang, and H. Wang, “iplan: Interactive and procedural layout planning,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2022, pp. 7793–7802. [37] D. Martinez-Baselga, E. Sebasti´ an, E. Montijano, L. Riazuelo, C. Sag¨ u´ es, and L. Montano, “Avocado: Adaptive optimal collision avoidance driven by opinion,” IEEE Transactions on Robotics , 2025. [38] R. Lowe, Y. Wu, A. Tamar, J. Harb, P. Abbeel, and I. Mordatch, “Multi-agent actor-critic for mixed cooperative-competitive environments,” Pro-ceedings of the Advances in Neural Information Processing Systems ,vol. 30, 2017. [39] T. Rashid, M. Samvelyan, C. S. De Witt, G. Farquhar, J. Foerster, and S. Whiteson, “Monotonic value function factorisation for deep multi-agent reinforcement learning,” Journal of Machine Learning Research ,vol. 21, no. 178, pp. 1–51, 2020. [40] M. Bettini, R. Kortvelesy, J. Blumenkamp, and A. Prorok, “Vmas: A vectorized multi-agent simulator for collective robot learning,” The 16th International Symposium on Distributed Autonomous Robotic Systems ,2022. [41] Y. Yang, R. Luo, M. Li, M. Zhou, W. Zhang, and J. Wang, “Mean field multi-agent reinforcement learning,” in Proceedings of the International Conference on Machine Learning . PMLR, 2018, pp. 5571–5580. [42] S. Nayak, K. Choi, W. Ding, S. Dolan, K. Gopalakrishnan, and H. Balakrishnan, “Scalable multi-agent reinforcement learning through intelligent information aggregation,” in Proceedings of the International Conference on Machine Learning . PMLR, 2023, pp. 25 817–25 833. 
+
+APPENDIX 
+
+A. Bellman error bound under leader-prediction noise 
+
+Fix a follower agent i and its local leader set Lti defined in Sec. III-B3. Let T SE  
+
+> i
+
+denote the Bellman evaluation operator of the local Stackelberg MDP in (31), where leader actions are the realized actions atj ∼ πθ (· | utj ) for all j ∈ L ti. Let T SE ,pred 
+
+> i
+
+denote an auxiliary operator obtained by replacing these leader actions in the Bellman backup by the corresponding predictions ˆatj|i for all j ∈ L ti. Let V SE  
+
+> i
+
+and V SE ,pred  
+
+> i
+
+be the unique fixed points of T SE  
+
+> i
+
+and T SE ,pred  
+
+> i
+
+, respectively. 
+
+Lemma 1 (Bellman error bound) . Assume the per-step reward is bounded in magnitude by |rti | ≤ Rmax , so any discounted value function under these operators satisfies ∥V ∥∞ ≤ Vmax 
+
+with Vmax = Rmax /(1 − γ). Suppose that for some εT ≥ 0
+
+we have 
+
+T SE  
+
+> i
+
+V − T SE ,pred  
+
+> i
+
+V ∞ ≤ εT (41) for all bounded V with ∥V ∥∞ ≤ Vmax . Then 
+
+V SE  
+
+> i
+
+− V SE ,pred   
+
+> i∞
+
+≤ εT
+
+1 − γ . (42) 
+
+Proof . Recall that both T SE  
+
+> i
+
+and T SE ,pred  
+
+> i
+
+are γ-contractions in the sup norm. Using V SE  
+
+> i
+
+= T SE  
+
+> i
+
+V SE  
+
+> i
+
+and V SE ,pred  
+
+> i
+
+=
+
+T SE ,pred  
+
+> i
+
+V SE ,pred  
+
+> i
+
+, we obtain 
+
+V SE  
+
+> i
+
+− V SE ,pred   
+
+> i∞
+
+= T SE  
+
+> i
+
+V SE  
+
+> i
+
+− T SE ,pred  
+
+> i
+
+V SE ,pred  
+
+> i∞
+
+≤ T SE  
+
+> i
+
+V SE  
+
+> i
+
+− T SE ,pred  
+
+> i
+
+V SE  
+
+> i∞
+
++ T SE ,pred  
+
+> i
+
+V SE  
+
+> i
+
+− T SE ,pred  
+
+> i
+
+V SE ,pred  
+
+> i∞
+
+≤ εT + γ V SE  
+
+> i
+
+− V SE ,pred  
+
+> i∞
+
+,
+
+(43) where the first term is bounded by assumption and the second term uses the contraction property of T SE ,pred  
+
+> i
+
+. Rearranging gives (1 −γ)∥V SE  
+
+> i
+
+−V SE ,pred  
+
+> i
+
+∥∞ ≤ εT , which yields (42). Lemma 1 shows that if the Bellman backup error caused by leader-action prediction is uniformly small, then the induced value V SE ,pred  
+
+> i
+
+is uniformly close to the ideal local Stackelberg value V SE  
+
+> i
+
+, with error amplified by at most the factor 1/(1 −γ).
+
+B. Policy improvement in the local Stackelberg MDP 
+
+For a follower policy πi and fixed leader policies πLti =
+
+{πj }j∈L ti , the local Stackelberg follower objective is 
+
+JSE  
+
+> i
+
+(πi; πLti ) = E
+
+h ∞X
+
+> k=0
+
+γkrt+ki at+ki ∼ πi(· | ut+ki ),at+kj ∼ πj (· | ut+kj ), ∀j ∈ L ti
+
+i
+
+,
+
+(44) where the expectation is taken over trajectories induced by 
+
+(πi, π Lti ). Let V SE  
+
+> i,π
+
+and QSE  
+
+> i,π
+
+denote the corresponding value and action value functions, and define the advantage 
+
+ASE  
+
+> i,π
+
+(u, a ) = QSE  
+
+> i,π
+
+(u, a ) − V SE  
+
+> i,π
+
+(u). (45) 
+
+Lemma 2 (Performance difference lemma for the local Stack-elberg MDP) . Consider the local Stackelberg MDP of agent 
+
+i with fixed leader policies πLti = {πj }j∈L ti at a given time step t and its associated leader set Lti. For any two follower policies πi, ˜πi and the corresponding discounted state visitation distribution dπi induced by (πi, π Lti ), we have 
+
+JSE  
+
+> i
+
+(πi; πLti )−JSE  
+
+> i
+
+(˜ πi; πLti ) = 11 − γ Eu∼dπi , a ∼πi(·| u)
+
+ASE  
+
+> i, ˜πi
+
+(u, a ), (46) where 
+
+dπi (u) = (1 − γ)
+
+> ∞
+
+X
+
+> k=0
+
+γk Pr  ut+ki = u | πi, π Lti
+
+. (47) If πi is deterministic, a = πi(u), we may write ASE  
+
+> i, ˜πi
+
+(u) := 
+
+ASE  
+
+> i, ˜πi
+
+(u, π i(u)) and obtain 
+
+JSE  
+
+> i
+
+(πi; πLti ) − JSE  
+
+> i
+
+(˜ πi; πLti ) = 11 − γ Eu∼dπi
+
+ASE  
+
+> i, ˜πi
+
+(u).
+
+(48) UNDER REVIEW 12 
+
+Proof . Fix the leader policies πLti . Let V SE  
+
+> i, ˜πi
+
+be the value function under (˜ πi, π Lti ). For any state u and action a, define 
+
+QSE  
+
+> i, ˜πi
+
+(u, a ) = E
+
+h
+
+rti + γV SE  
+
+> i, ˜πi
+
+(ut+1  
+
+> i
+
+) uti = u, a ti = a, π Lti
+
+i
+
+.
+
+(49) By the definition of advantage, 
+
+ASE  
+
+> i, ˜πi
+
+(u, a ) = E
+
+h
+
+rti + γV SE  
+
+> i, ˜πi
+
+(ut+1  
+
+> i
+
+)
+
+− V SE  
+
+> i, ˜πi
+
+(uti) uti = u, a ti = a, π Lti
+
+i
+
+.
+
+(50) Now consider trajectories generated by (πi, π Lti ) starting from time t. Taking conditional expectation of the previous identity at each time t + k and summing with weights γk
+
+gives 
+
+E
+
+h ∞X
+
+> k=0
+
+γkASE  
+
+> i, ˜πi
+
+(ut+ki , a t+ki )
+
+i
+
+=E
+
+h ∞X
+
+> k=0
+
+γkrt+ki +
+
+> ∞
+
+X
+
+> k=0
+
+γk+1 V SE  
+
+> i, ˜πi
+
+(ut+k+1  
+
+> i
+
+)−
+
+> ∞
+
+X
+
+> k=0
+
+γkV SE  
+
+> i, ˜πi
+
+(ut+ki )
+
+i
+
+.
+
+(51) The two value sums telescope, leaving 
+
+E
+
+h ∞X
+
+> k=0
+
+γkASE  
+
+> i, ˜πi
+
+(ut+ki , a t+ki )
+
+i
+
+= JSE  
+
+> i
+
+(πi; πLti ) − JSE  
+
+> i
+
+(˜ πi; πLti ),
+
+(52) where the second term appears because under (˜ πi, π Lti ),
+
+V SE  
+
+> i, ˜πi
+
+(uti) equals the discounted return starting from state uti.Finally, rewrite the left-hand side using the discounted visitation distribution. By definition of dπi ,
+
+E
+
+h ∞X
+
+> k=0
+
+γkASE  
+
+> i, ˜πi
+
+(ut+ki , a t+ki )
+
+i
+
+=11 − γ Eu∼dπi , a ∼πi(·| u)
+
+ASE  
+
+> i, ˜πi
+
+(u, a ),
+
+(53) which yields (46). The deterministic case (48) follows by substituting a = πi(u).
+
+Corollary 1. Let V iϕ
+
+ uti, {ˆatj|i}j∈L ti
+
+ denote the Stackelberg-conditioned critic in (28). If V iϕ matches the predicted lo-cal Stackelberg state-value V SE ,pred  
+
+> i
+
+(uti) on the support of the discounted visitation distribution dπi , then the policy-gradient update based on advantages estimated from V iϕ is a stochastic gradient-ascent step on the predicted follower objective JSE ,pred  
+
+> i
+
+(πi; πLti ) induced by T SE ,pred  
+
+> i
+
+. Moreover, when the induced bias is controlled as in Lemma 1, this update provides a tractable approximation to improving the ideal follower objective JSE  
+
+> i
+
+(πi; πLti ). In particular, for fixed higher-priority neighbors Lti, the actor update with the Stackelberg-conditioned critic realizes a local Stackelberg follower best response, while the evolving leader policies πLti implicitly specify the upper level of a decentralized bilevel Stackelberg optimization.

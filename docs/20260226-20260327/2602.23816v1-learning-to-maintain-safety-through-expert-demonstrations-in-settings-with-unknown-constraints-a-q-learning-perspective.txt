@@ -1,0 +1,2101 @@
+Title: Learning to maintain safety through expert demonstrations in settings with unknown constraints: A Q-learning perspective
+
+URL Source: https://arxiv.org/pdf/2602.23816v1
+
+Published Time: Mon, 02 Mar 2026 01:47:34 GMT
+
+Number of Pages: 36
+
+Markdown Content:
+# Learning to maintain safety through expert demonstrations in settings with unknown constraints: A Q-learning perspective. 
+
+# George Papadopoulos 
+
+University of Piraeus Piraeus, Greece georgepap@unipi.gr 
+
+# George A. Vouros 
+
+University of Piraeus Piraeus, Greece georgev@unipi.gr 
+
+## ABSTRACT 
+
+Given a set of trajectories demonstrating the execution of a task safely in a constrained MDP with observable rewards but with un-known constraints and non-observable costs, we aim to find a policy that maximizes the likelihood of demonstrated trajectories trading the balance between being conservative and increasing significantly the likelihood of high-rewarding trajectories but with potentially unsafe steps. Having these objectives, we aim towards learning a policy that maximizes the probability of the most 𝑝𝑟𝑜𝑚𝑖𝑠𝑖𝑛𝑔 trajec-tories with respect to the demonstrations. In so doing, we formulate the “promise" of individual state-action pairs in terms of 𝑄 values, which depend on task-specific rewards as well as on the assessment of states’ safety, mixing expectations in terms of rewards and safety. This entails a safe Q-learning perspective of the inverse learning problem under constraints: The devised Safe 𝑄 Inverse Constrained Reinforcement Learning (SafeQIL) algorithm is compared to state-of-the art inverse constraint reinforcement learning algorithms to a set of challenging benchmark tasks, showing its merits. 
+
+## KEYWORDS 
+
+Q-Learning; Inverse Constrained RL; ICRL; SafeQIL 
+
+ACM Reference Format: 
+
+George Papadopoulos and George A. Vouros. 2026. Learning to maintain safety through expert demonstrations in settings with unknown constraints: A Q-learning perspective.. In Proc. of the 25th International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2026), Paphos, Cyprus, May 25 – 29, 2026 , IFAAMAS, 36 pages. https://doi.org/10.65109/RJIB1203 
+
+## 1 INTRODUCTION 
+
+In this paper, we address the inverse problem of learning safe poli-cies given expert trajectories following underlying constraints and demonstrating safe execution of tasks under observable rewards and non-observable costs. We term this as an inverse learning prob-lem with respect to constraints, given that the set of constraints are unknown, and although we do not aim to approximate the set of constraints or cost functions that determine the set of expert demonstrations safe, we aim to assess the safety of states and learn policies that support agents to act safely not only by following the demonstrated trajectories, but also in states not in the support of those demonstrated. This perspective distinguishes this work from inverse constrained reinforcement learning approaches that aim   
+
+> This work is licensed under a Creative Commons Attribution Inter-national 4.0 License.
+> Proc. of the 25th International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2026), C. Amato, L. Dennis, V. Mascardi, J. Thangarajah (eds.), May 25 – 29, 2026, Paphos, Cyprus .©2026 International Foundation for Autonomous Agents and Multiagent Systems (www.ifaamas.org). https://doi.org/10.65109/RJIB1203
+
+to recover the minimal constraint sets or the least constraining constraints explaining the demonstrated behavior [11, 16]. Considering possible tradeoffs between rewards and constraints in executing a task, in settings with non-observable costs, agents may either learn very conservative policies that avoid states and ac-tions not included in the demonstrated trajectories, or policies that increase significantly the likelihood of trajectories that cross states with high uncertainty about their safety but with high expected rewards. These will be the cases when, for instance, assessing the feasibility of agents’ behavior at a trajectory level in a conservative manner, or when the values of state-action pairs not in the demon-strated trajectories are much larger than those in the demonstrated trajectories in terms of the expected reward. This means that in the first case the task execution will be punished as a whole and the agents shall not have ability to recover safety at any trajectory step, and in the later case the policy will prefer to cross states and perform high-rewarding actions in state-action space areas with high uncertainty about safety. To address these phenomena, we express the likelihood of trajec-tories in terms of Q-values of individual state-action pairs, mixing expectations in terms of rewards and safety. This approach aims towards policies that indicate the state-action pairs demonstrated to be the most likely ones, without increasing much the likelihood of trajectories that cross states that are not in the support of demonstrated state-action pairs (i.e., being probably unsafe), and without being conservative. The basic idea is that Q values mixing expected rewards and safety should indicate actions as highly promising when leading to subsequent states assessed to be safe. This supports agents to learn how to recover safety, target-ing to safe states, even when they are in states of high uncertainty about their safety. Although costs for violating constraints, or constraints-related rewards, are not revealed explicitly or approximated, to assess states’ safety we use a discriminator function that estimates the probability of a state to be included in the distribution of states demonstrated. This brings this approach closer to other inverse constrained reinforcement learning approaches [ 11 , 16 ], but with a different objective regarding the likelihood of trajectories and significant differences in performance. Finally, it must be noted that mixing rewards and safety in Q values is different from reward-shaping approaches, where cost functions are assumed to be known: In contrast to that, we evaluate actions performed in states on their expectation to maintain safety, and distinctly to that, in terms of their expected rewards. The contributions that this article makes are as follows: 
+
+(a) It formulates the problem of learning a policy with respect to expert (safe) demonstrated trajectories as an inverse constrained 
+
+> arXiv:2602.23816v1 [cs.LG] 27 Feb 2026
+
+reinforcement learning problem, whose objective function is rig-orously specified in terms of Q-values of trajectory steps incorpo-rating assessments on the safety of states, mixing expectations in terms of rewards and safety. 
+
+(b) It proposes the safe 𝑄 Inverse Constrained Reinforcement Learning (SafeQIL) algorithm 1.
+
+(c) It presents evaluation results for SafeQIL in settings with constraints of increasing complexity. These are compared to results from state of the art imitation and inverse constrained reinforce-ment learning algorithms. 
+
+## 2 PRELIMINARIES AND MOTIVATION 
+
+A Markov Decision Process (MDP) is a tuple (𝑆, 𝐴, 𝑅, 𝑃, 𝛾 ), where 
+
+𝑆 is the set of states, 𝐴 is the set of actions available to an agent, 
+
+𝑟 : 𝑆 × 𝐴 → R is the reward function, 𝑃 : 𝑆 × 𝐴 × 𝑆 → [ 0, 1] is the transition probability function 𝑃 (𝑠 𝑡 +1 |𝑎 𝑡 , 𝑠 𝑡 ) to a new state 𝑠 𝑡 +1 after the execution of action 𝑎 𝑡 in state 𝑠 𝑡 , and 𝛾 ∈ [ 0, 1] is the discount factor. In such a setting, an agent aims to learn the optimal policy 
+
+𝜋 ∗ : 𝑆 → P ( 𝐴 ) from states to probability distributions over actions, so as to maximize the performance measure 
+
+𝐽 (𝜋 ) = E𝜏 ∼𝜋 [
+
+> ∞
+
+∑︁ 
+
+> 𝑡 =0
+
+𝛾 𝑡 𝑟 (𝑠 𝑡 , 𝑎 𝑡 )] + 𝛼 H ( 𝜋 ) (1) where 𝜏 denotes any trajectory generated using the policy 𝜋 ∗,with 𝑠 0 ∼ 𝜇 (the distribution of initial states), 𝑎 𝑡 ∼ 𝜋 (·| 𝑠 𝑡 ), 𝑠 𝑡 +1 ∼
+
+𝑃 (·| 𝑠 𝑡 , 𝑎 𝑡 ), and H ( 𝜋 ) represents the policy entropy weighted by 𝛼 .A constrained Markov decision process (CMDP) is an MDP with constraints that restrict the set of feasible policies for the MDP. Thus, the MDP is augmented with a set of constraint functions 
+
+C = {𝐶 𝑖 , 𝑖 = 1..., 𝑚 }, and corresponding limits 𝑑 𝑖 , 𝑖 = 1..., 𝑚 . Each 
+
+𝐶 𝑖 : 𝑆 × 𝐴 → R maps the execution of actions at states to costs. In such a setting, the set of feasible policies with respect to constraints is Π𝐶 = {𝜋 ∈ Π|∀ 𝑖, 𝐽 𝐶 𝑖 (𝜋 ) ≤ 𝑑 𝑖 } 2 where: 
+
+𝐽 𝐶 𝑖 (𝜋 ) = E𝜏 ∼𝜋 [
+
+> ∞
+
+∑︁ 
+
+> 𝑡 =0
+
+𝛾 𝑡 𝐶 𝑖 (𝑠 𝑡 , 𝑎 𝑡 )] 
+
+denotes the 𝑖 -th constraint-related discounted cost of policy 𝜋 .In such a setting with known or predefined constraints, the con-strained reinforcement learning objective is to learn the perfor-mance 𝐽 (·) maximizing a feasible policy. Formally, 
+
+𝜋 ∗ = 𝑎𝑟𝑔𝑚𝑎𝑥 𝜋 ∈Π𝐶 𝐽 (𝜋 ).
+
+However, as it is well known, in many settings constraints can not be formulated or even expressed by human experts, being in-herent in their expertise. Therefore, such information cannot be revealed to an agent in an explicit way, but can only be inferred through demonstrations. In such settings of unknown or implicit constraints, the inverse constrained reinforcement learning (ICRL) problem aims at fitting constraint functions ˜𝐶 𝑖 , given a set of sam-ple trajectories D𝐸 generated by an expert policy 𝜋 𝐸 , solving the                     
+
+> 1Our implementation, the generated dataset, and the supplementary material are publicly available in: https://github.com/AILabDsUnipi/SafeQIL .
+> 2Here, 𝑑 𝑖 , 𝑖 =1, ..., 𝑚 denote trajectory-level cost limits, although in alternative formulations they may denote stepwise limits. Alternatively, we may define trajectory level constraints of the form 𝐶 𝑖 (𝜏 ), where 𝜏 is a trajectory generated by a policy 𝜋 .Then 𝐽 𝐶 𝑖 (𝜋 )is of the form E𝜏 ∼𝜋 [𝐶 𝑖 (𝜏 ) ]
+
+optimization problem: 
+
+𝑚𝑎𝑥 ˜𝐶 𝑖 (𝐽 𝜋 ∈Π ˜𝐶 𝑖 (𝜋 ) − 𝐽 ˜𝐶 𝑖 (𝜋 𝐸 )) .
+
+Such a process, as shown in [ 13 ], iterates through constraint update (the inverse step) and policy update steps, given the set of expert trajectories D𝐸 . ICRL aims to model the expert policy 𝜋 𝐸 
+
+˜𝜋 𝐸 = 𝑎𝑟𝑔𝑚𝑎𝑥 𝜋 ∈Π ˜𝐶 𝐽 (𝜋 )
+
+using a constrained reinforcement learning method, where ˜𝐶 is the set of approximated constraint functions ˜𝐶 𝑖 .Actually, given that the demonstrated trajectories may be ex-plained by different sets of constraints, ICRL looks for the minimal set of constraint functions that maximizes the likelihood of demon-strations. Thus, it aims to assign a low cost to the trajectories gen-erated by the expert policy, which must be feasible (i.e., within cost limits), and high cost to trajectories generated by any other feasible policy. Finding this set of constraints among the combinations of po-tential constraints is an intractable problem where greedy solutions can be used [ 19 ]. Instead of doing so, as proposed in [ 16 ], we may define a (learnable) function 𝜙 : 𝑆 × 𝐴 → [ 0, 1] that indicates the probability of an action performed in a state to be safe (i.e., within the distribution of expert demonstrations). This function may be used for calculating the probability of satisfying trajectory-level safety constraints 𝐶 (𝜏 ) = 1 − Î(𝑠,𝑎 ) ∈ 𝜏 𝜙 (𝑠, 𝑎 ) = 1 − I𝜙 (𝜏 ).In doing so, this approach, although termed as an inverse ap-proach, does not aim to reveal the set of constraints explaining the demonstrated trajectories, but to find the policy that increases in a direct manner the likelihood of demonstrated trajectories. This results into training this discrimination function 𝜙 𝜔 , parameterized by 𝜔 , with the following objective: 
+
+𝑚𝑎𝑥 𝜔 𝑙𝑜𝑔𝑝 (D 𝐸 |𝜙 ) = 𝑚𝑎𝑥 𝜔 𝑙𝑜𝑔  1
+
+𝑍 | D 𝐸 | 
+
+> 𝜙
+> | D 𝐸 |
+
+Ö
+
+> 𝑖 =1
+
+𝑒𝑥𝑝 [𝑟 (𝜏 𝑖 )] I𝜙 (𝜏 𝑖 )
+
+with 𝑍 𝜙 =
+
+∫
+
+I𝜙 (𝜏 )𝑒𝑥𝑝 (𝑟 (𝜏 )) 𝑑𝜏, and I𝜙 (𝜏 𝑖 ) =
+
+> 𝑇
+
+Ö
+
+> 𝑡 =1
+
+𝜙 𝜔 (𝑠 𝑖 𝑡 , 𝑎 𝑖 𝑡 )
+
+However, formulating the objective in this way implies the fol-lowing: 
+
+• The assessment of the feasibility of any trajectory by means of I𝜙 (𝜏 ) is very strict, given that in case a single step (state-action pair) is not in the distribution of those demonstrated, this can be considered to be unsafe, and this may result into 
+
+𝐶 (𝜏 ) close to 1. This may result to a very conservative agent behavior. 
+
+• Highly rewarding trajectories, beyond those demonstrated, with state-action pairs to which 𝜙 𝜔 is approximately 0.5 may lead the agent to unsafe behavior, considering the trajectory as highly promising. 
+
+• Indeed, from a stepwise perspective, there may exist indi-vidual state-action pairs to which the agent is uncertain about their safety, but they do contribute significantly to the trajectory cumulative reward and thus, to the likelihood of trajectories. Such actions in states may actually be unsafe. Therefore, considering the problem at the trajectory-level, the agent does not have the flexibility to choose individual actions that would allow it to maintain safety, increasing the likelihood of trajectories in terms of safety, even if some of the states crossed are potentially unsafe. 
+
+## 3 PROBLEM SPECIFICATION 
+
+To address the above mentioned issues of a trajectory-level inverse constrained reinforcement learning approach, we aim at maximiz-ing the probability of demonstrated trajectories by considering the 
+
+𝑄 values of individual state-action pairs ( 𝑄 : 𝑆 × 𝐴 → R) com-prising these trajectories, mixing the expectation regarding the performance of actions in states on rewards and safety. For the sim-plicity of presentation, with an abuse of notation, we subsequently use P𝐸 to denote the distribution of demonstrated steps, i.e., state-action pairs, as well as the distribution of states crossed by any 
+
+𝜏 ∈ D 𝐸 . Similarly, we denote 𝑠𝑢𝑝𝑝 𝐸 the support set of state-action pairs, as well as the support set of states in any 𝜏 ∈ D 𝐸 .To formulate the Q function and the final objective, we dis-tinguish two types of reward values: The task-specific reward values (denoted 𝑟 𝑑 ) provided by the environment per step (i.e., 
+
+𝑟 𝑑 : 𝑆 × 𝐴 → R), and the safety rewards (denoted 𝑟 𝑠 ) on states (i.e., 𝑟 𝑠 : 𝑆 → R). The latter type of reward should be considered as a “constraint-abiding" bonus or as a penalty for being in an un-safe state. Without loss of generality, we can assume that for any 
+
+(𝑠, 𝑎 ) ∈ 𝑆 × 𝐴 , it holds that 𝑟 𝑠 (𝑠 ) ≤ 𝑟 𝑑 (𝑠, 𝑎 ). For instance, we can assume, without loss of generality, that 𝑟 𝑠 (·) ≤ 0 and 𝑟 𝑑 (·) ≥ 0.Now, the Q function is defined to be the expected sum of rewards when the agent performs action 𝑎 𝑡 in state 𝑠 𝑡 and in subsequent steps it acts according to the policy 𝜋 , given the environment dy-namics determined by 𝑃 :
+
+𝑄 𝜋 (𝑠 𝑡 , 𝑎 𝑡 ) = E𝜋,𝑃 𝑇 −𝑡 −1∑︁ 
+
+> 𝑖 =0
+
+𝛾 𝑖 𝑅 𝑡 +𝑖 (2) where, 
+
+𝑅 𝑡 = [I𝑆 (𝑠 𝑡 )𝑟 𝑑 (𝑠 𝑡 , 𝑎 𝑡 ) + ( 1 − I𝑆 (𝑠 𝑡 )) 𝑟 𝑠 (𝑠 𝑡 )] 
+
+and I𝑆 (𝑠 𝑡 ) specifies an assessment of whether the state 𝑠 𝑡 is safe. This can be a binary assessment of whether (𝑠, 𝑎 ) ∈ 𝑠𝑢𝑝𝑝 𝐸 3.Given the above specification, the Q value of a state-action pair is an accumulation of a mixture of discounted “task specific" and “safety" rewards, where the latter are action-independent. This spec-ifies the safety of a state and the promise of an action 𝑎 𝑡 performed in state 𝑠 𝑡 in terms of rewards. To see this, let us consider that starting from (𝑠 𝑡 , 𝑎 𝑡 ), a trajectory crosses only unsafe states. Then, 
+
+I𝑆 (𝑠 𝑖 ) = 0, ∀𝑖 ∈ { 𝑡, 𝑡 + 1, ... }, and the 𝑄 (𝑠 𝑡 , 𝑎 𝑡 ) value accumulates only penalties for these states. On the other hand, in case at some point 𝑡 ′ ≥ 𝑡 the agent performs an action that recovers safety and then it continues using a policy that maintains safety, then the Q value from that point and on accumulates task specific positive rewards. Based on this, we can prove the following theorem: 
+
+Theorem : When for any (𝑠, 𝑎 ) ∈ 𝑆 ×𝐴 with (𝑠, 𝑎 ) ∉ 𝑠𝑢𝑝𝑝 𝐸 it holds that 𝑟 𝑠 (𝑠 ) ≤ 0, and I𝑆 is binary, then the following holds for any policy 𝜋 :
+
+𝑄 𝜋 (𝑠, 𝑎 ) ≤ 𝑚𝑖𝑛 (𝑠 𝑑 ,𝑎 𝑑 ) ∈ 𝑠𝑢𝑝𝑝 𝐸 {𝑄 𝜋 𝑑 (𝑠 𝑑 , 𝑎 𝑑 )} (3) where 𝑠 𝑑 ∈ 𝑠𝑢𝑝𝑝 𝐸 are states that are the closest ones (based on a measure of proximity) to 𝑠 ∉ 𝑠𝑢𝑝𝑝 𝐸 that the agent can reach in     
+
+> 3It must be noted that a binary I𝑆 does not necessarily assess whether the state is in the 𝑠𝑢𝑝𝑝 𝐸 .
+
+subsequent steps, and 𝑄 𝜋 𝑑 are the Q values under the demonstrated policy. It must be noted that this inequality holds in expectation according to the policy 𝜋 and environment dynamics 𝑃 .
+
+Proof . To prove this, let 𝑠 𝑡 be a state not in 𝑠𝑢𝑝𝑝 𝐸 . The policy 
+
+𝜋 , starting from any state, does not guarantee that it results in trajectories that cross only safe states. Since I𝑆 is binary and 𝑠 𝑡 ∉
+
+𝑠𝑢𝑝𝑝 𝐸 , then I𝑆 (𝑠 𝑡 ) = 0 and 𝑅 𝑡 = 𝑟 𝑠 (𝑠 𝑡 ). Thus, it holds that: 
+
+𝑄 𝜋 (𝑠 𝑡 , 𝑎 𝑡 ) = E𝜋,𝑃 [𝑟 𝑠 (𝑠 𝑡 ) +   
+
+> 𝑇 −𝑡 −1
+
+∑︁ 
+
+> 𝑖 =1
+
+𝛾 𝑖 𝑅 𝑡 +𝑖 ]
+
+In case the demonstrated policy, 𝜋 𝑑 , starts from any state 𝑠 𝑑 𝑡 where it applies 𝑎 𝑑 𝑡 ∈ 𝐴 , s.t. (𝑠 𝑑 𝑡 , 𝑎 𝑑 𝑡 ) ∈ 𝑠𝑢𝑝𝑝 𝐸 , then 
+
+𝑄 𝜋 𝑑 (𝑠 𝑑 𝑡 , 𝑎 𝑑 𝑡 ) = E𝜋 ∗,𝑃 [𝑟 𝑑 (𝑠 𝑑 𝑡 , 𝑎 𝑑 𝑡 ) +   
+
+> 𝑇 −𝑡 −1
+
+∑︁ 
+
+> 𝑖 =1
+
+𝛾 𝑖 𝑅 ′ 
+
+> 𝑡 +𝑖
+
+]
+
+Since (𝑠 𝑑 , 𝑎 𝑑 ) ∈ 𝑠𝑢𝑝𝑝 𝐸 , then I𝑆 (𝑠 𝑑 , 𝑎 𝑑 ) = 1 and it holds that 𝑅 ′ 
+
+> 𝑡
+
+=
+
+𝑟 𝑑 (𝑠 𝑑 𝑡 , 𝑎 𝑑 𝑡 ). Now, the assumption that for any state 𝑠 , 𝑟 𝑠 (𝑠 ) ≤ 0,implies that 𝑅 𝑡 ≤ 𝑟 𝑑 (𝑠 𝑑 𝑡 , 𝑎 𝑑 𝑡 ), for any (𝑠 𝑑 𝑡 , 𝑎 𝑑 𝑡 ) ∈ 𝑠𝑢𝑝𝑝 𝐸 . Hence, 𝑅 𝑡 ≤
+
+𝑚𝑖𝑛 (𝑠 𝑑 ,𝑎 𝑑 ) ∈ 𝑠𝑢𝑝𝑝 𝐸 𝑟 𝑑 (𝑠 𝑑 𝑡 , 𝑎 𝑑 𝑡 ). This is the case for any subsequent state not in 𝑠𝑢𝑝𝑝 𝐸 visited by 𝜋 starting from 𝑠 𝑡 in comparison to states visited by the demonstrated policy. For states in 𝑠𝑢𝑝𝑝 𝐸 visited by 
+
+𝜋 , their Q values cannot be greater than those visited by the policy 
+
+𝜋 𝑑 , i.e., for 𝑠 𝑑 𝑡 ∈ 𝑠𝑢𝑝𝑝 𝐸 , it holds that 𝑄 𝜋 (𝑠 𝑑 𝑡 , 𝜋 (𝑠 𝑑 𝑡 )) ≤ 𝑄 𝜋 𝑑 (𝑠 𝑑 𝑡 , 𝑎 𝑑 𝑡 ).Therefore, the following holds, since, 𝜋 𝑑 crosses only safe states, while 𝜋 may cross unsafe states: 
+
+𝑄 𝜋 (𝑠 𝑡 , 𝑎 𝑡 ) ≤ 𝑚𝑖𝑛 (𝑠 𝑑 ,𝑎 𝑑 ) ∈ 𝑠𝑢𝑝𝑝 𝐸 (𝑟 𝑑 (𝑠 𝑑 , 𝑎 𝑑 )) + E𝜋,𝑃 [𝛾𝑄 𝜋 (𝑠 𝑡 +1, 𝑎 𝑡 +1)] ≤ 𝑚𝑖𝑛 (𝑠 𝑑 ,𝑎 𝑑 ) ∈ 𝑠𝑢𝑝𝑝 𝐸 {𝑄 𝜋 𝑑 (𝑠 𝑑 , 𝑎 𝑑 )} 
+
+Inequality (3) formulates the idea that state-action pairs known to be safe should have the highest promise in terms of rewards (and safety). Unfortunately, this inequality is not guaranteed to hold in case I𝑆 is probabilistic. Therefore, we need to (a) maximize the Q values of state-action pairs that are in the support of demonstrations (i.e., known to be safe), and to (b) maintain the Q values of actions in states that are not in the support of demonstrated states, lower than those in 𝑠𝑢𝑝𝑝 𝐸 , in expectation to the policy, environment dynamics and the uncertainty about the safety of states. In so doing, we aim to prevent trajectories not in the demonstrations from being highly probable, and support agents to find actions that, when executed in probably unsafe states, can recover safety with high probability, with respect to the environment dynamics. We can now formulate the objective of the inverse constrained reinforcement learning in terms of Q values. In stochastic, contin-uous domains with respect to the dynamics 𝑃 , we know that we need to maximize: ∑︁ 
+
+> 𝑡
+
+E𝜋,𝑃 [𝑅 𝑡 + H ( 𝜋 (𝑎 𝑡 |𝑠 𝑡 ))] ,
+
+where the expectation is in the distribution of state-actions under the policy 𝜋 and environment dynamics. This is optimized by choos-ing 𝜋 (𝑎 𝑡 |𝑠 𝑡 ) = 𝑒𝑥𝑝 (𝑄 (𝑠 𝑡 , 𝑎 𝑡 ) − 𝑉 (𝑠 𝑡 )) , with a soft maximization of the value function: 𝑉 (𝑠 𝑡 ) = 𝑙𝑜𝑔 ∫ 𝑒𝑥𝑝 (𝑄 (𝑠 𝑡 , 𝑎 𝑡 )) 𝑑𝑎 𝑡 . To evaluate the policy according to the maximum entropy objective, given a policy 𝜋 , we update 𝑄 values following the Bellman update: 
+
+𝑄 (𝑠 𝑡 , 𝑎 𝑡 ) = 𝑅 𝑡 + 𝛾 E𝑠 𝑡 +1∼𝑃 𝑉 (𝑠 𝑡 +1)where the soft value function is as follows: 
+
+𝑉 (𝑠 𝑡 ) = E𝑎 𝑡 ∼𝜋 [𝑄 (𝑠 𝑡 , 𝑎 𝑡 ) − 𝑙𝑜𝑔𝜋 (𝑎 𝑡 |𝑠 𝑡 )] ,
+
+transforming the policy entropy specified in (1) to a causal entropy on individual steps. Therefore, considering that 𝜋 (𝑎 𝑡 |𝑠 𝑡 ) ∝ 𝑒𝑥𝑝 (𝑄 (𝑠 𝑡 , 𝑎 𝑡 )) , for the joint probability of actions ( 𝐶𝑄 ) in a trajectory 𝜏 it holds that: 
+
+𝐶𝑄 (𝜏 ) ∝ 
+
+> 𝑇
+
+Ö
+
+> 𝑡 =0
+
+𝑒𝑥𝑝 (𝑄 (𝑠 𝑡 , 𝑎 𝑡 )) ,
+
+Thus, it holds that: 
+
+𝑙𝑜𝑔𝑝 (D 𝐸 ) ∝ 𝑙𝑜𝑔 [ 
+
+> | D 𝐸 |
+
+Ö
+
+> 𝑖 =1
+
+(
+
+> 𝑇
+
+Ö
+
+> 𝑡 =0
+
+𝑒𝑥𝑝 (𝑄 (𝑠 𝑖 𝑡 , 𝑎 𝑖 𝑡 )] 
+
+We aim to maximize the likelihood of demonstrated trajectories by maximizing the following term: 
+
+𝑚𝑎𝑥 [ 
+
+> | D 𝐸 |
+
+∑︁ 
+
+> 𝑖 =1
+> 𝑇
+
+∑︁ 
+
+> 𝑡 =0
+
+𝑄 (𝑠 𝑖 𝑡 , 𝑎 𝑖 𝑡 )] (4) subject to: 
+
+𝑄 (𝑠, 𝑎 ) ⪯ 𝑚𝑖𝑛 (𝑠 ′,𝑎 ′ ) ∈ 𝑠𝑢𝑝𝑝 𝐸 {𝑄 (𝑠 ′, 𝑎 ′)} (5) for any (𝑠, 𝑎 ) ∈ 𝑆 ×𝐴 with 𝑠 ∉ 𝑠𝑢𝑝𝑝 𝐸 . The symbol ⪯ denotes that the inequality (5) holds in expectation, depending on the assessment I𝑆 
+
+on states, the policy 𝜋 , and the environment dynamics 𝑃 . This does not prevent pairs (𝑠, 𝑎 ) ∉ P𝐸 from having Q values that are greater than the minimum Q value of the demonstrated steps. 
+
+## 4 SAFE Q-LEARNING 4.1 Objective function 
+
+Guided by the max-entropy formulation and the step-wise likeli-hood view in Section 3, we explicitly enforce the constraint (5) in expectation on states 𝑠 ∉ P𝐸 , and update Q-values on states in or out of P𝐸 . In so doing, we allow the agent to learn both from demonstrations and online interactions. Concretely, let 𝐵 be a buffer of policy rollouts and 𝐷 the demonstration buffer. Getting samples from 𝐵 , these may be in P𝐸 or not. In the latter case, we need to enforce the constraint (5). To do this, for each state 
+
+𝑠 𝐵 in a sample (𝑠 𝐵 , 𝑎 𝐵 , 𝑟 𝑑 (𝑠 𝐵 , 𝑎 𝐵 ), 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+) from 𝐵 , we search and pick a sample from 𝐷 with the “closest" state 𝑠 ∗ 
+
+> 𝐷
+
+(we elaborate on this in Section 4.2), together with its accompanying action 𝑎 ∗ 
+
+> 𝐷
+
+, task reward 
+
+𝑟 ∗ 
+
+> 𝑑
+
+(𝑠 ∗ 
+
+> 𝐷
+
+, 𝑎 ∗ 
+
+> 𝐷
+
+), and next state 𝑠 ′∗  
+
+> 𝐷
+
+. In addition, we get the next action 
+
+𝑎 ′∗  
+
+> 𝐷
+
+and use the estimated Q-target value of (𝑠 ′∗  
+
+> 𝐷
+
+, 𝑎 ′∗  
+
+> 𝐷
+
+),
+
+ˆ𝑄 𝑚𝑖𝑛 (𝑠 𝐵 , 𝑎 𝐵 ) = 𝑟 ∗ 
+
+> 𝑑
+
+(𝑠 ∗ 
+
+> 𝐷
+
+, 𝑎 ∗ 
+
+> 𝐷
+
+) + 𝛾𝑄 (𝑠 ′∗  
+
+> 𝐷
+
+, 𝑎 ′∗  
+
+> 𝐷
+
+),
+
+as a local bound target for 𝑄 (𝑠 𝐵 , 𝑎 𝐵 )4. Then, the objective for sam-ples from 𝐵 is as follows: 
+
+L𝐵 𝑄 =∑︁      
+
+> (𝑠 𝐵 ,𝑎 𝐵 ,𝑟 𝑑,𝐵 ,𝑠 ′
+> 𝐵 ,𝑎 ′
+> 𝐵 )∼ 𝐵
+
+[( 1 − I𝑆 (𝑠 𝐵 )) · 𝐿𝐶 𝐵 𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 )+ I𝑆 (𝑠 𝐵 ) · 𝐿 𝐵 𝑠 𝐵 ∈ P 𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑟 𝑑,𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+)] (6)             
+
+> 4In this section, we deliberately omit the entropy term. In addition, we omit details on how exactly 𝑠 ∗
+> 𝐷 ,𝑎 ∗
+> 𝐷 ,𝑟 ∗
+> 𝑑,𝐷 ,𝑠 ′∗
+> 𝐷 ,𝑎 ′∗
+> 𝐷 are found, and whether we use the next action 𝑎 ′
+> 𝐷
+> from the buffer or from the current policy (as, for instance, in SAC). These details are included in Section 4.2.
+
+where: 
+
+𝐿𝐶 𝐵 𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 ) =
+
+
+
+𝑚𝑎𝑥 
+
+
+
+𝑄 (𝑠 𝐵 , 𝑎 𝐵 ), ˆ𝑄 𝑚𝑖𝑛 (𝑠 𝐵 , 𝑎 𝐵 )
+
+
+
+− ˆ𝑄 𝑚𝑖𝑛 (𝑠 𝐵 , 𝑎 𝐵 )
+
+2
+
+and: 
+
+𝐿 𝐵 𝑠 𝐵 ∈ P 𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑟 𝑑,𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+) =
+
+ 𝑄 (𝑠 𝐵 , 𝑎 𝐵 ) − [ 𝑟 𝑑 (𝑠 𝐵 , 𝑎 𝐵 ) + 𝛾𝑄 (𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+)] 2
+
+where the first term in brackets in Equation 6 enforces the con-straint. However, we also have to include the safety reward term in case 𝑠 𝐵 ∉ P𝐸 :
+
+𝐿 𝐵 𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+) =  𝑄 (𝑠 𝐵 , 𝑎 𝐵 ) − [ 𝑟 𝑠 (𝑠 𝐵 ) + 𝛾𝑄 (𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+)] 2
+
+So, now the objective becomes: 
+
+L𝐵 𝑄 =∑︁      
+
+> (𝑠 𝐵 ,𝑎 𝐵 ,𝑟 𝑑,𝐵 ,𝑠 ′
+> 𝐵 ,𝑎 ′
+> 𝐵 )∼ 𝐵
+
+[( 1 − I𝑆 (𝑠 𝐵 )) · 𝐿𝐶 𝐵 𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 )+ ( 1 − I𝑆 (𝑠 𝐵 )) · 𝐿 𝐵 𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+)+ I𝑆 (𝑠 𝐵 ) · 𝐿 𝐵 𝑠 𝐵 ∈ P 𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑟 𝑑,𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+)] (7) To recap, the above objective covers: (a) the task-specific reward term and the safety reward term, both weighted by the safety esti-mation, as proposed in Equation 2, and (b) it enforces the constraint of Equation 5. Based on previous work [ 4 ] and on our preliminary experiments, we found it beneficial to introduce a bias in Q-values towards the demonstrations’ expected reward. Therefore, we in-corporate the term L𝐷 𝑄 that explicitly updates the Q-values based on samples from 𝐷 comprising the demonstrated state-action pairs 
+
+(𝑠 𝐷 , 𝑎 𝐷 ), the next state-action pairs (𝑠 ′ 
+
+> 𝐷
+
+, 𝑎 ′ 
+
+> 𝐷
+
+), and the corresponding received task reward 𝑟 𝑑 (𝑠 𝐷 , 𝑎 𝐷 ):
+
+L𝐷 𝑄 =∑︁      
+
+> (𝑠 𝐷 ,𝑎 𝐷 ,𝑟 𝑑,𝐷 ,𝑠 ′
+> 𝐷 ,𝑎 ′
+> 𝐷 )∼ 𝐷
+
+𝐿 𝐷 (𝑠 𝐷 , 𝑎 𝐷 , 𝑟 𝑑 (𝑠 𝐷 , 𝑎 𝐷 ), 𝑠 ′ 
+
+> 𝐷
+
+, 𝑎 ′ 
+
+> 𝐷
+
+)
+
+where: 
+
+𝐿 𝐷 (𝑠 𝐷 , 𝑎 𝐷 , 𝑟 𝑑 (𝑠 𝐷 , 𝑎 𝐷 ), 𝑠 ′ 
+
+> 𝐷
+
+, 𝑎 ′ 
+
+> 𝐷
+
+) =
+
+ 𝑄 (𝑠 𝐷 , 𝑎 𝐷 ) − [ 𝑟 𝑑 (𝑠 𝐷 , 𝑎 𝐷 ) + 𝛾𝑄 (𝑠 ′ 
+
+> 𝐷
+
+, 𝑎 ′ 
+
+> 𝐷
+
+)] 2
+
+This term is not weighted by the discriminator’s estimate since the samples come from the demonstrations’ distribution. So, the final objective, given 𝑁 samples from 𝐵 and 𝑁 samples from 𝐷 , is formulated as follows: 
+
+L𝑄 = 12𝑁 [L 𝐵 𝑄 + L 𝐷 𝑄 ] (8) 
+
+## 4.2 The SafeQIL algorithm 
+
+In this section, we provide a practical algorithm using the proposed objective and SAC as the backbone algorithm. We maintain a stochastic policy (actor) 𝜋 𝜃 (𝑎 |𝑠 ), two critics 𝑄 𝜙 1 ,
+
+𝑄 𝜙 2 and two target critics 𝑄 ¯𝜙 1 , 𝑄 ¯𝜙 2 as well as, a discriminator 𝜙 𝜔 ,that estimates the probability for a state to be in P𝐸 . Also, the safety reward/penalty 𝑟 𝑠 (𝑠 ) is calculated based on the discriminator’s estimate 𝜙 𝜔 (𝑠 ). Specifically, we choose 𝑟 𝑠 (𝑠 ) = 𝑙𝑜𝑔 (𝜙 𝜔 (𝑠 )) which maps the discriminator’s estimate (range [0, 1]) to a negative safety reward (range [−∞ , 0]). Online rollouts are stored in 𝐵 and demonstrations in 𝐷 . During the update of Q networks (critics), we get 𝑁 samples from 𝐵 and 𝑁 
+
+samples from 𝐷 , and each critic is updated separately using Equa-tion 8. An important detail about Equation 8 requiring clarification is about how we retrieve ( 𝑠 ∗ 
+
+> 𝐷
+
+, 𝑎 ∗ 
+
+> 𝐷
+
+, 𝑟 ∗ 
+
+> 𝐷
+
+, 𝑠 ′∗  
+
+> 𝐷
+
+,𝑎 ′∗  
+
+> 𝐷
+
+) from 𝐷 given a state 
+
+𝑠 𝐵 . Actually, we get the index of the sample 𝑠 ∗ 
+
+> 𝐷
+
+that minimizes the cosine similarity to 𝑠 𝐵 :
+
+𝑖 ∗ 
+
+> 𝐷
+
+= arg min (CosSim (sB, SD)) (9) Having the index 𝑖 ∗ 
+
+> 𝐷
+
+, it is straightforward to slice buffer 𝐷 and get the corresponding sample for the calculation of ˆ𝑄 𝑚𝑖𝑛 .Continuing on the details about the entropy and Q-networks weights, assuming that we update critic 𝑗 :
+
+𝐿𝐶 𝐵 𝑗,𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 ) = (10) 
+
+
+
+𝑚𝑎𝑥 
+
+
+
+𝑄 𝜙 𝑗 (𝑠 𝐵 , 𝑎 𝐵 ), ˆ𝑄 𝑚𝑖𝑛 (𝑠 𝐵 , 𝑎 𝐵 )
+
+
+
+− ˆ𝑄 𝑚𝑖𝑛 (𝑠 𝐵 , 𝑎 𝐵 )
+
+2
+
+where (with an abuse of notation for simplicity of presentation): 
+
+ˆ𝑄 𝑚𝑖𝑛 (𝑠 𝐵 , 𝑎 𝐵 ) = 𝑟 ∗ 
+
+> 𝑑
+
+(𝑠 𝐵 , 𝑎 𝐵 ) + 𝛾 · min  
+
+> 𝑖 =1,2
+
+𝑄 ¯𝜙 𝑖 (𝑠 ′∗  
+
+> 𝐷
+
+, 𝑎 ′∗  
+
+> 𝐷
+
+)
+
+The next action 𝑎 ′ is predicted based on the current policy for 
+
+𝐿 𝐵 𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑟 𝑑,𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+) (i.e., the term for states out of P𝐸 ), while for 𝐿 𝐷 (𝑠 𝐷 , 𝑎 𝐷 , 𝑟 𝑑 (𝑠 𝐷 , 𝑎 𝐷 ), 𝑠 ′ 
+
+> 𝐷
+
+, 𝑎 ′ 
+
+> 𝐷
+
+) (i.e., the term for states in P𝐸 ) we use the one stored in 𝐷 . In so doing, we omit the entropy term in both terms 𝐿 𝐵 𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑟 𝑑,𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+) and 𝐿 𝐷 (𝑠 𝐷 , 𝑎 𝐷 , 𝑟 𝑑 (𝑠 𝐷 , 𝑎 𝐷 ), 𝑠 ′ 
+
+> 𝐷
+
+, 𝑎 ′ 
+
+> 𝐷
+
+)
+
+aligned with 𝐿𝐶 𝐵 𝑗,𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 ). These terms for the critic 𝑗 can be expressed as follows: 
+
+𝐿 𝐵 𝑗,𝑠 𝐵 ∉P𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+) = (11) 
+
+
+
+𝑄 𝜙 𝑗 (𝑠 𝐵 , 𝑎 𝐵 ) − [ 𝑟 𝑠 (𝑠 𝐵 ) + 𝛾 · min  
+
+> 𝑖 =1,2
+
+𝑄 ¯𝜙 𝑖 , 𝑎 ′∼𝜋 𝜃 (· | 𝑠 ′  
+
+> 𝐵 )
+
+(𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′)] 
+
+2
+
+and 
+
+𝐿 𝐷 𝑗 (𝑠 𝐷 , 𝑎 𝐷 , 𝑟 𝑑 (𝑠 𝐷 , 𝑎 𝐷 ), 𝑠 ′ 
+
+> 𝐷
+
+, 𝑎 ′ 
+
+> 𝐷
+
+) = (12) 
+
+
+
+𝑄 𝜙 𝑗 (𝑠 𝐷 , 𝑎 𝐷 ) − [ 𝑟 𝑑 (𝑠 𝐷 , 𝑎 𝐷 ) + 𝛾 · min  
+
+> 𝑖 =1,2
+
+𝑄 ¯𝜙 𝑖 (𝑠 ′ 
+
+> 𝐷
+
+, 𝑎 ′ 
+
+> 𝐷
+
+)] 
+
+
+
+Regarding 𝐿 𝐵 𝑠 𝐵 ∈ P 𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑟 𝑑,𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+), we don’t perform any change to the backbone SAC algorithm, to maintain its strengths, so this term for the critic 𝑗 is expressed as follows: 
+
+𝐿 𝐵 𝑗,𝑠 𝐵 ∈ P 𝐸 (𝑠 𝐵 , 𝑎 𝐵 , 𝑟 𝑑,𝐵 , 𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′ 
+
+> 𝐵
+
+) = (13) 
+
+(𝑄 ¯𝜙 𝑗 (𝑠 𝐵 , 𝑎 𝐵 )− [𝑟 𝑑 (𝑠 𝐵 , 𝑎 𝐵 ) + 𝛾 
+
+
+
+min  
+
+> 𝑖 =1,2
+
+𝑄 ¯𝜙 𝑖 , 𝑎 ′∼𝜋 𝜃 (· | 𝑠 ′  
+
+> 𝐵 )
+
+(𝑠 ′
+
+> 𝐵
+
+, 𝑎 ′) − 𝛼 log 𝜋 𝜃 (𝑎 ′ |𝑠 ′ 
+
+> 𝐵
+
+)
+
+
+
+]) 2
+
+where 𝛼 is the entropy coefficient. To update the policy, we maxi-mize the soft objective: 
+
+𝐽 𝜋 𝜃 = 1
+
+𝑁 ∑︁ 𝑠 𝐵 ∼𝐵 
+
+
+
+min  
+
+> 𝑖 =1,2
+
+𝑄 ¯𝜙 𝑖 , 𝑎 ∼𝜋 𝜃 (· | 𝑠 𝐵 ) (𝑠 𝐵 , 𝑎 ) − 𝛼 log 𝜋 𝜃 (𝑎 |𝑠 𝐵 )
+
+
+
+(14) while the auto-tuned entropy coefficient is updated using the loss defined in [3]: 
+
+L𝛼 = 1
+
+𝑁 ∑︁ 𝑠 𝐵 ∼𝐵 
+
+ −  𝛼 log 𝜋 𝜃 (𝑎 |𝑠 𝐷 ) + ¯H  (15) 
+
+Algorithm 1 SafeQIL 
+
+Require: Demonstration buffer 𝐷  
+
+> 1:
+
+Initialize Policy 𝜋 𝜃 ; Critics 𝑄 𝜙 1 , 𝑄 𝜙 2 ; Target critics 𝑄 ¯𝜙 1 , 𝑄 ¯𝜙 2 ;Entropy coefficient 𝛼 ; Discriminator 𝜙 𝜔 ; Replay buffer 𝐵 ← ∅  
+
+> 2:
+
+for each environment step do  
+
+> 3:
+
+Observe 𝑠 𝑡 ; Sample and apply 𝑎 𝑡 ∼ 𝜋 𝜃 (·| 𝑠 𝑡 ); Get (𝑟 𝑑,𝑡 , 𝑠 𝑡 +1) 
+
+> 4:
+
+Push (𝑠 𝑡 , 𝑎 𝑡 , 𝑟 𝑑,𝑡 , 𝑠 𝑡 +1) into 𝐵  
+
+> 5:
+
+for update step 𝑢 = 1, . . . , 𝑈 do  
+
+> 6:
+
+Sample 𝑁 tuples (𝑠 𝐵 , 𝑎 𝐵 , 𝑟 𝑑,𝐵 , 𝑠 ′ 
+
+> 𝐵
+
+) ∼ 𝐵  
+
+> 7:
+
+Sample 𝑁 tuples (𝑠 𝐷 , 𝑎 𝐷 , 𝑟 𝑑,𝐷 , 𝑠 ′ 
+
+> 𝐷
+
+) ∼ 𝐷  
+
+> 8:
+
+For each 𝑠 𝐵 get index 𝑖 ∗ 
+
+> 𝐷
+
+(Eq. 9)  
+
+> 9:
+
+For each 𝑖 ∗ 
+
+> 𝐷
+
+retrieve (𝑟 ∗ 
+
+> 𝑑,𝐷
+
+, 𝑠 ′∗  
+
+> 𝐷
+
+, 𝑎 ′∗  
+
+> 𝐷
+
+) slicing 𝐷  
+
+> 10:
+
+Sample 𝑎 ′ 
+
+> 𝐵
+
+∼ 𝜋 𝜃 (·| 𝑠 ′ 
+
+> 𝐵
+
+) 
+
+> 11:
+
+Update discriminator 𝜙 𝜔 (Eq. 17)  
+
+> 12:
+
+Update critics 𝑄 𝜙 1 , 𝑄 𝜙 2 (Eq. 8, 10, 11, 12, 13)  
+
+> 13:
+
+Update policy 𝜋 𝜃 (Eq. 14)  
+
+> 14:
+
+Update entropy coefficient 𝛼 (Eq. 15)  
+
+> 15:
+
+Update target critics 𝑄 ¯𝜙 1 , 𝑄 ¯𝜙 2 (Eq. 16) where ¯H is a hyperparameter. Each target critic 𝑗 is updated using the Polyak averaging with the corresponding parameter 𝜂 :
+
+¯𝜙 𝑗 ← 𝜂 ¯𝜙 𝑗 + ( 1 − 𝜂 )𝜙 𝑗 (16) Finally, at each update of all the aforementioned, we also update the discriminator using the Logistic Loss as used in DAC [ 7 ], the Gradient Penalty regularization of [ 2 ], 𝑁 samples from 𝐵 and 𝑁 
+
+samples from 𝐷 :
+
+L𝜔 = (17) 
+
+12𝑁  ∑︁ 𝑠 𝐵 ∼𝐵 
+
+[− log (1 − 𝜙 𝜔 (𝑠 𝐵 ))] + ∑︁  
+
+> 𝑠 𝐷 ∼𝐷
+
+[− log (𝜙 𝜔 (𝑠 𝐷 ))] 
+
+!
+
++ 𝜆 gp · 12𝑁 ∑︁ (𝑠 𝐵 , 𝑠 𝐷 )
+
+ ∥∇ ˆ𝑠 𝜙 𝜔 ( ˆ𝑠 )∥ 2 − 12
+
+where: 
+
+ˆ𝑠 = 𝜖 𝑠 𝐷 + ( 1 − 𝜖 ) 𝑠 𝐵 , 𝜖 ∼ U ( 0, 1).
+
+We summarize all the above in Algorithm 1. In summary, the method couples a support-aware constraint with max-entropy policy learn-ing: demonstrations provide local upper bounds for the value func-tion of state-action pairs not in the distribution of demonstrations, the discriminator softly gates updates so that online interactions improve performance on in-distribution states, while a safety re-ward drives recovery off-distribution. This yields a modification of standard soft actor–critic training that curbs unsafe extrapolation, preserves performance in states in the support of demonstrations, and, in special cases, it can be reduced to SAC if all states are in-distribution of demonstrations. 
+
+## 5 EXPERIMENTS 5.1 Experimental settings 
+
+Tasks. We evaluate SafeQIL on 4 tasks from Safety-Gymnasium: SafetyPointGoal1-v0, SafetyPointCircle2-v0, SafetyCarButton1-v0, and SafetyCarPush2-v0, covering navigation and object interac-tion under safety constraints. Figure 1 provides representative snapshots of the 4 experimental settings to illustrate task geom-etry and typical safety-related objects. This set of tasks spans in-creasing difficulty and safety density, that is, from boundary-only constraints (SafetyPointCircle2-v0) to multi-obstacle navigation (SafetyPointGoal1-v0) and interaction-heavy control (SafetyCarButton1-v0/SafetyCarPush2-v0), providing a broad stress-test for algorithms that must (i) improve in-distribution while (ii) remaining conserva-tive at out-of-distribution states. 
+
+Demonstrations. To train the algorithms, we collect human-generated demonstration datasets for each task via keyboard con-trol, producing (state, action, reward, cost, next state, next action) tuples. To the best of our knowledge, existing offline safe-RL bench-marks [ 14 ] provide algorithm-generated datasets across 38 Safety-Gymnasium / BulletSafetyGym / MetaDrive tasks, but there is no publicly available human-generated demonstration set for Safety-Gymnasium tasks. 
+
+Baselines. We compare SafeQIL against 3 strong baselines: - ICRL [ 16 ] learns an explicit constraint function from demon-strations and then optimizes a policy under the inferred constraints. Our implementation relies on the official ICRL implementation [ 15 ]. - VICRL [ 11 ] models a posterior distribution over constraints via variational inference, and our implementation is based on the official VICRL implementation [12]. - SAC-GAIL: a GAIL-style discriminator provides the reward while the actor and critic are trained with SAC. We implement this in the spirit of off-policy AIL, such as DAC [ 6 ], which couples a GAIL discriminator with an off-policy actor-critic. This baseline tests whether pure imitation suffices on our tasks, as opposed to SafeQIL’s value-shaping with state-level pessimism. ICRL and VICRL were extensively tuned using the complete set of configurations from their original papers/implementations (3 and 9 settings, respectively) on SafetyPointGoal1-v0. Because the best ICRL configuration (Setting 2) involves a low number of environ-ment steps, we also evaluate ICRL using the best VICRL parameters (Setting 7), tuning the regularization coefficient per task for both configurations. We report results for both, denoted as ICRL 2 and ICRL 7. For SafeQIL and SAC-GAIL, we utilized the Stable Base-lines3 [ 18 ] SAC implementation. We use default hyperparameters for these baselines, tuning only the regularization coefficient per task. All the hyperparameter settings are provided in the Appendix E. Finally, we include results from the unconstrained backbone algorithms (SAC and PPO), as well as the Human Demonstrator, to provide a comprehensive comparison. 
+
+Evaluation protocol. For each task, every method is trained with the same set of 40 human-generated demonstration trajecto-ries. After training, we run 40 evaluation episodes per method. We measure episodic reward (higher is better) and safety cost (lower is better) on the 4 Safety-Gymnasium tasks. We repeat this with 3 independent random seeds and report mean and standard devia-tion (in the form mean ± std) over seeds, following recommended reporting practices for reliability. 
+
+## 5.2 Experimental results 
+
+Tables 1–4 and Figure 2, as well as Figures 3-5 in Appendix B sum-marize results. The best algorithm is decided (highlighted) based on 
+
+Figure 1: Snapshots of: (top-left) SafetyCarPush2 - v0, (top-right) SafetyPointCircle2-v0, (bottom-left) SafetyPointGoal1-v0, (bottom-right) SafetyCarButton1-v0. 
+
+the following process: If all the algorithms exceed the unconstrained SAC cost, the one with the minimum cost is selected. Otherwise, we highlight the algorithm with the best trade-off between cost reduction and reward performance relative to the baseline. Hyper-parameters of SafeQIL and baseline algorithms have been tuned towards improving this trade-off. The detailed methodology for quantifying the trade-off is described in Appendix A along with detailed results. 
+
+SafetyPointGoal1-v0. In this navigation task, the unconstrained SAC baseline incurs a cost of 49 .15 ± 2.21 . Surprisingly, the in-verse constraint baselines fail to improve upon this baseline, with ICRL and VICRL incurring higher costs ( 62 .60 and 62 .97 , respec-tively). SafeQIL emerges as the best algorithm, achieving a cost of 
+
+34 .22 ± 2.71 , which corresponds to a 30.4 % reduction in cost relative to the unconstrained SAC baseline. While SAC-GAIL also reduces the cost (to 44 .80 ), SafeQIL’s reduction is significantly deeper. Al-though SafeQIL’s reward ( 5.27 ) is lower than the unconstrained baselines, it is the only method that improves safety margins over the baseline while maintaining positive task performance. 
+
+Table 1: SafetyPointGoal1-v0: Comparative results. 
+
+Algorithm Reward ↑ Cost ↓
+
+SafeQIL 5.27 ± 1.85 34.22 ± 2.71 
+
+ICRL 2 23.21 ± 1.28 62.60 ± 9.87 ICRL 7 -0.50 ± 4.93 42.80 ± 35.43 VICRL 21.87 ± 1.20 62.97 ± 10.81 SAC-GAIL 7.17 ± 1.65 44.80 ± 18.60 SAC 27.47 ± 0.21 49.15 ± 2.21 PPO 2 23.64 ± 1.64 60.99 ± 7.99 PPO 7 26.70 ± 0.11 57.17 ± 1.68 Human Demonstrator 11.39 ± 1.55 0.00 ± 0.00 
+
+SafetyPointCircle2-v0. The unconstrained SAC baseline incurs a massive cost of 392 .20 ± 4.38 in this task. Both SafeQIL and VICRL successfully identify the boundary constraints, significantly outper-forming ICRL 2. VICRL achieves the best safety performance with a Figure 2: Learning curves for SafetyPointGoal1-v0. 
+
+cost of 5.49 ± 0.81 , representing a 98 % reduction relative to the un-constrained baseline. SafeQIL is very close behind, achieving a cost of 29 .28 ±8.41 , which corresponds to a 92 % cost reduction. Crucially, SafeQIL offers a far better trade-off compared to ICRL 7 and SAC-GAIL: although these baselines achieve similar safety levels (reduc-ing cost by 91 %), they suffer severe reward degradation, retaining only 14 % and 20 % of the baseline reward, respectively. In contrast, SafeQIL retains 46 % of the baseline reward, effectively matching VI-CRL’s performance, outperforming the other constrained baselines by more than double in terms of task performance. 
+
+Table 2: SafetyPointCircle2-v0: Comparative results. 
+
+Algorithm Reward ↑ Cost ↓
+
+SafeQIL 27.06 ± 4.10 29.28 ± 8.41 ICRL 2 28.36 ± 17.37 177.88 ± 6.70 ICRL 7 8.21 ± 17.07 34.07 ± 16.74 
+
+VICRL 26.29 ± 0.69 5.49 ± 0.81 
+
+SAC-GAIL 11.89 ± 9.55 33.95 ± 28.02 SAC 58.81 ± 0.70 392.20 ± 4.38 PPO 2 43.24 ± 12.01 250.40 ± 217.83 PPO 7 32.57 ± 1.26 408.74 ± 2.76 Human Demonstrator 24.28 ± 3.98 0.00 ± 0.00 
+
+SafetyCarButton1-v0. This interaction-heavy task proves diffi-cult for all algorithms. The unconstrained SAC baseline achieves a high reward but incurs a high cost of 299 .27 ± 20 .61 . SafeQIL effectively bridges the gap, reducing the cost to 70 .11 ± 72 .96 , which represents a 76 % safety improvement over the baseline. While VI-CRL achieves an even higher cost reduction of 88 % (34 .65 ± 23 .36 ), it suffers from a complete collapse in task performance (Reward 
+
+= −14 .12 ), failing to solve the task. SafeQIL avoids this collapse (Re-ward = −3.81 ), offering the most efficient trade-off by maintaining a performing policy that enforces safety. 
+
+SafetyCarPush2-v0. In this manipulation task, similarly to the Button task, the unconstrained SAC baseline incurs a high cost of 
+
+245 .36 ± 28 .52 . A critical comparison arises between SafeQIL and 
+
+Table 3: SafetyCarButton1-v0: Comparative results. 
+
+Algorithm Reward ↑ Cost ↓
+
+SafeQIL -3.81 ± 3.05 70.11 ± 72.96 
+
+ICRL 2 0.31 ± 2.23 222.01 ± 173.61 ICRL 7 -15.83 ± 12.98 145.94 ± 23.54 VICRL -14.12 ± 10.83 34.65 ± 23.36 SAC-GAIL 0.14 ± 4.72 98.15 ± 81.54 SAC 19.49 ± 3.50 299.27 ± 20.61 PPO 2 11.70 ± 1.90 460.47 ± 6.61 PPO 7 11.71 ± 1.16 431.77 ± 40.23 Human Demonstrator 14.11 ± 5.67 0.00 ± 0.00 SAC-GAIL. SAC-GAIL achieves the most efficient trade-off, reduc-ing the cost by 64 % (87 .97 ± 10 .57 ) while maintaining a positive reward of 0.76 ± 0.92 . However, for applications prioritizing strict safety over task efficiency, SafeQIL demonstrates better perfor-mance, lowering the cost further to 57 .20 ± 30 .02 (a 76 % reduction). Although this comes at the expense of a slightly negative reward (−0.62 ), SafeQIL reduces the safety violations by 30 more points compared to SAC-GAIL, providing a much tighter safety bound. In contrast, VICRL matches SafeQIL’s cost ( 55 .80 ) but suffers a cata-strophic reward drop to −9.05 , effectively failing the task. Finally, ICRL 2 and ICRL 7 fail to provide meaningful safety, reducing the cost only by 27 % (178 .81 ± 60 .69 ) and 17 % (203.10 ± 37.24), respectively. 
+
+Table 4: SafetyCarPush2-v0: Comparative results. 
+
+Algorithm Reward ↑ Cost ↓
+
+SafeQIL -0.62 ± 0.65 57.20 ± 30.02 ICRL 2 0.00 ± 1.73 203.10 ± 37.24 ICRL 7 1.15 ± 0.49 178.81 ± 60.69 VICRL -9.05 ± 8.58 55.80 ± 71.45 
+
+SAC-GAIL 0.76 ± 0.92 87.97 ± 10.57 
+
+SAC 1.50 ± 0.01 245.36 ± 28.52 PPO 2 0.44 ± 0.52 316.50 ± 52.84 PPO 7 0.72 ± 0.64 238.63 ± 23.33 Human Demonstrator 7.46 ± 1.77 0.00 ± 0.00 Overall, SafeQIL consistently lowers safety costs relative to the unconstrained baseline, with reductions ranging from 30 % to 92 %.It outperforms ICRL in safety across all tasks, and provides a more stable reward-cost trade-off compared to VICRL, which tends to over-constrain the policy to the point of task failure in complex manipulation environments. Finally, compared to SAC-GAIL, Safe-QIL demonstrates a more robust safety behavior. While SAC-GAIL offers a competitive baseline in terms of reward, SafeQIL consis-tently achieves significantly tighter worst-case safety bounds when taking into account also the analysis in Appendix A. 
+
+## 5.3 Ablation study 
+
+To validate the contribution of SafeQIL’s components, we conducted an ablation study on the challenging SafetyPointGoal1-v0 bench-mark. Table 5 summarizes the results for the key variations. The original formulation achieves the most effective balance of reward (5.27 ± 1.85 ) and cost ( 34 .22 ± 2.71 ). We found that decoupling the upper-bound selection from state similarity ("w/o cosine similarity") results in highly unstable costs ( 30 .25 ± 19 .10 ) and reduced reward, confirming that state-specific bounds are crucial for consistent learning. Similarly, removing the explicit upper-bound constraint ("w/o constraint term") leads to high cost variance ( ±14 .03 ), in-dicating that relying solely on demonstration bias is insufficient to guarantee consistent safety. For further analysis, Appendix C details the full ablation of SafeQIL’s components, and Appendix D evaluates the impact of demonstration dataset size. 
+
+Table 5: Ablation results for key SafeQIL’s variations. 
+
+Algorithm Reward ↑ Cost ↓
+
+Original 5.27 ± 1.85 34.22 ± 2.71 
+
+w/o cosine similarity 3.74 ± 2.52 30.25 ± 19.10 w/o constraint term 4.34 ± 4.41 29.02 ± 14.03 
+
+## 6 RELATED WORK 
+
+This section reviews works that connect most closely to SafeQIL: (i) learning constraints from demonstrations, and (ii) offline RL approaches that enforce pessimism on out-of-distribution (OOD) actions. 
+
+Learning constraints from demonstrations . Safety and con-straints’ abiding behavior is a long-term topic of interest in the RL realm. It was formulated at first by [ 1 ] through CMDPs. More recently, the family of Inverse Constraint RL (ICRL) algorithms has shown promising results on learning to respect constraints in settings with an unknown cost function and without cost labels provided. ICRL [ 16 ] aims to approximate the cost function and em-ploys a binary classifier to differentiate between the demonstrated trajectories and those generated by the policy under learning. A later work formulates constraint inference variationally, introduc-ing a benchmark and a VI-based estimator referred to as VICRL [ 11 ]. Confidence-aware variants of ICRL [ 20 ] explicitly encode a desired confidence level over inferred constraints, seeking estimates that are at least as strict as ground truth with high probability — aiming to address the conservatism/coverage trade-off inherent in constraint inference. Continuing, Multi-Modal ICRL (MMICRL) [ 17 ] relaxes the single-expert assumption by modeling demonstra-tions as mixtures from heterogeneous experts who may adhere to distinct constraint sets. It infers multiple constraint modes and shows improved recovery and control performance in both discrete and continuous domains. Uncertainty-Aware ICRL (UAICRL) [ 22 ]tackles the ambiguity inherent in constraint inference by modeling both aleatoric and epistemic uncertainty, yielding risk-sensitive constraints via distributional Bellman updates and demonstrating robustness when demonstrations are limited or stochastic. Finally, CoCoRL [ 10 ] bypasses reward labels and learns a convex safe set directly from demonstrations with unknown rewards, providing safety guarantees and transfer to new tasks. A key distinction from the ICRL family is that we do not infer an explicit constraint set or solve a constrained MDP. Instead, we regularize the value func-tion directly: demonstrations define support, a discriminator gates in/out-of-distribution weighting, and a state-level upper bound lim-its over-optimism off-support while preserving SAC-style improve-ment on-demonstrations-support. This sidesteps the ambiguity and calibration issues inherent in constraint identification while still leveraging demonstrations to shape safe behavior. 
+
+Offline RL with pessimistic value learning . Offline RL ad-dresses distribution shift by making critics conservative off-demo-nstrations-support. CQL [ 9] lowers Q-values on OOD actions to ob-tain lower-bound critics and policy-improvement guarantees. BRAC [ 21 ] constrains the policy toward the behavior policy, while IQL [ 8] uses expectiles to avoid querying OOD actions. Finally, model-based methods, such as MOPO [ 24 ], MOReL [ 5], and COMBO [ 23 ], inject pessimism through dynamics or value regularization. Aligned with this conservative principle, our method is pessimistic off-demonstrations-support but defines “support” via demonstrations together with the online replay buffer. Importantly, the pessimism operates at the state level: we bound Q-values for out-of-distribution states using a discriminator-weighted, demonstration-informed up-per bound, so every action at those states is conservatively valued, while standard SAC updates drive improvement on in-distribution states. This contrasts with action-centric penalties such as CQL’s conservative regularizer and complements state-space pessimism in model-based approaches like MOReL/MOPO. 
+
+## 7 CONCLUSIONS 
+
+We introduced SafeQIL, a simple, model-free method for learning to respect constraints from demonstrations while continuing to improve online. The key idea is to make the critic pessimistic at out-of-distribution states by enforcing a local, demonstration-limited upper bound on 𝑄 (𝑠, ·) and by gating updates with a discriminator that estimates whether a state lies on the demonstration support. On in-distribution states, the policy still learns with a standard max-entropy objective (SAC), preserving the sample-efficiency and stability benefits of off-policy actor–critic training. SafeQIL consistently reduces safety-violation costs compared to explicit constraint-inference baselines (ICRL/VICRL) in 4 Safety-Gymnasium tasks, while maintaining competitive performance on navigation tasks. The method trades some reward for safety on interaction-heavy tasks, an expected outcome of our state-level pessimism design. These results support our central claim: shaping values to be conservative only where the data indicate low support yields strong safety without discarding the performance advantages of max-entropy RL. Limitations include reliance on the coverage and quality of demonstrations, possible miscalibration of the discriminator in hard out-of-distribution regions, and the simplicity of the closest state retrieval for the anchor. These can lead to over- or under-conservatism in poorly covered parts of the state space. Future work aims at (i) learning task-aware state embeddings for robust closest-demo retrieval, and (ii) exploring model-based rollouts for safer recovery planning. 
+
+## ACKNOWLEDGMENTS 
+
+This research work was supported by the Hellenic Foundation for Research and Innovation (HFRI) under the 5th Call for HFRI PhD Fellowships (Fellowship Number: 20769). REFERENCES 
+
+[1] Eitan Altman. 1999. Constrained Markov Decision Processes. https://api. semanticscholar.org/CorpusID:14906227 [2] Ishaan Gulrajani, Faruk Ahmed, Martin Arjovsky, Vincent Dumoulin, and Aaron C Courville. 2017. Improved training of wasserstein gans. Advances in neural information processing systems 30 (2017). [3] Tuomas Haarnoja, Aurick Zhou, Pieter Abbeel, and Sergey Levine. 2018. Soft actor-critic: Off-policy maximum entropy deep reinforcement learning with a stochastic actor. In International conference on machine learning . Pmlr, 1861–1870. [4] Todd Hester, Matej Vecerik, Olivier Pietquin, Marc Lanctot, Tom Schaul, Bilal Piot, Dan Horgan, John Quan, Andrew Sendonaris, Ian Osband, et al . 2018. Deep q-learning from demonstrations. In Proceedings of the AAAI conference on artificial intelligence , Vol. 32. [5] Rahul Kidambi, Aravind Rajeswaran, Praneeth Netrapalli, and Thorsten Joachims. 2020. MOReL: Model-Based Offline Reinforcement Learning. In 
+
+Advances in Neural Information Processing Systems , H. Larochelle, M. Ran-zato, R. Hadsell, M.F. Balcan, and H. Lin (Eds.), Vol. 33. Curran Associates, Inc., 21810–21823. https://proceedings.neurips.cc/paper_files/paper/2020/file/ f7efa4f864ae9b88d43527f4b14f750f-Paper.pdf [6] Ilya Kostrikov, Kumar Krishna Agrawal, Debidatta Dwibedi, Sergey Levine, and Jonathan Tompson. 2018. Discriminator-Actor-Critic: Addressing Sample Inefficiency and Reward Bias in Adversarial Imitation Learning. arXiv:1809.02925 [cs.LG] https://arxiv.org/abs/1809.02925 [7] Ilya Kostrikov, Kumar Krishna Agrawal, Debidatta Dwibedi, Sergey Levine, and Jonathan Tompson. 2019. Discriminator-Actor-Critic: Addressing Sample Ineffi-ciency and Reward Bias in Adversarial Imitation Learning. In International Confer-ence on Learning Representations . https://openreview.net/forum?id=Hk4fpoA5Km [8] Ilya Kostrikov, Ashvin Nair, and Sergey Levine. 2021. Offline reinforcement learning with implicit q-learning. arXiv preprint arXiv:2110.06169 (2021). [9] Aviral Kumar, Aurick Zhou, George Tucker, and Sergey Levine. 2020. Conserva-tive q-learning for offline reinforcement learning. Advances in neural information processing systems 33 (2020), 1179–1191. [10] David Lindner, Xin Chen, Sebastian Tschiatschek, Katja Hofmann, and Andreas Krause. 2024. Learning Safety Constraints from Demonstrations with Unknown Rewards. In International Conference on Artificial Intelligence and Statistics (AIS-TATS) .[11] Guiliang Liu, Yudong Luo, Ashish Gaurav, Kasra Rezaee, and Pascal Poupart. 2023. Benchmarking Constraint Inference in Inverse Reinforcement Learning. In The Eleventh International Conference on Learning Representations . https: //openreview.net/forum?id=vINj_Hv9szL [12] Guiliang Liu, Yudong Luo, Ashish Gaurav, Kasra Rezaee, and Pascal Poupart. 2023. ICRL-benchmarks-public: Benchmarking Constraint Inference in Inverse Reinforcement Learning. https://github.com/Guiliang/ICRL-benchmarks-public. [13] Guiliang Liu, Sheng Xu, Shicheng Liu, Ashish Gaurav, Sriram Ganapathi Sub-ramanian, and Pascal Poupart. 2025. A Comprehensive Survey on Inverse Constrained Reinforcement Learning: Definitions, Progress and Challenges. arXiv:2409.07569 [cs.LG] https://arxiv.org/abs/2409.07569 [14] Zuxin Liu, Zijian Guo, Haohong Lin, Yihang Yao, Jiacheng Zhu, Zhepeng Cen, Hanjiang Hu, Wenhao Yu, Tingnan Zhang, Jie Tan, et al . 2023. Datasets and bench-marks for offline safe reinforcement learning. arXiv preprint arXiv:2306.09303 
+
+(2023). [15] Shehryar Malik. 2021. ICRL: Inverse Constrained Reinforcement Learning. https: //github.com/shehryar-malik/icrl. [16] Shehryar Malik, Usman Anwar, Alireza Aghasi, and Ali Ahmed. 2021. In-verse Constrained Reinforcement Learning. In Proceedings of the 38th Inter-national Conference on Machine Learning (Proceedings of Machine Learning Research, Vol. 139) , Marina Meila and Tong Zhang (Eds.). PMLR, 7390–7399. https://proceedings.mlr.press/v139/malik21a.html [17] Guanren Qiao, Guiliang Liu, Pascal Poupart, and Zhiqiang Xu. 2023. Multi-Modal Inverse Constrained Reinforcement Learning from a Mixture of Demonstra-tions. In Advances in Neural Information Processing Systems , A. Oh, T. Naumann, A. Globerson, K. Saenko, M. Hardt, and S. Levine (Eds.), Vol. 36. Curran Asso-ciates, Inc., 60384–60396. https://proceedings.neurips.cc/paper_files/paper/2023/ file/bdc48324d6158a7edef88d673855a3f4-Paper-Conference.pdf [18] Antonin Raffin, Ashley Hill, Adam Gleave, Anssi Kanervisto, Maximilian Ernestus, and Noah Dormann. 2021. Stable-baselines3: Reliable reinforcement learning implementations. Journal of machine learning research 22, 268 (2021), 1–8. [19] Dexter R. R. Scobee and S. Shankar Sastry. 2020. Maximum Likelihood Constraint Inference for Inverse Reinforcement Learning. arXiv:1909.05477 [cs.LG] https: //arxiv.org/abs/1909.05477 [20] Sriram Ganapathi Subramanian, Guiliang Liu, Mohammed Elmahgiubi, Kasra Rezaee, and Pascal Poupart. 2024. Confidence Aware Inverse Constrained Rein-forcement Learning. arXiv:2406.16782 [cs.LG] https://arxiv.org/abs/2406.16782 [21] Yifan Wu, George Tucker, and Ofir Nachum. 2020. Behavior Regularized Offline Reinforcement Learning. https://openreview.net/forum?id=BJg9hTNKPH [22] Sheng Xu and Guiliang Liu. 2024. Uncertainty-aware Constraint Inference in Inverse Constrained Reinforcement Learning. In The Twelfth International Confer-ence on Learning Representations . https://openreview.net/forum?id=ILYjDvUM6U [23] Tianhe Yu, Aviral Kumar, Rafael Rafailov, Aravind Rajeswaran, Sergey Levine, and Chelsea Finn. 2021. Combo: Conservative offline model-based policy optimization. 
+
+Advances in neural information processing systems 34 (2021), 28954–28967. [24] Tianhe Yu, Garrett Thomas, Lantao Yu, Stefano Ermon, James Y Zou, Sergey Levine, Chelsea Finn, and Tengyu Ma. 2020. MOPO: Model-based Offline Policy Optimization. In Advances in Neural Information Processing Systems , H. Larochelle, M. Ranzato, R. Hadsell, M.F. Balcan, and H. Lin (Eds.), Vol. 33. Curran Associates, Inc., 14129–14142. https://proceedings.neurips.cc/paper_files/paper/2020/file/ a322852ce0df73e204b7e67cbbef0d0a-Paper.pdf A QUANTITATIVE TRADE-OFF ANALYSIS 
+
+In this section, we analytically describe how we select the best algorithm for each benchmark, and we present more table results. To do so, we introduce a quantitative trade-off analysis. This analysis measures how effectively each algorithm balances the drop in reward with the drop in cost relative to the unconstrained SAC baseline. We conduct this evaluation in two ways: a Standard analysis based on mean performance, and a Robust analysis that accounts for the variance (standard deviation) to penalize instability. For a given algorithm 𝐴 and the unconstrained baseline 𝐵 (SAC), let 𝜇 𝑅 , 𝜎 𝑅 denote the mean and standard deviation of the reward, and 
+
+𝜇 𝐶 , 𝜎 𝐶 denote the mean and standard deviation of the cost. The Standard metrics rely solely on the expected values. We define the percentage cost reduction ( Δ𝐶 ) and reward reduction ( Δ𝑅 ) as: 
+
+Δ𝐶 = 𝜇 𝐵 𝐶 − 𝜇 𝐴 𝐶 
+
+𝜇 𝐵 𝐶 
+
+× 100 , Δ𝑅 = 𝜇 𝐵 𝑅 − 𝜇 𝐴 𝑅 
+
+𝜇 𝐵 𝑅 
+
+× 100 (18) The Trade-off Ratio (𝜌 ) is defined as the safety gained per unit of reward lost: 
+
+𝜌 = Δ𝐶 
+
+Δ𝑅 (19) A higher 𝜌 indicates a more efficient safety mechanism. Algorithms with Δ𝐶 < 0 (worse safety than baseline) are considered invalid. To account for safety-critical constraints where worst-case performance matters, we define "pessimistic" bounds: 
+
+˜𝐶 = 𝜇 𝐶 + 𝜎 𝐶 (Upper Bound of Cost) (20) 
+
+˜𝑅 = 𝜇 𝑅 − 𝜎 𝑅 (Lower Bound of Reward) (21) The Robust percentage drops are calculated using these worst-case estimates: 
+
+Δ ˜𝐶 = ˜𝐶 𝐵 − ˜𝐶 𝐴 
+
+˜𝐶 𝐵 × 100 , Δ ˜𝑅 = ˜𝑅 𝐵 − ˜𝑅 𝐴 
+
+˜𝑅 𝐵 × 100 (22) This formulation penalizes algorithms with high variance, as a large 𝜎 𝐶 increases the worst-case cost estimate, thereby reducing the calculated safety improvement. Table 6 presents the Standard trade-off analysis using mean values. Table 7 presents the Robust analysis, highlighting how variance impacts the reliability of safety guarantees. These results match the performance rankings discussed in Section 5.2. In SafetyPointGoal1-v0, SafeQIL achieves the highest trade-off ratio in both Standard and Robust results, confirming its superiority. In SafetyCarButton1-v0, while SAC-GAIL shows a marginally better ratio in the Standard analysis ( 0.68 vs. 0.64 ), the Robust analysis reveals the necessity of accounting for variance. SafeQIL maintains a significantly tighter worst-case safety bound (Pessimistic Cost of 143 .07 vs. 179 .69 for SAC-GAIL) and achieves a better robust ratio ( 0.39 vs. 0.34 ), justifying its selection as the most reliable algorithm for this benchmark. For SafetyPointCircle2-v0 and SafetyCarPush2-v0, where VICRL and SAC-GAIL achieve the highest ratios respectively, SafeQIL consistently ranks as the second-best performing algorithm at least in Robust results. Crucially, while the baselines exhibit high variance in performance, that is, VICRL fails in SafetyCarPush2-v0 (Ratio 0.04 ) and SAC-GAIL is unsafe in SafetyPointGoal1-v0, SafeQIL is the only method that maintains high efficacy and safety rankings across all benchmarks. This demonstrates that SafeQIL offers the most generalizable and robust solution, avoiding the catastrophic failures observed in other state-of-the-art methods. Table 6: Standard Trade-off Analysis (Mean Values Only). The Ratio 𝜌 indicates % Cost Drop per 1% Reward Drop. Benchmark Algorithm Mean Reward Mean Cost Cost Drop ( Δ𝐶 ) Reward Drop ( Δ𝑅 ) Ratio ( 𝜌 )
+
+SafetyPointGoal1-v0 (SAC: R 27.47, C 49.15) 
+
+SafeQIL 5.27 34.22 30.4% 80.8% 0.38 
+
+ICRL 2 23.21 62.60 -27.4% 15.5% N/A (Unsafe) ICRL 7 -0.50 42.80 12.9% 101.8% 0.13 VICRL 21.87 62.97 -28.1% 20.4% N/A (Unsafe) SAC-GAIL 7.17 44.80 8.9% 73.9% 0.12 SafetyPointCircle2-v0 (SAC: R 58.81, C 392.20) SafeQIL 27.06 29.28 92.5% 54.0% 1.71 ICRL 2 28.36 177.88 54.6% 51.8% 1.06 ICRL 7 8.21 34.07 91.3% 86.0% 1.06 
+
+VICRL 26.29 5.49 98.6% 55.3% 1.78 
+
+SAC-GAIL 11.89 33.95 91.3% 79.8% 1.14 SafetyCarButton1-v0 (SAC: R 19.49, C 299.27) SafeQIL -3.81 70.11 76.6% 119.5% 0.64 ICRL 2 0.31 222.01 25.8% 98.4% 0.26 ICRL 7 -15.83 145.94 51.2% 181.2% 0.28 VICRL -14.12 34.65 88.4% 172.4% 0.51 
+
+SAC-GAIL 0.14 98.15 67.2% 99.3% 0.68 
+
+SafetyCarPush2-v0 (SAC: R 1.50, C 245.36) SafeQIL -0.62 57.20 76.7% 141.3% 0.54 ICRL 2 0.00 203.10 17.2% 100.0% 0.17 ICRL 7 1.15 178.81 27.1% 23.3% 1.16 VICRL -9.05 55.80 77.3% 703.3% 0.11 
+
+SAC-GAIL 0.76 87.97 64.1% 49.3% 1.30 Table 7: Robust Trade-off Analysis (Mean ± Std). Pessimistic metrics penalize high variance in cost and reward. Benchmark Algorithm Pess. Reward ( ˜𝑅 ) Pess. Cost ( ˜𝐶 ) Robust Δ ˜𝐶 Robust Δ ˜𝑅 Ratio ( 𝜌 )
+
+SafetyPointGoal1-v0 (SAC Pess: R 27.26, C 51.36) 
+
+SafeQIL 3.42 36.93 28.1% 87.5% 0.32 
+
+ICRL 2 21.93 72.47 -41.1% 19.6% N/A (Unsafe) ICRL 7 -5.43 78.23 -52.3% 119.9% N/A (Unsafe) VICRL 20.67 73.78 -43.6% 24.2% N/A (Unsafe) SAC-GAIL 5.52 63.40 -23.4% 79.7% N/A (Unsafe) SafetyPointCircle2-v0 (SAC Pess: R 58.11, C 396.58) SafeQIL 22.96 37.69 90.5% 60.5% 1.50 ICRL 2 10.99 184.58 53.5% 81.1% 0.66 ICRL 7 -8.86 50.81 87.2% 115.2% 0.76 
+
+VICRL 25.60 6.30 98.4% 55.9% 1.76 
+
+SAC-GAIL 2.34 61.97 84.4% 96.0% 0.88 SafetyCarButton1-v0 (SAC Pess: R 15.99, C 319.88) 
+
+SafeQIL -6.86 143.07 55.3% 142.9% 0.39 
+
+ICRL 2 -1.92 395.62 -23.7% 112.0% N/A (Unsafe) ICRL 7 -28.81 169.48 47.0% 280.2% 0.17 VICRL -24.95 58.01 81.9% 256.0% 0.32 SAC-GAIL -4.58 179.69 43.8% 128.6% 0.34 SafetyCarPush2-v0 (SAC Pess: R 1.49, C 273.88) SafeQIL -1.27 87.22 68.2% 185.2% 0.37 ICRL 2 -1.73 240.34 12.2% 216.1% 0.06 ICRL 7 0.66 239.50 12.6% 55.7% 0.23 VICRL -17.63 127.25 53.5% 1283.2% 0.04 
+
+SAC-GAIL -0.16 98.54 64.0% 110.7% 0.58 B MORE LEARNING CURVES 
+
+Figure 3: Learning curves for the SafetyPointCircle2-v0 benchmark. 
+
+Figure 4: Learning curves for the SafetyCarButton1-v0 benchmark. Figure 5: Learning curves for the SafetyCarPush2-v0 benchmark. C EXTENDED ABLATION STUDY ON SAFEQIL COMPONENTS 
+
+In this section, we complete the ablation study initiated in the main text (Section 5.3) by evaluating the remaining components of SafeQIL’s objective function. For completeness, Table 8 presents the full results across all 6 variations, including those previously discussed. First, removing the max (·) operator ("w/o max term") in Equation (10) forces the agent’s value estimates to be strictly equal to the demonstrated bound rather than just staying below it. This severely restricts the policy, leading to a catastrophic drop in reward ( −10 .62 ), as removing the max term essentially prevents the critic from distinguishing the relative safety of different rollout states. Crucially, the removal of the Out-Of-Distribution term ("w/o OOD term"), i.e., the term 𝐿 𝐷 𝑗 (·) defined in Equation (11), resulted in the highest cost among all ablations ( 44 .99 ± 4.95 ). Without this term, the agent lacks an explicit safety penalty for states not covered by demonstrations, confirming that penalizing OOD states is central for SafeQIL’s safety guarantees. Similarly, the demonstration regularization term plays a vital role in guiding the exploration. Removing it ("w/o demonstrations term") yielded a policy with negligible cost ( 8.41 ) but negative reward ( −3.71 ), indicating that without initial guidance to follow safe trajectories, the agent collapses into a risk-averse only policy. Finally, excluding the standard SAC objective ("w/o SAC term") hindered reward maximization ( 2.67 ± 1.78 ). While the agent remained safe ( 15 .42 ± 13 .81 ), it failed to exploit the safe regions effectively. In conclusion, the full study confirms that each component is necessary: OOD and demonstration terms help the agent identify safe regions, the SAC term drives performance, and the constraint mechanisms stabilize the learning process by providing robust upper bounds. 
+
+Table 8: Complete ablation study evaluation results for SafeQIL. 
+
+Algorithm Reward ↑ Cost ↓
+
+Original 5.27 ± 1.85 34.22 ± 2.71 
+
+w/o cosine similarity 3.74 ± 2.52 30.25 ± 19.10 w/o max term -10.62 ± 7.81 15.47 ± 8.67 w/o constraint term 4.34 ± 4.41 29.02 ± 14.03 w/o OOD term 1.07 ± 0.91 44.99 ± 4.95 w/o demonstrations term -3.71 ± 1.00 8.41 ± 3.76 w/o SAC term 2.67 ± 1.78 15.42 ± 13.81 D DATASET SIZE SENSITIVITY ANALYSIS 
+
+In imitation learning and inverse reinforcement learning, increasing the volume of expert demonstration data typically correlates with improved policy stability and task performance. However, our ablation study across varying dataset sizes (1x, 2x, 4x, and 8x) reveals a counter-intuitive pattern. The performance of nearly all evaluated algorithms, measured by reward retention, worst-case cost bounds, and overall trade-off efficiency, generally degrades as the dataset size increases. This trend is observable in both the navigation task (SafetyPointGoal1-v0, Tables 9, 11, and 12) and the manipulation task (SafetyCarPush2-v0, Tables 10, 13, and 14), affecting direct value-regularization methods (SafeQIL), constraint inference methods (ICRL, VICRL), and standard imitation learning (SAC-GAIL). Specifically, in SafetyPointGoal1-v0, SafeQIL achieves its highest robust trade-off efficiency at the 1x dataset size. As the dataset expands to 2x and 4x, this efficiency steadily drops, and by the 8x dataset size, reward variance increases significantly enough to push the pessimistic cost slightly above the unconstrained baseline threshold. A similar degradation is visible in ICRL and VICRL, which frequently fall into negative robust efficiency, effectively becoming more dangerous than the baseline, at larger dataset scales. In the complex SafetyCarPush2-v0 environment, SafeQIL provides a tight worst-case cost bound at 1x data, but this bound progressively weakens as more data is introduced. SAC-GAIL also experiences a severe efficiency drop at the 4x dataset size before uniquely recovering at the 8x scale. We hypothesize that this counter-intuitive degradation is primarily driven by the stochasticity and multi-modal nature of human demonstrations. The datasets for these experiments were collected incrementally, for instance, the 2x dataset does not represent a single continuous session, but rather consists of the original 40 trajectories combined with an additional 40 trajectories collected at a later time. Over multiple days and collection sessions, a human demonstrator’s strategy naturally drifts. The demonstrator may solve the exact same obstacle configuration using different trajectories, resulting in varying actions being mapped to highly similar state representations. When algorithms are trained on the 1x dataset, they fit a relatively narrow, consistent mode of behavior. However, as the dataset grows, the algorithms are forced to reconcile these conflicting demonstrations, creating severe approximation instability for standard Markovian policies. This multi-modal behavior disproportionately impacts constraint inference methods. Because algorithms like ICRL and VICRL attempt to infer a single, unified constraint boundary, conflicting demonstration data causes the inferred constraints to become overly broad or entirely miscalibrated. This explains why these methods frequently exhibit catastrophic variance and task collapse at the 4x and 8x data sizes. The discriminator cannot reliably separate safe from unsafe regions when the expert data itself is inconsistent. SafeQIL mitigates this better in low-to-medium data regimes, but because it relies on a state-similarity metric to anchor its Q-values to demonstrated bounds, high stochasticity eventually causes the algorithm to retrieve conflicting Q-value bounds for similar states, leading to increased variance at the 8x scale. Conversely, SAC-GAIL struggles to provide reliable safety bounds in low-data regimes but shows recovery to some extend at 8x in both SafetyCarPush2-v0 and SafetyPointGoal1-v0, suggesting that adversarial imitation learning can eventually overcome demonstrator stochasticity by overwhelming the network with enough data to average out inconsistencies. However, this highlights a severe limitation in sample efficiency. Even when provided with the 8x dataset, SAC-GAIL remains vulnerable to worst-case safety violations and cannot match the reliable safety bounds achieved by SafeQIL using only the minimal 1x dataset. To resolve the instability caused by human demonstrator drift, future iterations of these algorithms must address the inherent state aliasing present in multi-session datasets. A promising direction is the integration of Recurrent Neural Networks (RNNs) into the policy and critic architectures. By providing the network with a temporal history of the trajectory, the policy could distinguish between observationally similar states based on the agent’s past momentum and context. This would allow the algorithm to correctly identify and adapt to the specific behavioral mode the human demonstrator was utilizing during a given session, stabilizing the learning process even as dataset sizes and demonstrator variance increase. Table 9: SafetyPointGoal1-v0: Comparative results of Dataset Size Ablation. Algorithm Reward ↑ Cost ↓
+
+1x Dataset 
+
+SafeQIL 5.27 ± 1.85 34.22 ± 2.71 
+
+ICRL 2 23.21 ± 1.28 62.60 ± 9.87 ICRL 7 -0.50 ± 4.93 42.80 ± 35.43 VICRL 21.87 ± 1.20 62.97 ± 10.81 SAC-GAIL 7.17 ± 1.65 44.80 ± 18.60 Human Demonstrator 11.39 ± 1.55 0.00 ± 0.00 
+
+2x Dataset 
+
+SafeQIL 3.17 ± 0.95 29.50 ± 9.95 
+
+ICRL 2 21.83 ± 2.31 66.17 ± 11.14 ICRL 7 -5.38 ± 5.28 22.16 ± 21.68 VICRL 0.42 ± 1.17 32.99 ± 13.74 SAC-GAIL 8.40 ± 5.25 47.00 ± 19.01 Human Demonstrator 11.37 ± 1.72 0.00 ± 0.00 
+
+4x Dataset 
+
+SafeQIL 11.30 ± 1.95 34.14 ± 10.66 ICRL 2 21.41 ± 2.09 60.38 ± 9.66 
+
+ICRL 7 -7.08 ± 2.85 6.64 ± 3.36 
+
+VICRL 21.10 ± 2.30 62.90 ± 14.29 SAC-GAIL 9.70 ± 1.88 46.39 ± 9.05 Human Demonstrator 11.72 ± 1.72 0.00 ± 0.00 
+
+8x Dataset 
+
+SafeQIL 6.64 ± 6.76 43.91 ± 8.40 ICRL 2 17.51 ± 3.63 66.55 ± 3.36 ICRL 7 0.31 ± 2.19 46.05 ± 59.83 VICRL 12.83 ± 12.03 54.76 ± 29.31 
+
+SAC-GAIL 7.22 ± 1.98 40.47 ± 11.25 
+
+Human Demonstrator 12.42 ± 1.96 0.00 ± 0.00 
+
+Baselines 
+
+SAC 27.47 ± 0.21 49.15 ± 2.21 PPO 2 23.64 ± 1.64 60.99 ± 7.99 PPO 7 26.70 ± 0.11 57.17 ± 1.68 Table 10: SafetyCarPush2-v0: Comparative results of Dataset Size Ablation. Algorithm Reward ↑ Cost ↓
+
+1x Dataset 
+
+SafeQIL -0.62 ± 0.65 57.20 ± 30.02 ICRL 2 0.00 ± 1.73 203.10 ± 37.24 ICRL 7 1.15 ± 0.49 178.81 ± 60.69 VICRL -9.05 ± 8.58 55.80 ± 71.45 
+
+SAC-GAIL 0.76 ± 0.92 87.97 ± 10.57 
+
+Human Demonstrator 7.46 ± 1.77 0.00 ± 0.00 
+
+2x Dataset 
+
+SafeQIL -3.38 ± 2.97 58.10 ± 17.86 ICRL 2 0.68 ± 0.35 206.67 ± 38.53 ICRL 7 0.84 ± 0.60 203.40 ± 29.78 VICRL -0.55 ± 2.25 195.57 ± 54.00 
+
+SAC-GAIL 0.22 ± 0.47 90.95 ± 11.92 
+
+Human Demonstrator 7.92 ± 2.01 0.00 ± 0.00 
+
+4x Dataset 
+
+SafeQIL -2.63 ± 3.28 100.13 ± 10.22 ICRL 2 -0.25 ± 0.96 231.99 ± 59.31 ICRL 7 -3.18 ± 7.15 228.45 ± 89.63 VICRL 0.36 ± 0.80 145.74 ± 89.95 
+
+SAC-GAIL -0.62 ± 2.46 148.19 ± 24.23 
+
+Human Demonstrator 8.59 ± 2.16 0.00 ± 0.00 
+
+8x Dataset 
+
+SafeQIL -1.67 ± 1.01 77.28 ± 44.47 ICRL 2 -2.82 ± 2.76 104.44 ± 60.95 ICRL 7 1.05 ± 0.29 186.36 ± 33.88 VICRL -7.17 ± 7.15 97.10 ± 59.01 
+
+SAC-GAIL 1.07 ± 0.28 124.97 ± 20.58 
+
+Human Demonstrator 8.96 ± 2.18 0.00 ± 0.00 
+
+Baselines 
+
+SAC 1.50 ± 0.01 245.36 ± 28.52 PPO 2 0.44 ± 0.52 316.50 ± 52.84 PPO 7 0.72 ± 0.64 238.63 ± 23.33 Table 11: SafetyPointGoal1-v0: Standard Trade-off Analysis (Dataset Size Ablation). Calculated using Mean Values Only. The Ratio 𝜌 indicates % Cost Drop per 1% Reward Drop. Dataset Size Algorithm Mean Reward Mean Cost Cost Drop ( Δ𝐶 ) Reward Drop ( Δ𝑅 ) Ratio ( 𝜌 )
+
+1x Dataset (SAC: R 27.47, C 49.15) 
+
+SafeQIL 5.27 34.22 30.4% 80.8% 0.38 
+
+ICRL 2 23.21 62.60 -27.4% 15.5% N/A (Unsafe) ICRL 7 -0.50 42.80 12.9% 101.8% 0.13 VICRL 21.87 62.97 -28.1% 20.4% N/A (Unsafe) SAC-GAIL 7.17 44.80 8.9% 73.9% 0.12 2x Dataset (SAC: R 27.47, C 49.15) SafeQIL 3.17 29.50 40.0% 88.5% 0.45 ICRL 2 21.83 66.17 -34.6% 20.5% N/A (Unsafe) 
+
+ICRL 7 -5.38 22.16 54.9% 119.6% 0.46 
+
+VICRL 0.42 32.99 32.9% 98.5% 0.33 SAC-GAIL 8.40 47.00 4.4% 69.4% 0.06 4x Dataset (SAC: R 27.47, C 49.15) SafeQIL 11.30 34.14 30.5% 58.9% 0.52 ICRL 2 21.41 60.38 -22.8% 22.1% N/A (Unsafe) 
+
+ICRL 7 -7.08 6.64 86.5% 125.8% 0.69 
+
+VICRL 21.10 62.90 -28.0% 23.2% N/A (Unsafe) SAC-GAIL 9.70 46.39 5.6% 64.7% 0.09 8x Dataset (SAC: R 27.47, C 49.15) SafeQIL 6.64 43.91 10.7% 75.8% 0.14 ICRL 2 17.51 66.55 -35.4% 36.3% N/A (Unsafe) ICRL 7 0.31 46.05 6.3% 98.9% 0.06 VICRL 12.83 54.76 -11.4% 53.3% N/A (Unsafe) 
+
+SAC-GAIL 7.22 40.47 17.7% 73.7% 0.24 Table 12: SafetyPointGoal1-v0: Robust Trade-off Analysis (Dataset Size Ablation). Calculated using worst-case bounds (Mean ±
+
+> Std). Pessimistic metrics penalize high variance in cost and reward.
+
+Dataset Size Algorithm Pess. Reward ( ˜𝑅 ) Pess. Cost ( ˜𝐶 ) Robust Δ ˜𝐶 Robust Δ ˜𝑅 Ratio ( 𝜌 )
+
+1x Dataset (SAC Pess: R 27.26, C 51.36) 
+
+SafeQIL 3.42 36.93 28.1% 87.5% 0.32 
+
+ICRL 2 21.93 72.47 -41.1% 19.6% N/A (Unsafe) ICRL 7 -5.43 78.23 -52.3% 119.9% N/A (Unsafe) VICRL 20.67 73.78 -43.6% 24.2% N/A (Unsafe) SAC-GAIL 5.52 63.40 -23.4% 79.7% N/A (Unsafe) 2x Dataset (SAC Pess: R 27.26, C 51.36) 
+
+SafeQIL 2.22 39.45 23.2% 91.9% 0.25 
+
+ICRL 2 19.52 77.31 -50.5% 28.4% N/A (Unsafe) ICRL 7 -10.66 43.84 14.6% 139.1% 0.10 VICRL -0.75 46.73 9.0% 102.8% 0.09 SAC-GAIL 3.15 66.01 -28.5% 88.4% N/A (Unsafe) 4x Dataset (SAC Pess: R 27.26, C 51.36) SafeQIL 9.35 44.80 12.8% 65.7% 0.19 ICRL 2 19.32 70.04 -36.4% 29.1% N/A (Unsafe) 
+
+ICRL 7 -9.93 10.00 80.5% 136.4% 0.59 
+
+VICRL 18.80 77.19 -50.3% 31.0% N/A (Unsafe) SAC-GAIL 7.82 55.44 -7.9% 71.3% N/A (Unsafe) 8x Dataset (SAC Pess: R 27.26, C 51.36) SafeQIL -0.12 52.31 -1.8% 100.4% N/A (Unsafe) ICRL 2 13.88 69.91 -36.1% 49.1% N/A (Unsafe) ICRL 7 -1.88 105.88 -106.2% 106.9% N/A (Unsafe) VICRL 0.80 84.07 -63.7% 97.1% N/A (Unsafe) 
+
+SAC-GAIL 5.24 51.72 -0.7% 80.8% N/A (Unsafe) Table 13: SafetyCarPush2-v0: Standard Trade-off Analysis (Dataset Size Ablation). Calculated using Mean Values Only. The Ratio 𝜌 indicates % Cost Drop per 1% Reward Drop. Dataset Size Algorithm Mean Reward Mean Cost Cost Drop ( Δ𝐶 ) Reward Drop ( Δ𝑅 ) Ratio ( 𝜌 )
+
+1x Dataset (SAC: R 1.50, C 245.36) SafeQIL -0.62 57.20 76.7% 141.3% 0.54 ICRL 2 0.00 203.10 17.2% 100.0% 0.17 ICRL 7 1.15 178.81 27.1% 23.3% 1.16 VICRL -9.05 55.80 77.3% 703.3% 0.11 
+
+SAC-GAIL 0.76 87.97 64.1% 49.3% 1.30 
+
+2x Dataset (SAC: R 1.50, C 245.36) SafeQIL -3.38 58.10 76.3% 325.3% 0.23 ICRL 2 0.68 206.67 15.8% 54.7% 0.29 ICRL 7 0.84 203.40 17.1% 44.0% 0.39 VICRL -0.55 195.57 20.3% 136.7% 0.15 
+
+SAC-GAIL 0.22 90.95 62.9% 85.3% 0.74 
+
+4x Dataset (SAC: R 1.50, C 245.36) SafeQIL -2.63 100.13 59.2% 275.3% 0.21 ICRL 2 -0.25 231.99 5.4% 116.7% 0.05 ICRL 7 -3.18 228.45 6.9% 312.0% 0.02 
+
+VICRL 0.36 145.74 40.6% 76.0% 0.53 
+
+SAC-GAIL -0.62 148.19 39.6% 141.3% 0.28 8x Dataset (SAC: R 1.50, C 245.36) SafeQIL -1.67 77.28 68.5% 211.3% 0.32 ICRL 2 -2.82 104.44 57.4% 288.0% 0.20 ICRL 7 1.05 186.36 24.0% 30.0% 0.80 VICRL -7.17 97.10 60.4% 578.0% 0.10 
+
+SAC-GAIL 1.07 124.97 49.1% 28.7% 1.71 Table 14: SafetyCarPush2-v0: Robust Trade-off Analysis (Dataset Size Ablation). Calculated using worst-case bounds (Mean ±
+
+> Std). Pessimistic metrics penalize high variance in cost and reward.
+
+Dataset Size Algorithm Pess. Reward ( ˜𝑅 ) Pess. Cost ( ˜𝐶 ) Robust Δ ˜𝐶 Robust Δ ˜𝑅 Ratio ( 𝜌 )
+
+1x Dataset (SAC Pess: R 1.49, C 273.88) SafeQIL -1.27 87.22 68.2% 185.2% 0.37 ICRL 2 -1.73 240.34 12.2% 216.1% 0.06 ICRL 7 0.66 239.50 12.6% 55.7% 0.23 VICRL -17.63 127.25 53.5% 1283.2% 0.04 
+
+SAC-GAIL -0.16 98.54 64.0% 110.7% 0.58 
+
+2x Dataset (SAC Pess: R 1.49, C 273.88) SafeQIL -6.35 75.96 72.3% 526.2% 0.14 ICRL 2 0.33 245.20 10.5% 77.9% 0.13 ICRL 7 0.24 233.18 14.9% 83.9% 0.18 VICRL -2.80 249.57 8.9% 287.9% 0.03 
+
+SAC-GAIL -0.25 102.87 62.4% 116.8% 0.53 
+
+4x Dataset (SAC Pess: R 1.49, C 273.88) 
+
+SafeQIL -5.91 110.35 59.7% 496.6% 0.12 
+
+ICRL 2 -1.21 291.30 -6.4% 181.2% N/A (Unsafe) ICRL 7 -10.33 318.08 -16.1% 793.3% N/A (Unsafe) VICRL -0.44 235.69 13.9% 129.5% 0.11 
+
+SAC-GAIL -3.08 172.42 37.0% 306.7% 0.12 
+
+8x Dataset (SAC Pess: R 1.49, C 273.88) SafeQIL -2.68 121.75 55.5% 279.9% 0.20 ICRL 2 -5.58 165.39 39.6% 474.5% 0.08 ICRL 7 0.76 220.24 19.6% 49.0% 0.40 VICRL -14.32 156.11 43.0% 1061.1% 0.04 
+
+SAC-GAIL 0.79 145.55 46.9% 47.0% 1.00 E HYPERPARAMETERS 
+
+In this section, we provide the hyperparameter settings of all algorithms used in our experiments. For SafeQIL, we used the hyperparameters presented in Table 15 for all benchmarks and ablation studies, and we only tuned the Discriminator’s Gradient Penalty Coefficient ( 𝜆 𝑔𝑝 ) for each case, since we found it to be the most critical hyperparameter. Specifically, we tried the set of values {0.05 , 0.01 , 0.005 , 0.001 , 0.0005 , 0.0001 }
+
+for each case and we used 𝜆 𝑔𝑝 = 0.01 for SafetyPointGoal1-v0 with x1 dataset size, 𝜆 𝑔𝑝 = 0.05 for SafetyPointGoal1-v0 with x2 dataset size, 𝜆 𝑔𝑝 = 0.0005 for SafetyPointGoal1-v0 with x4 dataset size, 𝜆 𝑔𝑝 = 0.0005 for SafetyPointGoal1-v0 with x8 dataset size, 𝜆 𝑔𝑝 = 0.05 
+
+for SafetyCarButton1-v0, 𝜆 𝑔𝑝 = 0.001 for SafetyCarPush2-v0 with x1 dataset size, 𝜆 𝑔𝑝 = 0.01 for SafetyCarPush2-v0 with x2 dataset size, 𝜆 𝑔𝑝 = 0.0005 for SafetyCarPush2-v0 with x4 dataset size, 𝜆 𝑔𝑝 = 0.0001 for SafetyCarPush2-v0 with x8 dataset size, 𝜆 𝑔𝑝 = 0.001 for SafetyPointCircle2-v0, 𝜆 𝑔𝑝 = 0.05 for "w/o cosine similarity" ablation, 𝜆 𝑔𝑝 = 0.01 for "w/o max term" ablation, 𝜆 𝑔𝑝 = 0.005 for "w/o constraint term" ablation, 𝜆 𝑔𝑝 = 0.001 for "w/o OOD term" ablation, 𝜆 𝑔𝑝 = 0.001 for "w/o demonstrations term" ablation, and 𝜆 𝑔𝑝 = 0.01 for "w/o SAC term" ablation. 
+
+Table 15: Hyperparameter settings for SafeQIL. Parameter Value 
+
+SAC (Actor / Critics) 
+
+Actor/Critics Learning Rate 3 × 10 −4
+
+Actor/Critics Optimizer Adam Discount Factor ( 𝛾 ) 0.99 
+
+Batch Size 256 
+
+Target Networks Smoothing Coefficient ( 𝜂 ) 0.005 
+
+Target Networks Update Interval 1Entropy Coeff. ( 𝛼 ) Learning Rate 3 × 10 −4
+
+Target Entropy ( ¯H ) − dim (𝐴 )
+
+Initial Entropy Coefficient ( 𝛼 0) 1.0 Initial Log Std ( log 𝜎 init ) -3.0 Replay Buffer Size 10 6
+
+Total Environmnet Steps 10 6
+
+Warmup Environment Steps 10 4
+
+Gradient Steps per Update 1
+
+Environment Steps between Updates 1
+
+State-Dependent Exploration (SDE) True Use SDE at Warmup False Actor/Critics Hidden Layers 32 , 32 
+
+Actor/Critics Activation Function ReLU 
+
+SafeQIL / Discriminator 
+
+Discriminator Learning Rate 3 × 10 −4
+
+Discriminator Optimizer Adam Discriminator Batch Size 256 
+
+Discriminator Gradient Steps 1
+
+DAC Gradient Penalty Coefficient ( 𝜆 𝑔𝑝 ) 0.005 
+
+Reward Function Type log (𝜙 𝜔 (𝑠 𝐵 )) 
+
+Discriminator Hidden Layers 32 , 32 
+
+Discriminator Activation Function ReLU For ICRL, we tried the 3 settings presented in Tables 16, 17, and 18. At first, we tried them in the SafetyPointGoal1-v0 benchmark and we found that Setting 1 is the less promising. Then, we tried different values of Regularizer Weight ( 𝛿 ) for Setting 2 and 3 in the same benchmark, using the set of values {0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1}. We found that Setting 2 is the best one, thus we used it for all benchmarks, and we tuned only 𝛿 for each case using the same set of values. Specifically, we used 𝛿 = 0.7 for SafetyPointGoal1-v0 with x1, x2, and x4 dataset size, 
+
+𝛿 = 0.8 for SafetyPointGoal1-v0 with x8 dataset size, 𝛿 = 0.1 for SafetyCarButton1-v0, 𝛿 = 0.8 for SafetyCarPush2-v0 with x1 dataset size, 
+
+𝛿 = 0.5 for SafetyCarPush2-v0 with x2 dataset size, 𝛿 = 0.6 for SafetyCarPush2-v0 with x4 dataset size, 𝛿 = 0.1 for SafetyCarPush2-v0 with x8 dataset size, and 𝛿 = 0.2 for SafetyPointCircle2-v0. Furthermore, as mentioned in Section 5.1, we also tried the best VICRL setting (Setting 7) because these algorithms are very similar and they share the most hyperparameters. The only exception from the shared hyperparameters is the "Constraint Net 𝜁 𝜃 Output Activation Function" for which we keep ICRL’s Sigmoid function instead of VICRL’s Softplus since we consider it a central difference between these algorithms. Therefore, for the training of ICRL with VICRL Setting 7 we used 𝛿 = 0.1 for SafetyPointGoal1-v0 with x1 dataset size, 𝛿 = 0.8 for SafetyPointGoal1-v0 with x2 dataset size, 𝛿 = 0.1 for SafetyPointGoal1-v0 with x4 dataset size, 𝛿 = 0.4 for SafetyPointGoal1-v0 with x8 dataset size, 𝛿 = 0.1 for SafetyCarButton1-v0, 𝛿 = 0.6 for SafetyCarPush2-v0 with x1 dataset size, 𝛿 = 0.7 for SafetyCarPush2-v0 with x2 dataset size, 𝛿 = 0.8 for SafetyCarPush2-v0 with x4 and x8 dataset size, and 𝛿 = 0.5 for SafetyPointCircle2-v0. Table 16: Hyperparameter setting 1 for ICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 3 × 10 −4
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.95 
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.2
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.01 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 200000 
+
+Iterations ( 𝑁 ) 30 
+
+Batch Size 64 
+
+Epochs per Policy/Critics Update 20 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 0.01 
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.5
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.95 
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 10 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 10 
+
+Importance Sampling True Constraint Net 𝜁 𝜃 Hidden Layers 20 
+
+Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Sigmoid 
+
+Lagrangian 𝜆 
+
+Initial Value 1.0
+
+Learning Rate 0.1
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 17: Hyperparameter setting 2 for ICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 3 × 10 −4
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.95 
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.2
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.01 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 50000 
+
+Iterations ( 𝑁 ) 10 
+
+Batch Size 64 
+
+Epochs per Policy/Critics Update 20 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 0.01 
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.5
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.95 
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 1
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 10 
+
+Importance Sampling True Constraint Net 𝜁 𝜃 Hidden Layers 20 
+
+Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Sigmoid 
+
+Lagrangian 𝜆 
+
+Initial Value 1.0
+
+Learning Rate 0.1
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 18: Hyperparameter setting 3 for ICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 3 × 10 −5
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.9
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.2
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.01 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 200000 
+
+Iterations ( 𝑁 ) 20 
+
+Batch Size 128 
+
+Epochs per Policy/Critics Update 20 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 0.01 
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.6
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.95 
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 45 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 10 
+
+Importance Sampling True Constraint Net 𝜁 𝜃 Hidden Layers 40 , 40 
+
+Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Sigmoid 
+
+Lagrangian 𝜆 
+
+Initial Value 0.1
+
+Learning Rate 1.0
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0For VICRL, we tried in SafetyPointGoal1-v0 the 9 settings presented in Tables 19-27. We found that Setting 7 yields the best re-sults, thus we used it in all benchmarks, tuning only the hyperparameter Regularizer Weight ( 𝛿 ) in each case using the set of values 
+
+{0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1}. Specifically, we used 𝛿 = 0.6 for SafetyPointGoal1-v0 with x1 dataset size, 𝛿 = 0.1 for SafetyPointGoal1-v0 with x2 dataset size, 𝛿 = 0.7 for SafetyPointGoal1-v0 with x4 dataset size, 𝛿 = 0.2 for SafetyPointGoal1-v0 with x8 dataset size, 𝛿 = 0.1 for SafetyCarButton1-v0, 𝛿 = 0.1 for SafetyCarPush2-v0 with x1 dataset size, 𝛿 = 0.6 for SafetyCarPush2-v0 with x2 dataset size, 𝛿 = 0.4 for SafetyCarPush2-v0 with x4 dataset size, 𝛿 = 0.2 for SafetyCarPush2-v0 with x8 dataset size, and 𝛿 = 0.5 for SafetyPointCircle2-v0. 
+
+Table 19: Hyperparameter setting 1 for VICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 3 × 10 −5
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.95 
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.2
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.01 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 200000 
+
+Iterations ( 𝑁 ) 30 
+
+Batch Size 64 
+
+Epochs per Policy/Critics Update 10 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 0.005 
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.5
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.95 
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 10 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 10 
+
+Importance Sampling True Prior Dirichlet Distribution parameters 𝜶 prior [0.9, 0.1] Constraint Net 𝜁 𝜃 Hidden Layers 20 
+
+Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Softplus 
+
+Lagrangian 𝜆 
+
+Initial Value 1.0
+
+Learning Rate 0.01 
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 20: Hyperparameter setting 2 for VICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 3 × 10 −5
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.95 
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.2
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.01 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 200000 
+
+Iterations ( 𝑁 ) 30 
+
+Batch Size 64 
+
+Epochs per Policy/Critics Update 10 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 0.005 
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.5
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.95 
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 10 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 10 
+
+Importance Sampling True Prior Dirichlet Distribution parameters 𝜶 prior [9.0, 1.0] Constraint Net 𝜁 𝜃 Hidden Layers 20 
+
+Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Softplus 
+
+Lagrangian 𝜆 
+
+Initial Value 1.0
+
+Learning Rate 0.01 
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 21: Hyperparameter setting 3 for VICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 3 × 10 −5
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.9
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.4
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.02 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 200000 
+
+Iterations ( 𝑁 ) 100 
+
+Batch Size 128 
+
+Epochs per Policy/Critics Update 20 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 0.001 
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.6
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.9
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 50 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 5
+
+Importance Sampling True Prior Dirichlet Distribution parameters 𝜶 prior [0.009, 0.001] Constraint Net 𝜁 𝜃 Hidden Layers 64 , 64 
+
+Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Softplus 
+
+Lagrangian 𝜆 
+
+Initial Value 0.1
+
+Learning Rate 0.05 
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 22: Hyperparameter setting 4 for VICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 3 × 10 −5
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.9
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.4
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.01 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 50000 
+
+Iterations ( 𝑁 ) 100 
+
+Batch Size 128 
+
+Epochs per Policy/Critics Update 20 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 0.001 
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.6
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.95 
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 50 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 5
+
+Importance Sampling True Prior Dirichlet Distribution parameters 𝜶 prior [0.9, 0.1] Constraint Net 𝜁 𝜃 Hidden Layers 20 
+
+Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Softplus 
+
+Lagrangian 𝜆 
+
+Initial Value 5.0
+
+Learning Rate 0.01 
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 23: Hyperparameter setting 5 for VICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 3 × 10 −5
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.9
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.4
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.02 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 200000 
+
+Iterations ( 𝑁 ) 50 
+
+Batch Size 128 
+
+Epochs per Policy/Critics Update 20 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 0.005 
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.6
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.9
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 50 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 5
+
+Importance Sampling True Prior Dirichlet Distribution parameters 𝜶 prior [0.9, 0.1] Constraint Net 𝜁 𝜃 Hidden Layers 40 , 40 
+
+Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Softplus 
+
+Lagrangian 𝜆 
+
+Initial Value 0.1
+
+Learning Rate 0.05 
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 24: Hyperparameter setting 6 for VICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 3 × 10 −5
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.9
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.4
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.02 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 20000 
+
+Iterations ( 𝑁 ) 500 
+
+Batch Size 128 
+
+Epochs per Policy/Critics Update 20 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 1 × 10 −4
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.6
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.9
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 50 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 5
+
+Importance Sampling True Prior Dirichlet Distribution parameters 𝜶 prior [0.09, 0.01] Constraint Net 𝜁 𝜃 Hidden Layers 20 
+
+Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Softplus 
+
+Lagrangian 𝜆 
+
+Initial Value 0.1
+
+Learning Rate 0.01 
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 25: Hyperparameter setting 7 for VICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 1 × 10 −4
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.95 
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.2
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.01 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 6000 
+
+Iterations ( 𝑁 ) 500 
+
+Batch Size 2000 
+
+Epochs per Policy/Critics Update 10 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 5 × 10 −3
+
+Learning Rate Annealing Factor 0.9
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.5
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.9
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 100 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 10 
+
+Importance Sampling True Prior Dirichlet Distribution parameters 𝜶 prior [9.0, 1.0] Constraint Net 𝜁 𝜃 Hidden Layers 64 , 64 
+
+Constraint Net 𝜁 𝜃 Batch Size 500 Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Softplus 
+
+Lagrangian 𝜆 
+
+Initial Value 1.0
+
+Learning Rate 0.01 
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 26: Hyperparameter setting 8 for VICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 1 × 10 −4
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.95 
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.2
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.01 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 6000 
+
+Iterations ( 𝑁 ) 150 
+
+Batch Size 2000 
+
+Epochs per Policy/Critics Update 10 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 5 × 10 −3
+
+Learning Rate Annealing Factor 0.5
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.5
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.95 
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 100 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 10 
+
+Importance Sampling True Prior Dirichlet Distribution parameters 𝜶 prior [0.9, 0.1] Constraint Net 𝜁 𝜃 Hidden Layers 20 
+
+Constraint Net 𝜁 𝜃 Batch Size 500 Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Softplus 
+
+Lagrangian 𝜆 
+
+Initial Value 1.0
+
+Learning Rate 0.01 
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0Table 27: Hyperparameter setting 9 for VICRL. Parameter Value 
+
+General PPO (Forward Step) 
+
+Policy/Critics Learning Rate 1 × 10 −4
+
+Policy/Critics Optimizer Adam Reward GAE 𝛾 0.99 
+
+Reward GAE 𝜆 0.95 
+
+Reward Value Function Coefficient 0.5
+
+Max Gradient Norm 0.5
+
+Clip Range ( 𝜖 ) 0.2
+
+Target KL ( 𝛿 𝐾𝐿 ) 0.01 
+
+Environment Steps per Update 2000 
+
+Environment Steps per Iteration 6000 
+
+Iterations ( 𝑁 ) 500 
+
+Batch Size 2000 
+
+Epochs per Policy/Critics Update 10 
+
+Policy/Critics Hidden Layers 64 , 64 
+
+Policy/Critics Activation Function Tanh 
+
+Constraint Learning (Backward Step) 
+
+Constraint Network 𝜁 𝜃 Learning Rate 5 × 10 −4
+
+Learning Rate Annealing Factor 0.5
+
+Constraint Network 𝜁 𝜃 Optimizer Adam Regularizer Weight ( 𝛿 ) 0.5
+
+Max Forward KL ( 𝜖 𝐹 ) 10 
+
+Max Backward KL ( 𝜖 𝐵 ) 2.5
+
+Cost GAE 𝛾 0.99 
+
+Cost GAE 𝜆 0.95 
+
+Cost Value Function Coefficient 0.5
+
+Rollouts per 𝜁 𝜃 Update ( 𝑀 ) 100 
+
+Epochs per 𝜁 𝜃 Update ( 𝐵 ) 10 
+
+Importance Sampling True Prior Dirichlet Distribution parameters 𝜶 prior [0.9, 0.1] Constraint Net 𝜁 𝜃 Hidden Layers 20 
+
+Constraint Net 𝜁 𝜃 Batch Size 1000 Constraint Net 𝜁 𝜃 Activation Function ReLU Constraint Net 𝜁 𝜃 Output Activation Function Softplus 
+
+Lagrangian 𝜆 
+
+Initial Value 1.0
+
+Learning Rate 0.01 
+
+Optimizer Adam Activation Function Softplus(Log( 𝜆 )) Cost Budget ( 𝛼 ) 0.0For SAC-GAIL, we used the setting presented in Table 28 and we only tuned the hyperparameter Gradient Penalty Coefficient ( 𝜆 𝑔𝑝 )for each case, using the set of values {0.05 , 0.01 , 0.005 , 0.001 , 0.0005 , 0.0001 }. Specifically, we used 𝜆 𝑔𝑝 = 0.0001 for SafetyPointGoal1-v0 with x1 dataset size, 𝜆 𝑔𝑝 = 0.001 for SafetyPointGoal1-v0 with x2 dataset size, 𝜆 𝑔𝑝 = 0.05 for SafetyPointGoal1-v0 with x4 dataset size, 
+
+𝜆 𝑔𝑝 = 0.0005 for SafetyPointGoal1-v0 with x8 dataset size, 𝜆 𝑔𝑝 = 0.001 for SafetyCarButton1-v0, 𝜆 𝑔𝑝 = 0.01 for SafetyCarPush2-v0 with x1 dataset size, 𝜆 𝑔𝑝 = 0.05 for SafetyCarPush2-v0 with x2 dataset size, 𝜆 𝑔𝑝 = 0.005 for SafetyCarPush2-v0 with x4 dataset size, 𝜆 𝑔𝑝 = 0.01 for SafetyCarPush2-v0 with x8 dataset size, and 𝜆 𝑔𝑝 = 0.01 for SafetyPointCircle2-v0. 
+
+Table 28: Hyperparameter settings for SAC-GAIL. Parameter Value 
+
+SAC (Actor / Critics) 
+
+Actor/Critics Learning Rate 3 × 10 −4
+
+Actor/Critics Optimizer Adam Discount Factor ( 𝛾 ) 0.99 
+
+Batch Size 256 
+
+Target Networks Smoothing Coefficient ( 𝜂 ) 0.005 
+
+Target Networks Update Interval 1Entropy Coeff. ( 𝛼 ) Learning Rate 3 × 10 −4
+
+Target Entropy ( ¯H ) − dim (𝐴 )
+
+Initial Entropy Coefficient ( 𝛼 0) 1.0 Initial Log Std ( log 𝜎 init ) -3.0 Replay Buffer Size 10 6
+
+Total Environmnet Steps 10 6
+
+Warmup Environment Steps 10 4
+
+Gradient Steps per Update 1
+
+Environment Steps between Updates 1
+
+State-Dependent Exploration (SDE) True Use SDE at Warmup False Actor/Critics Hidden Layers 32 , 32 
+
+Actor/Critics Activation Function ReLU 
+
+GAIL / Discriminator 
+
+Discriminator Learning Rate 3 × 10 −4
+
+Discriminator Optimizer Adam Discriminator Batch Size 256 
+
+Discriminator Gradient Steps 1
+
+DAC Gradient Penalty Coefficient ( 𝜆 𝑔𝑝 ) 0.005 
+
+Reward Function Type log (𝜙 𝜔 (𝑠 𝐵 , 𝑎 𝐵 )) 
+
+Discriminator Hidden Layers 32 , 32 
+
+Discriminator Activation Function ReLU

@@ -1,0 +1,721 @@
+Title: Two-Stage Path Following for Mobile Manipulators via Dimensionality-Reduced Graph Search and Numerical Optimization
+
+URL Source: https://arxiv.org/pdf/2603.07003v1
+
+Published Time: Tue, 10 Mar 2026 00:26:22 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Two-Stage Path Following for Mobile Manipulators via Dimensionality-Reduced Graph Search and Numerical Optimization 
+
+Fuyu Guo 1,† , Yuting Mei 1,† , Yuyao Zhang 1 and Qian Tang 1
+
+Abstract — Efficient path following for mobile manipulators is often hindered by high-dimensional configuration spaces and kinematic constraints. This paper presents a robust two-stage configuration planning framework that decouples the 8-DoF planning problem into a tractable 2-DoF base optimization under a yaw-fixed base planning assumption. In the first stage, the proposed approach utilizes IRM to discretize the task-space path into a multi-layer graph, where an initial feasible path is extracted via a Dijkstra-based dynamic programming approach to ensure computational efficiency and global optimality within the discretized graph. In the second stage, to overcome discrete search quantization, feasible base regions are transformed into convex hulls, enabling subsequent continuous refinement via the L-BFGS algorithm to maximize trajectory smoothness while strictly enforcing reachability constraints. Simulation results demonstrate the theoretical precision of the proposed method by achieving sub-millimeter kinematic accuracy in simulation, and physical experiments on an omnidirectional mobile manipulator further validate the framework’s robustness and practical applicability. 
+
+I. INTRODUCTION The integration of robotic arms with mobile bases enhances operational flexibility but introduces a high-dimensional configuration space (C-space) coupling n-DoF joint motion with 3-DoF base poses. For complex path-following, traditional inverse kinematics (IK) struggle to balance computational efficiency with optimality over the constructed layered graph, particularly under strict reacha-bility constraints. To address these challenges, a two-stage planning frame-work is proposed, leveraging Reachability Maps and Inverse Reachability Maps (RM/IRM). The planning problem is decoupled by first discretizing the task-space trajectory into pose-constrained nodes. For each node, the IRM identifies feasible base configurations to guarantee arm reachability. A multi-layer graph is then constructed from these configura-tion sets. From this graph, an initial feasible path is extracted via a Dijkstra-based dynamic programming approach, estab-lishing a discrete topological foundation. In the second stage, these discrete candidates are trans-formed into continuous geometric feasible regions repre-sented by convex polygons. A numerical optimization based on the L-BFGS algorithm refines the base trajectory to max-imize smoothness and ensure configuration continuity. By optimizing within IRM-derived feasible regions, the frame-work ensures the manipulator operates consistently in high-             
+
+> †These authors contributed equally to this work.
+> 1All Authors are with College of Mechanical and Vehicle Engineering, ChongQing University, Chongqing, P.R.C. Contact:
+
+guo fuyu@icloud.com tqcqu@cqu.edu.cn 
+
+manipulability zones while strictly satisfying reachability constraints. The proposed method is validated on an omnidirectional mobile manipulator (Fig. 1). Experimental results demon-strate that the framework efficiently generates coordinated, smooth trajectories, providing precise guidance for real-world path-following tasks. Ow Xw  Yw  
+
+> Zw
+> Ob Xb Yb
+> Zb
+> Or Xr
+> Yr
+> Zr
+> Oe Xe
+> Ye
+> Ze
+
+Fig. 1: Motion planning for path following of mobile ma-nipulators II. RELATED WORK Motion planning for path following of mobile manipu-lators is challenging due to the high-dimensional coupling between base locomotion and arm dexterity [1]. Accordingly, planning-based path-following approaches are typically cate-gorized into decoupled and coupled schemes. More recently, path following has also been achieved using Holistic Reactive Control via pose-based servoing. 
+
+Decoupled and Reachability-based Planning Decoupled approaches simplify computation by planning the base and arm independently. Early methods leveraged manipulability indices [3] or separate sampling-based planners (e.g., RRT) for base and arm paths along predefined poses [4]. While computationally fast, these methods often neglect kinematic coupling, leading to infeasible configurations in constrained spaces. To address this, RM and IRM have been employed to map task-space requirements directly to feasible base regions [5], [6]. Recent works emphasize structured reachability analysis to reduce planning complexity [7], [8], yet many remain limited by the quantization errors of discrete search. Therefore, a framework capable of translating these discrete feasible spaces into continuous domains for further numerical refinement is highly desirable. 
+
+Coupled and Optimization-based Planning Coupled meth-ods treat the MM as a single high-dimensional system. 
+
+> arXiv:2603.07003v1 [cs.RO] 7 Mar 2026
+
+Sampling-based planners (e.g., RRT*) scale well but re-quire intensive post-processing for smoothness. Conversely, optimization-based planners like CHOMP produce high-quality trajectories but are computationally expensive and sensitive to initialization [2]. Recent hybrid strategies attempt to balance these trade-offs using hierarchical frameworks or reachability-guided sampling [9], [10]. 
+
+Holistic Reactive Control: Rather than planning the base and arm separately, holistic reactive control treats the mobile manipulator as a unified kinematic system and computes coordinated motions of the base and manipulator in closed loop. A holistic reactive mobile manipulation framework is proposed in which all base and arm degrees of freedom are jointly optimized within a quadratic program, enabling continuous end-effector servoing while respecting joint limits and preserving maneuverability throughout the motion [19]. More recently, reactive base control has been extended to manipulation-on-the-move in dynamic environments by explicitly accounting for static and dynamic obstacles for both the base and arm, thereby improving responsiveness and execution fluidity in sensor-driven tasks [20]. While these methods offer strong reactivity and smooth local execution, they primarily focus on instantaneous control objectives and do not provide an explicit global path-structuring mechanism or a discretized feasibility representation for trajectory-wide optimization. 
+
+Our Contribution: In contrast to coupled optimization methods, which can be computationally demanding, and reactive planners, which typically emphasize local respon-siveness over global path structure, the proposed frame-work first exploits IRM-based discrete search to establish a globally optimal solution within the discretized graph. The resulting discrete feasible sets are then converted into continuous polygonal regions, in which L-BFGS refinement is performed to improve path smoothness while maintaining reachability. Experimental results show that this two-stage strategy provides an effective balance between global feasi-bility, trajectory smoothness, and practical executability for mobile-manipulator path-following tasks. III. S TAGE ONE : D ISCRETE GRAPH SEARCH ON INVERSE 
+
+REACHABILITY MAPS 
+
+In the first stage of the proposed framework, the task-space trajectory T is initially discretized, and the Inverse Reachability Map (IRM) is utilized to extract sets of feasible base configurations for each target end-effector pose. Subse-quently, these discrete configuration sets are formulated into a multi-layer graph. From this constructed graph, a globally optimal base path within the discretized graph is efficiently extracted using a dynamic programming (DP) strategy com-bined with Dijkstra’s algorithm. Kinematic reachability is strictly guaranteed by this established discrete topological foundation, which subsequently serves as the initialization for the continuous numerical refinement in the second stage. 
+
+A. Reachability Analysis for High-Dimensional Decoupling 
+
+To mitigate the computational burden of high-dimensional configuration planning, a reachability-based mapping be-tween end-effector task-space poses and feasible robot base configurations is precomputed, enabling rapid kinematic feasibility queries and effectively decoupling base planning from repeated IK evaluations and high-dimensional search. The base orientation is fixed throughout the planning pro-cess to simplify IRM construction and reduce the coupling introduced by simultaneous base-arm rotation. 
+
+1) Reachability Mapping: The reachability map R rep-resents the set of all poses reachable by the robot end-effector given a fixed base [11]. Reachability maps can be constructed using either forward kinematics sampling or inverse kinematics-based methods [12]. In this work, the inverse kinematics approach is employed, as it directly provides access to the joint configurations corresponding to each end-effector pose. The reachability map is computed for a Unitree Z1 robotic arm, and the construction procedure consists of the following steps: 
+
+Grid and workspace initialization: Discretization resolu-tions δp and δr are defined for the translational [x, y, z ]
+
+and rotational [α, β, γ ] components of the end-effector pose, respectively, and the sampling domain is set to a sphere of radius R (equal to the arm’s total length) centered at the manipulator base. 
+
+Voxelized workspace generation: The 6D pose space is uniformly sampled with (δp, δ r ) within the spherical workspace, yielding the voxel set 
+
+V = (x, y, z, α, β, γ ) x2 + y2 + z2 ≤ R2 . (1) 
+
+IK evaluation and operability: For each voxel v ∈ V ,IK is solved to obtain a joint configuration q; if feasible, an operability score μk is computed and stored in the reachability map as vr = ( q, μ k).
+
+Fig. 2: Reachability distribution map of the Z1 robotic arm, where red voxels indicate high pose redundancy and blue voxels signify limited reachability. 
+
+2) Inverse reachability map projection: The inverse reach-ability map I is constructed by inverting the reachability map 
+
+R to enable efficient retrieval of feasible mobile-manipulator configurations for a given end-effector pose Te [13]. The IRM is generated offline, and its grid is aligned with Rby using the same translational and rotational resolutions 
+
+(δp, δ r ). A four-level hierarchical index J is adopted over the pose parameters as I = J (z, α, β, γ ).Each submap Ik ∈ I stores a set of feasible configurations 
+
+Qk = {qk1, qk2, . . . , qkn } associated with the indexed pose bin, where qki = ( xr , y r , q i), with (xr , y r ) denoting the planar base position and qi the corresponding arm joint configuration. 
+
+IRM construction: Given R, the IRM is built as follows. 1) A four-level tree index J over (z, α, β, γ ) is initialized, and an empty container is allocated for each pose bin. 2) For each vr ∈ R with pose Te(x, y, z, α, β, γ ) and a feasible arm configuration qi, the corresponding base configuration is obtained by inversion as vi =(−x, −y, q i).3) The entry vi is assigned to the corresponding submap 
+
+Ik using the hierarchical index J (z, α, β, γ ), and the submap is updated as Ik ← I k ∪ { vi}.4) The resulting hierarchical structure is serialized and saved for reuse during online configuration planning. 
+
+B. Configuration Planning Algorithm for Path Following 
+
+Configuration planning is formulated as a multi-stage op-timal connectivity problem. Each graph layer is constructed to correspond to the feasible base configurations extracted from the IRM for a specific end-effector pose. To ensure the extraction of the globally optimal base sequence within the discretized graph, Dijkstra’s algorithm is applied in combination with a dynamic programming (DP) strategy, through which the expansion is guided along minimum-cost paths while redundant subproblem computations are avoided. Base configurations qbi (xi, y i) are represented by nodes in the constructed graph, and transition costs are denoted by edges. Both the Euclidean distance and the discrete second derivative (smoothness) between consecutive configurations are minimized by the transition cost: 
+
+length (i) = qbi+1 − qbi 2 (2) 
+
+smooth (i) = qbi+1 − 2qbi + qbi−1 2 (3) Based on the defined edge cost formulation and the constructed layered graph, the initial configuration planning algorithm is implemented using dynamic programming com-bined with Dijkstra search. Given the feasible base configuration sets Qb and an initial configuration qb
+
+> 0
+
+, a cost matrix C is initialized to 
+
+∞ to record the minimum accumulated cost to each node, and a predecessor matrix P is initialized to −1 for path backtracking. A priority queue P Q is used to expand nodes in ascending order of cost. The initial node qb 
+
+> 0
+
+is assigned zero cost and inserted into P Q .During the search, the node with the minimum accumu-lated cost is extracted from P Q , and its transition costs to all feasible configurations in the next stage are evaluated. If a lower cost is found, the corresponding entry in C is updated, the predecessor is recorded in P , and the node is inserted into P Q . After reaching the final stage, the configuration 
+
+Algorithm 1: Initial configuration planning based on dynamic programming and Dijkstra’s algorithm 
+
+Data: Feasible base configuration set Qb,initial base configuration qb
+
+> 0
+
+Result: Initial base configuration path P ath b∗ 
+
+> 1
+
+N, m ← (Qb); 
+
+> 2
+
+C ← ∞ , P ← − 1; 
+
+> 3
+
+P Q ← {} ; 
+
+> 4
+
+pbase ← qb
+
+> 0
+
+; 
+
+> 5
+
+C[0][ i] = 0 , {C[0][ i], 0, 0} → P Q ; 
+
+> 6
+
+while P Q ̸ = ∅ do  
+
+> 7
+
+P Q → qhead ; 
+
+> 8
+
+Chead , i, j ←qhead ; 
+
+> 9
+
+if Chead > C[i][ j] then  
+
+> 10
+
+continue ; 
+
+> 11
+
+end  
+
+> 12
+
+if i < N − 1 then  
+
+> 13
+
+for k ∈ [0 , . . . , m i+1 − 1] do  
+
+> 14
+
+Cij = length (i) + smooth (i); 
+
+> 15
+
+Cnew = C [i] [ j] + Cij ; 
+
+> 16
+
+if Cnew < C [i + 1] [ k] then  
+
+> 17
+
+C [i + 1] [ k] = Cnew ; 
+
+> 18
+
+P [i + 1] [ k] = j; 
+
+> 19
+
+Cnew , i + 1 , k → P Q ; 
+
+> 20
+
+end  
+
+> 21
+
+end  
+
+> 22
+
+end  
+
+> 23
+
+end  
+
+> 24
+
+for i ∈ [N − 1, . . . , 0] do  
+
+> 25
+
+P ath b∗ +
+
+←− qbi (P) ; 
+
+> 26
+
+end  
+
+> 27
+
+return P ath b∗
+
+with the lowest total cost is selected, and the optimal initial base path P ath b∗ is recovered by backtracking through P .The details of the proposed graph search strategy are provided in pseudocode form as Algorithm 1. The results of the graph search demonstrate that a shorter configuration path is achieved while excessive steering angles are avoided, as illustrated in Fig. 3. Due to the grid spacing constraints of the inverse reachability map, the configuration path generated by this method is characterized by insufficient smoothness. This issue is subsequently addressed in the second stage through the introduction of continuous refinement via L-BFGS optimization. IV. S TAGE TWO : C ONTINUOUS REFINEMENT VIA 
+
+L-BFGS O PTIMIZATION 
+
+In the second stage, to overcome the quantization er-rors inherent in the discrete graph search, the previously extracted feasible base configurations are transformed into continuous convex regions, enabling subsequent numerical refinement via the L-BFGS algorithm to maximize trajectory smoothness while strongly enforcing reachability constraints through a signed-distance penalty. Path point set 1     
+
+> Path point set 2
+> Path point set 3
+> Path point set 4
+> Optimal path
+> 8
+> 6
+> 4
+> 2
+> 0
+> 024610 8
+> X
+> Path point set 1
+> Path point set 2
+> Path point set 3
+> Path point set 4
+> Optimal path
+
+Fig. 3: The results of the initial configuration planning method based on dynamic programming and Dijkstra’s al-gorithm 
+
+Algorithm 2: Geometric region representation of discrete configuration points 
+
+Data: Initial point set P0; grid spacing δg ; minimum cluster size nmin 
+
+Result: Set of feasible geometric regions S
+
+1 S ← ∅ ;
+
+2 P ← Filter( P0) ;
+
+3 C ← Cluster( P) ;
+
+4 for Ci ∈ C do 
+
+5 Hi ← ConvexHull( Ci) ;
+
+6 while HasHole( Hi, Ci) do 
+
+7 Ci ← Cluster( Ci) ;
+
+8 Hi ← ConvexHull( Ci) ;
+
+9 end 
+
+10 if |C i| > n min then 
+
+11 S +
+
+←− H i ;
+
+12 end 
+
+13 end 
+
+14 return S
+
+A. Geometric Region Representation of Feasible Base Con-figuration Sets 
+
+To facilitate continuous numerical optimization, the dis-crete feasible base configurations must be transformed into a continuous polygonal representation of feasible sets. This transformation is achieved through a sequential pipeline comprising point set filtering, clustering partitioning, convex hull generation, and recursive hole detection, as detailed in Algorithm 2 and demonstrated in Fig. 4 . Initially, the feasible base configuration set Qb is used as the initial point set P0. The grid spacing δ and the minimum cluster size threshold nmin are set, and a list of convex polygons without holes S ← ∅ is initialized (Figure 4a). First, point set filtering is performed on P0 to remove outliers and pseudo-feasible points on the edges: 
+
+P = {p ∈ P 0 | |N (p, δ g )| > 2}, (4) where N (p, δ ) represents the set of neighboring points within the neighborhood of δ. The filtered point set P is then clustered to generate a sub-cluster set C = {C 1, . . . , CK },and the convex hull Hi = ConvexHull (Ci) of each sub-cluster is calculated (Figure 4b). Hole detection is performed on each convex hull Hi. If there are no holes, it is added to S; otherwise, the filtering and clustering of sub-clusters are repeated until the number of points |C i| is less than the threshold nmin (Figure 4c). The final list of convex polygons S is the geometric region representation of the feasible base set at the current path node (Figure 4d). This method transforms discrete point clouds into continuous and concise convex polygonal geometric regions, which facilitates subsequent cost function calculation. Initial point set       
+
+> 0.2
+> 0.0
+> -0.4
+> -0.2
+> Y
+> -0.6 -0.5 -0.4 -0.3 0.0 0.1 -0.2 -0.1
+> X
+
+(a) Initial point set convex hull 0        
+
+> convex hull 1
+> Filtered edge points
+> 0.2
+> 0.0
+> -0.4
+> -0.2
+> Y
+> -0.6 -0.5 -0.4 -0.3 0.0 0.1 -0.2 -0.1
+> X
+
+(b) Clustering and partitioning Grid points      
+
+> Holes
+> Cluster point set
+> 0.20
+> 0.00
+> -0.20
+> -0.10
+> Y
+> 0.15
+> 0.10
+> 0.05
+> 0.20
+> -0.15
+> -0.05
+> -0.10 -0.05 0.00 0.05 0.10 0.15
+> X
+
+(c) Detection of holes convex hull 0       
+
+> convex hull 1
+> convex hull 2
+> Filtered edge points
+> Holes
+> 0.2
+> 0.0
+> -0.4
+> -0.2
+> Y
+> -0.6 -0.5 -0.4 -0.3 0.0 0.1 -0.2 -0.1
+> X
+
+(d) Final convex polygon repre-sentation 
+
+Fig. 4: Process of converting discrete point sets into geomet-ric feasible regions 
+
+B. Continuous Configuration Refinement via Numerical Op-timization 
+
+To further refine the initial base path, a numerical opti-mization stage is introduced. The L-BFGS (Limited-memory Broyden-Fletcher-Goldfarb-Shanno) algorithm is employed to optimize the base configuration trajectory while enforcing reachability constraints. 
+
+1) Cost Function and Gradient Derivation: Given a dis-cretized path with N nodes, the configuration optimization problem is formulated as: 
+
+min 
+
+NX
+
+i=0 
+
+length (i) + smooth (i) s.t. qbi ∈ C r (i) (5) where length (i) and smooth (i) denote the length and smoothness costs, respectively, and Cr (i) represents the convex feasible region associated with node i. Specifically, the path length between consecutive nodes is calculated as the Euclidean distance defined in (2). The gradient of the path length with respect to qbi is obtained by accumulating contributions from adjacent segments: 
+
+∂length 
+
+∂qbi
+
+= ∂∂qbi
+
+
+
+length (i) + length (i − 1) 
+
+
+
+(6) To encourage fluid transitions, a discrete second-order dif-ference term is introduced as shown in (3). To apply L-BFGS, the constrained optimization problem is converted into an unconstrained form using a penalty function: 
+
+min 
+
+> N
+
+X
+
+> i=0
+
+length (i) + smooth (i) + reach (i) (7) where reach (i) denotes the feasibility penalty. Let dmin (qbi )
+
+be the minimum distance from qbi to the nearest boundary of its associated convex feasible region. The penalty term is defined as 
+
+reach (i) = exp  α max  0, −dmin (qbi ) , (8) where dmin (qbi ) is the signed distance from qbi to the boundary of Cr (i), defined such that dmin (qbi ) ≥ 0 inside the feasible region and dmin (qbi ) < 0 outside. Consequently, the penalty remains constant inside the feasible region and grows exponentially only when the trajectory violates the reachability constraint. Compared to a quadratic penalty, this exponential formulation provides a superior balance between interior flexibility and boundary enforcement; it maintains a nearly constant cost within the feasible region to allow for unbiased trajectory adjustment, while generating a sufficiently sharp gradient at boundaries to strictly prevent kinematic violations. The corresponding gradient is 
+
+∂ reach (i)
+
+∂qbi
+
+=
+
+
+
+0, dmin (qbi ) ≥ 0,
+
+−α exp  α(−dmin (qbi )) 
+
+· ∂d min (qbi )
+
+∂qbi
+
+, dmin (qbi ) < 0.
+
+(9) 
+
+2) Configuration Planning Algorithm Based on L-BFGS: 
+
+L-BFGS is employed for continuous refinement, where the search direction is computed via a limited-memory quasi-Newton approximation using a small history of curvature pairs (sk, y k) and a line search is performed to update the trajectory. As shown in Fig. 5, the L-BFGS-based configuration optimization algorithm improves the smoothness of the base configuration path P ath b while ensuring the reachability of the mobile manipulator. Furthermore, by combining the end-effector target trajectory T and performing kinematic calculations, the complete mobile manipulator configuration path Qr can be obtained, providing precise guidance for trajectory tracking tasks. V. EXPERIMENTS The effectiveness and practical applicability of the pro-posed two-stage configuration planning method were evalu-ated through comparative simulations with baseline methods and physical trajectory-tracking experiments on a mobile manipulator platform. 
+
+Algorithm 3: L-BFGS-based configuration optimiza-tion algorithm 
+
+Data: Initial base configuration path P ath b∗
+
+Result: Optimal base configuration path P ath b 
+
+> 1
+
+x0 ← P ath b∗, H −10 ← I, i ← 0 ; 
+
+> 2
+
+while i < iter max do  
+
+> 3
+
+di = −H−1 
+
+> i
+
+g (xi); 
+
+> 4
+
+αi = line search (f, g, di); 
+
+> 5
+
+xi+1 = xi + αi · di; 
+
+> 6
+
+△xi = xi+1 − xi, △gi = g(xi+1 ) − g(xi); 
+
+> 7
+
+H−1 
+
+> i+1
+
+= H−1 
+
+> i
+
++ △gi△gTi  
+
+> △gTi△xi
+
+− H−1    
+
+> i△xi△xTiH−1
+> i
+> △xTiH−1
+> i△xi
+
+; 
+
+> 8
+
+if g(xi+1 ) < δ then  
+
+> 9
+
+P ath b ← xi+1 ; 
+
+> 10
+
+return P ath b, f (xi+1 ); 
+
+> 11
+
+end  
+
+> 12
+
+i = i + 1  
+
+> 13
+
+end  
+
+> 14
+
+return F alse Initial Path 
+
+> Optimized Path
+> Feasible Region of Node 1
+> Feasible Region of Node 2
+> Feasible Region of Node 3
+> Feasible Region of Node 4
+
+Fig. 5: Schematic of secondary configuration optimization 
+
+A. Comparative Evaluation with Holistic Reactive Control 
+
+To evaluate the performance of the proposed two-stage framework, a comparative study was conducted against a standard Holistic Reactive Control (HRC) approach, imple-mented following the methodology in the Robotics Toolbox for Python [17]. While HRC relies on real-time feedback for local convergence, the proposed method emphasizes global configuration optimality. The framework was evaluated across five distinct end-effector trajectories ( T1–T5) with varying geometric com-plexities. The comparison focuses on three key metrics: Base Path Length ( Lb), Path Smoothness ( Sb, measured by the integrated squared curvature), and Simulation Kinematic Accuracy ( Eee , the Euclidean distance between the actual and desired end-effector poses). As detailed in Table I, our approach consistently outperforms HRC in all critical metrics. Notably, the tracking accuracy ( Eee ) of our method remains in the sub-millimeter range ( ≈ 10 −3 mm) across all trials, representing a multi-order-of-magnitude improvement over HRC, which exhibits errors up to 14.73 mm. The superiority in path smoothness ( Sb) is equally signif-icant. Our L-BFGS-based refinement achieves smoothness values that are consistently one to two orders of magnitude TABLE I: Detailed Performance Metrics Across Five Test Trajectories                                                                    
+
+> Metric Method T1 T2 T3 T4 T5
+> Lb[m] HRC 10 .84 4.56 8.19 6.40 11.50 Two-Stage 11.23 3.93 7.97 6.70 10 .90
+> Sb[m −1]HRC 5.65 ×10 −29.18 ×10 −24.78 ×10 −26.03 ×10 −25.49 ×10 −2
+> Two-Stage 1.12 ×10 −24.32 ×10 −43.26 ×10 −32.48 ×10 −23.03 ×10 −3
+> Eee [mm] HRC 0.643 6.193 7.785 6.780 14.734 Two-Stage 0.0014 0.0017 0.0012 0.0014 0.0019
+> (a) Base Trajectory Compari-son(XY Plane)
+> (b) End-effector Trajectory Comparison
+
+Fig. 6: Comparison of trajectory tracking performance be-tween HRC and the proposed method. lower than the baseline. This is further illustrated in Fig. 6, which depicts a representative S-shaped trajectory tracking trial. In Fig. 6a, the HRC-controlled base exhibits characteris-tic ”jerky” or oscillatory behavior as it struggles to maintain the arm’s reachability. In contrast, our method generates a proactive and fluid base trajectory within the IRM-defined feasible regions. By ensuring the manipulator consistently operates within high-manipulability configurations, the pro-posed method provides a more stable and efficient solution for high-precision mobile manipulation tasks. 
+
+B. Comparative Analysis with CHOMP 
+
+To further validate the trajectory fidelity of the proposed framework, a comparative study was conducted against a CHOMP-based optimization approach [18]. While CHOMP is effective for generating collision-free movements, it treats path adherence as a soft-constrained cost term, often leading to observable drift in high-precision tasks. As summarized in Table II, the proposed method demon-strates a decisive improvement in tracking precision across all five test trajectories ( T1–T5). The Root Mean Square Error (RMSE) of the end-effector position for our frame-work remains consistently within the sub-micrometer to sub-millimeter range ( ≈ 10 −4 to 10 −3 mm). In contrast, the CHOMP-based method exhibits significantly higher RMSE values, particularly in T3 where the error reaches 8.6882 mm. This discrepancy arises because CHOMP tends to ”cut corners” to minimize the smoothness functional fsmooth ,whereas our framework utilizes an exponential penalty func-tion eα·dmin to generate a sharp gradient at the boundaries of the feasible configuration space. This ensures that the optimizer strictly enforces kinematic reachability and path consistency, effectively neutralizing the tracking drift inher-ent in standard gradient-descent planners. TABLE II: End-Effector Position RMSE Comparison (mm)                
+
+> Method T1 T2 T3 T4 T5 CHOMP 0.9017 1.3804 8.6882 1.4459 0.6243 Two-Stage 0.0014 0.0012 0.0001 0.0016 0.0008
+
+C. Calibration of the Mobile Manipulator 
+
+All hardware experiments were carried out on a mobile manipulator consisting of a Unitree Z1 robotic arm and an Agilex Scout Mini Mecanum-wheeled base. The system calibration and trajectory tracking evaluation were conducted with the aid of a NOKOV Mars optical 3D motion capture system. Accurate kinematic modeling of the mobile manipu-lator requires precise estimation of key structural parameters. A motion capture system was employed to calibrate both the base center and the installation position of the robotic arm. High-precision pose measurements from the motion capture system were used to determine the parameters necessary for kinematic modeling and trajectory planning. 
+
+1) Calibration of the Base Center: Since a reflective marker cannot be mounted exactly at the geometric center of the base, the platform was rotated in place while recording the trajectories of multiple markers attached to the base. Each marker trajectory was fitted to a circle, and the average of the fitted circle centers was taken as the kinematic center of the mobile base, as illustrated in Fig. 7a. The estimated center coordinates are summarized in Table III. TABLE III: Center Coordinates of the Fitted Circular Tra-jectories                  
+
+> Marker ID 1234Mean
+> x(m) 0.62175 0.62460 0.62258 0.62225 0.62280
+> y(m) 0.04963 0.03952 0.04194 0.04059 0.04292
+
+2) Calibration of the Robotic Arm Installation Position: 
+
+To determine the mounting position of the robotic arm relative to the base center, reflective markers were attached to the end-effector and intermediate links. The first and second joints were rotated independently, and the rotational centers of the tracked markers were computed to identify the joint axes. The intersection of these axes yields the position of the second joint axis, as illustrated in Fig. 7b. The calibrated position of the second joint axis under the current base configuration is (0.24644 m, 0.17876 m, 0.60475 m). Target ball 0     
+
+> Target ball 1
+> Target ball 2
+> Target ball 3
+> 0.20
+> 0.0
+> -0.2
+> Y/m
+> 0.3
+> 0.2
+> 0.1
+> 0.4
+> -0.3
+> -0.1
+> 0.3 0.4 0.5 0.8 0.9 0.6
+> X/m
+> 0.7
+
+(a) Trajectories of target balls and center positions of the ro-tating base 0.1   
+
+> 1-Axis rotation - Target 1 trajectory
+> 1-Axis rotation - Target 2 trajectory
+> 2-Axis rotation - Target 1 trajectory
+> 2-Axis rotation - Target 2 trajectory
+> 1-axis average normal vector
+> 2-axis average normal vector
+> 2-axis center point
+> -0.2
+> 0.0
+> 0.2
+> 0.4
+> 0.6 -0.2
+> 0.0
+> 0.2
+> 0.4
+> 0.6
+> 0.4
+> 0.6
+> 0.8 Z/m
+> Y/m
+> X/m
+
+(b) Calibration of the axis po-sition for the robotic arm’s sec-ond axis 
+
+Fig. 7: Kinematic calibration of the mobile manipulator system. Assuming only a translational transformation exists be-tween the mobile base coordinate frame and the robotic arm base frame, the current base pose can be computed using the calibrated base center and the arm model parameters. Consequently, the homogeneous transformation matrix from the base frame to the arm base frame, denoted as Tbr , is obtained as: 
+
+Tbr =
+
+
+
+1 0 0 0.08764 0 1 0 0.00214 0 0 1 0.50125 0 0 0 1
+
+ (10) 
+
+D. Trajectory Tracking Accuracy Evaluation 
+
+Experiments were performed on three target paths of different shapes, namely a lemniscate, a capsule-shaped curve, and a polygonal path, to validate the feasibility of the proposed configuration planning approach for path following. Desire end effect path 
+
+> Measured end effect path
+> 0.4
+> 1.2
+> 1.4
+> 0.8
+> 1.0
+> 0.6
+> Z/m
+> 2.0
+> 0.5
+> 0.0
+> -0.5
+> -1.0
+> 1.0
+> 1.5
+> Y/m
+> 0.5
+> 1.0
+> 1.5
+> -1.5
+> -1.0
+> -0.5
+> 0.0
+> X/m
+
+(a) Trajectory t / s         
+
+> error / mm
+> 40
+> 0
+> 100
+> 80
+> 60
+> 120
+> 20
+> 0510 20 25 15 30 35 40
+
+(b) Tracking error 
+
+Fig. 8: Tracking performance for the lemniscate path. An omnidirectional Mecanum-wheeled chassis was se-lected for its kinematic simplicity and ability to follow arbitrary trajectories, facilitating rapid algorithmic verifica-tion. The actual end-effector trajectories were recorded using a motion capture system and compared with the desired trajectories. However, the inherent limitations of Mecanum Desire end effect path     
+
+> Measured end effect path
+> 2.0
+> 0.5
+> 0.0
+> -0.5
+> -1.0
+> 1.0
+> 1.5
+> 0.5 0.0
+> -0.5
+> 2.5 2.0 1.5 1.0
+> 0.4
+> 1.2
+> 1.4
+> 0.8
+> 1.0
+> 0.6
+> Y/m
+> X/m
+> Z/m
+
+(a) Trajectory t / s        
+
+> error / mm
+> 40
+> 0
+> 100
+> 80
+> 60
+> 120
+> 20
+> 0510 20 25 15 30 35
+
+(b) Tracking error 
+
+Fig. 9: Tracking performance for the capsule path. Desire end effect path   
+
+> Measured end effect path
+> 0.4
+> 1.2
+> 1.4
+> 0.8
+> 1.0
+> 0.6
+> Z/m
+> 2.0
+> 0.5
+> 0.0
+> -0.5
+> -1.0
+> 1.0
+> 1.5
+> Y/m 1.0 0.5
+> 0.0
+> 3. 0
+> 2.5
+> 2.0
+> 1.5
+> X/m
+
+(a) Trajectory t / s      
+
+> error / mm
+> 40
+> 0
+> 100
+> 80
+> 60
+> 120
+> 20
+> 010 20 40 50 30
+
+(b) Tracking error 
+
+Fig. 10: Tracking performance for the polygonal path. wheels—such as complex slip dynamics and limited load capacity—contribute significantly to the tracking deviations observed in real-world deployments. As summarized in Ta-ble IV, the mean tracking error is approximately 21–23 mm. The maximum deviations primarily occur at high-curvature segments or corner transitions, where wheel-ground interac-tion and non-linear slip effects are most pronounced. While these hardware-specific factors limit absolute precision, the experiments successfully demonstrate the feasibility of the two-stage configuration planning. To mitigate these dynamic errors in industrial applications, future work will involve migrating the algorithm to a four-wheel independent steering (4WIS) platform with superior traction and load stability. To the best of our knowledge, the AgileX Ranger Mini 4WIS platform, which is widely used in both academia and industry, does not provide a unified general SE(2) control interface that simultaneously combines in-place rotation and translational motion. Accordingly, the subsequent experi-ments on the 4WIS platform will be conducted under a crab-motion model, in which the base orientation is kept fixed while planar translation is executed. This choice is consistent with the non-rotating assumption adopted in the proposed planning framework. Time-lapse processing of the recorded experiment was conducted to visualize both the robot configuration evolution and the actual end-effector trajectory, as shown in Fig.11. TABLE IV: Tracking Accuracy for Different Trajectories 
+
+Trajectory Dimensions (m) Max Error (mm) Mean Error (mm) Error Location Lemniscate (1.2, 3.0, 0.2) 91.82 23.26 High curvature Capsule-shaped (2.5, 1.0, 0) 83.72 21.17 Curve transitions Polygonal (3.0, 1.5, 0.2) 80.65 20.03 Corners 
+
+(a) Simulation configuration path 
+
+(b) Experimental configuration path 
+
+Fig. 11: Time-lapse snapshots of the lemniscate trajectory-tracking experiment VI. CONCLUSIONS This paper presented a robust two-stage configuration planning framework that decouples the high-dimensional mo-bile manipulation problem into a tractable 2D base optimiza-tion. By integrating IRM with a Dijkstra-based graph search and L-BFGS refinement, kinematically feasible and smooth trajectories were successfully generated. While the current implementation operates offline, the framework achieves sub-millimeter precision in simulations and maintains a mean tracking error of 21–23 mm in physical experiments. Despite hardware-induced deviations from the Mecanum-wheeled platform, the results confirm the framework’s effectiveness and practical applicability. Future work will focus on accel-erating the optimization process to enable online re-planning in dynamic environments. REFERENCES [1] T. Sandakalum and M. H. Ang Jr., “Motion planning for mobile manipulators—A systematic review,” Machines , vol. 10, no. 2, p. 97, 2022. [2] D. Youakim and P. Ridao, “Motion planning survey for autonomous mobile manipulators: Underwater manipulator case study,” Robot. Auton. Syst. , vol. 107, pp. 20–44, 2018. [3] T. Yoshikawa, “Manipulability of robotic mechanisms,” Int. J. Robot. Res. , vol. 4, no. 2, pp. 3–9, 1985. [4] G. Oriolo and C. Mongillo, “Motion planning for mobile manipulators along given end-effector paths,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA) , 2005, pp. 2154–2160. [5] F. Zacharias, W. Sepp, C. Borst, and G. Hirzinger, “Using a model of the reachable workspace to position mobile manipulators for 3-D trajectories,” in Proc. IEEE-RAS Int. Conf. Humanoid Robots , 2009, pp. 55–61. [6] H. Zhang, Q. Sheng, Y. Sun, X. Sheng, Z. Xiong, and X. Zhu, “A novel coordinated motion planner based on capability map for autonomous mobile manipulator,” Robot. Auton. Syst. , vol. 129, p. 103554, 2020. [7] F. Reister, M. Grotz, and T. Asfour, “Combining navigation and manip-ulation costs for time-efficient robot placement in mobile manipulation tasks,” IEEE Robot. Autom. Lett. , vol. 7, no. 4, pp. 9913–9920, 2022. [8] M. Rudorfer, “RM4D: A combined reachability and inverse reachabil-ity map for common 6-/7-axis robot arms by dimensionality reduction to 4-D,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA) , 2025, pp. 7689–7695. [9] M. Kang, D. Kim, and S.-E. Yoon, “Harmonious sampling for mobile manipulation planning,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS) , 2019, pp. 3185–3192. [10] K. T. Ly, V. Semenov, M. Risiglione, W. Merkt, and I. Havoutis, “R-LGP: A reachability-guided logic-geometric programming framework for optimal task and motion planning on mobile manipulators,” in 
+
+Proc. IEEE Int. Conf. Robot. Autom. (ICRA) , 2024, pp. 14917–14923. [11] F. Zacharias, C. Borst, and G. Hirzinger, “Capturing robot workspace structure: Representing robot capabilities,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS) , 2007, pp. 3229–3236. [12] A. Makhal and A. K. Goins, “Reuleaux: Robot base placement by reachability analysis,” in Proc. IEEE Int. Conf. Robotic Comput. (IRC) ,2018, pp. 137–142. [13] A. Hertle and B. Nebel, “Identifying good poses when doing your household chores: Creation and exploitation of inverse surface reach-ability maps,” in Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst. (IROS) ,2017, pp. 6053–6058. [14] H. Wang, Y. Yu, and Q. Yuan, “Application of Dijkstra algorithm in robot path-planning,” in Proc. Int. Conf. Mech. Autom. Control Eng. ,2011, pp. 1067–1069. [15] K. Shin and N. McKay, “A dynamic programming approach to trajectory planning of robotic manipulators,” IEEE Trans. Autom. Control , vol. 31, no. 6, pp. 491–500, 1986. [16] D. Mellinger and V. Kumar, “Minimum snap trajectory generation and control for quadrotors,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA) , 2011, pp. 2520–2525. [17] P. Corke and J. Haviland, “Not your grandmother’s toolbox—The Robotics Toolbox reinvented for Python,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA) , 2021, pp. 11357–11363. [18] M. Zucker, N. Ratliff, A. D. Dragan, M. Pivtoraiko, M. Klingensmith, C. M. Dellin, J. A. Bagnell, and S. S. Srinivasa, “CHOMP: Covariant Hamiltonian optimization for motion planning,” Int. J. Robot. Res. ,vol. 32, no. 9–10, pp. 1164–1193, 2013. [19] J. Haviland, N. S¨ underhauf, and P. Corke, “A holistic approach to reactive mobile manipulation,” IEEE Robot. Autom. Lett. , vol. 7, no. 2, pp. 3122–3129, 2022. [20] B. Burgess-Limerick, J. Haviland, C. Lehnert, and P. Corke, “Reactive base control for on-the-move mobile manipulation in dynamic envi-ronments,” IEEE Robot. Autom. Lett. , vol. 9, no. 3, pp. 2048–2055, 2024.

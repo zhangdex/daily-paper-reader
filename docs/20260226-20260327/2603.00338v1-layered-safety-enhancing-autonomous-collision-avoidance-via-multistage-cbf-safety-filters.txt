@@ -1,0 +1,516 @@
+Title: Layered Safety: Enhancing Autonomous Collision Avoidance via Multistage CBF Safety Filters
+
+URL Source: https://arxiv.org/pdf/2603.00338v1
+
+Published Time: Tue, 03 Mar 2026 01:19:10 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Layered Safety: Enhancing Autonomous Collision Avoidance via Multistage CBF Safety Filters 
+
+Erina Yamaguchi, Ryan M. Bena, Gilbert Bahati, and Aaron D. Ames 
+
+Abstract — This paper presents a general end-to-end frame-work for constructing robust and reliable layered safety filters that can be leveraged to perform dynamic collision avoidance over a broad range of applications using only local percep-tion data. Given a robot-centric point cloud, we begin by constructing an occupancy map which is used to synthesize a Poisson safety function (PSF). The resultant PSF is employed as a control barrier function (CBF) within two distinct safety filtering stages. In the first stage, we propose a predictive safety filter to compute optimal safe trajectories based on nominal potentially-unsafe commands. The resultant short-term plans are constrained to satisfy the CBF condition along a finite prediction horizon. In the second stage, instantaneous velocity commands are further refined by a real-time CBF-based safety filter and tracked by the full-order low-level robot controller. Assuming accurate tracking of velocity commands, we obtain formal guarantees of safety for the full-order system. We validate the optimality and robustness of our multistage architecture, in comparison to traditional single-stage safety filters, via a detailed Pareto analysis. We further demonstrate the effectiveness and generality of our collision avoidance methodology on multiple legged robot platforms across a variety of real-world dynamic scenarios. 
+
+I. INTRODUCTION As the deployment of robotic systems continues to evolve from controlled laboratories to unstructured real-world en-vironments, autonomous safe operation in dynamic settings becomes crucial. For legged robots and humanoids, col-lisions can compromise task objectives, necessitating the constructive and robust integration of perception, planning, and control under sensor noise and partial observations. This is particularly challenging when considering the task of collision avoidance using onboard sensing and computation, where the robot must continually acquire environmental occupancy information, process it into a reliable safety representation, and translate this into safe control actions. On this front, control barrier function (CBF) methods [1], [2] can provide a computationally efficient mechanism for enforcing safety in real-time and have been successfully demonstrated across many robotic platforms [3]–[8]. How-ever, most CBF-based methods operate myopically, relying on a simple quadratic program (QP) to optimize safety in an instantaneous manner without predictive planning, which can result in conservative behavior, nonpersistent feasibility, or failure to satisfy task objectives when immediate safe actions conflict with longer-term goals [9], [10]. Model predictive 
+
+> This research is supported by BP. Authors are with the Department of Mechanical and Civil Engineering and the Department of Aerospace, Caltech, Pasadena, CA 91125, USA,
+> {
+
+erinay, ryanbena, gbahati, ames }@caltech.edu 
+
+Fig. 1: Layered Safety Filter. The PSF is computed using an occupancy map safe set representation. The solution enables the construction of safety constraints for use in a multistage safety filter: a predictive layer in series with a real-time layer. This frame-work generates safe autonomous actions, leading to collision-free behavior around dynamic obstacles. Experimental footage provided at https://youtu.be/s6v4QUUaNlY 
+
+control (MPC) [11] can mitigate this limitation by optimizing a future trajectory using safety-assured planning strategies [12], including enforcing discrete-time CBF constraints along a receding finite horizon [13]–[18]. However, MPC exhibits fragility due to uncertainties about future environments and the challenges in solving highly nonconvex optimization problems. Furthermore, most existing safety-critical control methodologies handle the specification of safety constraints 
+
+a priori , typically through hand-designed geometric descrip-tions or signed distance fields [19]–[26]. In this paper, we address the real-time synthesis of safety constraints using the Poisson safety function (PSF) method [8], [27], which produces smooth functional safety representations directly from perception data, enabling systematic CBF synthesis. Critically, the PSF approach produces a dynamically-updated unified collision avoidance constraint. High-dimensional system dynamics add additional com-plexity in ensuring safety. For legged robots, most existing approaches rely on full-order dynamics [28], [29], typically rendering online planning and safety constraint synthesis 
+
+> arXiv:2603.00338v1 [cs.RO] 27 Feb 2026
+
+computationally prohibitive and limiting reaction time to dy-namic obstacles. Furthermore, in practice, safety filters often lack direct access to the full-order control inputs and can only pass reference commands to low-level control modules. To overcome these limitations, recent approaches employ learning-based policies [30], often at the expense of formal safety guarantees, since safety is implicitly encoded in the learned policies. We address this by leveraging reduced-order models (ROMs) [4], [5], [31]–[33] that capture dominant task-level dynamics while enabling tractable synthesis of safety constraints. This viewpoint decouples safety synthesis from full-order modeling: safe commands are planned on the ROM and safety for the full-order dynamics follows provided the robot accurately tracks the ROM commands, yielding a 
+
+model-free architecture. Building on these foundations, this work presents a mul-tistage safety filter, embedded in an end-to-end perception-to-control architecture, that combines MPC-like predictive planning with CBF-QP real-time safety. We propose a model-free layered pipeline that uses the predictive controller’s safe actions as nominal inputs to a real-time CBF-QP safety filter. This architecture addresses limitations of existing perception-based CBF methods, which lack predictive planning, and ROM-based approaches, which typically employ either real-time filtering without prediction [4], [5], [31]–[33] or pre-dictive planning with computationally expensive full-order real-time safety filtering [34]. Our contributions can be summarized as follows:  
+
+> •
+
+Perception-based safety synthesis: A real-time point-cloud-based occupancy map generation algorithm from which Poisson safety functions synthesize perception-based CBF constraints with geometric parameterization.  
+
+> •
+
+Multistage model-free control architecture: A cascaded predictive MPC layer and a real-time CBF-QP safety filter, both operating on a single integrator ROM, with theoretical guarantees of accurate tracking by the full-order robot dynamics.  
+
+> •
+
+Performance analysis: Characterization of performance optimality and robustness tradeoffs via Pareto optimal-ity analysis, demonstrating the benefits of the layered approach over single-stage methods.  
+
+> •
+
+Hardware verification & validation: Extensive demon-strations on quadrupedal and humanoid platforms per-forming dynamic collision avoidance in real-world envi-ronments with fully-onboard sensing and computation. The structure of the paper is as follows: Section II reviews the necessary background in CBFs for safety-critical control, PSFs for perception-based safety synthesis, and MPC. Then, Section III introduces the proposed perception and multistage control framework. The performance of the multistage archi-tecture is validated experimentally in Section IV. The first study characterizes the performance of the proposed safety architecture through a Pareto Optimality analysis, while the second shows the generality of the architecture by applying dynamic collision avoidance in multiple settings. Finally, conclusions are provided in Section V. II. B ACKGROUND 
+
+We consider nonlinear control affine systems of the form: 
+
+˙x = f (x) + g(x)u (1) where x ∈ Rn denotes the state vector, u ∈ Rm repre-sents the control input, f : Rn → Rn denotes the drift dynamics, and g : Rn → Rn×m is the actuation matrix, both assumed to be locally Lipschitz continuous. A locally Lipschitz continuous controller, k : Rn × R+ → Rm, yields the closed loop system ˙x = f (x) + g(x)k(x, t ) which, given an initial condition, admits a unique solution t 7 → x(t) which we assume exists for all time for brevity [35]. 
+
+A. Safety-Critical Control 
+
+We formalize the notation of safety through the lens of 
+
+forward invariance , where system trajectories t 7 → x(t) are required to remain in a safe set for all time. We consider time-varying safe sets defined as the 0-super level set of a function h : Rn × R+ → R denoted by: 
+
+Ct = {x ∈ Rn : h(x, t ) ≥ 0}. (2) CBFs provide a constructive framework for designing con-trollers that enforce forward invariance. 
+
+Definition 1. (Control Barrier Function [1]) Let Ct ⊂ Rn be the time-varying 0-super-level set of a continuously differ-entiable function h : Rn × R+ → R satisfying ∇h(x, t )̸ = 0
+
+when h(x, t ) = 0 . We call h a time-varying CBF for (1) if there exists 1 α ∈ K e 
+
+> ∞
+
+such that for all (x, t ) ∈ Rn × R+:
+
+sup 
+
+> u∈Rm
+
+˙h(x, t, u) := ∇h(x, t ) · (f (x) + g(x)u)+ ∂h ∂t (x, t ) ≥ − α(h(x, t )) . (3) Given a nominal (possibly unsafe) controller knom : Rn ×
+
+R+ → Rm, one way of constructing a safe controller is via the CBF-QP that adjusts knom to its nearest safe action: 
+
+k(x, t ) = arg min 
+
+> u∈Rm
+
+∥u − knom (x, t )∥22 (CBF-QP) 
+
+s.t. ˙h(x, t, u) ≥ − α(h(x, t )) .
+
+B. Perception-based Safety with Poisson Safety Functions 
+
+While CBFs provide a principled tool for synthesizing controllers that guarantee safe actions, in robotic collision avoidance applications, their success relies on the availability of a function h0 that reliably encodes physical environmental safety specifications derived from perception data in spatial coordinates y(x) = (x, y, z ) ∈ R3. Given occupancy information from perception, PSFs [8] provide such safety representations, bridging the gap between perception and CBF-based safety. 
+
+Definition 2. (Poisson Safety Function [8]) Given an oc-cupancy map, let Ω ⊂ R3 denote the open, bounded, and              
+
+> 1A continuous function α:R→Rbelongs to the extended class
+> Ke
+> ∞if it is monotonically increasing, α(0) = 0 ,lim s→∞ α(s) =
+> ∞, and lim s→−∞ α(s) = −∞ .
+
+connected set of free space, with smooth boundary ∂Ω
+
+corresponding to obstacle surfaces. A PSF, h0 : R3 →
+
+R, is defined as the unique solution Dirichlet problem for Poisson’s equation: 
+
+(∆h0(y) = f (y) in Ω,h0(y) = 0 on ∂Ω, (4) where ∆ = ∂2 
+
+> ∂x 2
+
++ ∂2 
+
+> ∂y 2
+
++ ∂2 
+
+> ∂z 2
+
+is the Laplacian and f : Ω →
+
+R<0 is a given forcing function. The boundary conditions in (4) assigns the 0-level set of h0
+
+to obstacle surfaces, while f (y) < 0 guarantees h0(y) > 0
+
+throughout the free space. As discussed in [8], a smooth forcing function f ∈ C∞(Ω) , yields smooth solutions to (4), h0 ∈ C∞(Ω) . It follows that h0 defines a CBF for systems with single-integrator dynamics (i.e., h0 := h), and its smoothness allows for CBF extensions for higher-order systems [8]. For dynamic environments, (4) can be parametrized with time to account for temporal variations yielding a time-varying safety function t 7 → h0(y, t ) [27]. 
+
+C. Model Predictive Control 
+
+Controllers based on predictive optimization enable the parallel enforcement of both safety and performance goals. In our collision avoidance framework, we employ an MPC-based predictive safety filter that incorporates the discrete-time CBF (DCBF) as in [13], [36], enforcing safety over a time horizon. The following finite-time optimal control problem (FTOCP) with a DCBF constraint along a horizon of length N ∈ N≥1 defines the predictive safety filter: 
+
+min    
+
+> ξ0: N∈Rn
+> ν0: N−1∈Rm
+> N−1
+
+X
+
+> i=0
+
+c(ξi, νi) + V (ξN ) (5) s.t. ξi+1 = F(ξi, νi), ∀i ∈ { 0, . . . , N − 1}
+
+h(ξi+1 ) ≥ ρh (ξi), ∀i ∈ { 0, . . . , N − 1}
+
+ξ0 = xk
+
+where c : Rn × Rm → R is the stage cost, V : Rn → R
+
+is the terminal cost used to approximate the infinite-horizon optimal control problem, ξi ∈ Rn, νi ∈ Rm represent the planned state and inputs at discrete times, and F : Rn ×
+
+Rm → Rn is the discretization of (1) over a finite time interval. The first constraint ensures the planned trajectory is dynamically feasible, the second constraint is the DCBF condition that enforces safety along the trajectory, and the last constraint ensures the plan aligns with the current state. The optimal plan of inputs of this FTOCP is computed as [ν∗ 
+
+> 0
+
+(xk), . . . , ν∗ 
+
+> N−1
+
+(xk)] , and ν∗ 
+
+> 0
+
+(xk) is applied to the system, yielding the MPC+CBF controller: 
+
+πMPC+CBF (xk) = ν∗ 
+
+> 0
+
+(xk). (6) This πMPC+CBF controller displays favorable performance and robustness properties when compared to standard MPC or CBF controllers [36] by enforcing the safety constraint in the FTOCP and optimizing across the planning horizon N .III. M ULTISTAGE SAFETY FILTER : A RCHITECTURE 
+
+In this section, we present a multi-layered formulation that unifies point-cloud-based perception, CBF synthesis and MPC for safety-critical control of robotic systems. Specif-ically, we present an occupancy mapping algorithm from point clouds and solve Poisson’s equation to obtain a PSF. This PSF is used to formulate a CBF constraint that is then incorporated into both a predictive safety layer— enforcing safety over a receding horizon via MPC—and a real-time 
+
+safety layer—enforcing instantaneous safety via a CBF-QP. 
+
+A. Occupancy Mapping 
+
+Robotic systems collect local environment occupancy in-formation in real-time via onboard sensors. This information is used to estimate membership of a safe set. We consider a safe set C0 ⊂ R2 containing all unoccupied points (x, y ) ∈
+
+R2 in local two-dimensional environments. For perception-in-the-loop applications, the true set C0 cannot be known exactly; however, a discretized approximation of C0 can often be obtained in the form of an occupancy map. Let S be the set of grid cells in a local 2D occupancy map, and let p ∈ S be a single grid cell in the map corresponding to a fixed location in space. The occupancy map representing the true safe set C0 is the binary function M : S → { 0, 1}:
+
+M (p) = 
+
+(1, if cell p ∈ S is occupied ,
+
+0, if cell p ∈ S is free . (7) In this section, we compute the occupancy map ˆM , which estimates M from successive robot-centric point clouds. 
+
+1) Instantaneous Point Map ( M0): To facilitate the con-struction of ˆM , we first process each point cloud by remov-ing the ground plane, masking self-detections, and cropping unmapped regions. We then project each point detection onto the instantaneous 2D occupancy map M0 : S → { 0, 1} via: 
+
+M0(p) := 
+
+(1, if p ∈ S contains a point detection ,
+
+0, otherwise . (8) 
+
+2) Spatially Convolved Map ( ¯M ): Generally, M0 contains gaps and isolated cells that arise from noise, occlusion, and the limited angular resolution of perception-sensor scans. To improve spatial consistency, we convolve M0 with an unnormalized compactly supported 2 kernel K:
+
+¯M := K ∗ M0, (9) where ∗ denotes discrete convolution operator. This operation smooths M0 and amplifies regions of spatial consistency. 
+
+3) Dynamic Confidence Map ( Γ): To enforce temporal continuity, we define a continuous confidence map Γ : S → 
+
+[0 , 1] , where Γ( p) represents the confidence a cell p ∈ S is occupied. Given ¯M , the confidence dynamics are governed by the cell-wise continuous-time update law: 
+
+˙Γ( p) := 
+
+(
+
+−β−Γ( p) if ¯M (p) < σ, β+ ¯M (p) (1 − Γ( p)) if ¯M (p) ≥ σ, (10)      
+
+> 2A kernel is compactly supported if it vanishes outside a finite radius r,so only neighboring cells within distance rcontribute to the convolution.
+
+Fig. 2: Occupancy Mapping. Left First, we process each point cloud and project it onto a 2D grid M0. Middle Left Second, we convolve                
+
+> M0with a Gaussian kernel K, adding weight to occupied clusters and producing the map ¯M.Middle Right Third, we use ¯Mto dynamically update the confidence map Γ.Right Last, we threshold Γwith hysteresis to generate a binary occupancy map ˆM.
+
+with initial confidence Γ0(p) ∈ [0 , 1] . Here, β−, β + ∈
+
+R>0 are tunable gains. When ¯M (p) < σ, Γ( p) decays exponentially toward 0 at rate β−. When ¯M (p) ≥ σ, Γ( p)
+
+increases toward 1, with growth scaled by β+ ¯M (p), acceler-ating confidence accumulation in regions with stronger local evidence. The switching parameter σ ∈ R>0 sets the level of spatial consistency required before confidence increases, em-phasizing clusters while de-emphasizing isolated detections. 
+
+4) Estimated Occupancy Map ( ˆM ): Binary thresholding is a natural choice for transforming the confidence map Γ
+
+into the estimated occupancy map ˆM : S → { 0, 1}; however, confidence fluctuations near a threshold produce undesirable boundary noise. To mitigate this, we adopt hysteresis thresh-olding, which accounts for the previous occupancy state: 
+
+ˆM (p) := 
+
+
+
+1 if Γ( p) ≥ τh,
+
+ˆM0(p) if τℓ < Γ( p) < τ h,
+
+0 if Γ( p) ≤ τℓ,
+
+(11) where τh, τ ℓ ∈ [0 , 1] , τh > τ ℓ are the upper and lower thresh-olds respectively, and ˆM0(p) denotes the previous occupancy estimate. This maintains the current occupancy state when confidence lies within (τh, τ ℓ), requiring confidence to cross 
+
+τh to become occupied or fall below τℓ to become free .The resulting occupancy map ˆM provides a spatially and temporally consistent estimate of the true occupancy M . A visual of the entire mapping procedure is depicted in Fig. 2. 
+
+B. Geometry-Aware Poisson Safety Function 
+
+Consider the safe set C0 (and its discretized estimate ˆM ). To enforce the forward invariance of C0, we generate a PSF [27]. We begin by employing a rigid body ROM in which the robot is assumed to have a 2D centroidal position (x, y ) ∈
+
+R2 and orientation θ ∈ S1. We parameterize the safe set in orientation using the Pontryagin difference: 
+
+C(θ) = C0 ⊖ R (θ), (12) where R(θ) ⊂ R2 is the set of all points occupied by the robot, in body-centered coordinates, as a function of θ.We aim to find a safety function h0 : R2 ×S1 → R, whose 
+
+0-superlevel set characterizes C(θ) ⊂ R2 via: 
+
+C(θ) = {(x, y ) ∈ R2 : h0(x, y, θ ) ≥ 0}. (13) To this end, we use the parameterized safe set C(θ) to define an orientation-dependent domain ΩΘ for Poisson’s equation via the lifting operation: 
+
+ΩΘ = [
+
+> θ∈S1
+
+C(θ) × { θ} ⊂ R2 × S1. (14) We then formulate the parameterized Dirichlet problem for Poisson’s equation: 
+
+
+
+∂2h0
+
+∂x 2 + ∂2h0
+
+∂y 2 = f (x, y, θ ) ∀(x, y, θ ) ∈ ΩΘ,h0(x, y, θ ) = 0 ∀(x, y, θ ) ∈ ∂ΩΘ.
+
+(15) Solving (15) yields a PSF h0 that characterizes C(θ) in according to (13), and renders C(θ) forward invariant with respect to the dynamics describing (x, y, θ ).
+
+C. Predictive Safety Layer 
+
+In our predictive safety layer, we eliminate the need for a custom dynamic model by planning in a low-dimensional task space. Specifically, we plan safe velocity commands for the centroid configuration χ = ( x, y, θ ) ∈ R2 × S1 governed by the single-integrator ROM: 
+
+˙χ = μ, μ = ( vx, v y , ω ) ∈ R3, (16) and rely on the existing low-level control architecture to track the resulting velocity references on the high-dimensional full-order model [3]–[5], [32]. Under these model assump-tions, the PSF h0 is a CBF for the safe set C(θ).Given a nominal command μd, we introduce a predictive safety planner for (16) which aims to enforce the forward invariance of a time varying set C′(θ, t ) ⊂ R2 over a finite time horizon using DCBF constraints, while simultaneously minimizing the cumulative deviation from μd:
+
+min 
+
+> νi
+> N
+
+X
+
+> i=0
+
+(μd − νi)⊤ R(μd − νi) (17) s.t. ξ0 = χ,
+
+ξi+1 = ξi + νiδt ∀i ∈ [0 , N ],h(ξi+1 , t i+1 ) ≥ ρh (ξi, t i) ∀i ∈ [0 , N ].
+
+The quadratic cost R is chosen to balance the value of various control actions; the time step δt ∈ R>0 and the incre-ment N ∈ Z+ are chosen to produce a suitably discretized prediction horizon T = N δ t; the CBF parameter ρ ∈ (0 , 1) 
+
+is selected to produce appropriate dynamic robustness; and the initial ξ0 is constrained to match the state χ of the ROM. The time-dependent function h accounts for the uncertain dynamic nature of C′(θ, t ) along the horizon t ∈ [0 , T ] and is coarsely modeled using a first-order extrapolation: 
+
+h(χ, t ) := h0(χ) + h0(χ) − h−1(χ)
+
+t0 − t−1
+
+(t − t0), (18) where h0 describes the environment at the current time t0 ∈
+
+R, and h−1 : R2 × S1 → R is the PSF computed at some previous time t−1 ∈ R for t−1 < t 0.The MPC problem (17)-(18) is a nonlinear nonconvex optimization problem, which can be solved with sequential quadratic programming (SQP). The first output in the SQP minimizer ν∗ 
+
+> 0
+
+is taken as the planned safe control action μp.
+
+D. Real-Time Safety Layer 
+
+To synthesize a safe velocity μs that renders C′(θ, t 0)
+
+forward invariant, we filter the planned safe action μp
+
+from the predictive layer in a real-time layer running at a higher frequency via the input-to-state safe (ISSf) CBF-QP, suppressing function arguments for brevity: 
+
+μs = arg min 
+
+> μ∈R3
+
+∥μ − μp∥22
+
+s.t. ∇h · μ + ∂h ∂t ≥ − αh + 1
+
+ε ∥∇ h∥2, (19) where 1 
+
+> ε
+
+∥∇ h∥2 is a robustness term compensating for the 
+
+tracking error between the ROM and full-order system 3. We denote the safe ROM command by μs ∈ R3, and define the corresponding desired velocity as ˙χs := μs.
+
+This layered architecture interprets safety-critical control as certifying the ability of the full-order robotic system to track the velocity commands ˙χs generated by the ROM (16). To demonstrate this rigorously, consider the full-order mechanical system with state (q, ˙q) ∈ Rn × Rn representing all generalized coordinates and their velocities, governed by: 
+
+M (q)¨ q + C(q, ˙q) ˙ q + G(q) = u, (20) where M (q) ∈ Rn×n, C(q, ˙q) ∈ Rn×n, G(q) ∈ Rn
+
+denote the inertia matrix, Coriolis matrix, and gravity terms, respectively, and u ∈ Rn is the generalized input. The ROM state χ is obtained from the full configuration via an output map χ = φ(q) where φ : Rn → R2 × S1 represents the relationship between generalized coordinates and ROM pose [4]. Safety for the full-order system is guaranteed provided the velocity ˙χ = ∂φ ∂q ˙q tracks the safe velocity ˙χs sufficiently well, which we establish in the following theorem: 
+
+Theorem 1. (Full-Order System Safety) Consider the full-order system (20) and T > 0. Let h : R2 × S1 × [0 , T ] → R
+
+be a CBF for the ROM (16) , let χs : [0 , T ] → R3 be a safe velocity satisfying (19) for some ε > 0, and let V :
+
+> 3For further generalizations of the robustness term, see [5], [32].
+
+Rn × Rn × R3 × [0 , T ] → R be a tracking control Lyapunov function (CLF) satisfying: 
+
+V (q, ˙q, ˙χs, t ) ≥ β∥ ˙χ − ˙χs∥2, (21) 
+
+˙V (q, ˙q, ˙χs, ¨χs, k, t ) ≤ − λV (q, ˙q, ˙χs, t ), (22) 
+
+for some β, λ > 0 and tracking controller u = k(q, ˙q, ˙χs, t ).Define the barrier candidate: 
+
+B(q, ˙q, t ) = h(φ(q), t ) − 1
+
+μ V (q, ˙q, ˙χs, t ) (23) 
+
+with μ > 0. If the following condition holds: 
+
+λ ≥ α + εμ 
+
+4β , (24) 
+
+then B is a CBF for the full-order system (20) , rendering the time-varying set CF(t) = {(q, ˙q) ∈ Rn × Rn | B(q, ˙q, t ) ≥
+
+0} forward invariant for all t ∈ [0 , T ].Proof. Taking the time derivative of (23) and noting that 
+
+˙χ = ∂φ ∂q ˙q gives (suppressing function arguments for brevity): 
+
+˙B(q, ˙q, u, t ) = ∂h ∂χ
+
+∂φ ∂q ˙q + ∂h ∂t − 1
+
+μ ˙V (q, ˙qs, ¨qs, u, t ) (25) where: 
+
+˙V = ∂V ∂q ˙q + ∂V ∂ ˙q ¨q + ∂V ∂ ˙χs
+
+¨χs + ∂V ∂t ,
+
+and (20) yields an affine dependence of ¨q on u. Applying the tracking controller u = k(q, ˙q, ˙χs, t ) satisfying (22) and lower bounding ˙B along the closed loop system yields: 
+
+˙B ≥ ∂h ∂χ ( ˙ χ + ˙ χs − ˙χs) + ∂h ∂t + λμ V (26) 
+
+≥ − αh + 1
+
+ε ∥∇ h∥2 − ∂h ∂χ ∥ ˙χ − ˙χs∥ + λμ V (27) 
+
+≥ − αh − ε
+
+4 ∥ ˙χ − ˙χs∥2 + λμ V (28) 
+
+≥ − αh − ε
+
+4β V + λμ V (29) 
+
+= −αB + 1
+
+μ
+
+
+
+λ − α − εμ 
+
+4β
+
+
+
+V (30) 
+
+≥ − αB. (31) The first inequality follows from substituting (22) into (25) and adding zero. Then (19) lower bounds this inequality. Completing the squares and lower bounding yields the third inequality. The fourth is reached with (21). Using (23), the last equality is reached, which is bounded with (24). 
+
+Remark 1 (Verification) . Although Theorem 1 assumes the existence of a Lyapunov function V and a tracking controller 
+
+k, explicit expressions are not required to implement our ROM-based safety filter. They serve as tools for verification and are unnecessary for deployment, i.e., one can certify that a given full-order system tracks the ROM commands by providing bounds on V and stability properties of k. When such bounds are difficult to obtain (e.g., when V is unknown and k is implemented as a black-box or learned module in the existing low-level control architecture), Theorem 1 can still be met in practice by initializing α and ε in (19) at small values to ensure conservative safety, and then adjusting until adequate performance is attained. IV. M ULTISTAGE SAFETY FILTER : A NALYSIS 
+
+The previous sections established the individual com-ponents of our architecture: Poisson-based safety synthe-sis from perception, ROM-based MPC for predictive safe planning, and CBF-QP for real-time safety filtering. In this section, we demonstrate how combining these layers in a 
+
+multistage architecture achieves favorable tradeoffs between task optimality and safety robustness, compared to either layer operating independently. We examine these tradeoffs using Pareto optimality analysis and validate them through experiments on quadruped and humanoid hardware. 
+
+A. Pareto Optimality Framework 
+
+We characterize performance and robustness tradeoffs by examining task optimality (deviation from desired behavior) and safety robustness (minimum safety margin). We formal-ize these objectives through two metrics evaluated over the horizon N , spanning the duration of an isolated collision avoidance encounter: 
+
+Jrobustness = min   
+
+> i∈[0 ,N ]
+
+h0(χ(ti), t i),Joptimality =
+
+PNi=0 (νi − μd)⊤R(νi − μd)
+
+Jideal 
+
+,
+
+where Jrobustness represents the minimum value of the PSF 
+
+h0 during the maneuver, and Joptimality computes the ratio between the total measured control effort of the observed maneuver ν and the minimum ideal effort Jideal . The ideal cost Jideal is computed by simulating an equivalent scenario with a priori known obstacles, providing a benchmark for minimum total safe control effort ν∗ for the state-constrained optimal control problem: 
+
+Jideal =
+
+> N
+
+X
+
+> i=0
+
+(ν∗ 
+
+> i
+
+− μd)⊤R(ν∗ 
+
+> i
+
+− μd).
+
+Since these objectives cannot be simultaneously optimized, we introduce a Pareto front to characterize tradeoffs. A solution is Pareto optimal if no other solution improves one objective without degrading the other. Fig. 3 illustrates the theorized position of each controller on the front. 
+
+B. Individual Layer Tradeoffs 
+
+When operating independently, each safety layer priori-tizes different objectives at the expense of the other, thus occupying extreme positions on the Pareto front. 
+
+1) Predictive Layer: The predictive safety filter opti-mizes a finite-horizon cost, creating incentives to choose actions that reduce future effort. These long-horizon strate-gies achieve high optimality but sacrifice immediate safety margins (e.g., side-stepping to avoid incoming obstacles). This positions the predictive layer in the high optimality, low robustness region (green in Fig. 3). Predictive Real-time Multistage 
+
+> Optimality
+
+Robustness 
+
+Fig. 3: Pareto Front. Individually, the safety filters achieve the extreme ends of the Pareto front. By combining them into amultistage safety filter, we reach an intermediate operating point that yields a desirable tradeoff between optimality and robustness. 
+
+2) Real-Time Layer: The CBF-QP with ISSf enforces in-stantaneous safety while minimizing deviations from a nomi-nal command. This results in conservative reactive behaviors (e.g., backing away directly from obstacles), achieving high robustness but low task optimality (orange in Fig. 3). 
+
+3) Multi-Stage Architecture: The multi-stage design feeds the predictive layer’s nominal command μp to the real-time CBF-QP. The predictive layer contributes long-horizon intent, while the real-time layer enforces the barrier con-dition by minimally modifying that intent at runtime. This composition preserves most of the predictive layer’s efficient strategies while the CBF-QP improves instantaneous safety guarantees, yielding a Pareto-optimal solution between the two extremes (blue in Fig. 3). 
+
+C. Experimental Validation 
+
+The benefits of the multistage safety filter were validated experimentally on the Unitree Go2 quadruped using three controllers: the isolated predictive filter, the isolated real-time safety filter, and the multistage safety filter. Point clouds of the environment were obtained by merging onboard Livox Mid360 and Unitree 4D LiDAR data at 15 Hz. To establish a repeatable collision avoidance scenario, we rolled a soccer ball towards the robot at speeds of 1.0 m/s and 1.25 m/s. We repeated this experiment 10 consecutive times for each safety architecture. Fig. 4 shows a representative experiment and the cumulative results are shown in Fig. 5. For experiments with slower ball speed (1.0 m/s), all trials were collision free, thus Jrobustness (x-axis) and Joptimality 
+
+(y-axis) can be plotted for each avoidance, along with the confidence ellipse of the population mean (Fig. 5 (left)). To account for the small sample size, we use Hotteling’s T-squared distribution to compute the ellipse at the 85% confidence level. As expected, the predictive filter achieves the highest optimality at the cost of low robustness. Addition-ally, the ellipse shows an inverse trend, with more efficient collision avoidance maneuvers corresponding to lower safety margins. In comparison, the real-time safety filter had the lowest optimality with higher robustness compared to the predictive filter. The measured performance of the multistage safety filter validates the Pareto optimal argument. The Fig. 4: Dynamic Collision Avoidance on Hardware. Top left 
+
+Composite image showing the quadruped avoiding a rolling ball from right to left at three time instances. Top right PSF surfaces, 
+
+h, from the robot view at each time instance. Middle The safety function values, h, throughout the avoidance, used to compute 
+
+Jrobustness . Bottom Left Measured position and yaw angle of the quadruped. Bottom Right Filtered velocity commands used to compute Joptimality . Footage of experiment trials is presented in the supporting video at https://youtu.be/s6v4QUUaNlY. 
+
+spread of optimality metrics lies between those of the predic-tive and real-time safety filters, while the safety robustness is similar to that of the real-time filter, even exceeding it in some cases. For experiments with faster ball speed (1.25 m/s), colli-sions occurred with both single-stage safety filters, prevent-ing uniform computation of the optimality and robustness metrics. Thus, the results are presented as a bar graph of successes and failures in Fig. 5 (right). The multistage safety filter achieved successful avoidance in all 10 trials, while single-stage filters experienced multiple failures. Failures of the predictive safety filter are likely the result of its lower control loop rate, which limits its ability to enforce safety in highly dynamic environments. Meanwhile, failures of the real-time filter are the product of its myopic avoidance behavior in conjunction with model mismatch (the single integrator model does not account for input limits). At higher speeds, obstacles exceed the input limits and eventually collide with the robot. Robustness          
+
+> 00.1 0.2 0.3 0.4 0.5 0.6
+> Optimality
+> 0
+> 0.1
+> 0.2
+> 0.3
+> Multistage
+> Real-Time
+> Predictive
+> Multistage Real-Time Predictive
+> Count
+> 0
+> 2
+> 4
+> 6
+> 8
+> 10 Successes
+> Failures
+
+Fig. 5: Analysis of Avoidance Experiment. Left Evaluated optimal-ity and robustness metrics for all 10 trials of collision avoidance with ball speeds of 1.0 m/s, with a confidence ellipse of the population mean. The results show tradeoffs in the metrics, forming an approximation of a Pareto front. Right Success/failure of exper-iment with ball speeds of 1.25 m/s. Our multistage architecture is more successful than the individual single-stage safety filters. 
+
+Fig. 6: Collision Avoidance in Practical Settings. Top Left 
+
+Quadruped avoids a soccer ball on a turf field. Top Right 
+
+Quadruped avoids a persuant dog. Bottom Left Quadruped avoids a person. Bottom Right Humanoid avoids a human. Obstacle trajectories are indicated in blue, while avoidance trajectories are shown in red. Footage is available in the supplemental video. 
+
+D. Generality of Multistage Safety Architecture 
+
+To demonstrate the generality of our safety architecture across various environments, obstacles, and robotic plat-forms, we deployed it in multiple unstructured real-world scenarios. Examples are depicted in Fig. 6. Fig. 6 (top left) shows the Unitree Go2 quadruped successfully avoiding a rolling ball on a slippery turf soccer field. Fig. 6 (top right) shows the quadruped safely avoiding an approaching dog, while Fig. 6 (bottom left) shows safe collision avoidance as the quadruped and human approach one another, demon-strating applicability across different dynamic obstacles. Fi-nally, because our ROM-based framework does not make assumptions about the underlying full-order model, we were able to deploy the control architecture on additional robotic platforms. Namely, we implemented it on the Unitree G1 humanoid robot using only the built-in LiDAR for percep-tion. Fig. 6 (bottom right) depicts the humanoid successfully avoiding collisions with an approaching person. V. CONCLUSIONS We have presented a multistage architecture for dynamic collision avoidance. We provided an occupancy mapping algorithm to incorporate perception-in-the-loop. Using this environment occupancy information, we synthesized safety constraints via PSFs, which we incorporated into two safety layers: 1) a predictive MPC layer, and 2) a real-time CBF-QP safety filter. We demonstrated the optimality, efficiency, and robustness of this architecture via Pareto analysis with hardware experiments on the quadruped. We further validate the generality of the architecture through successful collision avoidance on both quadrupedal and humanoid platforms by operating in dynamic, unstructured environments. Future work includes extensions to high-dimensional systems and integration of semantic scene understanding. REFERENCES [1] A. Ames, X. Xu, J. Grizzle, and P. Tabuada, “Control barrier function based quadratic programs for safety critical systems,” vol. 62, no. 8, pp. 3861–3876, 2017. [2] A. Ames, S. Coogan, M. Egerstedt, G. Notomista, K. Sreenath, and P. Tabuada, “Control barrier functions: Theory and applications,” pp. 3420–3431, June 2019. [3] T. G. Molnar, R. K. Cosner, A. W. Singletary, W. Ubellacker, and A. D. Ames, “Model-free safety-critical control for robotic systems,” 
+
+Robotics & Automation Letters , vol. 7, no. 2, pp. 944–951, 2022. [4] M. H. Cohen, N. Csomay-Shanklin, W. D. Compton, T. G. Molnar, and A. D. Ames, “Safety-critical controller synthesis with reduced-order models,” in 2025 American Control Conference (ACC) , pp. 5216– 5221, IEEE, 2025. [5] M. H. Cohen, T. G. Molnar, and A. D. Ames, “Safety-critical control for autonomous systems: Control barrier functions via reduced-order models,” Annual Reviews in Control , vol. 57, p. 100947, 2024. [6] M. H. Cohen, R. K. Cosner, and A. D. Ames, “Constructive safety-critical control: Synthesizing control barrier functions for partially feedback linearizable systems,” IEEE Control Systems Letters , 2024. [7] G. Bahati, R. K. Cosner, M. H. Cohen, R. M. Bena, and A. D. Ames, “Control barrier function synthesis for nonlinear systems with dual relative degree,” 2025 IEEE 64st Conference on Decision and Control (CDC) , 2025. [8] G. Bahati, R. M. Bena, and A. D. Ames, “Dynamic safety in complex environments: Synthesizing safety filters with poisson’s equation,” in 
+
+Robotics: Science and Systems , 2025. [9] M. F. Reis, A. P. Aguiar, and P. Tabuada, “Control barrier function-based quadratic programs introduce undesirable asymptotically stable equilibria,” IEEE Control Systems Letters , vol. 5, no. 2, pp. 731–736, 2020. [10] P. Mestres, Y. Chen, E. Dall’Anese, and J. Cort´ es, “Control bar-rier function-based safety filters: characterization of undesired equi-libria, unbounded trajectories, and limit cycles,” arXiv preprint arXiv:2501.09289 , 2025. [11] F. Borrelli, A. Bemporad, and M. Morari, Predictive control for linear and hybrid systems . Cambridge University Press, 2017. [12] Y. Ren, F. Zhu, G. Lu, Y. Cai, L. Yin, F. Kong, J. Lin, N. Chen, and F. Zhang, “Safety-assured high-speed navigation for MAVs,” vol. 10, no. 98, p. eado6187. [13] J. Zeng, B. Zhang, and K. Sreenath, “Safety-critical model predictive control with discrete-time control barrier function,” in 2021 American Control Conference (ACC) , pp. 3882–3889, 2021. [14] H. Ma, X. Zhang, S. E. Li, Z. Lin, Y. Lyu, and S. Zheng, “Fea-sibility enhancement of constrained receding horizon control using generalized control barrier function,” in 2021 4th IEEE International Conference on Industrial Cyber-Physical Systems (ICPS) , pp. 551– 557, IEEE, 2021. [15] J. Zeng, Z. Li, and K. Sreenath, “Enhancing feasibility and safety of nonlinear model predictive control with discrete-time control barrier functions,” in 2021 60th IEEE Conference on Decision and Control (CDC) , pp. 6137–6144, IEEE, 2021. [16] S. Liu, J. Zeng, K. Sreenath, and C. A. Belta, “Iterative convex optimization for model predictive control with discrete-time high-order control barrier functions,” arXiv preprint arXiv:2210.04361 , 2022. [17] K. P. Wabersich and M. N. Zeilinger, “Predictive control barrier functions: Enhanced safety mechanisms for learning-based control,” 
+
+IEEE Transactions on Automatic Control , vol. 68, no. 5, pp. 2638– 2651, 2022. [18] H. Abdi, P. Zhao, N. Hovakimyan, and R. Ghabcheloo, “Model predictive control barrier functions: Guaranteed safety with reduced conservatism and shortened horizon,” in 2024 American Control Conference (ACC) , pp. 1652–1657, IEEE, 2024. [19] K. Long, C. Qian, J. Cort´ es, and N. Atanasov, “Learning barrier functions with memory for robust safe navigation,” IEEE Robotics and Automation Letters , vol. 6, no. 3, pp. 4931–4938, 2021. [20] Z. Jian, Z. Yan, X. Lei, Z. Lu, B. Lan, X. Wang, and B. Liang, “Dynamic control barrier function-based model predictive control to safety-critical obstacle-avoidance of mobile robot,” arXiv preprint arXiv:2209.08539 , 2022. [21] C. Dawson, B. Lowenkamp, D. Goff, and C. Fan, “Learning safe, generalizable perception-based hybrid control with certificates,” IEEE Robotics and Automation Letters , vol. 7, no. 2, pp. 1904–1911, 2022. [22] M. De Sa, P. Kotaru, and K. Sreenath, “Point cloud-based control barrier function regression for safe and efficient vision-based control,” in 2024 IEEE International Conference on Robotics and Automation (ICRA) , pp. 366–372, 2024. [23] S. Keyumarsi, M. W. S. Atman, and A. Gusrialdi, “Lidar-based online control barrier function synthesis for safe navigation in unknown environments,” IEEE Robotics and Automation Letters , vol. 9, no. 2, pp. 1043–1050, 2024. [24] P. Tooranjipour and B. Kiumarsi, “Lidar-based model predictive control using control barrier functions,” in 2025 American Control Conference (ACC) , pp. 315–322, 2025. [25] L. Yang, B. Werner, R. K. Cosner, D. Fridovich-Keil, P. Culbertson, and A. D. Ames, “Shield: Safety on humanoids via cbfs in expectation on learned dynamics,” arXiv preprint arXiv:2505.11494 , 2025. [26] J. Liu, M. Li, J. W. Grizzle, and J.-K. Huang, “Clf-cbf constraints for real-time avoidance of multiple obstacles in bipedal locomotion and navigation,” in 2023 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pp. 10497–10504, 2023. [27] R. M. Bena, G. Bahati, B. Werner, R. K. Cosner, L. Yang, and A. D. Ames, “Geometry-aware predictive safety filters on humanoids: From poisson safety functions to cbf constrained mpc,” IEEE-RAS 24th International Conference on Humanoid Robots (Humanoids) , 2025. [28] J.-R. Chiu, J.-P. Sleiman, M. Mittal, F. Farshidian, and M. Hutter, “A collision-free mpc for whole-body dynamic locomotion and manipu-lation,” in 2022 International Conference on Robotics and Automation (ICRA) , pp. 4686–4693, 2022. [29] M. Gaertner, M. Bjelonic, F. Farshidian, and M. Hutter, “Collision-free mpc for legged robots in static and dynamic scenes,” in 2021 IEEE International Conference on Robotics and Automation (ICRA) ,pp. 8266–8272, IEEE, 2021. [30] X. Zihao, C. Hao, C. Wang, K. Sima, F. Shi, and J. Song Dong, “Rebot: Reflexive evasion robot for instantaneous dynamic obstacle avoidance,” arXiv preprint arXiv:2508.06229 , 2025. [31] T. G. Molnar, R. K. Cosner, A. W. Singletary, W. Ubellacker, and A. D. Ames, “Model-free safety-critical control for robotic systems,” vol. 7, no. 2, pp. 944–951, 2022. [32] W. D. Compton, M. H. Cohen, and A. D. Ames, “Learning for layered safety-critical control with predictive control barrier functions,” in 
+
+Proceedings of the 7th Annual Learning for Dynamics & Control Conference , vol. 283 of Proceedings of Machine Learning Research ,pp. 153–165, PMLR, 04–06 Jun 2025. [33] S. A. Esteban, M. H. Cohen, A. B. Ghansah, and A. D. Ames, “A layered control perspective on legged locomotion: Embedding reduced order models via hybrid zero dynamics,” arXiv preprint arXiv:2509.00294 , 2025. [34] R. Grandia, A. J. Taylor, A. D. Ames, and M. Hutter, “Multi-layered safety for legged robots via control barrier functions and model predictive control,” in 2021 IEEE International Conference on Robotics and Automation (ICRA) , pp. 8352–8358, IEEE, 2021. [35] L. Perko, Differential equations and dynamical systems , vol. 7. Springer Science & Business Media, 2013. [36] R. K. Cosner, Dynamic Safety Under Uncertainty: A Control Barrier Function Approach . PhD thesis, California Institute of Technology, 2025.

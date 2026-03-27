@@ -1,0 +1,348 @@
+Title: EgoMoD: Predicting Global Maps of Dynamics from Local Egocentric Observations
+
+URL Source: https://arxiv.org/pdf/2603.00167v1
+
+Published Time: Tue, 03 Mar 2026 01:10:39 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# EgoMoD: Predicting Global Maps of Dynamics from Local Egocentric Observations 
+
+Iacopo Catalano, David Morilla-Cabello, Jorge Pe˜ na-Queralta, Eduardo Montijano 
+
+Abstract —Efficient navigation in dynamic environments re-quires anticipating how motion patterns evolve beyond the robot’s immediate perceptual range, enabling preemptive rather than purely reactive planning in crowded scenes. Maps of Dynamics (MoDs) offer a structured representation of motion tendencies in space useful for long-term global planning, but constructing them traditionally requires global environment observations over ex-tended periods of time. We introduce EgoMoD, the first approach that learns to predict future MoDs directly from short egocentric video clips collected during robot operation. Our method learns to infer environment-wide motion tendencies from local dynamic cues using a video- and pose-conditioned architecture trained with MoDs computed from external observations as privileged supervision, allowing local observations to serve as predictive signals of global motion structure. Thanks to this, we offer the capacity to forecast future motion dynamics over the whole envi-ronment rather than merely extend past patterns in the robot’s field of view. Experiments in large simulated environments show that EgoMoD accurately predicts future MoDs under limited observability, while evaluation with real images showcases its zero-shot transferability to real systems. 
+
+I. I NTRODUCTION 
+
+Mobile robots operating in populated environments must plan in the presence of dynamic human activity [1]. Navigation is not only defined by static obstacles but also affected by human movement. These dynamics are often structured in recurrent patterns such as periodic flows in hallways or converging motions around shared facilities. Standard naviga-tion systems, however, typically treat people as independent moving obstacles and respond reactively to immediate obser-vations. This reactive paradigm aims at solving local avoidance but remains myopic to broader scene dynamics that could be anticipated from prior observations of motion patterns. Spatial understanding of collective motion could enable robots to anticipate congestion, identify favorable routes, and plan more efficiently. The central challenge is how to obtain such global motion patterns from the limited egocentric observations a robot naturally collects during operation. Maps of Dynamics (MoDs) [2] provide structured models of where and how motion typically occurs, enabling robots to 
+
+This work was partially supported by the Kaute Foundation through the Tutkijat Maailmalle program and by grants AIA2025-163563-C31, PID2024-159284NB-I00, funded by MCIN/AEI/10.13039/501100011033 and ERDF, the Office of Naval Research Global grant N62909-24-1-2081 and DGA project T45 23R. I. Catalano is with the University of Turku, 20014, Turku, Finland. J. Pe˜ na-Queralta is with the Centre for Artificial Intelligence, Z¨ urich University of Applied Sciences, Winterthur, Switzerland. E. Montijano and D. Morilla-Cabello are with the Instituto de Investigaci´ on en Ingenier´ ıa de Arag´ on, Universidad de Zaragoza, Spain. Corresponding: imcata@utu.fi 
+
+The code will be released upon acceptance 
+
+Fig. 1: EgoMoD learns to predict global maps of dynamics (bottom) from local video observations (top) from the egocentric vision of the robot, leveraging priors from a privileged expert. 
+
+anticipate dynamics beyond their immediate perception. For example, CLiFF-Map [3] models velocity statistics across spa-tial regions using a probabilistic framework, while FreMEn-based methods [4], [5] capture temporal variations by fitting periodic functions to long-term observations. Despite their effectiveness, the applicability of these meth-ods for robotic navigation scenarios presents two main lim-itations. First, existing MoD algorithms build predictions by fitting statistical or periodic models to accumulated historical data about the dynamics. While effective at capturing recurrent patterns, using only past data prevents the model from incorpo-rating real-time context to anticipate future behaviors. Second, these models assume constant access to global observations of the environments. Whereas in practice, the observations available to a mobile robot are inherently limited by its line of sight, raising the question of whether it is possible to infer global motion patterns from local viewpoints. Our main contribution, EgoMoD, is a novel algorithm that addresses these challenges by learning to predict future and global MoDs from current and egocentric videos. We propose a new architecture that extract visual temporal representations from short clips using video foundation models [6], combines them with pose information and decodes them into Bird’s-Eye-View (BEV) grids that anticipate collective motion patterns in the whole environment. Importantly, the model is supervised using future MoDs of the scene constructed from external global observations (see Fig. 1, left), enabling the system to transform local observations into global predictions, producing 
+
+> arXiv:2603.00167v1 [cs.RO] 26 Feb 2026
+
+forecasts not only in directly observed regions but also in unobserved areas (see Fig. 1, right). At inference time, we only require standard onboard sensors such as an RGB camera and localization, making it deployable in realistic robotic settings. Results in simulated environments confirm accurate future MoD prediction, while real-image tests highlight zero-shot transfer to real systems. II. R ELATED WORK 
+
+Our work builds on research in Maps of Dynamics (MoDs), vision-based perception, and trajectory prediction. In this sec-tion, we organize existing approaches according to their input requirements, spatial representations, and learning paradigms, highlighting the design space in which our method operates. 
+
+A. Maps Of Dynamics 
+
+MoDs represent spatial motion patterns that enable robots to anticipate where and when movement typically occurs [2]. Ex-isting approaches fundamentally differ in what types of input data they require and how they model spatial understanding. CLiFF-Map [3] relies on privileged velocity measurements collected across spatial regions, building probabilistic models of speed and orientation patterns. This approach excels at capturing complex multimodal flows where different motion behaviors intersect spatially, but requires dedicated tracking infrastructure to observe motion from an external perspective. Temporal dynamics modeling represents another key dimen-sion where approaches diverge. FreMEn [7] and its variants [4], [5], [8] conceptualize environments as temporally varying rather than static, learning periodic patterns from long-term observations. Recent efforts [9], [10] further extend this con-cept by learning how spatial motion patterns themselves evolve over time, representing gradual rather than purely periodic changes in movement behaviors. Continuous representations have also been proposed to overcome the limitations of grid-based MoDs. Zhu et al. [11] introduce an implicit neural representation that maps spatio-temporal coordinates to multi-modal velocity distributions, enabling continuous queries with-out spatial discretization. Stuede and Schappler [12] propose a Gaussian Process model for predicting human presence from sparse mobile robot observations, explicitly handling the heteroscedastic noise that arises from varying observation durations at different locations. In another direction, [13] incorporates static environmental geometry to inform dynamic predictions, highlighting how occupancy information can be used as a prior to predict move-ment. This approach suggests that environmental structure itself can offer insights into likely movement patterns, yet still relies on external sensing for accurate motion modeling. Other approaches focus on the temporal evolution of motion patterns: Yan et al. [14] combine periodic spectral models with LSTM networks for long-term MoD prediction, while event-triggered frameworks [15] employ neural stochastic differential equa-tions to capture abrupt changes in motion patterns. By leveraging these methods for supervision, our approach enables inference of spatial global motion patterns directly from short egocentric video sequences collected during regular robot operation, alleviating the need for external monitoring infrastructure at deployment time. 
+
+B. Trajectory Forecasting 
+
+Trajectory forecasting focuses on predicting future motion based on historical position data. Early methods, such as Conditional Variational Autoencoder (CVAEs) [16] and Long Short-Term Memory (LSTM) [17], have evolved into sophis-ticated Transformer-based and diffusion models [18], [19] that account for social interactions between agents. Recent work has shifted toward joint forecasting [20], predicting both human and robot trajectories to optimize robot motion based on the anticipated movement of others. Complementary approaches address crowd dynamics through different modeling paradigms. Flow-based methods model crowd dynamics as continuous pseudo-fluid fields with viscosity constraints [21], but require external LiDAR sensing for real-time navigation planning. Normalizing flows with RNN autoencoder abstractions capture full trajectory distri-butions by learning over abstracted trajectory features, but focus on short-term individual prediction [22]. Macroscopic approaches for crowd modeling, such as Kiss et al. [23], focus on aggregating crowd behaviors rather than individual trajectories. Using Convolutional Recurrent Neural Network (ConvRNN) architectures, they predict spatially-discretized crowd properties (density, velocity variance) but require over-head camera observations. Recent work has also shown that MoDs can improve long-term trajectory forecasting when used as priors to bias velocity sampling [24], and that integrating spatial motion patterns from MoDs into diffusion-based gen-erative models enhances cross-domain adaptability [25]. Unlike trajectory forecasting methods, which predict the fu-ture paths of specific agents, our approach forecasts aggregate motion tendencies without requiring explicit agent tracking at inference time. It therefore models collective spatial dynamics rather than individual trajectories, while remaining compatible with egocentric sensing. 
+
+C. Egocentric Visual Perception and Spatial Reasoning 
+
+While trajectory forecasting addresses motion prediction from position data, learning spatial understanding from ego-centric visual observations presents a distinct challenge. As-ghar et al. [26] explore how allocentric representations im-prove motion prediction in dynamic scenarios by avoiding scene blurring, while Bigazzi et al. [27] use CLIP-based region mapping to build global semantic maps from RGB-D observations during navigation. Recent end-to-end neural approaches further explore spatial learning from egocentric observations, including variational frameworks for occupancy prediction [28], pyramid networks for BEV mapping [29], spatial anticipation beyond visible regions [30], and camera-based future instance prediction [31]. A similar approach to ours uses Convolutional Neural Net-works (CNNs) trained on simulated pedestrian data to predict human occupancy distributions, but from static building maps alone, learning transferable walking patterns without requiring any sensor observations [32]. Compared to these approaches, which primarily address geometric occupancy or scene reconstruction, our method focuses on predicting dynamic motion tendencies. This dis-tinction highlights the shift from spatial layouts to forecasting collective movement patterns, derived directly from egocentric observations. III. M ETHODOLOGY 
+
+A. Problem Setup 
+
+We consider a mobile robot operating in a known popu-lated environment with humans. The robot pose at time t
+
+is denoted by rt and assumed to be known. The robot is equipped with a camera to obtain a sequence of observations 
+
+It = It, . . . , It+n
+
+ where n is the video clip duration. The goal is to predict, using only the local data from the robot, global dynamics of the environment represented as a MoD, 
+
+M, at a future time t + T . Importantly, since our goal is to forecast, we require n ≪ T .Our approach operates in two distinct phases. During train-ing , we assume the availability of privileged global infor-mation from, e.g, external cameras or different robots that observe the scene from complementary viewpoints. These global observations are used to construct ground-truth MoDs, providing supervision that covers the full environment. At 
+
+inference , only the robot’s onboard camera and its global position are required (see Fig. 1). 
+
+B. Map of Dynamics 
+
+To model the environment dynamics, we consider a MoD formulation inspired by [5]. MoDs are empirical representa-tions of motion patterns, computed by accumulating detection statistics over time. Our approach focuses on three relevant dynamic quantities:  
+
+> •
+
+Flow Magnitude ( F): the overall frequency of motion observed in a given location.  
+
+> •
+
+Dominant Direction ( D): the most frequent direction of motion.  
+
+> •
+
+Directional Entropy ( E): the variability of motion direc-tions, indicating how consistent or diverse movement is in that cell. Note that these quantities characterize motion patterns at fixed locations in the scene, independently of individual agents. 
+
+C. EgoMoD 
+
+We propose EgoMoD, a supervised learning framework for predicting MoD maps from egocentric visual input. EgoMoD comprises three key components: (i) a neural architecture that uses video and pose information to predict allocentric motion descriptors, (ii) a supervision strategy that leverages privileged global information during training to construct dense MoD maps, and (iii) a set of loss functions that enables training for each of the dynamic quantities. In the following, we describe each component in detail. 
+
+> Fig. 2: EgoMoD architecture overview. A short egocentric video sequence is processed by a frozen foundation video encoder to extract spatio-temporal features. These features are combined with a learned pose embedding via a Transformer encoder that enables self attention on a combined sequence of visual patches and robot pose. The resulting representations are reshaped to a spatial grid and decoded through a convolutional and upsampling layers to produce allocentric Maps of Dynamics.
+
+1) EgoMoD Architecture: The architecture, visible in Fig. 2, is structured into three main components:  
+
+> •
+
+Video and Pose Encoding: video clips over time 
+
+(t, t + n), It, are processed using a frozen video foun-dation encoder to extract spatio-temporal features, and robot pose information rt+n is encoded using a Multi-Layer Perceptron (MLP);  
+
+> •
+
+Attention Module: the two feature modalities are fused via an attention mechanism;  
+
+> •
+
+Map Decoder: the resulting features are decoded by three independent heads that output predictions of Ft+T , Dt+T ,and Et+T .The key idea is to combine motion cues from visual input with the global pose information over a short time n to ground the observed motion and predict allocentric dynamic maps after a time T . The specific architectural choices are described in Section IV. 
+
+2) Computing Supervision: Since the robot’s egocentric view only covers a fraction of the scene at any given time with a limited line of sight, we leverage images from external sensors that span the whole environment to collect detections across the entire space for training. Global observations can be obtained in practice from CCTV cameras or different mobile robots covering the area of interest [33]. The map is represented as a two-dimensional grid in an allocentric frame, M, following existing MoD algorithms [5]. For each cell we consider B motion direction bins covering 
+
+[0 , 2π). From each external camera feed, we extract detections of the dynamic entities in the scene using an object detector and depth information, obtaining a position and motion direc-tion (x, y, α ) in the world frame. Motion direction is estimated from centroid displacement between consecutive frames with trivial nearest-neighbor association. Since the objective is to predict collective crowd tendencies rather than individual trajectories, sophisticated data association or tracking across longer sequences is not required. All detections are accumulated over a time interval T into the grid cells, yielding orientation histograms. Formally, each grid cell c ∈ M maintains a histogram of orientation counts, (a) MoD histograms (b) Flow, F     
+
+> (c) Direction, D(d) Entropy, E
+> Fig. 3: Example of construction of our Maps of Dynamics
+
+hc(b), b = 1 , . . . , B .From these histograms, we derive the three MoD descrip-tors: 
+
+Flow Magnitude: the total number of detections observed in a cell, computed as the sum of counts across all orientation bins (see Fig. 3b) 
+
+fc =
+
+> B
+
+X
+
+> b=1
+
+hc(b). (1) 
+
+Dominant Direction: the angular bin with the maximum count, representing the most frequently observed motion di-rection. A direction is reported only if its count significantly exceeds a uniform distribution threshold (see Fig. 3c). 
+
+dc = 2πB · arg max  
+
+> b
+
+hc(b). (2) In practice, dc is represented as (cos dc, sin dc) to avoid discontinuities at angular boundaries. 
+
+Entropy : the Shannon entropy of the orientation distri-bution, quantifying directional uncertainty. High entropy in-dicates diverse or inconsistent motion; low entropy implies coherent, directed flow (see Fig. 3d). 
+
+ec = −
+
+> B
+
+X
+
+> b=1
+
+hc(b)
+
+fc
+
+log 
+
+ hc(b)
+
+fc
+
++ ϵ
+
+
+
+. (3) It is important to mention that while the supervision-MoDs are aggregated over T seconds of future observations, our model only uses egocentric frames for an initial short interval 
+
+n as input with n ≪ T . This setup ensures that the network learns to infer future dynamics from a short initial clip, without access to information present in the subsequent video used to construct the supervision maps. 
+
+3) Loss Function: We employ dedicated loss functions for each MoD descriptor. MoDs present a class imbalance between cells with observed motion and static background regions. Thus, all loss functions incorporate spatial weighting to address this imbalance. Specifically, we define a weight map W = {wc, c ∈ M} that assigns higher weight wvalid to cells containing motion observations and lower weight wbg to background cells. Furthermore, pixel-wise regression loss (e.g., Huber or MSE) treats each cell independently and may lead to over-smoothed predictions that blur motion boundaries. To address this, we incorporate a gradient-based structural term that pe-nalizes discrepancies in spatial derivatives between prediction and ground truth. This term encourages spatial coherence and sharper transitions in regions with structured motion patterns. 
+
+Flow Magnitude Loss. Combines Huber loss with agradient-based structural term for smooth convergence while maintaining sensitivity to spatial variations, 
+
+Lflow = Lhuber (F, ˆF, W) + λgrad · L grad (F, ˆF, W), (4) where F and ˆF represent the ground truth and predicted flow maps respectively. The pixel-wise Huber loss is 
+
+Lhuber (F, ˆF, W) = 1
+
+|F| 
+
+X
+
+> c∈F
+
+wc · L smooth (fc, ˆfc), (5) with 
+
+Lsmooth (fc, ˆfc) = 
+
+( 12 (fc − ˆfc)2 if |fc − ˆfc|≤ ββ · | fc − ˆfc|− 12 β2 otherwise ,
+
+(6) where β controls the transition between quadratic and linear regimes. 
+
+Direction Loss. For direction prediction, we predict the cosine and sine components of the angle separately and employ mean squared error on each component, combined with a gradient-based structural term, 
+
+Ldirection = Langle (D, ˆD, W) + λgrad · L grad (D, ˆD, W), (7) where Langle is the angular error loss (in terms of cosine and sine components). 
+
+Langle = Lmse (cos D, cos ˆD, W)+ Lmse (sin D, sin ˆD, W), (8) This formulation avoids discontinuities at angular boundaries that would arise from directly regressing angles. 
+
+Entropy Loss. Similar to flow magnitude, combines Huber loss with structural similarity, 
+
+Lentropy = Lhuber (E, ˆE, W) + λgrad · L grad (E, ˆE, W), (9) where Lhuber is defined analogously to (5)-(6) but for E.For all three descriptors, the gradient-based structural loss is defined as 
+
+Lgrad (M, ˆM, W) = 1
+
+|M| 
+
+X
+
+> c∈M
+
+wc
+
+ ∥∇ xmc − ∇ x ˆmc∥2+∥∇ y mc − ∇ y ˆmc∥2
+
+(10) where ∇x and ∇y denote the horizontal and vertical gradients computed via finite differences. For direction, Lgrad is also computed on the cosine and sine components separately. TABLE I: Model, training, and loss hyperparameters.                                   
+
+> Parameter Value Parameter Value
+> Map of Dynamics Regularization
+> Direction bins B8Pose dropout 0.3 Temporal horizon T10 / 20 s Input (patch) dropout 0.2 Grid cell size 0.30 m
+> Loss Weights Optimization
+> Valid region weight wvalid 5.0 Learning rate 1×10 −4
+> Background weight wbg 0.95 Weight decay 1×10 −4
+> Gradient loss weight λgrad 1.0 Batch size 8Huber threshold β0.1 Number of epochs 50
+
+IV. I MPLEMENTATION DETAILS 
+
+This section describes the specific architectural choices, hyperparameters, and training procedures used in our imple-mentation. 
+
+Video and Pose Encoding. We use V-JEPA2 (ViT-G variant with 384 ×384 input resolution) as the visual backbone to ex-tract spatio-temporal features from egocentric video clips [6]. Each input sequence consists of f = 8 RGB frames during time n. The V-JEPA encoder processes these frames and produces N = 2304 patch-level feature vectors V, each with dimension D = 1408 , arranged in a 48 × 48 grid. The V-JEPA encoder weights remain frozen during training; only the attention modulen and decoders are trained. The robot pose is represented as a 7-dimensional vector 
+
+r = ( x, y, z, q x, q y , q z , q w), where (x, y, z ) is the 3D position and (qx, q y , q z , q w) is the orientation quaternion. The pose en-coder network consists of a two-layer MLP ( 7→128 →64 ) with ReLU activation, dropout, and layer normalization, producing a 64-dimensional pose embedding. This embedding is then linearly projected to match the visual feature dimension D for integration with the Transformer, yielding zp ∈ RD .
+
+Attention Module. The pose embedding is treated as a pose token and prepended to the sequence of patch features. The resulting sequence [zp; V] ∈ R(1+ N )×D is processed by a Transformer encoder with 2 layers and 8 attention heads (feed-forward dimension of 512, dropout of 0.1). Self-attention allows all patches to attend to the pose token and to each other, enabling the network to learn pose-conditioned spatial relationships. After processing, the pose token is discarded, and only the patch outputs are retained. 
+
+Map Decoder. The N patch outputs are linearly projected from D to 256 dimensions and reshaped to a 48 ×48 ×256 spa-tial tensor. A convolutional decoder with progressive bilinear upsampling then maps this representation to the target map resolution. The decoder produces the final MoD prediction 
+
+ˆMt+T ∈ RH×W , where the number of output channels and final activation depend on the target map type:  
+
+> •
+
+Flow and Entropy: 1 output channel with sigmoid activation (values in [0 , 1] ) 
+
+> •
+
+Direction: 2 output channels with tanh activation (cosine and sine components) 
+
+Training Configuration. The model is trained using the AdamW optimizer with a polynomial learning rate schedule. Table I summarizes the key hyperparameters. 
+
+(a) Top-down view (b) Perspective view 
+
+Fig. 4: Overview of the hospital simulation environment shown from a top-down view (top) and a perspective view (bottom). 
+
+A. Data Augmentation 
+
+To improve generalization, we apply the following augmen-tations during training:  
+
+> •
+
+Feature noise: Gaussian noise with σ = 0 .1 multiplied element-wise to the V-JEPA features  
+
+> •
+
+Feature dropout: Random dropout of individual feature dimensions with probability 0.01  
+
+> •
+
+Pose translation: Random translation in X and Y up to 
+
+±0.2 m 
+
+> •
+
+Pose rotation: Random rotation around the vertical axis up to ±5◦
+
+Additionally, we employ pose dropout during training: with probability 0.3, the pose embedding is zeroed out. This prevents the network from simply memorizing pose-to-map correspondences and encourages learning of visual features that generalize across locations. V. E XPERIMENTAL EVALUATION 
+
+A. Simulation Environments 
+
+The training environment used for quantitative evaluation is a hospital scenario built in Gazebo using AWS Robo-Maker Hospital World, combined with a customized version of PedSim simulator [34] extended to include this hospital setting (see Fig. 4). Additionally, the agent behaviors were modified to define movement patterns and queuing behaviors at key locations. The hospital measures approximately 26 m by 56 m and contains 14 scenes designed for this study. Each scene displays diverse motions with a varying numbers of agents (10–15). The agents move following realistic low-level human dynamics and represent doctors and patients performing activities such as visiting beds and waiting at reception areas. We release the code to run our simulator and scene descriptions. 
+
+B. Real MoD computation 
+
+Our first experiment assesses the capacity to construct a MoD by fusing detections from multiple video sources in the simulation environment. Observations are collected by three static cameras. Real detections of the people in the scene are obtained using YOLOv11 [35]. Each detection is lifted into 3D space and associated with a motion direction estimate based on short-term temporal tracking. To assess the feasibility of using real-world detections for map generation, we compare the MoD generated with the real perception pipeline against that generated from simulator-provided detections. We adopt a distributional comparison Metric Flow Direction Entropy          
+
+> JS divergence 0.42 0.40 0.54 Bhattacharyya distance 0.23 0.24 0.45 Angular similarity –0.47 –
+
+TABLE II: Comparison between YOLO-based and Ground Truth MoDs. strategy across map types (flow, direction, entropy). We quan-tify differences between maps derived from simulator-provided and YOLO-based detections using: (i) Jensen–Shannon (JS) divergence as a bounded measure of distributional dissimi-larity, (ii) Bhattacharyya distance to capture overlap between distributions, and (iii) for direction maps, angular similarity to assess alignment in predominant motion directions. The results in Table II indicate that flow maps exhibit the lowest distributional discrepancy (JS = 0.42) among the evalu-ated map types, suggesting that YOLO detections preserve the spatial distribution of motion intensity despite reduced cover-age. For direction maps, an angular similarity of 0.47 indicates moderate divergence, reflecting partial alignment in dominant motion patterns. Entropy maps display the highest discrepancy (JS = 0.54), consistent with their sensitivity to fragmented or missing detections. This indicates that CCTV-like detections, even if less precise, are sufficient to approximate the general statistics needed for map-based forecasting without external infrastructure. 
+
+C. Dataset 
+
+For quantitative evaluation (Table III), we use the simulator described in Section V-A. A mobile robot explores the environ-ment along predefined trajectories while capturing egocentric RGB videos and 6-DoF pose information. From this data, we generate ground-truth motion maps by aggregating simulator-provided person detections as detailed in Section III-B. In total, the dataset contains 2500 usable training sequences, each consisting of 8 RGB frames and corresponding robot poses. The dataset is partitioned into 80% for training and 20% for validation. For testing, we leave out an entire scene to evaluate generalization. 
+
+D. Evaluation Metrics 
+
+We evaluate our method using metrics appropriate for each map type: 
+
+Flow and Entropy Maps:  
+
+> •
+
+MSE : Mean Squared Error between predicted and ground truth maps  
+
+> •
+
+MAE : Mean Absolute Error for pixel-wise comparison  
+
+> •
+
+SSIM : Structural Similarity Index to assess spatial coher-ence 
+
+Direction Maps:  
+
+> •
+
+Accuracy : Classification accuracy when direction is dis-cretized into bins  
+
+> •
+
+IoU : Intersection over Union for discretized direction classes 
+
+> Fig. 5: Photorealistic office simulated environment
+
+E. Quantitative Evaluation 
+
+Owing to the lack of directly comparable approaches in the literature, we define a baseline named Local-StefMap based on the work in [5]. It constructs motion maps using people detections from a YOLOv11 model applied to egocentric RGB-D videos. Following the model outlined in Section III-B, 
+
+Local-StefMap accumulates orientation histograms in a spatial grid over time, but only within the robot’s current field of view. Unlike our proposed method, which predicts motion patterns across the entire environment, Local-StefMap computes dy-namics strictly in regions currently visible to the robot and does not attempt to infer unobserved areas. To ensure fair evaluation, we compare both methods under two conditions: (i) local observability , where predictions are cropped to the robot’s field of view, and (ii) global observ-ability , where predictions cover the full spatial extent of the environment. In addition, we evaluate performance across two prediction horizons, 10s and 20s. We also report ground truth motion maps in both local and global forms to contextualize each method’s performance. The results in Table III demonstrate that EgoMoD outper-forms the Local-StefMap baseline in all metrics, evaluation scopes and time horizons. For flow prediction, EgoMoD achieves lower MSE and higher SSIM, indicating both im-proved accuracy and better preservation of spatial structure. Entropy predictions follow a similar pattern, with EgoMoD showing lower error and marginally better SSIM. For direction, Local-StefMap achieves comparable local accuracy in 10 s horizon, but EgoMoD shows higher IoU, indicating better agreement. The performance gap is more pronounced in the global evaluation and 20 s horizon, underscoring EgoMoD’s ability to infer motion patterns beyond the robot’s immediate field of view, a capability entirely absent in the observation-only baseline. We measure that the network inference time is below 200 ms in our experiments. 
+
+F. Real-World Experiments 
+
+To evaluate real-world applicability, we create a second environment as a photorealistic virtual replica of our university office, comprising a main room and an adjacent corridor (see Fig. 5). This environment features 6 agents following three structured motion patterns: an L-shaped trajectory through a TABLE III: Quantitative comparison on the hospital simulation environment. EgoMoD outperforms the Local-StefMap baseline on most metrics, with the advantage being more pronounced in global evaluation where the model must infer motion patterns beyond the robot’s immediate field of view.                                                                                 
+
+> Horizon Observability Method Flow Entropy Direction MSE MAE SSIM MSE MAE SSIM Accuracy IoU 10 s Local Local-StefMap [5] 204.86 8.83 0.31 30.66 5.33 0.19 0.29 0.04 EgoMoD (ours) 129.5 6.87 0.52 22.66 4.29 0.21 0.29 0.07
+> Global Local-StefMap [5] 185.24 8.35 0.81 33.3 5.74 0.73 0.24 0.02 EgoMoD (ours) 131.92 6.75 0.86 26.71 4.87 0.74 0.26 0.05
+> 20 s Local Local-StefMap [5] 220.03 9.59 0.26 30.02 5.29 0.17 0.25 0.03 EgoMoD (ours) 123.67 6.53 0.60 14.55 3.04 0.22 0.36 0.1
+> Global Local-StefMap [5] 213.91 9.19 0.71 32.16 5.62 0.63 0.24 0.02 EgoMoD (ours) 116.81 6.16 0.85 17.51 3.50 0.66 0.4 0.10
+
+Fig. 6: Qualitative results showing predicted flow, entropy, and direction maps from our model on test scenes, compared to ground truth. 
+
+doorway connecting the room and corridor, and two rectangu-lar loops, one confined to the corridor and another traversing between the corridor and main room through two doors. This controlled setup was specifically designed to minimize the sim-to-real gap: after training in simulation, we deploy the model on physical robots in the same real-world office with identical motion patterns. We conduct a small-scale deployment of the trained model in the physical university office environment that served as the basis for the office simulation. A mobile robot equipped with an RGB camera and localization system records egocentric video while 6 participants move through the space following similar motion patterns to those used in simulation. Since ground-truth motion maps are unavailable in real set-tings, we qualitatively visualize EgoMoD’s forecasting ability (Fig. 7). The results suggest that our model generalizes to real sensor inputs and produces coherent spatial dynamics predictions, even in the presence of perceptual noise and partial observations. Additional qualitative results are provided in the supplementary video. VI. D ISCUSSION & L IMITATIONS 
+
+Despite the encouraging experimental results, our approach has some limitations. First, EgoMoD is trained and evaluated within individual environments and does not generalize across distinct scenes. As a result, the learned representations are 
+
+(a) Perspective view 
+
+(b) Entropy Prediction 
+
+(c) Flow Prediction (d) Direction Prediction 
+
+Fig. 7: Qualitative results for the MoD predicted by our network on a real video clip. 
+
+environment-specific. Second, the scarcity of suitable training data remains a fundamental bottleneck. To the best of our knowledge, no existing egocentric robotics dataset provides the combination of RGB-D video, accurate localization, and dense pedestrian annotations required to construct supervision. Our reliance on simulated environments is therefore a direct consequence of this gap. For the same reasons, the current model produces predictions over a single, fixed temporal hori-zon and does not condition on time-of-day or other temporal context variables. With access to more diverse and temporally annotated data, EgoMoD could be extended to incorporate temporal conditioning and support variable prediction hori-zons. Recoding such large-scale dataset is out of the scope and resources of this project. VII. C ONCLUSIONS 
+
+We presented EgoMoD, a novel learning-based framework capable of predicting global Maps of Dynamics (MoDs) from short egocentric video sequences. Unlike traditional methods, EgoMoD leverages the semantic reasoning capabilities of a video encoder fused with robot localization to infer allocentric crowd dynamics. To enable learning of global information from local observations, we have used external cameras during training to obtain ground truth MoDs and use them as super-vision to our model. Experiments in simulated environments show that EgoMoD outperforms a detection-based baseline on flow, direction and entropy metrics, particularly in inferring motion in unobserved regions. We validated the approach in real-world scenarios, demonstrating that the system general-izes to real sensor data and produces coherent predictions with-out complex sim-to-real adaptation. Future work will focus on integrating EgoMoD into real-time navigation stacks while extending the representation to capture multimodal motion patterns in complex environments. REFERENCES [1] P. T. Singamaneni, P. Bachiller-Burgos, L. J. Manso, A. Garrell, A. San-feliu, A. Spalanzani, and R. Alami, “A survey on socially aware robot navigation: Taxonomy and future challenges,” The Int. J. of Robotics Research , vol. 43, no. 10, pp. 1533–1572, 2024. [2] T. P. Kucner, M. Magnusson, S. Mghames, L. Palmieri, F. Verdoja, C. S. Swaminathan, T. Krajn´ ık, E. Schaffernicht, N. Bellotto, M. Hanheide, 
+
+et al. , “Survey of maps of dynamics for mobile robots,” The Int. J. of Robotics Research , vol. 42, no. 11, pp. 977–1006, 2023. [3] T. P. Kucner, M. Magnusson, E. Schaffernicht, V. H. Bennetts, and A. J. Lilienthal, “Enabling flow awareness for mobile robots in partially observable environments,” IEEE Robotics & Automation L. , vol. 2, no. 2, pp. 1093–1100, 2017. [4] T. Krajnik, J. P. Fentanes, G. Cielniak, C. Dondrup, and T. Duckett, “Spectral analysis for long-term robotic mapping,” in IEEE Int. Conf. on Robot. Autom. , pp. 3706–3711, 2014. [5] S. Molina, G. Cielniak, and T. Duckett, “Robotic exploration for learning human motion patterns,” IEEE Trans. on Robotics , vol. 38, no. 2, pp. 1304–1318, 2021. [6] M. Assran, A. Bardes, D. Fan, Q. Garrido, R. Howes, M. Muckley, A. Rizvi, C. Roberts, K. Sinha, A. Zholus, et al. , “V-jepa 2: Self-supervised video models enable understanding, prediction and planning,” 
+
+arXiv preprint arXiv:2506.09985 , 2025. [7] T. Krajn´ ık, J. P. Fentanes, J. M. Santos, and T. Duckett, “Fremen: Frequency map enhancement for long-term mobile robot autonomy in changing environments,” IEEE Trans. on Robotics , vol. 33, no. 4, pp. 964–977, 2017. [8] T. Vintr, S. Molina, R. Senanayake, G. Broughton, Z. Yan, J. Ulrich, T. P. Kucner, C. S. Swaminathan, F. Majer, M. Stachov´ a, et al. , “Time-varying pedestrian flow models for service robots,” in European Conf. on Mobile Robots , pp. 1–7, 2019. [9] J. Shi and T. P. Kucner, “Learning state-space models for mapping spatial motion patterns,” in European Conf. on Mobile Robots , pp. 1–6, 2023. [10] J. Shi and T. P. Kucner, “Learning temporal maps of dynamics for mobile robots,” Robotics & Autonomous Syst. , vol. 184, p. 104853, 2025. [11] Y. Zhu, S.-M. Yang, A. Rudenko, T. P. Kucner, A. J. Lilienthal, and M. Magnusson, “Neural implicit flow fields for spatio-temporal motion mapping,” in Int. Conf. on Learning Representations , 2026. [12] M. Stuede and M. Schappler, “Non-parametric modeling of spatio-temporal human activity based on mobile robot observations,” in 
+
+IEEE/RSJ Int. Conf. on Intell. Robots and Syst. , pp. 126–133, 2022. [13] F. Verdoja, T. P. Kucner, and V. Kyrki, “Bayesian floor field: Transferring people flow predictions across environments,” in IEEE/RSJ Int. Conf. on Intell. Robots and Syst. , pp. 12801–12807, 2024. [14] Z. Yan, J. Shi, and T. P. Kucner, “Stef-lstm: A hybrid framework inte-grating periodic and sequential modeling for mapping motion patterns,” in European Conf. on Mobile Robots , pp. 1–8, 2025. [15] J. Shi, Q. Guo, and T. P. Kucner, “Event-triggered maps of dynamics: A framework for modeling spatial motion patterns in non-stationary environments,” in IEEE/RSJ Int. Conf. on Intell. Robots and Syst. ,pp. 12924–12931, IEEE, 2025. [16] T. Salzmann, B. Ivanovic, P. Chakravarty, and M. Pavone, “Trajectron++: Dynamically-feasible trajectory forecasting with heterogeneous data,” in 
+
+Eur. Conf. on Comput. Vision , pp. 683–700, Springer, 2020. [17] A. Alahi, K. Goel, V. Ramanathan, A. Robicquet, L. Fei-Fei, and S. Savarese, “Social lstm: Human trajectory prediction in crowded spaces,” in IEEE Conf. Comput. Vision & Pattern Recognition , pp. 961– 971, 2016. [18] Y. Yuan, X. Weng, Y. Ou, and K. M. Kitani, “Agentformer: Agent-aware transformers for socio-temporal multi-agent forecasting,” in IEEE Int. Conf. on Comput. Vision , pp. 9813–9823, 2021. [19] T. Gu, G. Chen, J. Li, C. Lin, Y. Rao, J. Zhou, and J. Lu, “Stochastic trajectory prediction via motion indeterminacy diffusion,” in IEEE Conf. Comput. Vision & Pattern Recognition , pp. 17113–17122, 2022. [20] S. Samavi, A. Lem, F. Sato, S. Chen, Q. Gu, K. Yano, A. P. Schoellig, and F. Shkurti, “Sicnav-diffusion: Safe and interactive crowd navigation with diffusion trajectory predictions,” IEEE Robotics & Automation L. ,2025. [21] D. Dugas, K. Cai, O. Andersson, N. Lawrance, R. Siegwart, and J. J. Chung, “Flowbot: Flow-based modeling for robot navigation,” in 
+
+IEEE/RSJ Int. Conf. on Intell. Robots and Syst. , pp. 8799–8805, 2022. [22] A. M´ esz´ aros, J. F. Schumann, J. Alonso-Mora, A. Zgonnikov, and J. Kober, “Trajflow: Learning distributions over trajectories for human behavior prediction,” in IEEE Intelligent Vehicles Symposium , pp. 184– 191, IEEE, 2024. [23] S. H. Kiss, K. Katuwandeniya, A. Alempijevic, and T. Vidal-Calleja, “Probabilistic dynamic crowd prediction for social navigation,” in IEEE Int. Conf. on Robot. Autom. , pp. 9269–9275, 2021. [24] Y. Zhu, A. Rudenko, T. P. Kucner, A. J. Lilienthal, and M. Magnusson, “Long-term human motion prediction using spatio-temporal maps of dynamics,” IEEE Robotics & Automation L. , 2025. [25] J. Shi and T. P. Kucner, “Leveraging maps of spatial motion patterns to enhance long-term adaptive trajectory prediction with diffusion models,” in European Conf. on Mobile Robots , pp. 1–8, 2025. [26] R. Asghar, L. Rummelhard, A. Spalanzani, and C. Laugier, “Allo-centric occupancy grid prediction for urban traffic scene using video prediction networks,” in Int. Conf. on Control, Automation, Robotics and Vision ,pp. 255–260, 2022. [27] R. Bigazzi, L. Baraldi, S. Kousik, R. Cucchiara, and M. Pavone, “Mapping high-level semantic regions in indoor environments without object recognition,” in IEEE Int. Conf. on Robot. Autom. , pp. 7686–7693, 2024. [28] C. Lu, M. J. G. Van De Molengraft, and G. Dubbelman, “Monoc-ular semantic occupancy grid mapping with convolutional variational encoder–decoder networks,” IEEE Robotics & Automation L. , vol. 4, no. 2, pp. 445–452, 2019. [29] T. Roddick and R. Cipolla, “Predicting semantic map representations from images using pyramid occupancy networks,” in IEEE Conf. Com-put. Vision & Pattern Recognition , pp. 11138–11147, 2020. [30] S. K. Ramakrishnan, Z. Al-Halah, and K. Grauman, “Occupancy antic-ipation for efficient exploration and navigation,” in European Conf. on Mobile Robots , pp. 400–418, Springer, 2020. [31] A. Hu, Z. Murez, N. Mohan, S. Dudas, J. Hawke, V. Badrinarayanan, R. Cipolla, and A. Kendall, “Fiery: Future instance prediction in bird’s-eye view from surround monocular cameras,” in IEEE Int. Conf. on Comput. Vision , pp. 15273–15282, 2021. [32] J. Doellinger, M. Spies, and W. Burgard, “Predicting occupancy distri-butions of walking humans with convolutional neural networks,” IEEE Robotics & Automation L. , vol. 3, no. 3, pp. 1522–1528, 2018. [33] D. Brˇ sˇ ci´ c, T. Kanda, T. Ikeda, and T. Miyashita, “Person tracking in large public spaces using 3-d range sensors,” IEEE Transactions on Human-Machine Systems , vol. 43, no. 6, pp. 522–534, 2013. [34] Z. Xie, P. Xin, and P. Dames, “Towards safe navigation through crowded dynamic environments,” in IEEE/RSJ Int. Conf. on Intell. Robots and Syst. , pp. 4934–4940, IEEE, 2021. [35] G. Jocher and J. Qiu, “Ultralytics yolo11,” 2024.

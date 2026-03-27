@@ -1,0 +1,1547 @@
+Title: Information Revelation and Alignment Faking in Stochastic Differential Games
+
+URL Source: https://arxiv.org/pdf/2603.17197v1
+
+Published Time: Thu, 19 Mar 2026 00:27:39 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Information Revelation and Alignment Faking in Stochastic Differential Games 
+
+Daniel Ralston 1, Xu Yang 1 and Ruimeng Hu 1,2
+
+Abstract — In competitive games with private objectives, ac-tions can reveal information about hidden parameters. Quan-tifying such information revelation, however, is substantially more challenging, since it depends not only on the opponent’s hidden parameter but also on the opponent’s model of the game. We study this problem via a two-player linear-quadratic stochastic differential game under partial information, in which each player knows its own coupling parameter and models the opponent’s hidden parameter through a prior. Starting from the full-information game, we characterize the Nash equilib-rium by coupled Riccati equations. We then define baseline implementable controls by averaging the equilibrium under each player’s prior. Building on this baseline, we formulate an alignment-faking control problem in which one player trades off fidelity to its implementable policy against information acquisi-tion about the opponent’s hidden parameter. The information incentive is constructed from a proxy Fisher information matrix based only on the player’s available model. This leads to a tractable saddle-point formulation with semi-explicit control characterization through Riccati systems. Numerical illustra-tions show that alignment faking can substantially improve information gain over baseline play when the faker’s model is accurate, but often at the cost of greater detectability. They also show that the proxy Fisher information can systematically differ from the true information under model misspecification. 
+
+I. I NTRODUCTION 
+
+Information can be revealed by actions in competitive games with private objectives. By observing an opponent’s behavior, a player may infer features of its hidden objective. However, quantifying such information revelation is non-trivial, since it depends not only on the opponent’s private objective but also on the opponent’s model of the game, a challenge described by Townsend in [1] as “forecasting the forecasts of others.” In games with private information, a player must therefore reason through a proxy for the true information, constructed from its own available quantities. This raises a further strategic question: Can a player delib-erately modify its behavior to reveal more information about an opponent’s hidden objective, while still appearing close to ordinary play? This paper addresses that question through what we call alignment faking (AF) control . In our setting, AF refers to a control strategy that remains close to the 
+
+This work was partially supported by the ONR grant #N00014-24-1-2432, the Simons Foundation (MP-TSM-00002783) and the NSF grant DMS-2420988. 
+
+> 1
+
+Department of Mathematics, University of California, Santa Barbara, CA 93106, USA. Email: {danielralston, xy6, rhu }@ucsb.edu .
+
+> 2
+
+Department of Statistics and Applied Probability, University of Califor-nia, Santa Barbara, CA 93106, USA. This work has been submitted to the IEEE for possible publication. Copyright may be transferred without notice, after which this version may no longer be accessible.                                             
+
+> Player A(AF)
+> Public state: XAt,t∈[0 , T ]
+> Hidden private parameter: mA
+> Goal: track mAXBt
+> Internal model: prior πBfor mB
+> Player B(Opponent)
+> Public state: XBt,t∈[0 , T ]
+> Hidden private parameter: mB
+> Goal: track mBXAt
+> Internal model: prior πAfor mA
+> AF control
+> v∗
+> Baseline implementable control
+> uA, ∗
+> Baseline implementable control
+> euB, ∗
+> Observed trajectories XAt, X Bt
+> or
+> Q1. How does player A’s information about
+> mBchange depending on πAand πB?
+> Q2. Can the AF control yield trajectories that reveal more information about mB?
+> Q3. Can player Bdetect the use of alignment faking v∗from observed trajectories?
+
+Fig. 1. Schematic of the alignment faking game. Each player knows its own coupling parameter and holds a prior on the opponent’s. Player A may deviate from the baseline implementable control via AF, while player B
+
+plays the baseline. 
+
+player’s baseline implementable control while intentionally steering the trajectory to extract more information about the opponent’s hidden parameter. The term “alignment faking” is borrowed from the AI safety literature, where it refers to systems that strategically conceal their true objectives from overseers [2], [3]. Our model gives a continuous-time game-theoretic analogue: the player using the AF control plays the role of the AI system, while the opponent plays the role of the overseer. Unlike much of the AI safety literature, where the objective of AF is often left implicit, our framework makes the underlying tradeoff explicit through a control objective which balances information gain and closeness to baseline behavior. To study this tradeoff, we consider a two-player linear-quadratic stochastic differential game; see Figure 1 for a schematic illustration. Within this setting, we develop an ana-lytically tractable quantitative framework that addresses how private beliefs shape information revelation, how purposeful deviations from baseline behavior affect information gain, and how such deviations may be detected. 
+
+1. Symmetric partial-information game with alignment faking: We formulate a two-player continuous-time stochas-tic differential game under partial information, extending earlier Stackelberg-type models [4] to a symmetric setting. We derive implementable controls as expectations of the full-information Nash equilibrium under each player’s prior on the opponent’s hidden parameter. Building on this baseline, 
+
+> arXiv:2603.17197v1 [math.OC] 17 Mar 2026
+
+we introduce an additional information-seeking control ob-jective defined through a proxy Fisher information matrix constructed from the player’s available quantities. We obtain semi-explicit characterizations of the implementable and AF controls, and establish their well-posedness through coupled Riccati systems. 
+
+2. Numerical validation and discovery: Numerical ex-periments show that the AF control can yield substantial information gains over baseline play when the alignment faker’s model is well specified, but becomes more detectable. We also show that the proxy Fisher information can sys-tematically misestimate the true information under model misspecification. Finally, we find that information quality depends mainly on the alignment faker’s own model, while the opponent’s model has a secondary but noticeable effect. 
+
+Related Literature . Dynamic games have long been used to model strategic interactions among competing agents [5], [6], [7], [8], [9], [10]. Games with incomplete information, where parameters in the dynamics or cost functionals are not known to all players, are especially relevant in adversarial settings arising in areas such as economics [11], cyber security [12], and, more recently, AI systems [3]. Previous works have studied Nash equilibria in linear-quadratic games with asymmetric information using the stochastic maximum principle [13] and with continuous type spaces via viscosity solutions of Hamilton–Jacobi equations [14]. In contrast, rather than solving for a full incomplete-information equi-librium, we model implementable controls by averaging the full-information Nash equilibrium under each player’s prior, and then study how a player can strategically deviate from this baseline to improve information extraction. Our work is also related to inverse learning and inverse optimal control, where the goal is to infer cost functions or unknown parameters from observed behavior [15], [16], [4], [17]. In the linear-quadratic setting, this inverse problem is closely tied to the coupled Riccati equations governing optimal controls, whose existence and solvability have been widely studied [18], [19]. The key difference is that we do not study passive inference alone. Instead, we introduce an active control problem in which one player deliberately modifies its behavior to increase the information revealed by the trajectory. 
+
+Notations. Boldface letters denote vectors. Super/subscripts 
+
+A (resp. B) index values associated with player A (resp. player B), and the superscript AF indexes values associated with player A’s alignment faking problem. The operator 
+
+diag {·} constructs a (block) diagonal matrix from its argu-ments. We use (·)T for transpose, ∥ · ∥ F for the Frobenius norm, and Sn×n for the space of n × n real symmetric matrices. An overline (·) and a tilde f(·) denotes quantities computed using player A’s and player B’s available information (prior), while f(·) denotes a player A proxy for a player B quantity. II. P ROBLEM SETUP AND BASELINE NASH EQUILIBRIUM 
+
+This section formulates a stochastic differential game between two competing players, A and B. Assuming all model parameters are known to both players, we characterize the Nash equilibrium through a coupled Riccati system and provide conditions for its global existence. This full-information setting serves as a baseline for the partial-information case. 
+
+A. State Dynamics and Cost Functionals 
+
+Fix T > 0 and let (Ω , F, {F t}t≥0, P) be a filtered probability space supporting a two-dimensional Brownian motion Wt = [ W At , W Bt ]T. We model players A and B by the R-valued state processes Xt = [ XAt , X Bt ]T, controlled by ut = [ uAt , u Bt ]T and subject to noise from Wt, evolving according to 
+
+dX it = uit dt + σi dW it , i ∈ { A, B }, σi > 0. (1) Let mA, m B ∈ R be fixed parameters. Player i minimizes the cost functional 
+
+Ji[u] := E
+
+h Z T
+
+> 0
+
+f i(t, x, u; mi) dt 
+
+i
+
+, i ∈ { A, B }, (2) where the running cost of player i is quadratic, defined as 
+
+f i(t, x, u; mi) := qi(xi − mix−i)2 + ri(ui)2,
+
+with qi, r i > 0, and −i refers to the player who is not i.For the baseline full-information game, we assume both players know both mA and mB , both dynamics (1), and cost functionals (2). The notion of interest is a Nash equilibrium (NE), namely, a pair of controls (uA, ∗, u B, ∗) such that neither player can reduce her cost by a unilateral deviation. In particular, we focus on Markovian NE of the form ui, ∗ 
+
+> t
+
+=
+
+ui, ∗(t, x), where ui, ∗ : [0 , T ] × R2 → R is measurable for 
+
+i ∈ { A, B }.
+
+B. Baseline Nash Equilibrium 
+
+For i ∈ { A, B }, define the best-response value function 
+
+V i(t, x) := inf  
+
+> ui
+
+E
+
+h Z Tt
+
+f i(s, Xs, us; mi) ds |Xt = x
+
+i
+
+.
+
+By dynamic programming [6, Section 5.1.4], V A and V B
+
+satisfy a coupled HJB system 
+
+0 = ∂tV A + inf 
+
+> uA
+
+uA∂xA V A + f A + uB, ∗∂xB V A
+
++ σ2 
+
+> A
+> 2
+
+∂xAxA V A + σ2 
+
+> B
+> 2
+
+∂2  
+
+> xBxB
+
+V A,
+
+0 = ∂tV B + inf 
+
+> uB
+
+uB ∂xB V B + f B + uA, ∗∂xA V B
+
++ σ2 
+
+> A
+> 2
+
+∂xAxA V B + σ2 
+
+> B
+> 2
+
+∂2  
+
+> xBxB
+
+V B ,
+
+with terminal conditions V i(T, x) = 0, where ui, ∗ =inf ui {ui∂xi V i + f i}. Using the quadratic ansatz V i(t, x) = 
+
+xTθi(t) x + ψi(t), the NE takes the form 
+
+uA, ∗(t, x; mA, m B ) = − 1
+
+> rA
+
+ xAθA
+
+> 11
+
+(t) + xB θA
+
+> 12
+
+(t) , (3) 
+
+uB, ∗(t, x; mA, m B ) = − 1
+
+> rB
+
+ xAθB
+
+> 12
+
+(t) + xB θB
+
+> 22
+
+(t) . (4) Here, for each pair (mA, m B ), the matrices θA(t), θB (t) ∈
+
+S2×2 solve the coupled Riccati system 
+
+˙θA(t) = θARAθA + θARB θB + θB RB θA − QA, (5) 
+
+˙θB (t) = θB RB θB + θARAθB + θB RAθA − QB , (6) with terminal conditions θA(T ) = θB (T ) = 0 , where θijk (t)
+
+denotes the (j, k )-entry of θi(t), and 
+
+QA =
+
+ qA −mAqA
+
+−mAqA m2
+
+> A
+
+qA
+
+
+
+, RA =
+
+ 1 
+
+> rA
+
+00 0
+
+
+
+,QB =
+
+ m2 
+
+> B
+
+qB −mB qB
+
+−mB qB qB
+
+
+
+, RB =
+
+0 00 1
+
+> rB
+
+
+
+.
+
+These equations follow by substituting the ansatz into the coupled HJB system and matching coefficients. Later, we sometimes put mA, m B after the semi-colon and write 
+
+ui, ∗(t, x; mA, m B ) and θi(t; mA, m B ), to emphasize the dependence on both parameters. Next, we state a proposition that will be important for the existence of implementable controls, discussed in Section III. 
+
+Proposition 1: Let θ = diag {θA, θ B }, and suppose 
+
+T ≤ T (mA, m B ) = ( c1c2)−1/2
+
+· arctan  (1 + m2 
+
+> A
+
++ m2 
+
+> B
+
+)( c2/c 1)−1/2, (7) where c1 = 5( r−2 
+
+> A
+
++ r−2 
+
+> B
+
+)1/2 and c2 = pq2 
+
+> A
+
++ q2 
+
+> B
+
+(1 + 
+
+m2 
+
+> A
+
++ m2 
+
+> B
+
+). Then any solution to (5)–(6) on [0 , T ] satisfies 
+
+θ(t; mA, m B ) F ≤ 1 + m2 
+
+> A
+
++ m2 
+
+> B
+
+.
+
+Proof: Write the coupled Riccati system in block form as ˙θ = F (θ) − Q where Q := diag {QA, Q B },
+
+F (θ) := θ
+
+RA 00 RB
+
+
+
+θ + θ
+
+ 0 RB
+
+RA 0
+
+
+
+θ
+
+ 0 I2
+
+I2 0
+
+
+
++
+
+
+
+θ
+
+ 0 RB
+
+RA 0
+
+
+
+θ
+
+ 0 I2
+
+I2 0
+
+ T
+
+.
+
+By submultiplicativity of the Frobenius norm, one has 
+
+∥F (θ)∥F ≤ c1∥θ∥2 
+
+> F
+
+, ∥Q∥F ≤ c2. Now define the time-reversed variable Y (t) := θ(T − t). Then ˙Y (t) =
+
+−F (Y (t)) + Q, and hence ∥ ˙Y (t)∥F ≤ ∥F (Y (t)) ∥F +
+
+∥Q∥F ≤ c1∥Y (t)∥2 
+
+> F
+
++ c2.Consider the scalar ODE ˙u = c1u2 + c2, u(0) = 0 , with explicit solution u(t) = pc2/c 1 tan( √c1c2 t). It remains finite for t < π/ (2 √c1c2). Restricting t ≤ T (mA, m B ),we have u(t) ≤ (1 + m2 
+
+> A
+
++ m2 
+
+> B
+
+). Therefore, by [20, Corollary 6.3], ∥Y (T − t)∥F ≤ u(T − t), and the result follows. 
+
+Proposition 2: Let T ≤ T (mA, m B ) as in (7). Then the coupled Riccati system (5)–(6) for θA, θB admits a unique solution over [0 , T ].
+
+Proof: Using the same definitions as in Proposition 1, let Y (t) = θ(T − t) so that Y solves the initial value problem ˙Y = −F (Y ) + Q, Y (0) = 0 . The right-hand side 
+
+G(Y ) := −F (Y ) + Q is quadratic in Y , and is therefore locally Lipschitz on any bounded subset of R4×4. By the Picard–Lindelhof theorem, there exists a unique solution of 
+
+Y on [0 , T ∗), where T ∗ is maximal. Suppose that T ∗ ≤ T ;then ∥Y (t)∥F → ∞ as t → T ∗. However, on [0 , T ∗) where the solution of Y (t) exists, Proposition 1 applies, yielding 
+
+∥Y (t)∥F ≤ 1+ m2 
+
+> A
+
++m2 
+
+> B
+
+for all t ∈ [0 , T ∗ −ϵ], contradicting blowup at T ∗.III. G AME UNDER PARTIAL INFORMATION 
+
+In the partial-information setting, the states and the cost functionals are fully known to both players, but player A
+
+knows only mA and not the parameter mB in player B’s cost, while player B knows only mB and not mA.To model this information structure, let MA ∈ [m− 
+
+> A
+
+, m +
+
+> A
+
+]
+
+and MB ∈ [m− 
+
+> B
+
+, m + 
+
+> B
+
+] be random variables describing the players’ beliefs about mA and mB . Player A knows MA =
+
+mA and assigns a prior πB to MB , while player B knows 
+
+MB = mB and assigns a prior πA to MA. The bounded supports ensure that the ODE bounds hold uniformly over all admissible realizations of MA and MB (cf. Proposition 1). Since the full-information NE controls (3)–(4) depend on both parameters, they are generally not implementable in the partial-information setting. We therefore introduce implementable controls, which depend only on each player’s available information, and derive their explicit forms. We define implementable controls by taking expectations of the full-information NE controls under each player’s prior: 
+
+uA, ∗(t, x; mA) := EπBuA, ∗(t, x; mA, M B ),
+
+euB, ∗(t, x; mB ) := EπAuB, ∗(t, x; MA, m B ).
+
+The resulting controls are therefore 
+
+uA, ∗(t, x; mA) = − 1
+
+> rA
+
+ xAθA
+
+> 11
+
+(t; mA) + xB θA
+
+> 12
+
+(t; mA),
+
+euB, ∗(t, x; mB ) = − 1
+
+> rB
+
+ xA eθB
+
+> 12
+
+(t; mB ) + xB eθB
+
+> 22
+
+(t; mB ),
+
+where θi, eθi, i ∈ { A, B }, are defined as 
+
+θA(t; mA) := EπB θA(t; mA, M B ),
+
+eθB (t; mB ) := EπA θB (t; MA, m B ), (8) and θA(t; mA, M B ), θB (t; MA, m B ) are the matrix-valued solution of (5)–(6) corresponding to the parameter pair 
+
+(mA, M B ) and (MA, m B ) evaluated at time t.Note that θA and eθB are well defined by Proposition 1 and the compactness of [m− 
+
+> A
+
+, m +
+
+> A
+
+] and [m− 
+
+> B
+
+, m + 
+
+> B
+
+].Under the implementable controls, the state dynamics become 
+
+dX At = uA, ∗(t, Xt; mA)dt + σAdW At ,dX Bt = euB, ∗(t, Xt; mB )dt + σB dW Bt . (9) Equivalently, 
+
+dXt =
+
+− θA 
+
+> 11 (t;mA)
+> rA
+
+− θA
+
+> 12 (t;mA)
+> rA
+
+− eθB  
+
+> 12 (t;mB)
+> rB
+
+− eθB 
+
+> 22 (t;mB)
+> rB
+
+ Xt dt + Σ dWt, (10) with Σ := diag {σA, σ B }. Since the drift is linear in X, with coefficients bounded on [0 , T ], the system admits a unique strong solution. IV. A LIGNMENT FAKING AND INFORMATION 
+
+REVELATION 
+
+We now formulate the alignment faking (AF) problem for player A. This choice is without loss of generality, and the same construction could be instead carried out for player B.The goal is for player A to choose a control that extracts information about player B’s hidden parameter mB , while also remaining close to the baseline implementable control 
+
+uA, ∗ so as to reduce the risk that player B detects the deviation from the baseline play. 
+
+Assumption 1 (Truncated Gaussian Priors): For the rest of the paper, we assume that both players model the op-ponent’s unknown parameter by truncated Gaussians πA =
+
+N (μA, ρ 2
+
+> A
+
+; m− 
+
+> A
+
+, m +
+
+> A
+
+), πB = N  μB , ρ 2 
+
+> B
+
+; m− 
+
+> B
+
+, m +
+
+> B
+
+, where 
+
+N (μ, ρ 2; a, b ) denotes a truncated Gaussian with density 
+
+f (m; μ, ρ, a, b ) = ϕ  m−μρ
+
+
+
+ρ Φ( b−μρ ) − Φ( a−μρ ) 1[a,b ](m), (11) and ϕ and Φ represent the density and cumulative distribution functions of a standard Gaussian N (0 , 1) .Under Assumption 1, player A knows mA and the prior parameters (μB , ρ B ) of πB , but does not know player B’s realized parameter mB nor player B’s prior parameters 
+
+(μA, ρ A) on mA. We collect the quantities unknown to player 
+
+A relevant to player B’s control in γ := ( mB , μ A, ρ A).Let vt denote player A’s AF control, and let player B use the implementable control euB, ∗. The joint dynamics are 
+
+dXt = bγ dt + Σ dWt, bγ := 
+
+ vt
+
+euB, ∗(t, Xt; mB )
+
+
+
+. (12) The objective here will balance closeness to the baseline control (i.e. minimize (vt − uA, ∗ 
+
+> t
+
+)2) with information acqui-sition about mB (cf. (14)). To ensure vt is implementable, we impose the following assumption. 
+
+Assumption 2: The AF control vt does not explicitly de-pend on the hidden quantities mB , μA, or ρA. Thus player A
+
+designs vt using only its available information, namely the realized parameter mA and the prior πB .In the sequel, we focus on implementable Markovian AF controls for player A, namely controls of the form vt =
+
+v(t, Xt; mA, π B ), with E R T 
+
+> 0
+
+|vt|2 dt  < ∞.
+
+A. Likelihood Ratio and Fisher Information (FI) 
+
+To quantify the information generated by player A’s control about γ, we derive its Fisher information matrix I(γ).We begin with the log-likelihood of γ based on the observed path {Xt}0≤t≤T . Let P0 be a reference measure under which X is driftless. By [21, Theorem 1.12], the log-likelihood is 
+
+ℓ(γ) = 
+
+Z T
+
+> 0
+
+bT 
+
+> γ
+
+(ΣΣ T)−1dXt − 12
+
+Z T
+
+> 0
+
+bT 
+
+> γ
+
+(ΣΣ T)−1bγ dt. 
+
+Differentiating with respect to γj and using (12), we obtain 
+
+∂γj ℓ(γ) = R T 
+
+> 0
+
+(∂γj bγ )T(ΣΣ T)−1Σ dWt. Hence the Fisher information matrix I(γ) has entries 
+
+I(γ)jk = E
+
+h Z T
+
+> 0
+
+(∂γj bγ )T(ΣΣ T)−1(∂γk bγ ) dt 
+
+i
+
+= 1
+
+> σ2
+> B
+
+E
+
+h Z T
+
+> 0
+
+∂γj euB, ∗ 
+
+> t
+
+· ∂γk euB, ∗ 
+
+> t
+
+dt 
+
+i
+
+,
+
+where the second equality uses Assumption 2, as ∂γj v = 0 .The derivatives ∂γ euB, ∗ are computed via differentiating the functions eθB defined in (8). A direct calculation gives 
+
+∂μA
+
+eθB (t; mB ) = EπA
+
+[θB (t; MA, m B )sμA (MA)] ,∂ρA
+
+eθB (t; mB ) = EπA
+
+[θB (t; MA, m B )sρA (MA)] , (13) 
+
+∂mB
+
+eθB (t; mB ) = EπA
+
+[∂mB θB (t; MA, m B )] ,
+
+where MA has density (11), ∂mB θB is obtained by differenti-ating the Riccati system (5)–(6) with respect to mB , yielding linear ODEs with terminal conditions ∂mB θi(T ) = 0 , and 
+
+sμA (m) = m − μA
+
+ρ2
+
+> A
+
++ ϕ  m+
+
+> A−μA
+> ρA
+
+ − ϕ  m− 
+
+> A−μA
+> ρA
+
+
+
+ρA
+
+ Φ  m+
+
+> A−μA
+> ρA
+
+ − Φ  m− 
+
+> A−μA
+> ρA
+
+ ,sρA (m) = (m−μA)2
+
+> ρ3
+> A
+
+− 1
+
+> ρA
+
++
+
+  m+
+
+> A−μA
+> ρA
+
+ϕ
+
+  m+
+
+> A−μA
+> ρA
+
+−
+
+  m− 
+
+> A−μA
+> ρA
+
+ϕ
+
+  m− 
+
+> A−μA
+> ρA
+
+
+
+> ρA
+
+ Φ
+
+  m+
+
+> A−μA
+> ρA
+
+−Φ
+
+  m− 
+
+> A−μA
+> ρA
+
+ .
+
+Remark 1 (FI and Information Revelation): Since player 
+
+A seeks to reveal mB as much as possible, we use the asymp-totic variance of its maximum likelihood estimator (MLE) as a surrogate objective. Under regularity assumptions, if cM (n)
+
+> B
+
+is an MLE estimator based on n independent repetitions of the game, then cM (n) 
+
+> B
+
+is consistent and asymptotically efficient: √n  cM (n) 
+
+> B
+
+− mB
+
+ → N  0, [I(γ)−1]mB ,m B
+
+. We refer interested readers to [21, Theorem 2.8] or to [22, Theorem 5.1] for the finite dimensional case. Although we do not explicitly model a repeated-game estimation procedure, we use the asymptotic variance 
+
+[I(γ)−1]mB ,m B as a surrogate for the information-gathering component of player A’s AF objective. To characterize this quantity, we use Schur complement and write 
+
+[I(γ)−1]mB ,m B =  ImB ,m B
+
+− ImB ,(μA,ρ A)(I(μA,ρ A),(μA,ρ A))−1I(μA,ρ A),m B
+
+−1, (14) with I(μA,ρ A),(μA,ρ A) invertible and I(γ) partitioned as 
+
+I(γ) = 
+
+ ImB ,m B ImB ,(μA,ρ A)
+
+I(μA,ρ A),m B I(μA,ρ A),(μA,ρ A)
+
+
+
+.
+
+Moreover, we observe that 
+
+ImB ,m B − ImB ,(μA,ρ A)(I(μA,ρ A),(μA,ρ A))−1I(μA,ρ A),m B
+
+= min 
+
+> z∈R2
+
+ImB ,m B + 2 z⊤I(μA,ρ A),m B
+
++ z⊤I(μA,ρ A),(μA,ρ A)z . (15) This representation introduces an auxiliary variable z and avoids explicit products of Fisher-information entries, which is useful when constructing a quadratic AF objective. 
+
+B. Proxy Alignment Faking Objective 
+
+The quantity [I(γ)−1]mB ,m B depends on parameters 
+
+(μA, ρ A, m B ) which are unknown to player A, and cannot be optimized directly by player A. We therefore construct a proxy objective using only the quantities known to player A,namely (mA, μ B , ρ B ), yielding a max-min problem (16). To motivate the proxy construction of [I(γ)−1], suppose the truncation interval [m− 
+
+> A
+
+, m +
+
+> A
+
+] is wide relative to ρA,so that πA is close to the standard Gaussian N (μA, ρ 2
+
+> A
+
+).Writing MA ≈ μA +ρAZ with Z ∼ N (0 , 1) , the sensitivities in (13) may then be approximated by 
+
+EZ ∂mA θB (t; μA + ρAZ, m B ) ,
+
+EZ Z∂ mA θB (t; μA + ρAZ, m B ) ,
+
+EZ ∂mB θB (t; μA + ρAZ, m B ) .
+
+Since player A does not know μA and ρA, we take this same approximate form but simply switch the randomness in arguments; we define proxy sensitivities as 
+
+∂μA
+
+eθB
+
+(t; mA) := EZ ∂mA θB (t; mA, μ B + ρB Z) ,∂ρA
+
+eθB
+
+(t; mA) := EZ Z∂ mA θB (t; mA, μ B + ρB Z) ,∂mB
+
+eθB
+
+(t; mA) := EπB
+
+[∂mB θB (t; mA, M B )] .
+
+where the last definition is for notational consistency. This can be understood as the worst case scenario of player A, in the sense that player B knows exactly her hidden parameter 
+
+A and her prior πB on MB .Player A then uses ∂γ eθB
+
+as a proxy for ∂γ eθB . This yields the proxy Fisher information matrix I, whose jk -th entry is  
+
+> 1
+> σ2
+> Br2
+> B
+
+E
+
+h Z T
+
+> 0
+
+ XAt ∂γj
+
+eθB 
+
+> 12
+
++ XBt ∂γj
+
+eθB
+
+> 22
+
+
+
+·  XAt ∂γk
+
+eθB 
+
+> 12
+
++ XBt ∂γk
+
+eθB
+
+> 22
+
+dt 
+
+i
+
+.
+
+As with I(γ), we partition I as 
+
+I =
+
+ ImB ,m B ImB ,(μA,ρ A)
+
+I(μA,ρ A),m B I(μA,ρ A),(μA,ρ A)
+
+
+
+.
+
+Using the proxy I and the variational identity (15), we define the proxy AF cost functional JAF as 
+
+JAF [v, z] := E
+
+h Z T
+
+> 0
+
+qAF (vt − uA, ∗ 
+
+> t
+
+)2 + rAF v2 
+
+> t
+
+dt 
+
+i
+
+−λAF  ImB ,m B +2 zTI(μA,ρ A),m B +zTI(μA,ρ A),(μA,ρ A)z,
+
+where qAF , r AF > 0 penalize deviation from implementable baseline uA, ∗ 
+
+> t
+
+and control effort respectively, while λAF >
+
+0 rewards information acquisition. We then consider the saddle-point problem 
+
+max  
+
+> z∈R2
+
+min  
+
+> v
+
+JAF [v, z]. (16) Importantly, player A optimizes JAF under dynamics 
+
+dXt =
+
+ vt,uB, ∗
+
+> t
+
+
+
+dt + Σ dWt, (17) where euB, ∗ in (12) is replaced by uB, ∗ 
+
+> t
+
+:= uB, ∗(t, Xt; mA)
+
+with uB, ∗(t, x; mA) = EπB uB, ∗(t, x; mA, M B ) since player A is unable to compute B’s true control euB, ∗.
+
+C. Solution via Quadratic Ansatz and Gradient Descent 
+
+We now solve the saddle-point problem (16)–(17). For z = [ z1, z 2]T, define the terms 
+
+g12 (t, z) := 1
+
+> rB
+
+
+
+z1∂μA
+
+eθB 
+
+> 12
+
++ z2∂ρA
+
+eθB 
+
+> 12
+
++ ∂mB
+
+eθB
+
+> 12
+
+
+
+,g22 (t, z) := 1
+
+> rB
+
+
+
+z1∂μA
+
+eθB 
+
+> 22
+
++ z2∂ρA
+
+eθB 
+
+> 22
+
++ ∂mB
+
+eθB
+
+> 22
+
+
+
+.
+
+For fixed z ∈ R2, let V AF (t, x; z) be the value function associated with JAF starting at Xt = x. Using the HJB approach and a quadratic ansatz 
+
+V AF (t, x; z) = xTθAF (t; z)x + ψAF (t; z),
+
+with θAF (t) ∈ S2×2, the minimizer over v is given by 
+
+v∗(t, x; z) = − 1 
+
+> qAF +rAF
+
+ qAF 
+
+> rA
+
+ xAθA
+
+> 11
+
+(t) + xB θA
+
+> 12
+
+(t)
+
++ xAθAF  
+
+> 11
+
+(t; z) + xB θAF  
+
+> 12
+
+(t; z)
+
+
+
+, (18) where θAF (t; z) solves the Riccati ODE 
+
+˙θAF = 1  
+
+> qAF +rAF
+
+θAF RAθAF 
+
++ qAF   
+
+> (qAF +rAF )rA
+
+ θAF RAθA + θARAθAF 
+
++ θAF RB θB + θB RB θAF − qAF rAF   
+
+> (qAF +rAF )r2
+> A
+
+θARAθA
+
+− λAF 
+
+> σ2
+> B
+
+g12 (t, z)
+
+g22 (t, z)
+
+  g12 (t, z)
+
+g22 (t, z)
+
+T
+
+, (19) with terminal condition θAF (T ) = 0 .Computing the saddle-point solution of (16) requires solv-ing (19) for each candidate z, simulating the corresponding controlled state paths, and optimizing over z. We therefore propose an iterative scheme in Algorithm 1, which alternates between exact minimization in v through the Riccati ODEs and one gradient-ascent step in z using Monte Carlo esti-mates and automatic differentiation. 
+
+Algorithm 1: Optimization of JAF 
+
+Input: Initial value z(0) ∈ R2, convergence tolerance 
+
+ϵ > 0, learning rate α > 0, sample size 
+
+NMC ∈ N.Initialize k ← 0, JAF  
+
+> prev
+
+← −∞ , JAF  
+
+> curr
+
+← ∞ ;
+
+while JAF  
+
+> curr
+
+− JAF  
+
+> prev
+
+> ϵ do 
+
+Set JAF  
+
+> prev
+
+← JAF 
+
+> curr
+
+;Compute θAF (t; z(k));Compute v∗(t, x; z(k)) according to (18); Sample NMC paths of XA under v∗(t, Xt; z(k))
+
+and XB under uB, ∗(t, Xt; mA);Compute JAF  
+
+> curr
+
+≈ JAF [v∗(·; z(k)), z(k)] with Monte Carlo; Compute ∇z JAF  
+
+> curr
+
+≈ ∇ z JAF [v∗(·; z(k)), z(k)]
+
+with automatic differentiation; Set z(k+1) ← z(k) + α∇z JAF 
+
+> curr
+
+;
+
+return  z∗, v ∗(t, x; z∗).Proposition 3 (Existence and Uniqueness of θAF ): Let 
+
+cA := max {| m− 
+
+> A
+
+|, |m+
+
+> A
+
+|} , cB := max {| m− 
+
+> B
+
+|, |m+ 
+
+> B
+
+|} , and assume ∥z∥ < r for some r > 0. Define the constants 
+
+cθ = max  sup   
+
+> [0 ,T(cA,c B)]
+
+∥θA∥F , sup   
+
+> [0 ,T(cA,c B)]
+
+∥θB ∥F ,cg = sup   
+
+> [0 ,T(cA,c B)] ,∥z∥<r
+
+∥[g12 , g 22 ]T∥F .
+
+If T < min T (cA, c B ), π  2
+
+q
+
+(d1 + 12 )  d22 
+
+> 2
+
++ d3
+
+ −1 ,where d1, d2, and d3 are defined as d1 := 1(qAF +rAF )rA ,
+
+d2 := 2qAF cθ  
+
+> (qAF +rAF )r2
+> A
+
++ 2cθ 
+
+> rB
+
+, and d3 := qAF rAF c2  
+
+> θ
+> (qAF +rAF )r3
+> A
+
++ λAF c2
+
+> g
+> σ2
+> B
+
+,then equation (19) admits a unique solution on [0 , T ].
+
+Proof: We argue as in Propositions 1 and 2. First, we bound θAF when a solution exists. Let Y (t) = θAF (T − t).From (19), applying the triangle inequality and submulti-plicativity of ∥ · ∥ F produces ∥ ˙Y ∥F ≤ d1∥Y ∥2 
+
+> F
+
++ d2∥Y ∥F +
+
+d3. By Young’s inequality for products, d2∥Y ∥F ≤ 12 ∥Y ∥2 
+
+> F
+
++ 
+
+> d22
+> 2
+
+, so that ∥ ˙Y ∥F ≤  d1 + 12
+
+∥Y ∥2 
+
+> F
+
++ d22 
+
+> 2
+
++ d3.
+
+Set ˆd1 := d1 + 12 , ˆd3 := d22 
+
+> 2
+
++ d3 and consider the scalar comparison ODE ˙u = ˆd1u2 + ˆd3, u (0) = 0 . As in Proposition 1, if T < π
+
+> 2
+
+√ ˆd1 ˆd3
+
+then u(t) remains bounded on 
+
+[0 , T ]. By [20, Corollary 6.3], ∥Y (t)∥F ≤ u(t), so any local solution of (19) is bounded on [0 , T ].Lastly, as in Proposition 2, since the right-hand side of (19) is locally Lipschitz in θAF , the Picard–Lindel¨ of theorem gives a unique local solution near T . The boundedness established above rules out finite-time blow-up, so the local solution extends uniquely to all of [0 , T ].
+
+D. Detection of Alignment Faking 
+
+We now consider a heuristic detection procedure from player B’s perspective. Using the prior πA, player B form its own implementable prediction of player A’s baseline control: 
+
+euA, ∗ 
+
+> t
+
+:= EπA uA, ∗(t, Xt; MA, m B ).
+
+Player B then considers the residual process 
+
+dν t := dX At − euA, ∗ 
+
+> t
+
+dt, 
+
+which measures the discrepancy between the observed state increment and the increment predicted by player B’s model of player A’s baseline behavior. Under the non-AF dynamics (9), dν t =  uA, ∗ 
+
+> t
+
+− euA, ∗
+
+> t
+
+dt +
+
+σAdW At . Since both uA, ∗ and euA, ∗ are linear in states, the drift of νt is linear in the state: 
+
+[uA, ∗ − euA, ∗]( t; x) = − 1
+
+> rA
+
+
+
+xA θA 
+
+> 11
+
+− eθA
+
+> 11
+
+ + xB  θA 
+
+> 12
+
+− eθA
+
+> 12
+
+
+
+=: δA
+
+> 11
+
+(t)xA + δA
+
+> 12
+
+(t)xB ,
+
+where δA 
+
+> 11
+
+and δA 
+
+> 12
+
+are deterministic functions depending on the discrepancy between the two players’ priors. If player A instead uses the AF control v∗(t, x; z∗) from (16), then instead dν t =  v∗(t, Xt; z∗)− euA, ∗
+
+> t
+
+dt +σAdW At ,and the drift becomes 
+
+v∗(t; x;z∗) − euA, ∗(t, x; mB )= − 1 
+
+> qAF +rAF
+
+ qAF 
+
+> rA
+
+ xAθA 
+
+> 11
+
++ xB θA
+
+> 12
+
+
+
++ xAθAF  
+
+> 11
+
++ xB θAF 
+
+> 12
+
+
+
++ 1
+
+> rA
+
+ xA eθA 
+
+> 11
+
++ xB eθA
+
+> 12
+
+
+
+=: ηAF  
+
+> 1
+
+(t; z∗)xA + ηAF  
+
+> 2
+
+(t; z∗)xB , where 
+
+ηAF  
+
+> 1
+
+(t) := 1
+
+> rA
+
+eθA 
+
+> 11
+
+− 1 
+
+> qAF +rAF
+
+ qAF  
+
+> rA
+
+θA 
+
+> 11
+
++ θAF 
+
+> 11
+
+
+
+,ηAF  
+
+> 2
+
+(t) := 1
+
+> rA
+
+eθA 
+
+> 12
+
+− 1 
+
+> qAF +rAF
+
+ qAF  
+
+> rA
+
+θA 
+
+> 12
+
++ θAF 
+
+> 12
+
+
+
+.
+
+Thus, under both non-AF and AF objective, the drift of the residual process is linear in the state, but with different coefficients. For numerical detection, we discretize the residual as 
+
+∆νtk := XAtk+1 − XAtk − euA, ∗(tk, Xtk ; mB )∆ t. 
+
+If the game were played repeatedly, we could then perform, for each time step tk, a least-squares regression of ∆νtk on 
+
+XAtk and XBtk : ∆νtk ≈ α1(tk)XAtk + α2(tk)XBtk + ϵk, where 
+
+ϵk ∼ N (0 , σ 2
+
+> A
+
+∆t).When the priors πA and πB are reasonably accurate, our numerical experiments in Section V-A indicate that the magnitudes of α1 and α2 tend to be larger under AF than under baseline play. This motivates the detection statistic 
+
+DAF := max  max 
+
+> tk
+
+α1(tk) , max 
+
+> tk
+
+α2(tk) . (20) Heuristically, larger values of DAF indicate a higher likeli-hood that player A is using the AF control rather than the baseline implementable control. We do not formulate a formal hypothesis test here; instead, 
+
+DAF serves as a heuristic detection score. In our numeri-cal experiments (see Figure 2), DAF exhibits a consistent separation between AF and baseline controls across the tested parameter regimes. This detection procedure requires player B to observe multiple independent realizations of the game, which is in line with the discussion in Remark 1. As expected, when the priors πA and πB are substantially mis-specified, or when qAF /λ AF is large, the separation between AF and baseline detection scores decreases. This reflects the tradeoff between information gain and detectability. V. N UMERICAL ILLUSTRATIONS 
+
+In this section, we present numerical experiments illus-trating the main findings of the paper. We compare the asymptotic variance of mB , given by [I(γ)−1]mB ,m B , with its proxy counterpart [I(γ)−1]mB ,m B under both AF and baseline controls. Our experiments focus on three aspects: the relationship between accuracy of the priors, information gain, and detectability; the effect of mean misspecification in πA and πB on information quality; and the role of the AF intensity λAF when the prior means are correctly specified. Unless otherwise stated, all experiments use the following parameter configuration: 
+
+T = 1 .0, mA = mB = 1 .0, μA = μB = 1 .0,qA = rA = qB = rB = rAF = 1 .0, σA = σB = 0 .1.Controlled SDEs are simulated by the Euler–Maruyama scheme on a uniform grid of N = 100 time steps over [0 , T ].All expectation estimated via Monte Carlo uses 50 , 000 
+
+independent samples. For all experiments, Algorithm 1 uses 
+
+z(0) = 0, ϵ = 10 −4, α = 0 .05 . We observe stable numerical convergence across all experiments, with termination occur-ring within 70 iterations in every case. In addition, motivated by Proposition 3, we monitor z throughout the iterations and observe that ∥z∥ < 2 in all experiments. 
+
+A. Trajectories, Information, and Detectability 
+
+Figure 2 provides a combined view of player A’s AF control problem and information acquisition. We examine the case that the mean of πA is correctly specified, while the mean of πB ranges from correct to misspecified.                          
+
+> Fig. 2. Combined view of AF behavior with fixed μA=mA= 1 .0and varying μB∈ { 1.0,1.2,1.5,1.8,2.0,2.2}. Top panels show state (left) and control (right) trajectories in the case that μB=mB= 1 .0. Bottom panels show asymptotic variance (left) and regression-based detectability
+> DAF (right), both computed via Monte Carlo. Parameters: qAF = 5 .0,
+> λAF = 2 .5, and ρA=ρB= 0 .1.
+
+The top panels show two sampled state and control tra-jectories of player A in the case that μB = 1 .0. The AF control v∗ exhibits noticeably larger inputs than the baseline control uA, ∗, reflecting the alignment faker’s (player A’s) active exploration to extract information about MB .The bottom-left panel compares the asymptotic variance 
+
+[I(γ)−1]mB ,m B and its proxy under the AF control as μB
+
+varies. When μB = mB , both the proxy and true variance are small, indicating effective information extraction. As μB in-creases, both variances grow, but the proxy variance increases faster than the true one, showing that the proxy system-atically overestimates uncertainty under misspecification of 
+
+πB . Thus, player A’s self-assessment of information quality becomes increasingly unreliable as her model becomes more inaccurate. The bottom-right panel examines detectability via the regression-based procedure described in Section IV-D. For each value of μB , we report DAF defined in (20) under both the AF and baseline controls. When μB is close to the true value mB , the AF detection magnitude is substantially larger than the baseline, indicating that the AF behavior is readily detectable. As μB increases, the AF detection score moves closer to the baseline level, since a more misspecified 
+
+πB yields AF controls closer to the baseline. This highlights a tradeoff: an accurate prior πB improves information gain but also increases detectability. 
+
+B. Effect of Mean Misspecification on Information 
+
+We next examine the effect of mean misspecification in both players’ priors in Figure 3, by varying both μA and 
+
+μB . Under the AF control (solid lines), the true asymptotic variance [I(γ)−1]mB ,m B increases with μB , showing that a more misspecified model for player A degrades information quality. By contrast, varying μA produces only modest separation among the curves, suggesting that πB is the main driver of the true information gained by the alignment faker, while πA plays a secondary role. Under the baseline control (dashed lines), the true asymp-totic variance is nearly constant across all μA and μB , and remains substantially higher than the AF variance when 
+
+μB is close to the true value mB . We also note that the proxy asymptotic variance, although not shown, increases as 
+
+πB becomes more misspecified. However, since the proxy 
+
+[I(γ)] −1 depends only on πB by design, πA has no effect.                              
+
+> Fig. 3. True asymptotic variance [I(γ)−1]mB,m Bfor μA∈{1.0,1.25 ,1.5,1.75 ,2.0}and μB∈ { 1.0,1.25 ,1.5,1.75 ,2.0,2.25 }un-der both AF (solid) and no AF (dashed) gameplay. Parameters: qAF = 5 .0,
+> λAF = 2 .5, and ρA=ρB= 0 .1.
+
+Overall, these results show that a well-specified prior πB
+
+allows player A to achieve a substantial information gain relative to the baseline control, while misspecification in πA
+
+has only a limited effect on the true information extracted. 
+
+C. Role of λAF under AF Control 
+
+Finally, Figure 4 examines how the AF intensity λAF 
+
+affects true and proxy asymptotic variance when the means of πA and πB are fixed and the standard deviations vary. In the top panel, as λAF increases, the true asymp-totic variance [I(γ)−1]mB ,m B under the AF control (solid Fig. 4. True asymptotic variance [I(γ)−1]mB ,m B (top) and proxy asymp-totic variance [I(γ)−1]mB ,m B (bottom) versus λAF ∈ { 0, 1, 2, 3, 4, 5},for standard deviations ρA = ρB ∈ { 10 −7, 0.1, 0.2, . . . , 1.0} and under both AF (solid) and no AF (dashed) gameplay. Each point is computed by Monte Carlo. Parameters: qAF = 10 .0, μA = μB = 1 .0.
+
+lines) decreases, with smaller standard deviations ρA = ρB
+
+yielding more pronounced reductions. The baseline variance (dashed lines) remains approximately constant across all 
+
+λAF . The bottom panel shows that the proxy asymptotic variance [I(γ)−1]mB ,m B exhibits a similar decreasing trend as λAF increases. Interestingly however, we observe that the proxy consistently overestimates the true variance at small 
+
+ρi and underestimates it at larger ρi, suggesting that proxy information can be systematically biased. Altogether, this confirms that information gain is driven by the AF control rather than the baseline dynamics, and that 
+
+λAF serves as an effective parameter for tuning the amount of information extracted. VI. C ONCLUSIONS AND FUTURE WORK 
+
+We studied a two-player stochastic differential game un-der partial information, where each player knows her own coupling parameter and models the opponent’s through a prior. From the full-information Nash equilibrium, we de-rived implementable baseline controls by averaging them under the players’ priors and characterized them through coupled Riccati systems. The alignment-faking problem was formulated as a tractable saddle-point control problem driven by a proxy Fisher information objective and remaining close to the implementable baseline. Numerical results showed that alignment faking can significantly increase information gain, but often at the cost of greater detectability, and that the proxy Fisher information may be systematically mis-leading under model misspecification. Future work includes extending the framework beyond the linear quadratic setting, allowing both players to act strategically on information rev-elation, incorporating dynamic learning and belief updating, and studying richer detection rules and their effect on the tradeoff between information gain and camouflage. REFERENCES [1] R. M. Townsend, “Forecasting the forecasts of others,” Journal of Political Economy , vol. 91, no. 4, pp. 546–588, 1983. [2] R. Greenblatt, C. Denison, B. Wright, F. Roger, M. MacDi-armid, S. Marks, J. Treutlein, T. Belonax, J. Chen, D. Duvenaud 
+
+et al. , “Alignment faking in large language models,” arXiv preprint arXiv:2412.14093 , 2024. [3] E. Hubinger, C. Van Merwijk, V. Mikulik, J. Skalse, and S. Garrabrant, “Risks from learned optimization in advanced machine learning sys-tems,” arXiv preprint arXiv:1906.01820 , 2019. [4] R. Hu, D. Ralston, X. Yang, and H. Zhou, “Strategic inference in Stackelberg games: Optimal control for revealing adversary intent,” 
+
+arXiv preprint arXiv:2510.05641 , 2025. [5] T. Bas ¸ar and G. J. Olsder, Dynamic Noncooperative Game Theory .SIAM, 1998. [6] R. Carmona, Lectures on BSDEs, Stochastic Control, and Stochastic Differential Games with Financial Applications . SIAM, 2016. [7] H. Zhou, D. Ralston, X. Yang, and R. Hu, “Adversarial decision-making in partially observable multi-agent systems: A sequential hypothesis testing approach,” arXiv preprint arXiv:2509.03727 , 2025. [8] ——, “Integrating sequential hypothesis testing into adversarial games: A Sun Zi-inspired framework,” in 2025 IEEE 64th Conference on Decision and Control (CDC) . IEEE, 2025, pp. 4540–4546. [9] Y. Kim, H. Zhou, A. Benvenuti, R. Hu, and M. Hale, “Stealthy misdirection in linear quadratic control with sequential hypothesis testing,” 2026, in preparation. [10] Y. Kim, A. Benvenuti, B. Chen, M. Karabag, A. Kulkarni, N. D. Bastian, U. Topcu, and M. Hale, “Defining and measuring deception in sequential decision systems: Application to network defense,” in 
+
+MILCOM 2024-2024 IEEE Military Communications Conference .IEEE, 2024, pp. 1–6. [11] S. Morris and H. S. Shin, “Social value of public information,” 
+
+American Economic Review , vol. 92, no. 5, pp. 1521–1534, 2002. [12] T. Zhang, L. Huang, J. Pawlick, and Q. Zhu, “Game-theoretic anal-ysis of cyber deception: Evidence-based strategies and dynamic risk mitigation,” Modeling and Design of Secure Internet of Things , pp. 27–58, 2020. [13] D. Chang and H. Xiao, “Linear quadratic nonzero sum differential games with asymmetric information,” Mathematical Problems in En-gineering , vol. 2014, no. 1, p. 262314, 2014. [14] P. Cardaliaguet and C. Rainer, “Games with incomplete information in continuous time and for continuous types,” Dynamic Games and Applications , vol. 2, no. 2, pp. 206–227, 2012. [15] T. L. Molloy, J. J. Ford, and T. Perez, “Inverse noncooperative dynamic games,” IFAC-PapersOnLine , vol. 50, no. 1, pp. 11 788–11 793, 2017. [16] L. Peters, D. Fridovich-Keil, V. Rubies-Royo, C. J. Tomlin, and C. Stachniss, “Inferring objectives in continuous dynamic games from noise-corrupted partial state observations,” arXiv preprint arXiv:2106.03611 , 2021. [17] W. Ward, Y. Yu, J. Levy, N. Mehr, D. Fridovich-Keil, and U. Topcu, “Active inverse learning in Stackelberg trajectory games,” in 2025 American Control Conference (ACC) . IEEE, 2025, pp. 1547–1553. [18] H. Abou-Kandil, G. Freiling, V. Ionescu, and G. Jank, Matrix Riccati Equations in Control and Systems Theory . Birkh¨ auser, 2012. [19] G. Papavassilopoulos, J. Medanic, and J. Cruz Jr, “On the existence of Nash strategies and solutions to coupled Riccati equations in linear-quadratic games,” Journal of Optimization Theory and Applications ,vol. 28, no. 1, pp. 49–76, 1979. [20] J. K. Hale, Ordinary Differential Equations . Courier Corporation, 2009. [21] Y. A. Kutoyants, Statistical Inference for Ergodic Diffusion Processes .Springer Science & Business Media, 2013. [22] E. L. Lehmann and G. Casella, Theory of Point Estimation . Springer, 1998.

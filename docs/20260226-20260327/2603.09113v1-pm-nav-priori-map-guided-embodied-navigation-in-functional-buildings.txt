@@ -1,0 +1,237 @@
+Title: PM-Nav: Priori-Map Guided Embodied Navigation in Functional Buildings
+
+URL Source: https://arxiv.org/pdf/2603.09113v1
+
+Published Time: Wed, 11 Mar 2026 00:27:28 GMT
+
+Number of Pages: 7
+
+Markdown Content:
+# PM-Nav: Priori-Map Guided Embodied Navigation in Functional Buildings 
+
+Jiang Gao 1,2∗, Xiangyu Dong 2∗, Haozhou Li 2, Haoran Zhao 3, Yaoming Zhou 3, Xiaoguang Ma 1,2†
+
+Abstract — Existing language-driven embodied navigation paradigms face challenges in functional buildings (FBs) with highly similar features, as they lack the ability to effectively utilize priori spatial knowledge. To tackle this issue, we propose a Priori-Map Guided Embodied Navigation (PM-Nav), wherein environmental maps are transformed into navigation-friendly semantic priori-maps, a hierarchical chain-of-thought prompt template with an annotation priori-map is designed to enable precise path planning, and a multi-model collaborative action output mechanism is built to accomplish positioning decisions and execution control for navigation planning. Comprehensive tests using a home-made FB dataset show that the PM-Nav obtains average improvements of 511% and 1175%, and 650% and 400% over the SG-Nav and the InstructNav in simulation and real-world, respectively. These tremendous boosts elucidate the great potential of using the PM-Nav as a backbone naviga-tion framework for FBs. 
+
+I. INTRODUCTION Current research on language-driven embodied navigation mainly focuses on small-scale indoor scenes with enclosed spaces and simple structures. The core of such research lies in parsing natural language instructions, perceiving the surrounding environment, and completing tasks such as exploration, decision-making, and target localization [1], [2], [3], [4], [5], [6]. Functional buildings (FBs) feature a standardized spatial layout and are designed to meet the functional needs of specific organizations, such as schools, hospitals, and governments. Instead of focusing on per-sonalized or artistic expression, they feature open spaces, complex structures, and highly similar indicative features. In such environments, traditional navigation methods perform poorly. Firstly, existing research in the path planning phase mostly relies on structured discrete nodes or simplified maps, lacking the capability for global planning in complex FBs. Secondly, current vision-language models (VLMs) have significant limitations in image logical reasoning, unable to accurately understand the spatial logical relationships which exist in complex priori maps. This makes it difficult to effectively convert priori spatial information into naviga-tion guidance. Finally, there are numerous interferences and ambiguous perceptual cues in complex FB environments, making it hard for intelligent agents to determine the next action in the stage of action decision-making.      
+
+> 1The authors are with the Faculty of Robot Science and Engineering at Northeastern University, Shenyang, China
+> 2The authors are with the Foshan Graduate School of Innovation at Northeastern University, Foshan, China
+> 3The authors are with the School of Aeronautic Science and Engineering at Beihang University, Beijing, China
+> ∗These authors contributed equally to this work.
+> †Corresponding author: Xiaoguang Ma (maxg@mail.neu.edu.cn)
+
+Although navigation tasks in FBs hold significant practical value, such as for service robots, related research is barely available. In comparison, humans can successfully navigate in FBs using priori maps. Inspired by this, we design a priori-map guided navigation to help the model gain deeper understanding of the spatial structure of FBs, significantly enhance navigation reasoning capabilities and execute pre-cise decisions. Although VLMs are highly expected to excel in map understanding and route planning tasks, experimental results indicate that there remains a significant gap between the models’ visual reasoning capabilities and human cognitive levels. To address this core issue, this study proposes a topo-logical representation method that integrates room features and path information, constructs a navigation-friendly se-mantic priori map, and enhances VLMs’ ability to understand spatial structures. On the basis of obtaining the semantic priori map, this study adopts a hierarchical chain-of-thought prompting tem-plate and performs joint output in combination with the annotated priori maps. By defining the starting segment and target room, accurate global navigation plannings can be generated and the navigation planning performance of the VLMs in complex FBs can be greatly improved. To enable intelligent agents to generate precise actions in complex FBs, this paper proposes a multi-model collabora-tive mechanism for outputting action instructions required for localization and navigation planning execution. Specifically, the agent completes self-localization by identifying surround-ing landmarks before the planning phase. After the planning phase, the landmarks to be detected and their corresponding first-person action sequences are clarified according to the planning results. Among them, coarse-grained actions are generated by VLMs, while fine-grained actions are generated through the collaboration of the base vision model and the PixelNav neural network [7]. This mechanism forms a closed-loop process of ”target determination → search →
+
+verification → target update”, ensuring that the agent can continuously advance toward the final target. Given the fact that no suitable simulation environment exists for FBs now, we also construct 6 FB simulation environments with distinct structures based on the Gazebo platform. In summary, the main contributions of this paper are as follows:  
+
+> •
+
+A priori map guided embodied navigation framework PM-Nav is proposed to mimic human navigation be-haviors in FB scenarios.  
+
+> •
+
+In the PM-Nav, environmental maps are parsed into segment-based semantic ones to enhance the logical reasoning limitation of the VLMs, a H-CoT prompt-
+
+> arXiv:2603.09113v1 [cs.RO] 10 Mar 2026
+
+ing template is introduced to integrate priori-map cues with symbolic annotations to generate accurate global navigation plans, and a multi-modal collaborative mech-anism is designed to produce fine-grained actions. To the best of our knowledge, it is the first work to deeply explore embodied navigation performance in FBs.  
+
+> •
+
+A novel navigation dataset is constructed to facilitate navigation research for FBs.  
+
+> •
+
+Both simulation and real-world experiments show that the PM-Nav outperforms existing zero-shot navigation SOTA methods greatly. II. RELATED WORK 
+
+A. Simulators for Embodied Navigation 
+
+Current research on embodied navigation mainly focuses on three environments, i.e., indoor household navigation (R2R [8], R4R [9], RxR [10]) based on discrete settings like Matterport3D [11], continuous navigation like VLN-CE [12] using platforms such as Habitat [13], and outdoor navigation (Touchdown [14], Map2Seq [15]) based on urban street views. Although these studies cover diverse environ-ments such as homes, offices, and city streets, research on functional buildings (FBs) with complex layouts and densely distributed and highly similar landmarks is not available yet. 
+
+B. Path Planning Methodologies 
+
+Several path planning methods exist for various navigation tasks. Traditional approaches partially rely on predefined topological structures of the environment, performing graph-based path search to improve planning [16]. Alternatively, reinforcement learning and imitation learning methods focus on acquiring navigation policies from experience to real-ize end-to-end VLN [17]. Approaches based on semantic maps attempt to construct visual-semantic representations and leverage graph neural networks for navigation decisions, enhancing the coordination between perception and control [18]. Recently, VLM-assisted methods aim to exploit their powerful reasoning capabilities for task planning and seman-tic annotation for end-to-end VLN in unseen scenes [19]. In this work, we propose a novel path planning approach that integrates structured semantic representations with the reasoning abilities of VLMs, improving VLMs’ capability in understanding environment maps and generating effective first-person navigation plannings. 
+
+C. VLMs based Embodied Navigation 
+
+VLMs are increasingly applied to embodied navigation tasks due to their reasoning capabilities. MapGPT [20] lever-ages map-guided GPT agents for global planning. Mobility VLA [21] combines VLMs’ contextual reasoning with robust graph-based navigation. PixelNav [7] uses pixels as goal specifications. NavGPT [22] handles multimodal input, open-world interaction, and progress tracking. DiscussNav [4] enables expert-based collaborative decision-making. Despite their success, they lack the ability to navigate in FBs where objects have highly similar features. In contrast, we design an environment map parsing and multi-model collaborative action output method to help agents understand the spatial relationship between paths and rooms, and locate landmarks within the environment. III. METHODOLOGY Fig. 1 illustrates the proposed framework. Firstly, a priori environment map is parsed into a semantic priori one that encodes associative relationships between paths and rooms. Secondly, a hierarchical chain-of-thought prompting (H-CoT prompt) template is combined with the annotated priori-map and provided to a VLM to generate the path plan-nings that guide subsequent exploration, and the target is identified based on the Nav Executor. Finally, a panoramic image of the current environment is captured and input to the VLM to generate coarse-grained actions. Subsequently, GroundingDINO and SAM work in collaboration to mark the target landmark. The coarse-grained action information, combined with the marked landmark, is then fed into the Pixel Navigation Neural Network to generate fine-grained actions. If the target is successfully detected, the system proceeds to detect the next landmark. Otherwise, it continues to locate old landmark. 
+
+A. Map Parsing 
+
+Since VLMs excel in textual reasoning [23] and structured text aids inference [24], we parse the environment map to a structured semantic priori-map, using a Tkinter interface [25]. Due to the common presence of the high similarity in FB environments, we assign room IDs for efficient internal communication. For paths, we define key waypoints, e.g., start, turn, branch, and end fork, and use these annotations to construct the path structure. To reduce the cognitive load on the VLM, we design a segmented representation com-bining room and path information, effectively representing the room-path topology with fewer details. Room waypoints are linked to the nearest room based on distance, and the path is divided into segments based on the key waypoints and the room waypoints, such as seg13(room14–room7), which indicates that in the path, segment 13 is located between room14 and room7. This process is executed once per environment. By using this method, we simplify envi-ronment map representation into structured semantic priori-map, enabling VLMs to leverage their textual reasoning capabilities for navigation plannings. 
+
+B. VLM Planning 
+
+Although the semantic priori-maps can reduce the diffi-culty of map understanding for VLMs to some extent, they still have limitations in generating accurate path plannings. To further improve VLM navigation plannings, we design a H-CoT prompt template which includes descriptions of these visual tags to strengthen the model’s environmental understanding and path-planning accuracy. Meanwhile, since tokenized image information is proven to enhance VLM out-put quality [26], we construct an annotation priori-map based on the semantic priori-map to assist navigation planning. V
+
+Annotated Prior-Map 
+
+H-CoT Prompt 
+
+A Global Path 
+
+Planning 
+
+V
+
+An Environment Map 
+
+TKinter 
+
+Marked Landmark 
+
+Fine-Grained 
+
+Action 
+
+VLM(GPT4o) 
+
+> GroundingDINO
+> SAM
+> Pixel Navigation
+> Neural Network
+
+Map Parsing VLM Planning Action Generation 
+
+Coarse-Grained 
+
+Action 
+
+Next 
+
+Landmark ✓
+
+> V
+
+Panoramic Images 
+
+VLM(GPT4o) 
+
+Nav Executor Old 
+
+Landmark 
+
+> {"seg1": "start-room1",
+> "start_route": "route1",
+> "start_pose": [4490, 445],
+> "end_route": "route3",
+> "end_pose": [4489, 445]}
+
+V
+
+A Semantic Prior-Map Fig. 1: Overview of the Priori-Map Guided Embodied Navigation. The navigation task is divided into three steps, i.e., determining the relative spatial relationship between the agent’s current position and the target on the priori-map, identifying key waypoints required to reach the destination, and generating corresponding first-person navigation actions based on the waypoint information. We additionally structure the spatial relationships between key path segments, e.g., ”from start to turn1, the direction is south”, to help the VLM infer the correct actions at decision points, thereby improving navigation accuracy. Fig. 2 presents details of the global path planning output by the VLM, where the planning starts at seg13 and targets the room17 area. This path planning takes room nodes and special marker points as the division basis, decomposing the overall path into several consecutive road segments. Within this framework, the navigation task of the agent for each road segment is simplified to locate and reach the target landmark corresponding to that road segment, without the need to process global path information. 
+
+C. Action Generation 
+
+To support general-purpose environment exploration and ensure accurate localization of target landmarks, we propose a collaborative framework that integrates VLM, base vision models, and PixelNav neural network [7]. The agent first uses the VLM to generate coarse-grained action commands. Specifically, the robot rotates to capture images from six directions, which are stitched into a panoramic view with annotated observation angles. During initial exploration, a target is predefined, and the VLM is prompted to locate the landmark within the panorama images and predict its direction. This enhances the model’s spatial reasoning. Since the initial outputs are coarse, e.g., every 30 degrees, we refine them using a combination of GroundingDINO [27], SAM [28] and neural networks. The mask center, along with the current first-person observation, is fed into a neural network based on a fine-tuned PixelNav structure, which outputs a more precise direction toward the target. 
+
+Localization The agent captures images at 30°, 90°, 150°, Introduction: <Seg Data>: The picture was drawn         
+
+> based on this information,......
+> Analyze: Firstly, analyze the spatial relationship
+> b e t w e e n < C u r r e n t S e g > a n d < Ta r g e t
+> Room>,......Secondly, based on <Seg Data>, which
+> waypoints it should pass through,......Finally, based
+> on the<W aypoints T urning>, determine the first
+> person action,......
+> Note: Your answer should be formatted as a dict, for
+> example,......
+> H-CoT Prompt
+> Global Path Plannings
+> room7: Go straight(seg13-seg14)
+> room8: Go straight(seg14-seg15)
+> turn2:Turn left(seg15-seg16)
+> room9: Go straight(seg16-seg17)
+> room15: Go straight(seg17-seg18)
+> branch: Select the left fork (seg18-seg30)
+> room16: Go straight(seg30-seg31)
+> room17: Arrive(seg31-seg32)
+> Annotated Prior-Map
+> VLM(GPT4o)
+
+Fig. 2: Details of the VLM Planning model. 210°, 270°, and 330° to explore nearby landmarks. At this stage, no specific target is required and identifying any two landmarks is sufficient to determine the current position. If fewer than two landmarks are visible, the agent continues exploring along the path. 
+
+Navigation. The agent follows a pre-planned path. As illustrated in Fig. 2, if the next landmark is the room 7 and the required action is ”Go straight”, the agent captures images at 0°, ±30°, ±60°, and ±90° to search for the target. One view is excluded based on the previous action, e.g., if the last action was a left turn, -90° is excluded. Upon detecting the target, the agent updates the next landmark and corresponding action. For special locations that cannot be directly observed, e.g., “turn2”, we introduce an action prediction mechanism that outputs the current and next action simultaneously. For instance: 
+
+{room8: Go straight } → { turn2: Turn left }
+
+After detecting the room 8, the agent must decide whether to turn. This is done by analyzing the mask ratio of walls and (a) (d) (c) (b) Fig. 3: (a)A top-down view of one of the simulation scenarios. (b)The environmental map of a real school. (c)a wheeled robot. (d)Irobot created 3. floor in front of the robot to distinguish between a corridor and a corner. If a corner is detected, the agent executes the turn. In forked path environments, fine-grained control is required. The agent applies the same landmark-based targeting approach by capturing multi-angle observations and specifying the intended direction. The VLM provides a coarse direction, which is then refined using the neural network to produce a precise action angle. IV. EXPERIMENTS AND DISCUSSIONS To verify the navigation capability of the proposed PM-Nav in FBs, this study designs and implements systematic experiments to explore following research questions (RQs): 
+
+RQ1: How does the PM-Nav perform in embodied navi-gation tasks with various difficulty levels? 
+
+RQ2: What are the effects of each proposed module on navigation performance? 
+
+RQ3: Can the robot efficiently execute the generated navigation plans? 
+
+RQ4: How does the PM-Nav perform in real-world sce-narios? 
+
+Environments. Due to the lack of adaptive FB simulation environments, this study constructs six FB simulation sce-narios(Fig. 3a) based on the environment maps of the VA Design Guide dataset [29]. By leveraging Gazebo’s high-fidelity physical simulation and sensor emulation capabilities as well as RViz’s data visualization functions, a tunable testing platform is established to evaluate the performance of robot navigation algorithms across diverse FB spaces. We also test the embodied navigation capability of the PM-Nav in building 3A, Foshan graduate school, Northeastern university, which contains 18 detectable landmarks(Fig. 3b). 
+
+Robotic Platform. A self-designed wheeled robot plat-form (Fig. 3c), with its camera mounted at a height of 1.6 meters and a horizontal field of view of 60 degrees. In the real-school experiments, we select the iRobot Create3 as the experimental carrier(Fig. 3d), with its camera also mounted at a height of 1.6 meters and a horizontal field of view of 60 degrees. 
+
+A. RQ1: Powerful object navigation capability in FBs 
+
+We categorize the tasks into three levels, i.e., simple tasks where the object is within the agent’s current visual range and reachable within 3–5 steps, medium tasks where the object is invisible and requires the agent to make at least one turn and 6–10 steps to reach and difficult tasks that need multiple turns and fork selections and demand more than 10 steps to complete. We select the SG-Nav [30] and the InstructNav [31], two zero-shot object navigation methods in continuous environments, for comparison, as their object navigation capabilities have been proved in HM-3D [32]. For all navigation tasks in FBs, both the SG-Nav and InstructNav show extremely low SR and SPL as shown in TABLE I. In fact, tasks cannot be completed at all for hard tasks when using these two SOTA navigation methods. This is mainly caused by the fact that they explore in the environment without utilizing priori maps and taking specific objects, e.g., chairs, as targets. However, in FBs, our objects are rooms with identical appearances, and they can only be distinguished based on specific landmark information. In comparison, the PM-Nav offers 633% and 1600%, and 389% and 750% SR improvements over the SG-Nav and the InstructNav, for easy and medium tasks, respectively. For hard tasks, where navigation cannot be completed at all, the PM-Nav shows a 46% SR. All these great improvements elucidate the superior navigation capabilities of the PM-Nav. This is primarily attributed to the fact that PM-Nav derives path planning via priori-maps and explores landmark information through action outputs based on multi-model collaboration for localization and object navigation. TABLE I: Comparison in FB simulation environments                          
+
+> Easy Medium Hard SR SPL SR SPL SR SPL SG-Nav [30] 12 4.96 41.92 00.00 InstructNav [31] 18 5.81 82.80 00.00 PM-NaV(Ours) 88 77.40 68 58.60 46 36.40
+
+B. RQ2: All three modules play important roles 
+
+Evaluation of Navigation Planning Capability. We com-pare three navigation planning scenarios, i.e., inputs using ordinary prompt with environmental maps (O-EM), inputs using H-CoT prompt with environmental maps (H-EM), and inputs using H-CoT prompt with annotated priori-maps (H-PM), and test them using environmental maps from the VA Design Guide dataset [29]. TABLE II shows that in simple, medium and hard tasks, O-EM yields extremely low SR, whereas H-EM and H-PM improve SR by over 7 folds. This demonstrates that the H-CoT prompts and annotated priori-maps tremendously promote embodied navigation path planning generation, especially in complex FB navigation tasks. TABLE II: Effect of Input Types on VLM Navigation             
+
+> Input Easy Medium Hard O-EM 31.3 10.4 0.0 H-EM 91.6 85.4 75.0 H-PM 95.8 89.5 83.3
+
+Evaluation of Localization Capability. To evaluate the impact of landmark density on the positioning accuracy of agents, this study classifies landmark density into three levels, as shown in Table III. The redundant status means there are more than two landmarks nearby, allowing the agent to independently select any two for positioning. The minimal status indicates exactly two available landmarks, barely meeting the basic positioning needs. The scarce status refers to only 0-1 landmark present, requiring the agent to actively explore to complete positioning. Given that position-ing requires at least two landmarks for detections, this study introduces a new evaluation index, i.e., Success weighted by the Detection Frequency (SDF), which is defined as: SDF = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+Si · di
+
+max(2 , d i) , (1) where Si = 1 if localization is successful, and Si = 0 
+
+otherwise. di represents the number of exploration attempts made by the robot, and N is the total number of trials. The localization SR exceeds 90% in both the redundant and the minimal status, and 63.3% in the scarce status. In the redundant status, the agent can choose any two landmarks, allowing the multi-model collaborative action output method to fully leverage its accuracy in identifying surrounding land-marks. In the minimal status, the agent needs to accurately identify exactly two landmarks, due to the uncertainty in the VLM outputs, there is a small chance of repeatedly recognizing the same landmark. This increases the number of recognition attempts. In the scarce state, the agent must explore the environment, significantly increasing the number of exploration steps, leading to a decrease in the SR and a severe reduction in the SDF. 
+
+Ablation Study on Action Refinement for Robust Navi-gation. This study proposes a multi-model action generation strategy, where coarse-grained actions are generated by a TABLE III: Effect of Input Types on the PM-Nav          
+
+> Input Redundant Minimal Scarce SR 93.8 91.7 63.3 SDF 90.4 82.6 25.0
+
+VLM, and then refined through a base model-neural network joint optimization module to output fine-grained actions. As shown in TABLE IV, the absence of the action optimiza-tion module leads to a significant decrease in the agent’s navigation success rate for target reaching tasks, verifying the necessity of this fine-grained action process to enhance navigation performance in complex FB scenes. TABLE IV: Performance on Different Action Generation Levels                 
+
+> Coarse-Grained Action Fine-Grained Action SR SPL SR SPL Easy 32 22.61 88 77.4 Medium 10 7.71 68 58.6 Hard 0046 36.4
+
+C. RQ3: Visualization of Robot Execution Capability 
+
+This section analyzes the robot’s execution capability for planning strategies through visual comparison between path planning trajectories and actual navigation trajectories. As shown in Fig. 4, we select a hard object navigation task, and the object is the One-Stop Service Centre. The blue curve represents the global path planning trajectory, and the red curve represents the actual running trajectory of the robot. Each node in the figure marks the position where the robot detects landmarks, and embeds first-person perspective screenshots of key nodes, including Positioning Point A, Positioning Point B, Left Turn Action Prediction C, Left Turn Action Prediction D, Left Fork Selection E, and Target Arrival F. Compared with the path planning trajectories and the actual navigation trajectories, the PM-Nav trajectory exhibits significant segmental characteristics, which are strongly cor-related with the distribution of landmarks in the path. When observable landmarks exist in the path, the agent demon-strates obvious landmark-approaching behavior, causing the actual trajectory to deviate toward the landmark position. While in areas with no sparse landmarks, the robot travels straight along the planned path without target-oriented path deviations. 
+
+D. RQ4: It demonstrates outstanding performance in real-school tests. 
+
+TABLE V reveals that although the SG-Nav and the InstructNav demonstrate favorable navigation performance in private residential scenarios [30], [31], their performance faces significant challenges in complex real-world FB en-vironments. For all navigation tasks in FBs, both the SG-Nav and InstructNav show extremely low SR and SPL. A-locate(1): Emergency Room  
+
+> B-locate(2): Secure Channel
+> C-Explore: Emergency Internal
+> Prediction Action: Turn left D-Explore: Register Charge
+> Prediction Action: Turn left
+> E-Explore: Convenience Clinic
+> Prediction Action: Select the left fork
+> F-Arrive: One-Stop Service Centre
+
+# A
+
+# B
+
+# DC
+
+# E
+
+# FFig. 4: Visualization Comparison of Planned Path and Actual Navigation Trajectory This is mainly caused by the fact that they struggle to capture landmark information when they need to thoroughly explore the environment due to uncertain object locations, especially when the features of different rooms in FBs are highly similar. In contrast, the PM-Nav offers 650% and 400% improvements over the SG-Nav and the InstructNav, for easy tasks, respectively. For medium and hard tasks, where navigation cannot be completed at all using existing SOTA methods, the PM-Nav shows a 55% and 15% SR. This is mainly caused by the fact that the PM-Nav can effectively parse environmental maps and accurately under-stand the topological relationships between rooms and paths. Meanwhile, it generates fine-grained actions through a multi-model collaboration mechanism, thereby providing stable and reliable decision support for the environment exploration process. TABLE V: Comparison on real-world FB environments 
+
+Easy Medium Hard SR SPL SR SPL SR SPL SG-Nav 10 4.57 0 0 0 0.00 InstructNav 15 4.84 0 0 0 0.00 PM-Nav 75 50.91 55 37.16 15 6.99 
+
+V. CONCLUSIONS This paper proposes an embodied navigation framework for functional buildings (FBs), drawing inspiration from hu-mans’ collaborative use of priori maps and landmarks in un-familiar FBs. Specifically, environmental maps are converted into navigation-friendly semantic priori-maps, a hierarchical thought chain prompt template is designed to support precise path planning, and a multi-agent collaborative action output mechanism is constructed to realize positioning decisions and execution control for navigation planning. Both sim-ulation and real-world tests show tremendous performance improvements over SOTA methods. Future work will focus on two key directions: (1) improving the accuracy of end-to-end environment map parsing, which remains a challenging task, and (2) enhancing exploration efficiency to minimize unnecessary environmental traversal. REFERENCES [1] M. Z. Irshad, C.-Y. Ma, and Z. Kira, “Hierarchical cross-modal agent for robotics vision-and-language navigation,” in 2021 IEEE international conference on robotics and automation (ICRA) . IEEE, 2021, pp. 13 238–13 246. [2] S. Tan, M. Ge, D. Guo, H. Liu, and F. Sun, “Depth-aware vision-and-language navigation using scene query attention network,” in 2022 International Conference on Robotics and Automation (ICRA) . IEEE, 2022, pp. 9390–9396. [3] N. Yokoyama, S. Ha, D. Batra, J. Wang, and B. Bucher, “Vlfm: Vision-language frontier maps for zero-shot semantic navigation,” in 2024 IEEE International Conference on Robotics and Automation (ICRA) .IEEE, 2024, pp. 42–48. [4] Y. Long, X. Li, W. Cai, and H. Dong, “Discuss before moving: Visual language navigation via multi-expert discussions,” in 2024 IEEE International Conference on Robotics and Automation (ICRA) .IEEE, 2024, pp. 17 380–17 387. [5] J. Zhu, Y. Qiao, S. Zhang, X. He, Q. Wu, and J. Liu, “Minivln: Efficient vision-and-language navigation by progressive knowledge distillation,” in 2025 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2025, pp. 97–103. [6] Y. Qiao, W. Lyu, H. Wang, Z. Wang, Z. Li, Y. Zhang, M. Tan, and Q. Wu, “Open-nav: Exploring zero-shot vision-and-language naviga-tion in continuous environment with open-source llms,” in 2025 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2025, pp. 6710–6717. [7] W. Cai, S. Huang, G. Cheng, Y. Long, P. Gao, C. Sun, and H. Dong, “Bridging zero-shot object navigation and foundation models through pixel-guided navigation skill,” in 2024 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2024, pp. 5228–5234. [8] P. Anderson, Q. Wu, D. Teney, J. Bruce, M. Johnson, N. S¨ underhauf, I. Reid, S. Gould, and A. Van Den Hengel, “Vision-and-language nav-igation: Interpreting visually-grounded navigation instructions in real environments,” in Proceedings of the IEEE conference on computer vision and pattern recognition , 2018, pp. 3674–3683. [9] V. Jain, G. Magalhaes, A. Ku, A. Vaswani, E. Ie, and J. Baldridge, “Stay on the path: Instruction fidelity in vision-and-language naviga-tion,” arXiv preprint arXiv:1905.12255 , 2019. [10] A. Ku, P. Anderson, R. Patel, E. Ie, and J. Baldridge, “Room-across-room: Multilingual vision-and-language navigation with dense spatiotemporal grounding,” arXiv preprint arXiv:2010.07954 , 2020. [11] A. Chang, A. Dai, T. Funkhouser, M. Halber, M. Niessner, M. Savva, S. Song, A. Zeng, and Y. Zhang, “Matterport3d: Learning from rgb-d data in indoor environments,” arXiv preprint arXiv:1709.06158 , 2017. [12] J. Krantz, E. Wijmans, A. Majumdar, D. Batra, and S. Lee, “Beyond the nav-graph: Vision-and-language navigation in continuous environ-ments,” in Computer Vision–ECCV 2020: 16th European Conference, Glasgow, UK, August 23–28, 2020, Proceedings, Part XXVIII 16 .Springer, 2020, pp. 104–120. [13] M. Savva, A. Kadian, O. Maksymets, Y. Zhao, E. Wijmans, B. Jain, J. Straub, J. Liu, V. Koltun, J. Malik et al. , “Habitat: A platform for embodied ai research,” in Proceedings of the IEEE/CVF international conference on computer vision , 2019, pp. 9339–9347. [14] H. Chen, A. Suhr, D. Misra, N. Snavely, and Y. Artzi, “Touchdown: Natural language navigation and spatial reasoning in visual street envi-ronments,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition , 2019, pp. 12 538–12 547. [15] R. Schumann and S. Riezler, “Analyzing generalization of vision and language navigation to unseen outdoor areas,” arXiv preprint arXiv:2203.13838 , 2022. [16] A. Patel, M. A. Saucedo, C. Kanellakis, and G. Nikolakopoulos, “Stage: Scalable and traversability-aware graph based exploration planner for dynamically varying environments,” in 2024 IEEE Interna-tional Conference on Robotics and Automation (ICRA) . IEEE, 2024, pp. 5949–5955. [17] R. Liu, W. Wang, and Y. Yang, “Vision-language navigation with energy-based policy,” arXiv preprint arXiv:2410.14250 , 2024. [18] T. Shan, A. Rajvanshi, N. Mithun, and H.-P. Chiu, “Graph2nav: 3d object-relation graph generation to robot navigation,” arXiv preprint arXiv:2504.16782 , 2025. [19] J. Chen, B. Lin, X. Liu, L. Ma, X. Liang, and K.-Y. K. Wong, “Affordances-oriented planning using foundation models for contin-uous vision-language navigation,” in Proceedings of the AAAI Con-ference on Artificial Intelligence , vol. 39, no. 22, 2025, pp. 23 568– 23 576. [20] J. Chen, B. Lin, R. Xu, Z. Chai, X. Liang, and K.-Y. K. Wong, “Mapgpt: Map-guided prompting with adaptive path planning for vision-and-language navigation,” arXiv preprint arXiv:2401.07314 ,2024. [21] H.-T. L. Chiang, Z. Xu, Z. Fu, M. G. Jacob, T. Zhang, T.-W. E. Lee, W. Yu, C. Schenck, D. Rendleman, D. Shah et al. , “Mobility vla: Multimodal instruction navigation with long-context vlms and topological graphs,” arXiv preprint arXiv:2407.07775 , 2024. [22] G. Zhou, Y. Hong, and Q. Wu, “Navgpt: Explicit reasoning in vision-and-language navigation with large language models,” in Proceedings of the AAAI Conference on Artificial Intelligence , vol. 38, no. 7, 2024, pp. 7641–7649. [23] M. Mitchell, A. B. Palmarini, and A. Moskvichev, “Comparing hu-mans, gpt-4, and gpt-4v on abstraction and reasoning tasks,” arXiv preprint arXiv:2311.09247 , 2023. [24] K. Rana, J. Haviland, S. Garg, J. Abou-Chakra, I. Reid, and N. Suenderhauf, “Sayplan: Grounding large language models using 3d scene graphs for scalable robot task planning,” arXiv preprint arXiv:2307.06135 , 2023. [25] P. S. Foundation, “tkinter: Python interface to tcl/tk,” https://docs. python.org/3/library/tkinter.html, 2025, accessed: 2025-09-13. [26] J. Yang, H. Zhang, F. Li, X. Zou, C. Li, and J. Gao, “Set-of-mark prompting unleashes extraordinary visual grounding in gpt-4v,” arXiv preprint arXiv:2310.11441 , 2023. [27] S. Liu, Z. Zeng, T. Ren, F. Li, H. Zhang, J. Yang, Q. Jiang, C. Li, J. Yang, H. Su et al. , “Grounding dino: Marrying dino with grounded pre-training for open-set object detection,” in European Conference on Computer Vision . Springer, 2024, pp. 38–55. [28] A. Kirillov, E. Mintun, N. Ravi, H. Mao, C. Rolland, L. Gustafson, T. Xiao, S. Whitehead, A. C. Berg, W.-Y. Lo et al. , “Segment anything,” in Proceedings of the IEEE/CVF international conference on computer vision , 2023, pp. 4015–4026. [29] U.S. Department of Veterans Affairs, “Design guide: Inpatient mental health and residential rehabilitation treatment programs,” https://www. cfm.va.gov/til/dguide/dgmh.pdf, 2010, accessed: 2025-05-12. [30] H. Yin, X. Xu, Z. Wu, J. Zhou, and J. Lu, “Sg-nav: Online 3d scene graph prompting for llm-based zero-shot object navigation,” Advances in neural information processing systems , vol. 37, pp. 5285–5307, 2024. [31] Y. Long, W. Cai, H. Wang, G. Zhan, and H. Dong, “Instructnav: Zero-shot system for generic instruction navigation in unexplored environment,” arXiv preprint arXiv:2406.04882 , 2024. [32] S. K. Ramakrishnan, A. Gokaslan, E. Wijmans, O. Maksymets, A. Clegg, J. Turner, E. Undersander, W. Galuba, A. Westbury, A. X. Chang et al. , “Habitat-matterport 3d dataset (hm3d): 1000 large-scale 3d environments for embodied ai,” arXiv preprint arXiv:2109.08238 ,2021.

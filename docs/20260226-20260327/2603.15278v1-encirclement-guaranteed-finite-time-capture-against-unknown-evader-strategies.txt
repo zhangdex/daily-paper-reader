@@ -1,0 +1,700 @@
+Title: Encirclement Guaranteed Finite-Time Capture against Unknown Evader Strategies
+
+URL Source: https://arxiv.org/pdf/2603.15278v1
+
+Published Time: Tue, 17 Mar 2026 04:09:07 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Encirclement Guaranteed Finite-Time Capture against Unknown Evader Strategies 
+
+Dinesh Patra 1, Prajakta Surve 2, Ashish R. Hota 1, Shaunak D. Bopardikar 2
+
+Abstract — We consider a pursuit-evasion scenario involving a group of pursuers and a single evader in a two-dimensional unbounded environment. The pursuers aim to capture the evader in finite time while ensuring the evader remains enclosed within the convex hull of their positions until capture, without knowledge of the evader’s heading angle. Prior works have addressed the problem of encirclement and capture separately in different contexts. In this paper, we present a class of strategies for the pursuers that guarantee capture in finite time while maintaining encirclement, irrespective of the evader’s strategy. Furthermore, we derive an upper bound on the time to capture. Numerical results highlight the effectiveness of the proposed framework against a range of evader strategies. 
+
+I. I NTRODUCTION 
+
+Consider a situation where an unknown intruder enters a secure confinement zone formed by a team of ground robots deployed for surveillance. Once the intruder is inside the zone, the robots aim to keep it confined and approach it progressively to assess its intent; moreover, timely neutraliza-tion may be required if a threat is detected. This motivates a pursuit-evasion problem in which a team of pursuers must (i) 
+
+maintain encirclement , that is, confine the evader inside the convex hull of their positions at all times, and (ii) guarantee capture in finite time , irrespective of and without knowledge of the strategy deployed by the evader. Encirclement-guaranteed pursuit problems have emerged as an important research direction in recent years. Early studies on static and dynamic target encirclement [1]–[4] focused on surveillance and defense scenarios, where the objective is to restrict the opponent’s motion and approach it progressively, thereby minimizing escalation rather than attempting immediate capture. When the evader is faster [5], [6] or has equal speed [4], encirclement often becomes a necessary ingredient for capture. However, when the evader is slower, encirclement and capture are typically treated as distinct objectives [7], [8]. A number of recent approaches leverage geometric par-titions (e.g., Voronoi-based and area minimization ideas) to reason about encirclement and/or capture in different         
+
+> 1D. Patra and A. R. Hota are with the Department of Electrical Engi-neering, IIT Kharagpur, India (e-mail: dinesh.patra912@kgpian.iitkgp.ac.in; ahota@ee.iitkgp.ac.in). Dinesh Patra was supported by the IEEE CSS Graduate Collaboration Fellowship, 2024 for this work.
+> 2P. Surve and S. D. Bopardikar are with the Department of Electri-cal and Computer Engineering, Michigan State University, USA (e-mail: survepra@msu.edu; shaunak@egr.msu.edu). They were supported in part by the Aerospace Systems Technology Research and Assessment (ASTRA) Aerospace Technology Development and Testing (ATDT) program at AFRL under contract number FA8650-21-D-2602 as well as the AFOSR LRIR # 24RQCOR002. DISTRIBUTION STATEMENT A. Distribution is unlim-ited. AFRL-2026-1226, Cleared 03-13-2026.
+
+contexts [7], [9]–[11]. For instance, [11] derives a worst-case upper bound on the capture time under a specific evader policy, where the evader moves toward the Chebyshev center of its Voronoi cell, but relies on a centralized server to collect the position and velocity inputs of all the players. In a complementary direction, partitioning-based robust model predictive control (MPC) formulations treat the evader input as an uncertain disturbance and aim to enforce en-circlement throughout the pursuit [8], [12]. However, these methods typically require online optimization and do not pro-vide rigorous capture guarantees. Game-theoretic approaches [6], [13]–[16] offer principled strategies when the players’ objectives are known. However, they are not directly appli-cable when the evader’s objective (and hence its policy) is not known to the pursuers. Thus, while prior works provide guarantees on encir-clement or capture under particular assumptions in isolation, we are not aware of any existing work that provides simulta-neous guarantees of (i) encirclement against unknown evader strategies and (ii) finite-time capture with an explicit analytic upper bound. In this paper, we address this research gap with a simple decentralized strategy and a Lyapunov-based analysis. Our main contributions are summarized below. 1) We first associate the idea of encirclement of the evader in the convex hull of pursuers with triangulations, where the areas of the triangles formed by the evader and the pursuers along the edges of the convex hull serve as a key quantity of interest. 2) We propose a class of strategies for the pursuers that are necessary and sufficient to guarantee encirclement. We then derive conditions on the agents’ speeds and de-centralized control inputs that are sufficient to guarantee encirclement of the evader, irrespective of its input. 3) We show that a subset of the encirclement-guaranteeing strategies is, in fact, sufficient to ensure finite-time capture when the evader is strictly slower than the pursuers, and we derive an explicit worst-case upper bound on the capture time using Lyapunov analysis. 1
+
+Finally, we validate the proposed strategy against several representative evader policies via numerical simulations and perform a comparative analysis with the approach in [12] to demonstrate the effectiveness of our approach. II. P ROBLEM STATEMENT 
+
+We consider a pursuit-evasion scenario in the unbounded planar domain R2, consisting of n pursuers and one evader. 
+
+> 1In contrast, the capture guarantees in [12] are empirical in nature.
+> arXiv:2603.15278v1 [eess.SY] 16 Mar 2026
+
+For i ∈ [n] := {1, . . . , n }, the state of the pursuer i is its instantaneous position denoted by pi = ( xi, y i). Similarly, the state of the evader is its instantaneous position denoted by e = ( xe, y e). Motivated by models studied in beyond-visual-range scenarios [17], each pursuer is assumed to move at its maximum speed, denoted by vi, and its control input is given by its heading angle, denoted by θi. Meanwhile, the evader’s control input constitutes its speed, denoted by μ,and its heading angle, denoted by ψ. In particular, the states of the pursuer i and the evader evolve as 
+
+˙xi = vi cos θi, ˙yi = vi sin θi, (1) 
+
+˙xe = μ cos ψ, ˙ye = μ sin ψ, (2) where θi ∈ [0 , 2π), μ ∈ [0 , μ m], vi ≥ 0, μm ≥ 0 and 
+
+ψ ∈ [0 , 2π).We now present some key definitions and assumptions relevant for our analysis. The convex hull formed by n
+
+pursuers in R2 is defined as 
+
+H(p1, p 2, . . . , p n):= {p ∈ R2 | p =
+
+> n
+
+∑
+
+> i=1
+
+λipi, λ i ≥ 0,
+
+> n
+
+∑
+
+> i=1
+
+λi = 1 }. (3) 
+
+Definition 1 (Encirclement Condition) . The evader is said to be encircled by the pursuers at time t if it lies in the convex hull formed by the pursuers, i.e., e(t) ∈ H (p1(t), . . . , p n(t)) .
+
+For better readability, we denote H(p1(t), . . . , p n(t)) by 
+
+H, whenever arguments are clear from the context. 
+
+Definition 2 (Finite-Time Capture Condition) . The evader is said to be captured in finite time if there exists at least one pursuer whose distance from the evader equals the capture radius 2 rc at some finite time denoted by tc, i.e., dmin (t) := min i∈[n] ∥ pi(t) − e(t) ∥2 = rc for some t = tc < ∞.
+
+Definition 3 (Redundant Pursuers) . Pursuer i, where i ∈
+
+[n], is said to be redundant if the convex hull formed by all n pursuers is identical to the convex hull formed by the remaining n − 1 pursuers after removing its position pi(t).
+
+Since the presence of redundant pursuers does not influ-ence our theoretical analysis, the following assumption is imposed to exclude them from further consideration. 
+
+Assumption 1. All n pursuers are assumed to be non-redundant. 
+
+Note further that the notion of encirclement within a convex hull in the R2 space is meaningful only when there are at least three pursuers. Thus, we assume n ≥ 3. The pursuit-evasion interaction terminates with a win for the pursuers if the finite-time capture condition holds and the encirclement condition holds at all times t ≤ tc. Conversely, the evader wins if it succeeds in violating either of them. Now, we state the problem that we investigate in this paper.    
+
+> 2All pursuers are assumed to have the same capture radius rc>0.
+
+Problem 1. Given an initial configuration of n ≥ 3 non-redundant pursuers and one evader satisfying the encir-clement condition at t = 0, the goal is to design pur-suer strategies that maintain encirclement at all times, and 
+
+guarantee capture in finite time, irrespective of and without knowledge of the speed and heading angle chosen by the evader. 
+
+The assumption that the pursuers are initialized in an en-circlement configuration is standard in the existing literature addressing unknown evader policies with rigorous guarantees on either encirclement or capture [4], [8], [11], [12]. The fundamental challenge lies in the fact that the instantaneous speed and heading angle of the evader are unknown to all the pursuers. However, we impose the following assumption on the maximum speed of the evader. 
+
+Assumption 2. The maximum speed of the evader, denoted by μm, is assumed to be known to the pursuers. 
+
+Note that the evader need not always move with speed equal to μm. Our analysis begins with an area-based ap-proach to encirclement, which is presented in the next section. III. A N AREA -BASED APPROACH TO ENCIRCLEMENT 
+
+Consider n pursuers and an evader such that the evader’s initial position lies inside the convex hull formed by the pur-suers’ initial positions. The convex hull H can be triangulated by connecting the evader to consecutive pursuers, forming triangles with vertices e, pj , and pk denoted by △ep j pk,where j, k ∈ [n] are consecutive integers modulo n. The area of △ep j pk is denoted compactly by Ajk := A(△ep j pk).Figure 1 illustrates two examples of triangulation with three and eight pursuers. We adopt the following conventions to ensure a consistent treatment of the vertices and areas of the triangles used throughout the paper. 1) We fix a counterclockwise ordering for the vertices of each sub-triangle △ep j pk starting from the evader’s position when e ∈ int( H). For example, △ep j pk, where 
+
+j, k ∈ [n] are consecutive integers modulo n, indicates that the vertices of the triangle are ordered from e to pj
+
+to pk in a counterclockwise direction while e ∈ int( H).This ordering is retained even if the evader exits H,thus ensuring that Ajk > 0 when e ∈ int( H), Ajk = 0 
+
+when it resides on an edge and Ajk < 0 when it exits 
+
+H reflecting change in orientation to clockwise. This convention allows the area to serve as a quantitative indicator of containment within the convex hull. 2) By slight abuse of notation, pj denotes both the pursuer 
+
+j and its position depending on the context. The area Ajk formed by the vertices e = ( xe, y e), pj =(xj , y j ), and pk = ( xk, y k) taken in appropriate order as per the convention, can be computed as 
+
+Ajk = 12
+
+[xe(yj − yk) + xj (yk − ye) + xk(ye − yj )]. (4) The area Ajk is a function of the instantaneous position of the agents, namely e(t), pj (t) and pk(t), which evolve over Fig. 1: Examples of triangulation with an evader lying inside the convex hull of 3  
+
+> pursuers (left) and 8pursuers (right).
+
+time. Thus, Ajk is also a function of time. We compute the expression for the time derivative of the area, which can be further decomposed into pursuer and evader terms as 
+
+˙Ajk = Tp + Te, where (5) 
+
+Tp = vj cos θj (yk − ye) + vk cos θk(ye − yj )+ vj sin θj (xe − xk) + vk sin θk(xj − xe), (6) 
+
+= dek vj cos( θj − β) + dej vk cos( θk − γ), (7) 
+
+Te = μ cos ψ(yj − yk) + μ sin ψ(xk − xj ). (8) 
+
+= −μd jk sin( α − ψ), where (9) 
+
+dej = ∥e − pj ∥, d ek = ∥e − pk∥, (10) 
+
+β = tan −1
+
+( xe − xk
+
+yk − ye
+
+)
+
+, γ = tan −1
+
+( xj − xe
+
+ye − yj
+
+)
+
+,djk = ∥pj − pk∥, α = tan −1
+
+( yk − yj
+
+xk − xj
+
+)
+
+. (11) We now define the notion of an active edge and active pursuers. 
+
+Definition 4 (Active Edge and Active Pursuers) . An edge 
+
+pj pk, where j, k ∈ [n] are consecutive integers modulo n, is said to be active at time t if there exists λ ∈ [0 , 1] such that 
+
+e(t) = λp j (t) + (1 − λ)pk(t). Furthermore, the pursuers j
+
+and k constituting such an edge are called active pursuers 
+
+at time t.
+
+In other words, if the evader lies on the line joining the positions pj (t) and pk(t), then the edge pj pk is said to be active. The endpoints pj and pk are named as per the convention of counterclockwise vertex ordering starting from the evader’s position while it was in the interior of the convex hull. Based on the adopted sign convention 3 for the area Ajk ,we have Ajk > 0 for all consecutive j, k ∈ [n] (with indices taken modulo n) when e ∈ int( H). Furthermore, Ajk = 0 
+
+when e resides on an active edge pj pk, and Ajk < 0 if the evader exits H through pj pk. Therefore, at any instant when 
+
+Ajk = 0 , encirclement is maintained if and only if ˙Ajk ≥ 0.The following proposition summarizes the above discussion. 
+
+Proposition 1. Following the conventions set up for area 
+
+Ajk , encirclement is guaranteed if and only if   
+
+> 3Recall that we choose counterclockwise ordering of vertices when the evader is in the interior of Hand the area becomes negative with the same order of vertices if the evader exits the active edge and moves away, reflecting the change in orientation to clockwise.
+
+1) either the evader lies in the interior of the convex hull at all times, or 2) whenever an edge pj pk is active, there exists strategies for the active pursuers j and k to ensure that ˙Ajk ≥ 0
+
+for all possible values of ψ ∈ [0 , 2π).
+
+It is clear from Proposition 1 that the evader can only escape at time t, if an edge pj pk is active, that is, Ajk = 0 ,and the strategies of the active pursuers and the evader are such that ˙Ajk < 0. We also know that when the evader is on the edge formed by active pursuers pj and pk, the points e,
+
+pj , and pk are collinear. Let ujk be the unit vector pointing from pj towards pk, denoted by 
+
+ujk = pk − pj
+
+∥pk − pj ∥ =
+
+[cos α
+
+sin α
+
+]
+
+, (12) where α is given from (11). When the edge pj pk is active, 4
+
+the vectors from the active pursuers pj and pk to the evader can thus be expressed in terms of ujk as follows: 
+
+e − pj = ujk ∥e − pj ∥, e − pk = −ujk ∥e − pk∥. (13) Based on the above discussion, we now present a class of strategies for the active pursuers that guarantee encirclement of the evader regardless of the speed and heading angle chosen by it. 
+
+Theorem 1. Let the evader’s initial position satisfy e(0) ∈H(0) . Let each pursuer i ∈ [n] choose any admissible head-ing θi ∈ [0 , 2π) when none of the edges are active. Whenever an edge pj pk becomes active, the pursuers constituting the active edge switch to the following strategy: 
+
+˙pj =
+
+[vj cos θj
+
+vj sin θj
+
+]
+
+= vj Rφj
+
+e − pj
+
+∥e − pj ∥ ,
+
+˙pk =
+
+[vk cos θk
+
+vk sin θk
+
+]
+
+= vkR⊤
+
+> φk
+
+e − pk
+
+∥e − pk∥ ,
+
+(14) 
+
+where Rφl∈{ j,k } =
+
+[ cos φl sin φl
+
+− sin φl cos φl
+
+]
+
+. (15) 
+
+This strategy guarantees encirclement at all times regardless of the speed and heading angle chosen by the evader if and only if the angles φj and φk satisfy 
+
+vj dek sin φj + vkdej sin φk ≥ djk μm, (16) 
+
+where φj and φk are measured with respect to the direction of the unit vector towards the evader for pj and, pk respec-tively, and considered as positive in the outward direction from H.Proof. Under the proposed strategy when edge pj pk is active, substituting (13) into (14) yields 
+
+˙pj = vj Rφj ujk = vj
+
+[cos( α − φj )sin( α − φj )
+
+]
+
+,
+
+˙pk = −vk R⊤ 
+
+> φk
+
+ujk = −vk
+
+[cos( α + φk)sin( α + φk)
+
+]
+
+.
+
+(17)                                      
+
+> 4According to conventions adopted for the area and the vertices, pjand
+> pklie to the right and left of the evader, respectively, forming the edge
+> pjpk, with respect to the heading of the evader which moves outwards from the convex hull. Fig. 2: Range of strategies for the active pursuers that guarantee encirclement of the evader, regardless of its strategy, when vi=1for all i∈[n]and μm≤1.In this figure, the angles φ1and φ2are given by φ1= sin −1(μm)and φ2=
+> π−sin −1(μm). Thus, φl∈[φ1, φ 2], where l∈ { j, k }and the angles are measured from the direction of the respective unit vectors towards the evader for pj
+> and pkand considered as positive in the outward direction from H.
+
+For a general vector v = [ vx, v y ]⊤, let v⊥ := [ −vy , v x]⊤,which is orthogonal to v. Then, Tp from (6) is written as 
+
+Tp = ˙ p⊤ 
+
+> j
+
+(e − pk)⊥ + ˙ p⊤ 
+
+> k
+
+(pj − e)⊥
+
+= −∥ e − pk∥(vj Rφj ujk )⊤u⊥
+
+> jk
+
++
+
+∥pj − e∥(vkR⊤ 
+
+> φk
+
+ujk )⊤u⊥
+
+> jk
+
+, (18) 
+
+= −vj ∥e − pk∥(− sin φj ) + vk∥pj − e∥(sin φk),
+
+= vj dek sin φj + vkdej sin φk, (19) where the third equality can be obtained from (18) by using (17) and (12). Adding Tp from (19) and Te obtained in (9) 5 yields 
+
+˙Ajk = vj dek sin φj + vkdej sin φk − djk μ sin( α − ψ). (20) From Proposition 1, we know that encirclement is guar-anteed if and only if ˙Ajk ≥ 0, or equivalently, 
+
+vj dek sin φj + vkdej sin φk ≥ djk μ sin( α − ψ) (21) for all ψ ∈ [0 , 2π) and all μ ∈ [0 , μ m]. In other words, the pursuers must ensure that vj dek sin φj + vkdej sin φk ≥
+
+djk μm, since μm ≥ μ and sin( α − ψ) ∈ [−1, 1] for any choice of ψ.For any value of φj and φk not satisfying this condition, there always exists an evader strategy (a set of speed and heading) that can make the closed-loop expression of ˙Ajk 
+
+from (20) negative, leading to violation of the encirclement condition. This completes the proof. A key result involving the pursuers’ speed and the angles 
+
+φj and φk which establishes sufficient conditions for encir-clement, is summarized in Corollary 1. 
+
+Corollary 1. Suppose vi = 1 for all i ∈ [n] and μm ≤ 1.Let the active pursuers choose the angles φj and φk from 
+
+φl ∈ [sin −1(μm), π − sin −1(μm)] , for l ∈ { j, k }. Then, 
+
+(16) is satisfied, and encirclement is guaranteed at all times, irrespective of the strategy chosen by the evader. Proof. When any edge pj pk becomes active, the active pursuers with vj = vk = 1 choose φl ∈ [sin −1(μm), π −
+
+sin −1(μm)] , for l ∈ { j, k }, we have sin φj ≥ μm, and 
+
+sin φk ≥ μm. Therefore, 
+
+vj dek sin φj + vkdej sin φk ≥ (dek + dej )μm = djk μm,  
+
+> 5The evader term Tedoes not depend upon pursuer strategies.
+
+i.e., (16) is satisfied at all times. Thus, encirclement is guar-anteed at all times regardless of the evader’s strategy. Figure 2 provides a schematic illustration of the kinematics associated with the proposed range of strategies in Corollary 1 that guarantee encirclement. 
+
+Remark 1. The pursuer strategies described in Corollary 1 are decentralized since each active pursuer can indepen-dently select the angles φj and φk without communicating with any other pursuer. It only needs to know the position of the other pursuers and the evader. Furthermore, the encirclement guarantee holds irrespective of the evaders position at the time the edge pj pk becomes active, that is, regardless of the values of dej and dek . In contrast to the condition (16) established in Theorem 1, the sufficient condition in Corollary 1 can be verified a priori, before the pursuit begins. 
+
+Remark 2. It follows from Theorem 1 and Corollary 1 that the encirclement guarantee holds even when the value of μm
+
+is unknown to the pursuers, as long as we have homogeneous pursuers not slower than the evader, that is, vj = vk = 1 
+
+and μm ≤ 1. In that case, the pursuers would move normally outward from the active edge at maximum speed normalized to unity. This is evident by substituting vj = vk = 1 and 
+
+μm = 1 in (16) leading to dek sin φj + dej sin φk ≥ djk ,which holds only when φj = φk = π 
+
+> 2
+
+.
+
+Remark 3. It can be observed from the expression of ˙Ajk 
+
+from (20) that φ⋆j = φ⋆k = π 
+
+> 2
+
+and ψ⋆ = α − π 
+
+> 2
+
+are the optimal solutions to max φ⋆j ,φ ⋆k min ψ⋆ ˙Ajk (ψ, φ j , φ k), which corresponds to the strategies to move normally outwards from H for both the pursuers and the evader. 
+
+IV. E NCIRCLEMENT GUARANTEED CAPTURE STRATEGY FOR THE PURSUERS 
+
+In the previous section, we characterized pursuer strategies that guarantee encirclement. We now focus on deriving finite-time capture guarantees. To this end, we assume vi = 1 for 
+
+i ∈ [n], and μm < 1, that is, all the pursuers move with unit speed, and the evader is strictly slower than the pursuers. Under these assumptions, we now show that a subset of strategies from the strategy set identified in Corollary 1 is sufficient to guarantee finite-time capture of the evader. 
+
+Theorem 2. Suppose vi = 1 for i ∈ [n], μm < 1, and the evader is initially encircled, that is, e(0) ∈ H (0) . Then, the following pursuit strategy is sufficient to ensure that the evader remains encircled throughout pursuit and is captured in finite time regardless of the strategy it adopts. 
+
+1. Interior Phase: When the evader e(t) ∈ int( H(t)) , all pursuers follow the pure pursuit strategy given by 
+
+˙pi =
+
+[cos θi
+
+sin θi
+
+]
+
+= e − pi
+
+∥e − pi∥ , ∀i ∈ [n]. (22) 
+
+2. Edge Phase: When any edge pj pk becomes active, the pursuers constituting the active edge switch to the strategy proposed in (14) with any φl ∈ [sin −1(μm), π 
+
+> 2
+
+−sin −1(1 −μm)] , where l ∈ {j, k }, while the inactive pursuers continue to follow pure pursuit. Proof. Note that the proposed edge-phase angle range φl ∈
+
+[sin −1(μm), π 
+
+> 2
+
+− sin −1(1 − μm)] , where l ∈ {j, k } and 
+
+μm ∈ [0 , 1) , is a subset of the admissible range φl ∈
+
+[sin −1(μm), π −sin −1(μm)] , for which encirclement is guar-anteed at all times following Corollary 1. We prove finite-time capture of the evader with the pro-posed pursuers’ strategy using a Lyapunov-based analysis. We select the following candidate Lyapunov function 
+
+V =
+
+> n
+
+∑
+
+> i=1
+
+∥pi − e∥ =
+
+> n
+
+∑
+
+> i=1
+
+di, (23) which is positive definite and represents the sum of distances between the pursuers and the evader. 6 We now analyze the time derivative ˙V for different phases of pursuit assuming that ∥pi − e∥ > r c for all the pursuers, that is, the evader is not yet captured. 
+
+a) Interior Phase. When e ∈ int( H(t)) , all pursuers use pure pursuit. We then compute the time derivative of V as 
+
+˙V =
+
+> n
+
+∑
+
+> i=1
+
+˙di =
+
+> n
+
+∑
+
+> i=1
+
+(pi − e)⊤ ˙pi
+
+∥e − pi∥ + (e − pi)⊤ ˙e
+
+∥e − pi∥ (24) 
+
+=
+
+> n
+
+∑
+
+> i=1
+
+( (pi − e)⊤
+
+∥e − pi∥
+
+) ( e − pi
+
+∥e − pi∥
+
+)
+
++ (e − pi)⊤ ˙e
+
+∥e − pi∥
+
+=
+
+> n
+
+∑
+
+> i=1
+
+−1 + (e − pi)⊤ ˙e
+
+∥e − pi∥≤ − n(1 − μ) ≤ − n(1 − μm), (25) where the inequality follows from the Cauchy-Schwarz in-equality, under which 
+
+|(e − pi)T ˙e| ≤ ∥ e − pi∥∥ ˙e∥ = μ∥e − pi∥
+
+=⇒ (e − pi)⊤ ˙e
+
+∥e − pi∥ − 1 ≤ μ − 1 ≤ μm − 1.
+
+Since μm < 1, the Lyapunov rate ˙V ≤ − n(1 − μm) is bounded by a finite negative quantity. In our setting, the capture takes place when at least one pursuer is within distance rc from the evader, that is, at a finite positive value of the Lyapunov function. Thus, the constant rate of decay of the Lyapunov function results in finite-time capture. In particular, the evader is captured in finite time if it stays in the interior of the convex hull H(t)
+
+throughout the pursuit. 
+
+b) Edge Phase. Suppose an edge pj pk is active at time t.In this case, the Lyapunov rate can be expressed as 
+
+˙V = ˙dj + ˙dk +
+
+> n
+
+∑
+
+> i=1 ,i / ∈{ j,k }
+
+˙di, (26) Since pursuers that are not active adopt pure pursuit, following the earlier analysis, we have 
+
+˙di ≤ − (1 − μ) ≤ − (1 − μm), for i̸ = j, k. (27) 
+
+> 6In [18], the authors adopted a similar Lyapunov function, however the analysis was carried out in discrete-time and they did not provide any guarantees on encirclement.
+
+We now consider the active pursuers. We compute ˙dj by substituting the expression of ˙pj from (14) with vj = 1 as 
+
+˙dj = (pj − e)⊤ ˙pj
+
+∥e − pj ∥ + (e − pj )⊤ ˙e
+
+∥e − pj ∥
+
+=
+
+( (pj − e)⊤
+
+∥e − pj ∥
+
+) ( 
+
+Rφj
+
+e − pj
+
+∥e − pj ∥
+
+)
+
++ (e − pj )⊤ ˙e
+
+∥e − pj ∥
+
+= − cos φj + (e − pj )⊤ ˙e
+
+∥e − pj ∥ . (28) On similar lines, we compute 
+
+˙dk = − cos φk + (e − pk)⊤ ˙e
+
+∥e − pk∥ . (29) Adding (28) and (29), we obtain 
+
+˙dj + ˙dk = − cos φj − cos φk + (e − pj )⊤ ˙e
+
+∥e − pj ∥ + (e − pk)⊤ ˙e
+
+∥e − pk∥
+
+= − cos φj − cos φk, (30) where the last equality follows because from (13), we have 
+
+(e − pj )⊤
+
+∥e − pj ∥ = u⊤
+
+> jk
+
+, (e − pk)⊤
+
+∥e − pk∥ = −u⊤
+
+> jk
+
+. (31) Combining the terms for the inactive and active pursuers from (27) and (30), we obtain 
+
+˙V ≤ − (n − 2)(1 − μm) − cos φj − cos φk,
+
+≤ − n(1 − μm), (32) as before; the last inequality follows because φl ∈
+
+[sin −1(μm), π 
+
+> 2
+
+− sin −1(1 − μm)] implies 1 − μm ≤ cos φl ≤√1 − μ2 
+
+> m
+
+for l ∈ { j, k }. Therefore, the finite-time con-vergence established in the interior phase continues to be applicable when the evader is on an edge, and also when the evader potentially switches at an arbitrary frequency between both interior and edge phases since we have found a common bound that is applicable for both phases. Integrating (32) from t = 0 to tc, we obtain 
+
+tc ≤ V0 − Vc
+
+n(1 − μm) ≤ V0 − nr c
+
+n(1 − μm) , (33) where V0 is the value of the Lyapunov function at t = 0 
+
+and Vc is the value of the Lyapunov function at the time of capture tc. Note that capture occurs at the first time instant when di = rc for some i, which implies that throughout the game di = ∥pi − e∥ ≥ rc for all i ∈ [n], with equality holding the time of capture if pursuer i captures the evader. This implies Vc ≥ nr c, with equality when all the pursuers simultaneously reach a distance of rc from the evader. V. N UMERICAL RESULTS 
+
+We now demonstrate the effectiveness of the proposed strategies in guaranteeing encirclement and capture via nu-merical simulations. All simulations have been carried out in the MATLAB environment. The capture radius is taken as rc = 0 .3 m. The pursuers’ speed has been normalized to unity, and the evader is considered to move at its maximum speed μm < 1, which is set to be 0.7 m/s. We consider -1 -0.5 0 0.5 1                                                                                                          
+
+> x (meters)
+> 0.5 11.5
+> y (meters) (a) t= 0 .45 s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (b) t= 0 .7s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (c) t= 1 .05 s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (d) t= 1 .25 s
+> Fig. 3: Encirclement guaranteed capture under the greedy policy of the evader with three pursuers. The evader moves away from the nearest pursuer at each instant throughout the pursuit. The evader is always encircled and is captured at t= 1 .25 s. -1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters)
+> (a) t= 0 .5s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (b) t= 0 .75 s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (c) t= 1 s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (d) t= 1 .2s
+> Fig. 4: Encirclement guaranteed capture under the switching policy of the evader with three pursuers. The evader moves to the closest edge by 0.5s and switches between moving to the closest edge and moving towards the interior for every 0.15 s. The evader is always encircled and is captured at 1.2s. -1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters)
+> (a) t= 0 .45 s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (b) t= 0 .9s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (c) t= 1 .05 s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (d) t= 1 .19 s
+> Fig. 5: Encirclement guaranteed capture with three pursuers under random policies adopted by a human-like evader. The evader remains encircled and is captured at 1.19 s.
+
+three pursuers and one evader in R2. The pursuers’ initial positions are chosen to be (0 , 2) , (−1, 0) and (0 .8, 0) , while the evader’s initial position is chosen as (0 , 1) which is inside the convex hull. All units are in meters. First, we consider the following commonly adopted worst-case evader strategies, while the pursuers follow the strategy presented in Theorem 2 with φj = φk = sin −1(μm) for the active pursuers. 1) Greedy policy (GP) : The evader reacts only to the nearest pursuer and moves away from it [7], [8]. 2) Switching policy (SP) : The evader first moves to the closest edge and then alternates between remaining on the edge and moving to the interior at a given frequency, which taken as 0.3 s ( 0.15 s in each phase) until capture. 3) Random policy (RP) : We consider a human-like evader in this case, which may behave erratically and select un-predictable moving directions [7], [8], [19]. We choose the evader’s heading manually in an online manner to simulate this case. 4) Stationary policy (STP) : The evader remains stationary at its point of initialization ( μ = 0 ). 5) Closest Link policy (CLP) : The evader moves towards its nearest edge at every instant and retains the edge phase until capture by choosing appropriate headings. Figures 3 – 6 present a few snapshots of the evolution of the pursuers’ and evader’s positions when the evader follows the GP, SP, RP, and CLP respectively. It is evident that the pursuers successfully maintain the evader in the convex hull and finally achieve capture in each case. The trajectories of the evader in Figure 3 indicate that it is moving away from the nearest pursuer at all times. The trails of the pursuers’ and the evader’s trajectories in Figure 4 indicate that the evader is switching frequently between the nearest edge and the interior and thus making the active pursuers switch their strategies between the interior phase and the edge phase. The trajectories shown in Figure 5 in the case of RP depend completely on the evader’s input heading. It is clear from Figure 6 that under the CLP, the evader moves towards the closest edge, p3p1 and the edge gets activated by 0.4 seconds. The evader then retains the edge phase until it is captured at 1.15 seconds. The evolution of the areas A12 , A23 , and A31 shown in Figure 8 confirms that encirclement is maintained, as the areas remain non-negative throughout the pursuit. Furthermore, A31 = 0 from -1 -0.5 0 0.5 1                           
+
+> x (meters)
+> 0.5 11.5
+> y (meters) (a) t= 0 .3s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (b) t= 0 .65 s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (c) t= 0 .95 s-1 -0.5 00.5 1
+> x (meters)
+> 0.5 11.5
+> y (meters) (d) t= 1 .15 s
+
+Fig. 6: Encirclement guaranteed capture under the closest link policy of the evader with three pursuers. The evader moves to the closest edge and remains on the edge until it is captured at t = 1 .15 s. -4 -2 0 2 4                       
+
+> x (meters)
+> 0246
+> y (meters)
+> (a) t= 0 .5s-2 024
+> x (meters)
+> 0246
+> y (meters) (b) t= 12 s0246
+> x (meters)
+> 0246
+> y (meters) (c) t= 25 s0510
+> x (meters)
+> 0246810
+> y (meters) (d) t= 42 s
+
+Fig. 7: Performance under the closest link policy of the evader with the encirclement guaranteed sector set based robust MPC approach in [12]. The evader moves to the closest edge and remains on the edge. While the pursuers are able to maintain encirclement, it takes around t = 42 s for capture, due to the rigid sector constraints. 0 0.2 0.4 0.6 0.8 1
+
+Time (second) 
+
+00.2 0.4 0.6 0.8 1
+
+Fig. 8: Evolution of the areas of the subtriangles A12 , A23 , and A31 formed by the pursuer and evader positions during pursuit under the closest link policy of the evader. The areas remain non-negative at all times, confirming that encirclement is maintained. Furthermore, A31 = 0 from approximately 0.4 s onward, indicating that the edge p3p1 remains active for the rest of the pursuit. 10 -1 10 0 10 1
+
+Time (seconds, log scale)  
+
+> 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1
+> Distance (meter)  Proposed Approach
+> EGSS-based Robust MPC Approach
+> rc= 0.3
+
+Fig. 9: Distance between the nearest pursuer and the evader over time under the proposed strategy and the EGSS-based robust MPC approach in [12]. The proposed approach achieves capture much faster compared to the approach in [12]. 
+
+approximately 0.4 seconds onward, indicating that the edge 
+
+p3p1 remains active for the remainder of the pursuit. The time taken by the pursuers to capture the evader under various policies is reported in Table I against their respective upper bounds established in (33). Under the stationary policy (STP), the bound is obtained by assuming μm = 0 , which yields the smallest possible upper bound. 7 For all other policies the bound is obtained by setting μm = 0 .7. It is seen that the interaction terminates in each case with a win for the pursuers, as the evader ends up in the capture disc of one of the pursuers. Thus, the proposed approach simultaneously guarantees encirclement and finite-time capture. Next, we compare our proposed approach with the en-circlement guaranteed sector set (EGSS)-based robust MPC approach proposed in [12] under the closest link evasion policy. It is seen from Figures 7 and 9 that the EGSS-based robust MPC approach takes approximately 42 seconds to achieve capture, whereas our proposed approach achieved capture in approximately 1.15 seconds. Additionally, we conduct Monte Carlo simulations over 100 trials, where the evaders initial position in each trial is randomly generated inside the convex hull of three pursuers to evaluate the performance statistically. For a fair comparison, the same set of randomly generated initial conditions is used for both the proposed method and the EGSS-based MPC approach. All simulations are performed under the closest link policy of the evader. The mean and standard deviation of the time to capture under the proposed method were found to be 
+
+1.04 seconds and 0.12 seconds, while analogous quantities were 40 .34 seconds and 2.32 seconds under the EGSS-based 
+
+> 7
+
+Note from (33) that the bound is an increasing function of μm. Thus, if μ = 0 were known in advance, that would yield the smallest possible upper bound. TABLE I: Comparison of Theoretical Bounds and Numerical Capture Times (in seconds). The bound for the stationary policy is obtained by assuming μm = 0  
+
+> (which results in the tightest bound), while for all other cases, μm= 0 .7.
+
+Policy Theoretical Bound Numerical Capture Time 
+
+Greedy 3.10 1.25 
+
+Switching 3.10 1.2
+
+Random 3.10 1.19 
+
+Stationary 0.93 0.5
+
+Closest Link 3.10 1.15 
+
+robust MPC approach. This behavior can be attributed to the sector constraints, which may limit the pursuers ability to move directly toward the evader during the edge phase, thereby increasing the capture time. VI. C ONCLUSION 
+
+In this work, we presented a strategy for a group of pursuers to enclose an evader in their convex hull and capture it in finite time, without knowledge of the control strategy of the evader. Furthermore, we derive an upper bound on the time of capture that holds for all admissible evader strategies. Possible directions for future work include extending the analysis to three-dimensional space, handling multiple evaders, and improving the bound on capture time. ACKNOWLEDGEMENT 
+
+The authors thank Dr. Alexander Von Moll and and Dr. Isaac Weintraub for helpful discussions. REFERENCES [1] V. Jankovi´ c, “About a man and lions,” Matematiˇ cki Vesnik , vol. 2, no. 64, pp. 359–362, 1978. [2] S. Kopparty and C. V. Ravishankar, “A framework for pursuit evasion games in Rn,” Information Processing Letters , vol. 96, no. 3, pp. 114–122, 2005. [3] A. J. Marasco, S. N. Givigi, and C. A. Rabbath, “Model predictive control for the dynamic encirclement of a target,” in American control conference (ACC) , 2012, pp. 2004–2009. [4] S. D. Bopardikar and S. Suri, “k-Capture in multiagent pursuit evasion, or the lion and the hyenas,” Theoretical Computer Science , vol. 522, pp. 13–23, 2014. [5] J. Chen, W. Zha, Z. Peng, and D. Gu, “Multi-player pursuit–evasion games with one superior evader,” Automatica , vol. 71, pp. 24–32, 2016. [6] E. Garcia and S. D. Bopardikar, “Cooperative containment of a high-speed evader,” in American control conference (ACC) , 2021, pp. 4698– 4703. [7] X. Wang, L. Xi, Y. Ding, and B. M. Chen, “Distributed encirclement and capture of multiple pursuers with collision avoidance,” IEEE Transactions on Industrial Electronics , vol. 71, pp. 7520–7530, 2023. [8] D. Patra and A. R. Hota, “3D cooperative pursuit with guaranteed enclosure via robust model predictive control,” in American Control Conference (ACC) , 2025, pp. 2–7. [9] H. Huang, W. Zhang, J. Ding, D. M. Stipanovi´ c, and C. J. Tomlin, “Guaranteed decentralized pursuit-evasion in the plane with multiple pursuers,” in IEEE Conference on Decision and Control and European Control Conference , 2011, pp. 4835–4840. [10] Z. Zhou, W. Zhang, J. Ding, H. Huang, D. M. Stipanovi´ c, and C. J. Tomlin, “Cooperative pursuit with voronoi partitions,” Automatica ,vol. 72, pp. 64–72, 2016. [11] G. Kumar and A. Ratnoo, “Cooperative target capture using voronoi region shaping,” Journal of Guidance, Control, and Dynamics , vol. 48, no. 6, pp. 1428–1438, 2025. [12] C. Wang, H. Chen, J. Pan, and W. Zhang, “Distributed cooperative pursuit with encirclement guarantee via robust model predictive con-trol,” Robotics and Autonomous Systems , pp. 1–16, 2025. [13] Z. Deng and Z. Kong, “Multi-agent cooperative pursuit-defense strat-egy against one single attacker,” IEEE Robotics and Automation Letters , vol. 5, no. 4, pp. 5772–5778, 2020. [14] E. Garcia, “Cooperative target protection from a superior attacker,” 
+
+Automatica , vol. 131, p. 109696, 2021. [15] L. Liang, F. Deng, M. Lu, and J. Chen, “Analysis of role switch for cooperative target defense differential game,” IEEE Transactions on Automatic Control , vol. 66, no. 2, pp. 902–909, 2020. [16] E. Garcia, I. Weintraub, D. W. Casbeer, and M. Pachter, “Optimal strategies for the game of protecting a plane in 3-D,” in American Control Conference (ACC) , 2022, pp. 102–107. [17] E. Garcia, D. M. Tran, D. Casbeer, D. Milutinovic, and M. Pachter, “Beyond visual range tactics,” in AIAA Scitech 2021 Forum , 2021, p. 1229. [18] S. Kopparty and C. V. Ravishankar, “A framework for pursuit evasion games in Rn,” Information Processing Letters , vol. 96, no. 3, pp. 114–122, 2005. [19] C. Wang, H. Chen, J. Pan, and W. Zhang, “Encirclement guaranteed cooperative pursuit with robust model predictive control,” in IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) ,2021, pp. 1473–1479.

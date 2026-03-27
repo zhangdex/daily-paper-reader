@@ -1,0 +1,608 @@
+Title: The FABRIC Strategy for Verifying Neural Feedback Systems
+
+URL Source: https://arxiv.org/pdf/2603.08964v1
+
+Published Time: Wed, 11 Mar 2026 00:13:50 GMT
+
+Number of Pages: 24
+
+Markdown Content:
+# The F ABRIC Strategy for Verifying Neural Feedback Systems 
+
+I. Samuel Akinwande 1, Sydney M. Katz 1, Mykel J. Kochenderfer 1, and Clark Barrett 2 
+
+> 1
+
+Department of Aeronautics and Astronautics, Stanford University, Stanford, USA  
+
+> 2
+
+Department of Computer Science, Stanford University, Stanford, USA 
+
+Abstract. Forward reachability analysis is a dominant approach for verifying reach–avoid specifications in neural feedback systems, i.e., dynamical systems controlled by neural networks, and a number of directions have been proposed and studied. In contrast, far less attention has been given to backward reach-ability analysis for these systems, in part because of the limited scalability of known techniques. In this work, we begin to address this gap by introducing new algorithms for computing both over- and underapproximations of backward reachable sets for nonlinear neural feedback systems. We also describe and im-plement an integration of these backward reachability techniques with existing ones for forward analysis. We call the resulting algorithm Forward and Backward 
+
+Reachability Integration for Certification (FaBRIC). We evaluate our algorithms on a representative set of benchmarks and show that they significantly outperform the prior state of the art. 
+
+# 1 Introduction 
+
+Dynamical systems controlled by neural networks are becoming increasingly preva-lent, with applications in robotics [9], autonomous systems [12, 18], and more [38]. Such systems are called by various names in the literature, including neural feedback loops [28] and neural network control systems [25]. In this paper, we follow [2] and refer to such a system as a neural feedback system (NFS). As more of these systems are deployed, ensuring compliance with safety and design specifications becomes increas-ingly critical. In particular, it is essential to be able to verify that an NFS satisfies its intended specification under all relevant operating conditions. Existing approaches for verifying neural feedback systems include sampling-based methods [10], certificate synthesis [24], and reachability analysis [2]. Sampling, a form of falsification, seeks to identify violations of a specification by evaluating the system over a finite set of scenarios and identifying failure modes [10]. This approach is widely used in industrial practice due to its scalability; however, it cannot be used to provide formal guarantees. Certificate synthesis methods provide formal guarantees by constructing safety or liveness certificates using techniques such as Lyapunov or Zubov analysis [1, 23], bar-rier methods [29], contraction metrics [35], or combinations thereof [24]. Systems ver-ified using these approaches have the advantage of being correct by construction, but computing such certificates is often challenging in practice.  
+
+> arXiv:2603.08964v1 [cs.AI] 9 Mar 2026 2Akinwande et al.
+
+Reachability analysis aims to characterize the set of all system states that can be reached to determine whether a given specification is satisfied or violated. While reach-ability analysis provides formal guarantees and applies to a broad class of systems, it suffers from the curse of dimensionality [7]. As a result, state-of-the-art reachability methods seek to balance the trade-off between precision and scalability, with highly precise methods scaling poorly. Most reachability analysis methods for neural feedback systems focus on forward analysis, in which the set of possible future states is computed to determine whether a given NFS satisfies a specification. This focus arises in part because computing back-ward reachable sets requires propagating sets backward through a neural network, a task that is known to be challenging [28]. The difficulty is further exacerbated when the NFS has nonlinear transition dynamics, as the analysis must account for nonlinearity in both the neural network and the system dynamics. Even forward analysis of nonlinear neural feedback systems is already quite challenging [30]. In this work, we explore a verification strategy that combines forward reachabil-ity analysis with new techniques for backward reachability analysis, with the goal of mitigating some of these scalability limitations. Our contributions are as follows: 
+
+– We define an algorithm for computing overapproximations of backward reachable sets for nonlinear neural feedback systems using polyhedral enclosures [2]. As part of this algorithm, we extend domain refinement [13] to the nonlinear setting. 
+
+– We introduce three new algorithms for computing underapproximations of back-ward reachable sets for nonlinear neural feedback systems. These algorithms ex-plore trade-offs between scalability and precision: one prioritizes scalability, one prioritizes precision, and the third aims to balance both. 
+
+– We evaluate the proposed backward reachability algorithms on a representative set of benchmarks and demonstrate significant improvements over the prior state of the art for both over- and underapproximation. 
+
+– We introduce the FABRIC algorithm, which combines forward and backward reach-ability analysis. FABRIC builds on existing approaches for combining forward and backward analysis but adapts them for the context of neural feedback systems. We implement the algorithm and show that it improves the performance of reachability analysis for neural feedback systems. The remainder of the paper is organized as follows. We first present background ma-terial in Section 2. Then, in Section 3, we review relevant work from the literature. Next, Section 4 presents our algorithms for backward reachability analysis, and Section 5 de-scribes the FABRIC algorithm for combining forward and backward reachability. We conclude with Section 6, which provides a thorough evaluation of these algorithms. 
+
+# 2 Background 
+
+In this section, we review notation and definitions used throughout the paper. 
+
+2.1 Notation 
+
+We denote the set of integers as Z, the set of natural numbers (integers greater than zero) as N, the set of real numbers as R, and the set of non-negative real numbers as R+. If XThe F ABRIC Strategy 3
+
+is a set, we denote the power set of X (i.e., the set of all subsets of X ) as 2X . We write the Cartesian product of two sets X and Y as X × Y = {(x, y ) | x ∈ X ∧ y ∈ Y} .
+
+The n-ary Cartesian product is defined analgously, and X n is used to denote the n-ary Cartesian product of the set X with itself. We use [i..j ] to represent the set {z ∈ Z | i ≤
+
+z ≤ j} and [n] to abbreviate [1 ..n ]. We write [x, y ] for the set {r ∈ R | x ≤ r ≤ y},
+
+(x, y ) for the set {r ∈ R | x < r < y }, and define (x, y ] and [x, y ) in the natural way. If S is any finite sequence (s1, . . . , s n), we write |S| to denote n, the length of the sequence, and S[i] to denote the ith element of the sequence. We write S[i..j ] for the sequence (si, . . . , s j ) and S ◦ S′ for the sequence obtained by appending the sequence 
+
+S′ to the end of S. If a sequence is used where a set is expected, the meaning is the set of elements in the sequence (e.g., s ∈ S means that s occurs in the sequence S). We use bold face for both vectors and sequences and treat them as interchangeable. We use ≼ and ≽ to describe element-wise inequalities for finite sequences, defined as follows. If x and y are sequences of size n, then so is x ≼ y, with (x ≼ y)[ i] = 1 ,if x[i] ≤ y[i], and 0 otherwise. We define x ≽ y similarly. We write x · y for the dot product (i.e., sum of element-wise products) of vectors x and y. We write 0 for the zero vector, 1 for the vector of all ones, and ei for the ith unit vector. The sizes of these vectors will be left implicit when it is clear from context. A convex combination vector 
+
+θ is a vector whose entries are non-negative and sum to 1, i.e., θ ·1 = 1 and θ ≽ 0 = 1.For a function f : X → R and a set X ′ ⊆ X , we define the image of X ′ un-der f as f (X ′) := {f (x) | x ∈ X ′}. If S is a sequence, then f (S) is the sequence 
+
+(f (S[1]) , f (S[2]) , . . . ). If F is a sequence of functions, then F (x) is the sequence 
+
+(F [1]( x), F [2]( x), . . . ). For X ′ ⊆ X , we define the restriction of f to X ′ as the func-tion f X ′
+
+: X ′ → R such that f X ′
+
+(x) = f (x) for every x ∈ X ′.
+
+2.2 Neural Feedback Systems 
+
+We define a discrete-time neural feedback system N as the tuple 
+
+⟨n, D, I, F , E, u, δ, T, G, A ⟩,
+
+where n ∈ N is the dimension of the system (i.e., each state is an element of Rn), 
+
+D ⊆ Rn is the operating domain —the region over which the system is to certified. We assume that it contains the the subset of Rn in which we expect the system to remain during operation and that the controller is defined over this region. I ⊆ D is the set of initial states , F = ( f1, . . . , f n) is a sequence of state transition functions with 
+
+fi : Rn → R, E ⊆ Rn is the perturbation set (i.e., the set of admissible disturbance terms that may affect the next state), u : Rn → Rn is the control function , δ ∈ R+ is the time-step size , T ∈ N is the number of time steps , G ⊆ Rn is the set of goal states ,and A ⊆ Rn is the set of avoid states (i.e., unsafe states). We assume that states evolve over a sequence of T discrete time steps, each of duration δ, giving a total time horizon of δ · T . For a current state x ∈ Rn, the next-state function next N : Rn → 2Rn
+
+defines the possible successor states of N . This set-valued mapping captures the nondeterminism introduced by the perturbation term: 
+
+next N (x) = x +  F (x) + u(x) + ϵ · δ | ϵ ∈ E . (1) 4 Akinwande et al. 
+
+Note that when computing the next value of x[i], fi and u may depend on the entire previous state x, not only on the component x[i]. We assume that the neural network controller u is a fully-connected, feed-forward network with n inputs, n outputs, and ReLU activations. The preimage (i.e., the set of predecessors) of a set of states X , and must be treated with care due to the presence of nondeterminism. Adversarial perturbations induce two distinct notions of predecessors: those that must reach X , and those that may reach X .Let next N (·, t ) denote the set of states reachable by t successive applications of the next-state relation. The set of states that must reach X in t steps is defined as 
+
+prev N 
+
+> G
+
+(X , t ) =  y ∈ Rn next N (y, t ) ⊆ X . (2) That is, every state reachable from y in exactly t steps lies in X . Conversely, the set of states that may reach X in t steps is defined as 
+
+prev N 
+
+> A
+
+(X , t ) =  y ∈ Rn next N (y, t ) ∩ X̸ = ∅ . (3) That is, at least one state reachable from y in t steps lies in X . The choice between these previous-state operators depends on the property being verified, and we elaborate on this distinction in the following section. 
+
+2.3 Reach-Avoid Properties 
+
+Let X0 be a set of initial states. We define a forward trajectory FN (X0), as the sequence of state sets (X0, X1, . . . , XT ), where Xi = next N (Xi−1) for all i ∈ [1 , T ]. Similarly, if 
+
+XT is a target, we define the guaranteed backward trajectory BN 
+
+> G
+
+(XT ) as the sequence of state sets (XT , XT −1, . . . , X0), where Xi = prev N 
+
+> G
+
+(XT , T − i) for all i ∈ [0 , T −
+
+1] . The allowable backward trajectory BN 
+
+> A
+
+(XT ) is defined analagously, with prev N
+
+> G
+
+replaced by prev N 
+
+> A
+
+.We say that a system N is safe if it satisfies either the forward or backward reach-avoid properties. The forward reach-avoid properties are given by (4): 
+
+∀ x ∈ I. ∃ t ∈ [0 ..T ]. FN ({x})[ t] ⊆ G, (4a) 
+
+∀ t ∈ [0 ..T ]. FN (I)[ t] ∩ A = ∅, (4b) and the backward reach-avoid properties are given by (5): 
+
+∃ t ∈ [0 ..T ]. BN 
+
+> G
+
+(G)[ t] ⊇ I, (5a) 
+
+∀ t ∈ [0 ..T ]. BN 
+
+> A
+
+(A)[ t] ∩ I = ∅. (5b) Properties (4a) and (5a) are reach properties. They ensure that every forward trajec-tory starting from a state in the initial set eventually reaches the goal set. Conversely, Properties (4b) and (5b) are the avoid properties, which ensure that all possible system trajectories avoid unsafe states at every time step within the given horizon. Properties (4) and (5) are each individually sufficient to establish the safety of a system, but relying solely on either forward or backward analysis is limited by the challenges discussed earlier. Our verification strategy jointly leverages (4) and (5) to soundly and effectively verify the safety of arbitrary nonlinear neural feedback systems. The F ABRIC Strategy 5
+
+2.4 Polyhedra 
+
+Let n, k ∈ N, let D ⊆ Rn, and let P = {p0, p1, . . . , pk} ⊆ D be a finite set of points. The convex hull of P is a polyhedron defined as: 
+
+conv (P ) = {p0 θ[1] + . . . + pk θ[k + 1] | θ · 1 = 1 , θ ≽ 0}. (6) If p1 −p0, p2 −p0, . . . , pk −p0 are linearly independent, P is called affinely indepen-dent . If k = n, then P is called full-dimensional . A subset of Rn is a polyhedron if it is the convex hull of some set of points. If P is a polyhedron, let vert (P), the vertices of 
+
+P, denote the (unique) minimal set of points P such that P = conv (P ). A k-simplex is the convex hull of k + 1 affinely independent points in Rn, and k is its dimension . If S
+
+is a k-simplex, then |vert (S)| = k + 1 . A face of S is the convex hull of any non-empty subset of vert (S).A pure simplicial k-complex ∆ is a finite set of simplices such that: ( i) the maximum dimension of any simplex in ∆ is k; ( ii ) S ∈ ∆ iff S is a face of some S′ ∈ ∆; and (iii ) for any S1, S 2 ∈ ∆, if S1 ∩ S2̸ = ∅, then S1 ∩ S2 is a face of both S1 and S2. A pure simplicial complex ∆ is a triangulation of P if 
+
+conv (P ) = [
+
+> S∈∆
+
+S and P = [
+
+> S∈∆
+
+vert (S).
+
+Let C ⊆ Rn. The vertices of C with respect to a point set P are defined as 
+
+vert P (C) = C ∩ P . For a polyhedron P, the circumsphere of P (when it exists) is a hypersphere whose surface contains all vertices of P. Circumspheres always exist for simplices and for hyperrectangles. Now, let P ⊆ Rn be a finite, full-dimensional set of points, let ∆ be a triangulation of P , and let S be an n-simplex in ∆. We define C(S)
+
+to be the interior of the n-ball whose boundary is the circumsphere of S. The simplex 
+
+S satisfies the Delaunay condition , and is called a Delaunay simplex of P , if 
+
+vert P (C(S)) = ∅,
+
+that is, no point of P lies in the interior of the circumsphere of S. The triangulation 
+
+∆ is called a Delaunay triangulation if every n-simplex in ∆ satisfies the Delaunay condition. 
+
+2.5 Polyhedral Enclosures 
+
+We make use of the polyhedral enclosure abstraction introduced in [2]. We summarize the relevant definitions and results here and refer readers to that work for details. Let n ∈ N, let D ⊆ Rn, and let P = {p0, p1, . . . , pn} ⊆ D be an affinely independent set of points. Let L, U : Rn → R be functions satisfying L(p) ≤ U (p)
+
+for all p ∈ P . We call the tuple B = ⟨n, P, L, U ⟩ a bounding set . The vertex set of B
+
+is defined as 
+
+vert (B) ≜ {p ◦ (L(p)) | p ∈ P } ∪ { p ◦ (U (p)) | p ∈ P }.6 Akinwande et al. 
+
+Let B be a bounding set, and let ∆ be a Delaunay triangulation of P , the point set associated with B. Let ∆n denote the set of all n-simplices in ∆. For each S ∈ ∆n, the 
+
+bounding set associated with S is defined as 
+
+BS ≜ ⟨n, vert (S), L vert (S), U vert (S)⟩.
+
+The polyhedron induced by BS is of dimension n + 1 and is defined as the convex hull of its vertex set. 
+
+P(BS ) ≜ conv  vert (BS ).
+
+The polyhedral enclosure induced by the bounding set B and the Delaunay triangula-tion ∆ is defined as the union of the bounding polyhedra over all n-simplices: 
+
+E(B, ∆ ) ≜ [
+
+> S∈∆n
+
+P(BS ).
+
+We say that the bounding set B encloses a function f : D → R if, for every Delaunay triangulation ∆ and for all x ∈ D, we have (x, f (x)) ∈ E (B, ∆ ). Algorithms for constructing such enclosures for a large class of nonlinear functions can be found in [2]. Given a bounding set B that encloses a function f , we can use standard techniques to construct a mixed-integer linear program (MILP) M with the property that (x, y )
+
+is a solution of M iff it lies within the polyhedral enclosure induced by B (and some Delaunay triangulation). Thus, in particular, (x, f (x)) must be a solution of M.
+
+# 3 Related Work 
+
+Reachability analysis computes the set of states that a dynamical system can attain under all admissible control inputs and disturbances [3, 6]. In the forward reachability problem, one computes the reachable set of states starting from a given initial set over a specified time horizon, whereas the backward reachability problem characterizes the set of states from which the system can be driven into a target set. Reachability analysis applies to both continuous and hybrid systems [5], and it plays a central role in the verification and control of safety-critical systems [7]. Methods for reachability analysis are commonly classified into Eulerian and La-grangian approaches [26]. Eulerian methods compute reachable sets by discretizing the state space and evolving a value function over a fixed grid [6, 7, 26], with Hamilton– Jacobi (HJ) reachability serving as a prominent example. These methods naturally sup-port backward reachability analysis, and provide strong theoretical guarantees, but they typically incur substantial computational cost due to the need for high-dimensional grid discretizations. Lagrangian methods compute reachable sets by propagating the system dynamics forward in time from an initial set, typically by enclosing families of trajectories [26]. Prominent tools implementing Lagrangian reachability include CORA [4, 19, 20] and Flow* [8]. Compared to Hamilton–Jacobi methods, Lagrangian approaches generally exhibit improved scalability with respect to the state dimension, but they are not natu-rally suited to backward reachability analysis. The F ABRIC Strategy 7
+
+Computing the exact reachable set is challenging, and state-of-the-art methods of-ten focus on computing sound approximations [3]. In the forward reachability setting, sound overapproximations are needed, whereas the backward reachability problem typ-ically requires both over and underapproximations. The Lagrangian methods discussed above all compute approximations of the reachable set. 
+
+Neural Feedback Systems. The verification problem becomes substantially more chal-lenging when the dynamical system is controlled by a neural network, as in neural feed-back systems, since the solver must reason about the closed-loop interaction between the continuous dynamics and the neural network controller. Methods for verifying neural feedback systems can broadly be classified into prop-agation methods and combinatorial methods [2]. Propagation methods verify systems by propagating an abstract domain through the system dynamics using a Lagrangian reachability method, and then propagating the resulting reachable set through the neu-ral network via abstraction propagation [11, 15, 21]. Combinatorial methods, in con-trast, encode both the dynamics and the neural network as combinatorial problems [30, 32, 37]. Propagation methods typically scale to higher-dimensional systems at the cost of precision, whereas combinatorial methods retain higher precision but incur substan-tially greater computational cost. Recent work has also explored computing backward reachable sets for neural feed-back systems, with the majority of approaches focusing on systems with linear tran-sition dynamics [27, 22]. Approaches that consider systems with nonlinear transition dynamics tend to scale poorly [28]. Everett et al. [13] minimize some of the limitations of backward reachability analysis of neural feedback systems by introducing a domain refinement scheme. 
+
+Neural Network Verification. Neural network verification aims to characterize the input–output behavior of a neural network in order to establish properties such as ro-bustness and stability. Common verification approaches include formulating the prob-lem as a satisfiability modulo theories (SMT) query [16, 17], a MILP [36], or an abstrac-tion propagation problem [33, 42, 39]. Computing the pre-image of a neural network is known to be particularly challenging [44], and recent work has therefore focused on constructing sound overapproximations [22] and underapproximations [43] of neural network pre-images. Forward and backward analysis have been explored as mechanisms for bound tight-ening in neural network verification. The authors of [39] implicitly combine forward and backward analysis to tighten neuron bounds during interval propagation, while the authors of [41] explicitly combine forward and backward analysis to verify graph neu-ral networks. Forward and backward analysis have also been studied in the context of reachability analysis [26], but scalable computation of backward reachable sets remains a fundamental challenge. Recent work explores the use of forward and backward reach-ability analysis for domain refinement in linear neural feedback systems [40]. 8 Akinwande et al. 
+
+# 4 Backward Reachability Analysis 
+
+In prior work [28], backward reachable sets are defined as the sets of states that reach a target under any admissible control, while backward projection sets are those that reach the target under the specific control policy implemented by the neural network. This distinction is essential in [28] because the proposed methods require explicit knowledge of bounds on the admissible control inputs. In contrast, our setting does not impose such a requirement. Accordingly, we use backward reachable set to denote the set of states that reach a target set under the specific neural network controller policy. We further refine this terminology based on two ( must vs may ) notions of backward reachable sets. Specifically, we call a solution to Equation (3) a backward may-reachable set or may-BRS and a solution to Equation (2) a backward must-reachable set or must-BRS .We consider nonlinear neural feedback systems, and therefore rely on approximate solutions to Equations (1) to (3). For forward reachability analysis, an overapproximate solution to Equation (1) does not compromise the soundness of Properties (4a) and (4b). For backward analysis, however, an overapproximate solution to Equation (3) can only be used with Property (5b). To maintain the soundness of Property (5a), an un-derapproximate solution to Equation (2) is required. For ease of exposition, we refer to overapproximations of backward may-reachable sets as outer sets or outer approxima-tions and underapproximations of backward must-reachable sets as inner sets or inner approximations . In the following subsections, we describe methods for computing both outer and inner approximations. 
+
+4.1 Outer Sets 
+
+Our objective is to develop algorithms that soundly compute overapproximations of the solutions to (3) in a tractable manner. Inspired by the procedure described in [28], we formulate the following problem. Given a NFS N with operating domain D and target set X , we compute bounds on the solution of (3) by solving a series of mixed-integer linear programs. We first employ the technique of [2] to obtain sound polyhedral enclosures for the nonlinear transition dynamics. Then, for each i ∈ [n], we solve the following MILP in order to get a lower bound on x[i].
+
+min x[i], (7a) subject to x′ = x +  y + u + ϵ · δ, (7b) 
+
+M0, . . . , Mn, ϵ ∈ E, x′ ∈ X , x ∈ D (7c) where M1, . . . , Mn are MILPs encoding the polyhedral enclosures for f1, . . . , f n, re-spectively, and whose input and output variables are (x, y[1]) , . . . , (x, y[n]) , and M0
+
+is a MILP formulation of the fully-connected ReLU-activated neural network controller using standard methods [36], whose input and output variables are (x, u). Replacing the minimization with a maximization yields corresponding upper bounds. Together, these bounds define a hyperrectangle that is an outer set, a sound overapproximation of the true may-BRS of X .This outer set is sound but conservative. The conservatism arises from the fact that we typically have extremely loose bounds on x: for soundness, we use the domain DThe F ABRIC Strategy 9
+
+to bound x, but D may substantially overapproximate the set of states that are actually backward reachable. We address this next. 
+
+Extending Domain Refinement to Nonlinear Neural Feedback Systems. The orig-inal method introduced in [28] mitigates this issue by assuming a priori bounds on the controller outputs and using these bounds to compute a restricted subset of the domain over which the backward reachability problem is solved. However, this relies on ob-taining tight controller bounds, which is often difficult in practice. When such bounds are loose or unavailable, the resulting overapproximate backward reachable set remains highly conservative. Subsequent work [13] eliminates the need for a priori controller bounds by propos-ing a domain refinement algorithm that iteratively tightens the domain over which the neural feedback system is defined. That algorithm is formulated for neural feedback systems with linear transition functions. A minor contribution of this work is to extend their domain refinement scheme to systems with nonlinear transition functions. The refinement algorithm introduced in [13], referred to as DRIP , forms the basis of our approach. The central insight underlying DRIP is that increasingly tight overap-proximations of the backward reachable set can be obtained by starting with an overly conservative approximation and iteratively refining it—using the previously computed overapproximate backward reachable set as the domain constraint at each iteration. DRIP uses the CROWN framework [42] to compute the backwards reachable set. While effective for systems with linear transition functions, i.e., systems whose dynamics can be encoded as linear programs, this approach cannot be directly applied to nonlinear transition systems. To address this limitation, we extend DRIP to systems with nonlin-ear transition functions as shown in Algorithm 1. 
+
+Algorithm 1 Domain Refinement with Polyhedral Enclosures (DRiPy)                                                                                 
+
+> Require: Target set X, neural feedback system N, maximum number of iterations Kmax , im-provement threshold α.
+> Ensure: overapproximation of the one-step may-BRS prev N
+> A(X,1)
+> 1: k←0▷Initialize iteration counter 2: repeat
+> 3: M0←APPROX NETWORK (u, D )▷Construct MILP approximating controller u
+> 4: M1, . . . , Mn←OVERT POLY (F, D )▷Compute MILPs for nonlinear dynamics 5: (L,U)←SOLVE (N,M0, . . . , Mn)▷Solve (7) to get bounds on may-BRS 6: Dold ←D▷Save domain D
+> 7: D←HYPERRECTANGLE (L,U)▷Refine Dto the hyperrectangle formed by Land U
+> 8: k←k+ 1 ▷Increment iteration counter 9: until vol (Dold )/vol (D)−1< α or k≥Kmax
+> 10: return D
+
+Algorithm 1 begins by computing the MILPs that encode an overapproximation of 
+
+u and the polyhedral enclosures of each fi ∈ F using techniques from [2]. It then solves n instances of (7) to get a vector of lower bounds L and solves n instances of the maximization (replacing min by max ) to get a vector of upper bounds U . These 10 Akinwande et al. 
+
+are used to create a new hyperrectangle which is assigned to be the new domain D. The process then repeats until the improvement in the volume falls below some threshold α
+
+or the maximum number of iterations Kmax has been reached. Algorithm 1 can be extended in the obvious way to k time steps by simply calling the full algorithm k times, each time replacing the target set X by the overapproxi-mated may-BRS D calculated in the previous call. Borrowing terminology from the forward reachability literature [30], we refer to this as concrete overapproximate back-ward reachability analysis. The concrete approach can induce excessive conservatism, mirroring behavior ob-served in concrete forward reachability analysis [2]. To mitigate this effect, we extend the symbolic multi-step approach of [2, 30] by solving for multiple time steps simulta-neously. We define the two-step problem as follows. We solve, for each i ∈ [n]:
+
+min x[i], (8a) subject to 
+
+(
+
+x′′ = x′ +  y′ + u′ + ϵ′ · δ
+
+x′ = x +  y + u + ϵ · δ (8b) 
+
+M0, . . . , Mn, M′
+
+> 0
+
+, . . . , M′
+
+> n
+
+, ϵ, ϵ′ ∈ E x′′ ∈ X , x′, x ∈ D (8c) where M′
+
+> 1
+
+, . . . , M′ 
+
+> n
+
+are the MILPs encoding the polyhedral enclosures for f1, . . . , f n
+
+at the transition before the target is reached, M1, . . . Mn are the MILPs encoding the polyhedral enclosures at the transition before that one, and the terms M′ 
+
+> 0
+
+and M0 de-note the MILP formulations of the neural network controller at the previous transition and the one before it, respectively. As before, we can compute an upper bound by re-placing the minimization with a maximization. We can also run Algorithm 1 with the new formulation in (8) to refine the two-step backward may-reachable set. Finally, we can implement a hybrid strategy by first running the concrete approach, then replacing the domain D with the computed concrete BRS at each stage to improve precision. 
+
+4.2 Inner Sets 
+
+By definition, any sound outer set must contain the true backward reachable set. We exploit this property to compute an underapproximation of the true must-BRS by for-mulating a constrained optimization problem whose objective is to identify the largest subset of the outer set whose overapproximated forward image is fully contained in the target set. This leads to the following optimization problem: 
+
+max VOL (X i), (9a) subject to REACH (X i) ⊆ X , (9b) 
+
+X i ⊆ X o, (9c) where VOL denotes the volume operator, R EACH denotes a sound algorithm for overap-proximate forward reachability analysis, X o is an outer set, and X is the target set. We next propose several approaches for solving this efficiently. All proposed approaches assume that the user can compute an outer set, as well as an efficient overapproxima-tion of the forward reachable set. The F ABRIC Strategy 11 
+
+Scaled Hyperrectangular Approximation of Reachable Polytopes (SHARP) The SHARP approach computes an inner set by scaling an outer set inward. We assume that the outer set can be represented as X o = c±r. The inner set is defined as X i = c±ρ·r,where ρ ∈ (0 , 1) n. Our objective is to estimate the largest admissible scaling vector ρ
+
+such that R EACH (X i) is fully contained in the target set. This leads to the following optimization problem: 
+
+max 
+
+> n
+
+X
+
+> j=1
+
+log( ρ[j]) (10a) subject to 0 ≼ ρ ≼ 1, (10b) 
+
+X i = c ± ρ · r, (10c) REACH (X i) ⊆ X . (10d) We estimate the optimal ρ via an iterative line-search procedure inspired by golden-section search. We use golden-section search because it typically requires fewer con-tainment queries than a binary search for comparable bracketing accuracy. Solving equation (10) returns a certified inner approximation of the true must-BRS. This formulation has several limitations, the most significant of which are the need for frequent containment queries and the assumption that the inner set is an axis-aligned hyperrectangle centered at the center of the outer set. Nonetheless, the approach often converges quickly in practice. The formulation also typically requires a large number of forward reachability queries, which can be problematic when such queries are computa-tionally expensive. To mitigate these limitations, we propose the following alternatives. 
+
+Convex Rectangle Inferred via Sampled Positives (CRISP) The CRISP approach seeks to reduce the number of forward reachability queries required to compute an inner set. To this end, we replace the scaling-based procedure with a sampling-based alternative. We draw dense, space-filling samples from the outer set. Each sample is then classified as positive or negative via rejection sampling, based on containment of its forward reachable set in the target set. Let P be the set of positive samples. Our objective is to identify the largest axis-aligned hyperrectangle contained within the convex hull of the positive samples. The resulting optimization problem is: 
+
+max VOL (X i) (11a) subject to X i(c, r) ⊆ conv (P ), (11b) 
+
+r ≽ 0. (11c) where X i(c, r) is an axis-aligned hyperrectangle. Note that this hyperrectangle may not necessarily share a center with the outer set. With an appropriate surrogate for the  
+
+> VOL
+
+operator, this optimization problem can be formulated as a convex program. While this formulation addresses several of the major limitations of the SHARP approach, it remains sensitive to irregular backward reachable sets. In particular, when the backward reachable set is nonconvex or contains holes (e.g., a toroidal set), the resulting candidates may fail the forward reachability certification step and therefore be nonviable. We mitigate this limitation via the following modification. 12 Akinwande et al. 
+
+Constrained Local Exclusion of Aligned Negatives (CLEAN) The CLEAN ap-proach is designed to handle problem instances with irregular backward reachable sets. Although such cases are uncommon in practice, we include this method for complete-ness. We employ the same space-filling rejection sampling algorithm used in CRISP, but here we retain the set of negative samples N . Our objective is to identify the largest axis-aligned hyperrectangle that contains no negative samples. 
+
+max VOL (X i) (12a) subject to X i(c, r) ∩ N = ∅, (12b) 
+
+X i(c, r) ⊆ X o, (12c) 
+
+r ≽ 0. (12d) The computational complexity of this problem depends on both the surrogate used for the volume objective and the representation of the emptiness constraint in eq. (12b). While a convex surrogate may be used for the volume objective, enforcing the empti-ness constraint requires integer variables. In particular, binary variables are needed to enforce exclusion along at least one dimension for each negative sample n ∈ N . Con-sequently, the resulting optimization problem is, in the general case, a mixed-integer linear program. The number of binary variables scales with both the system dimension and the number of negative samples. Solving the optimization problem in equation (11) or (12) yields a candidate un-derapproximate solution to the must-BRS. These optimization problems are used as subroutines in Algorithm 2 for computing an inner set. We can further optimize Al-
+
+Algorithm 2 Fast Inner Template Sets (FITS)                                                                 
+
+> Require: Target set X, neural feedback system N, outer set Xo, maximum number of iterations
+> Kmax , inner approach p∈ { CLEAN ,CRISP }
+> Ensure: underapproximation of the true must-BRS prev G(X,1)
+> 1: k←0▷Initialize iteration counter 2: repeat
+> 3: INNER ←SELECT (p)▷Select inner approximation routine 4: Xi←INNER (N,Xo)▷Approximate the solution of (9) 5: if REACH (Xi)⊆ X then
+> 6: return Xi▷Accept candidate if forward query passes 7: end if
+> 8: k←k+ 1 ▷Increment iteration counter 9: Xo← X i▷Update outer set 10: until k≥Kmax
+> 11: return ∅
+
+gorithm 2 by sampling a finite set of points from the candidate set X i and iteratively reducing the set until no negative samples remain before performing the forward reach-ability query. As in the overapproximation case, the algorithm can be extended to k time steps by calling the algorithm k times, each time replacing the target set X by the underapproxi-The F ABRIC Strategy 13 
+
+mated must-BRS X i calculated in the previous call. We refer to the resulting procedure as a concrete underapproximation if candidate sets are validated using a concrete for-ward reachability query, and as symbolic underapproximation if validation is instead performed using a symbolic query. 
+
+# 5 The F ABRIC Verification Strategy 
+
+Rather than exclusively computing forward or backward reachable sets, we propose verifying N by combining both analyses. Specifically, we partition the planning hori-zon into T = F + B steps, where F denotes the number of forward-analysis steps and B the number of backward-analysis steps. This yields the Forward and Backward 
+
+Reachability Integration for Certification F ABRIC strategy. The subdivision is treated as a configurable parameter of the strategy. We generally expect F > B because the forward problem is implicitly encoded within the back-ward problem; consequently, the computational effort required to perform k ∈ N steps of backward analysis typically exceeds that required for k steps of forward analysis. This discrepancy is even more pronounced when verifying reach properties, since the repeated certification queries introduce additional overhead. In this work, we consider subdivisions satisfying F ≥ 0.75 T for all problems and leave the meta-optimization of 
+
+F and B to future work. To establish that the system satisfies a reach property (Properties 4a and 5a), we perform F steps of forward analysis from I and B steps of backward analysis from 
+
+G. If the overapproximation of the forward reachable set at time step F is contained within the underapproximation of the backward must-reachable set, then the system is guaranteed to reach the goal set. To verify that the system satisfies an avoid property (Properties 4b and 5b), we compute F steps of overapproximated forward analysis from the initial set and B steps of overapproximated backward analysis from the avoid set A. Let U = ∪Bt=0 prev A(A).If each of the forward sets at time t ∈ [0 , F ] is disjoint from A and the forward set at time F is additionally disjoint from U , then the system is guaranteed to avoid all unsafe states, thereby ensuring safety. 
+
+# 6 Evaluation 
+
+We evaluate our algorithms and overall strategy on three classes of neural feedback systems drawn from the ARCH Competition benchmark suite [25]. For each bench-mark, we consider controllers inspired by those used in the original ARCH Competi-tion, which are obtained by training neural policies via imitation learning from a model predictive control (MPC) expert. For each system, we train policies with 0.5×, 1×, and 2× the number of neurons used in the corresponding ARCH benchmark controller, while retaining all other archi-tectural features. We refer to these variants as the small, medium, and large policies respectively. We provide summaries below, and detailed descriptions in the appendix. 14 Akinwande et al. 
+
+6.1 Benchmarks 
+
+TORA The objective is to verify that the states of an actuated cart remain within a safe region during a specified time interval. 
+
+Unicycle Car Model The objective is to verify that a simplified model of an autonomous vehicle is safe. The car is modeled with four state variables, representing the x and y
+
+coordinates in a plane, the steering angle, and the velocity magnitude. 
+
+Attitude Control Model The objective is to verify that a simplified model of an au-tonomous aircraft is safe. The aircraft is modeled as a rigid body with six state variables, representing the orientation ( ψ1, ψ 2, ψ 3) using Rodrigues parameters, and rotation rates (ω1, ω 2, ω 3) of the aircraft. 
+
+6.2 Baselines 
+
+We compare our method for computing outer approximations against HyBreach-MILP, a state-of-the-art approach for computing outer reachable sets of nonlinear neural feed-back systems [28]. For HyBreach-MILP, we compute bounds on the admissible control inputs via parameter search and report results obtained using the two-step procedure described in [28]. We compare our method for computing inner approximations against BURNS, the only existing tool for computing inner reachable sets for nonlinear neural feedback systems [31]. We reimplement the algorithm as described in the paper and re-port the resulting comparisons below. Finally, we compare the F ABRIC strategy against the forward reachability analysis method introduced in [2] 3 . This algorithm represents the state of the art in combinatorial forward reachability for nonlinear neural feedback systems and therefore provides a strong baseline for evaluating our approach. 
+
+6.3 Implementation Details 
+
+The convexity of equations (11) and (12) depends on the surrogates used to compute the  
+
+> VOL
+
+operator. For simplicity, we assume that the reachable sets are axis-aligned hyper-rectangles and define the volume surrogate as the sum of the radii r. An alternative is to compute the volume using the log-sum (equivalently, the product) of the radii; however, this choice leads to a cone program, which is generally more computationally expen-sive. We generate samples using deterministic Sobol sequences [34]. This provides an efficient space-filling sampling scheme suitable for our rejection-sampling procedure. We use the Gurobi solver [14] for all optimization queries. 
+
+6.4 Experimental Setup 
+
+All computation times were obtained by running each tool on an AMD Ryzen 9 7950X processor. For soundness, all reported results correspond to certified bounds on the optimal value of the objective function. Since all methods rely on the OVERT algo-rithm, we use a fixed parameter configuration with N = 2 , a relative error tolerance   
+
+> 3We use an existing public implementation provided by the authors of [2]. The F ABRIC Strategy 15
+
+of 5 × 10 −3, and an absolute error tolerance of 10 −4 across all experiments. For the Attitude benchmark, we instead use N = 1 for both HyBreach-MILP and BURNS, as these tools otherwise time out. For all backward reachability benchmarks, we perform five steps of symbolic back-ward reachability analysis using the corresponding avoid and goal sets. For the overap-proximation benchmarks, we impose a per–solver-call timeout of 900 seconds for each tool, set Kmax = 10 , and use α = 0 .01 . For the underapproximation benchmarks, we set 
+
+Kmax = 10 and report the best result across 10 independent attempts for both SHARP and BURNS. We impose a per–solver-call timeout of 600 seconds for each algorithm, together with an additional timeout of 300 seconds for forward reachability queries. For the F ABRIC benchmarks, we employ a combination of concrete and symbolic reachability for the forward-analysis component, together with purely symbolic reach-ability for the backward component. For the TORA benchmark with T T = 20 , we set 
+
+F = 15 and B = 5 , and further subdivide the forward component into two hybrid sym-bolic runs with horizons T = 10 and T = 5 , respectively. For the Unicycle benchmark with T U = 50 , we set F = 47 and B = 3 , further subdividing the forward component into four hybrid symbolic runs with horizon T = 10 and one run with horizon T = 7 .For the Attitude benchmark with T R = 10 , we set F = 8 and B = 2 . We impose a per-solver call timeout of 600 seconds for all forward and backward analyses. 
+
+# 7 Results 
+
+7.1 Computing Outer Sets 
+
+We report results comparing HyBReach-MILP with the DR IPY algorithm. To enable a fair comparison, we present results for DR IPY both with and without domain re-finement. We additionally report the improvement in computation time and set volume achieved by DR IPY relative to HyBReach-MILP when no refinement steps are applied. The TORA benchmark is the easiest among the considered benchmarks. All tools compute outer approximations in under 10 seconds, with HyBReach-MILP outperform-ing DR IPY in terms of computation time. HyBReach-MILP also produces a tighter outer approximation than unrefined DR IPY, which is consistent with expectations: HyBReach-MILP employs a more precise, albeit less scalable, representation of the nonlinear transition functions. Despite this advantage, DR IPY with domain refinement computes an outer set that is 3.5× smaller in under 10 seconds. The Unicycle and Attitude benchmarks exhibit a different performance trend. In these cases, the computational cost of HyBReach-MILP outweighs its precision ad-vantage, and unrefined DR IPY becomes the fastest method. In some instances, unre-fined DR IPY is nearly two orders of magnitude faster than HyBReach-MILP, while still achieving an order-of-magnitude reduction in outer set volume. These results are partly explained by the timeout imposed on all tools: HyBReach-MILP frequently times out, resulting in larger cumulative computation times and looser outer sets, since we re-port objective bounds. The medium Unicycle benchmark further highlights the benefits of domain refinement. In this setting, DR IPY requires substantially fewer refinement iterations to converge, resulting in significantly lower computation times compared to other variants. 16 Akinwande et al. 
+
+For the Unicycle benchmark, domain refinement reduces the outer-set volume by a factor of 3.5 relative to unrefined DR IPY. Compared to HyBReach-MILP, domain refinement produces an outer set that is over 40 × smaller while requiring less computa-tion time. For the Attitude benchmark, domain refinement yields an additional reduction factor of approximately 200 relative to unrefined DR IPY. Compared to HyBReach-MILP, domain refinement produces an outer set that is over 2900 × smaller while also requiring less computation time.                                                                                    
+
+> HyBReach-MILP DR IPY(★)DR IPY(★‡)Improvement Time (s) Vol. Time (s) Vol. Time (s) Vol. Time ( ↓) Vol. ( ↓)Tora (sma.) 1.14 1.44 E-01 1.63 1.67 E-01 5.17 4.16 E-02 −1.43 −1.16
+> Tora (med.) 1.14 1.39 E-01 2.63 1.57 E-01 5.20 4.11 E-02 −2.22 −1.13
+> Tora (larg.) 1.40 1.44 E-01 2.53 1.66 E-01 6.68 4.16 E-02 −1.81 −1.15
+> Unicycle (sma.) 5501 .0 1 .84 E+03 60 .59 1.51 E+02 1897 .94 4.00 E+01 90 .79 12 .23
+> Unicycle (med.) 4980 .90 1 .70 E+03 55 .04 1.51 E+02 124 .913 4.20 E+01 90 .50 11 .30
+> Unicycle (larg.) 4739 .67 1 .82 E+03 100 .58 1.51 E+02 1611 .40 4.20 E+01 47 .12 12 .06
+> Attitude (sma.) 1871 .68 3 .73 E+05 77 .75 2.57 E+04 1165 .71 1.25 E+02 24 .07 14 .51
+> Attitude (med.) 1902 .81 3 .73 E+05 91 .46 2.57 E+04 1060 .17 1.25 E+02 20 .81 14 .51
+> Attitude (larg.) 2256 .76 3 .73 E+05 145 .53 2.57 E+04 626 .70 1.25 E+02 15 .51 14 .52
+> Table 1. Benchmark computation time (s) and set volumes. ★denotes our polyhedral-enclosure based algorithm to solve Eq. 8, and ‡denotes our algorithm combined with the modified refine-ment scheme. Improvement is calculated as the time and volume fraction between HyBReach-MILP and a configuration of DR IPYwithout domain refinement.
+
+7.2 Computing Inner Sets 
+
+We report results comparing BURNS with SHARP and variants of the FITS algorithm. By construction, the sets returned by our methods (SHARP, CRISP, CLEAN) are certified inner sets, whereas the sets returned by BURNS are not certified. Instead, the sets returned by BURNS are assumed to be certified by construction. On the TORA benchmark, BURNS outperforms all variants of our algorithm in terms of inner set volume, although we are able to return certified inner sets in a fraction of the computation time. The sets returned by BURNS are nearly 2× larger than the largest set returned by SHARP or FITS. This trend does not persist on the more challenging benchmarks. On these bench-marks, BURNS is unable to compute a valid inner set within Kmax attempts, whereas all variants of the FITS algorithm succeed. For the Unicycle benchmark, BURNS com-pletes execution but is unable to return an inner set with nonzero volume. In contrast, for the Attitude benchmark, BURNS struggles to identify feasible points in the inner set. This difficulty arises largely from the need to sample a sparse set of points in a six-dimensional domain. Our reported results use up to 5 × 10 7 samples; we were unable to use larger sample counts due to memory limitations. Our sampling-based approaches avoid this limitation by sampling from the outer set, which constitutes a substantially The F ABRIC Strategy 17 
+
+smaller subset of the domain. Notably, the CRISP algorithm is the best-performing FITS variant across all benchmarks, while the CLEAN algorithm produces the largest inner set on a single instance. The SHARP algorithm struggles across all benchmarks but consistently returns a valid, albeit small, inner set.                                                                          
+
+> BURNS SHARP ( ★)CRISP ( ★)CLEAN ( ★)Time (s) Vol. Time (s) Vol. Time (s) Vol. Time (s) Vol. Tora (sma.) 32 .59 6.35 E-04 6.62 1.85 E-05 8.52 3.82 E-04 6.82 2.41 E-06 Tora (med.) 32 .59 6.35 E-04 6.72 1.85 E-05 8.83 3.82 E-04 6.79 2.40 E-06 Tora (lar.) 65 .92 4.70 E-04 10 .83 7.66 E-05 14 .15 3.84 E-04 10 .32 2.35 E-06 Unicycle (sma.) 606 .11 −157 .92 5.88 E-03 136 .52 1.94 E-02 50 .18 1.67 E-02 Unicycle (med.) 1524 .04 −126 .33 5.89 E-03 116 .70 3.43 E-02 36 .41 1.47 E-02 Unicycle (lar.) 1001 .18 −219 .07 5.85 E-03 190 .62 8.59 E-03 73 .17 1.61 E-02 Attitude (sma.) 557 .85 −18040 .96 1 .31 E-04 5297 .40 6 .86 E-04 13828 .22 4 .05 E-04 Attitude (med.) ××18528 .36 1 .31 E-04 5724 .30 6 .68 E-04 14279 .95 4 .47 E-04 Attitude (lar.) ××17834 .08 1 .31 E-04 5400 .88 6 .83 E-04 13454 .96 4 .05 E-04
+
+Table 2. Benchmark computation time (s) and set volumes. ★ denotes our polyhedral-enclosure based FITS algorithm to solve Eq. 9, − denotes instances where the procedure runs but fails to return a set with nonzero volume, and × denotes a failure for any other reason 
+
+7.3 Combining Forward and Backward Analysis 
+
+Finally, we report results for combining forward and backward reachability analysis. We combine the forward analysis method of [2] with the refined DR IPY algorithm and with the CRISP variant of the FITS algorithm. We compare these results against simply using the forward algorithm of [2] alone. A single run of forward analysis suffices to verify the forward reach–avoid prop-erties (eqs. (4a) and (4b)). In contrast, verifying the backward reach–avoid properties (eqs. (5a) and (5b)) requires two separate backward-analysis runs, corresponding to the computation of the must-BRS and the may-BRS. We report these results separately. On relatively easy benchmarks such as TORA, the overhead introduced by back-ward analysis dominates the overall computational cost, rendering the F ABRIC strat-egy detrimental. As the benchmarks become more challenging, however, the F ABRIC strategy becomes beneficial. On the Unicycle benchmark, we observe speedups of up to 
+
+7× for both reach and avoid properties. Even after accounting for the fact that forward-only verification requires only a single forward-analysis run, the F ABRIC strategy still improves over forward-only analysis by a factor of 2–3×. The results are mixed on the Attitude benchmark, where we observe improvements of up to 1.7× on the avoid specification, but the F ABRIC strategy appears detrimental for the reach specification. When we account for the need for a single forward-only analysis run, F ABRIC requires up to 2× the amount of time needed to verify the same set of properties. 18 Akinwande et al. Forward analysis FABRIC( ★) Improvement Reach Avoid Reach ( ↓) Avoid ( ↓)Tora (Small) 1.99 10 .87 6.41 −5.46 −3.22                                       
+
+> Tora (Med) 2.21 10 .09 6.61 −4.57 −2.99
+> Tora (Large) 3.29 16 .70 8.92 −5.08 −2.71
+> Unicycle (Small) 1302 .98 280 .51 292 .02 4.65 4.46
+> Unicycle (Medium) 1157 .98 261 .27 260 .15 4.43 4.45
+> Unicycle (Large) 2928 .21 384 .56 408 .82 7.61 7.16
+> Attitude (Small) 6980 .36 8365 .28 4001 .11 −1.20 1.75
+> Attitude (Medium) 5823 .11 7349 .67 3458 .57 −1.26 1.68
+> Attitude (Large) 7223 .28 10658 .96 4182 .43 −1.48 1.73
+> Table 3. Comparison of F ABRIC and Forward-only analysis with measured improvements
+
+# 8 Conclusions 
+
+We introduced F ABRIC, a new strategy for verifying reach–avoid specifications in non-linear neural feedback systems. The F ABRIC strategy is enabled by a set of new algo-rithms that soundly approximate may- and must-backward reachable sets for nonlinear neural feedback systems. Using a representative benchmark suite, we demonstrated that our backward reachable set approximation algorithms significantly improve on the prior state of the art. Finally, we showed that the F ABRIC strategy can substantially reduce the computational effort required to verify reach–avoid specifications in neural feed-back systems. 
+
+Future Work We plan to explore further optimizations for inner-set estimation, as the current methods remain sensitive to the curse of dimensionality. One promising direc-tion is to use sampling to refine the domain prior to running the FITS algorithm. We also intend to investigate the meta-optimization problem of selecting F and B, with the goal of automating this selection process. The F ABRIC Strategy 19 
+
+# References 
+
+1. Alessandro Abate, Daniele Ahmed, Mirco Giacobbe, and Andrea Peruffo. Formal synthesis of lyapunov neural networks. IEEE Control Systems Letters , 5(3):773–778, 2021. 2. Samuel I Akinwande, Chelsea Sidrane, Mykel J Kochenderfer, and Clark Barrett. Ver-ifying nonlinear neural feedback systems using polyhedral enclosures. arXiv preprint arXiv:2503.22660 , 2025. 3. Matthias Althoff, Goran Frehse, and Antoine Girard. Set propagation techniques for reacha-bility analysis. Annual Review of Control, Robotics, and Autonomous Systems , 4(1):369–395, 2021. 4. Matthias Althoff and Niklas Kochdumper. Cora 2016 manual. TU Munich , 85748, 2016. 5. Eugene Asarin, Thao Dang, Goran Frehse, Antoine Girard, Colas Le Guernic, and Oded Maler. Recent progress in continuous and hybrid reachability analysis. In 2006 IEEE Con-ference on Computer Aided Control System Design, 2006 IEEE International Conference on Control Applications, 2006 IEEE International Symposium on Intelligent Control , pages 1582–1587. IEEE, 2006. 6. Somil Bansal, Mo Chen, Sylvia Herbert, and Claire J Tomlin. Hamilton-jacobi reachability: A brief overview and recent advances. In 2017 IEEE 56th Annual Conference on Decision and Control (CDC) , pages 2242–2253. IEEE, 2017. 7. Mo Chen and Claire J Tomlin. Hamilton–jacobi reachability: Some recent theoretical ad-vances and applications in unmanned airspace management. Annual Review of Control, Robotics, and Autonomous Systems , 1(1):333–358, 2018. 8. Xin Chen, Erika ´ Abrah´ am, and Sriram Sankaranarayanan. Flow*: An analyzer for non-linear hybrid systems. In Computer Aided Verification: 25th International Conference, CAV 2013, Saint Petersburg, Russia, July 13-19, 2013. Proceedings 25 , pages 258–263. Springer, 2013. 9. Noel Csomay-Shanklin, William D Compton, Ivan Dario Jimenez Rodriguez, Eric R Am-brose, Yisong Yue, and Aaron D Ames. Robust agility via learned zero dynamics policies. In 2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) , pages 9116–9123. IEEE, 2024. 10. Harrison Delecki, Marc R Schlichting, Mansur Arief, Anthony Corso, Marcell Vazquez-Chanlatte, and Mykel J Kochenderfer. Diffusion-based failure sampling for evaluating safety-critical autonomous systems. In 2025 IEEE Engineering Reliable Autonomous Sys-tems (ERAS) , pages 1–8. IEEE, 2025. 11. Souradeep Dutta, Xin Chen, and Sriram Sankaranarayanan. Reachability analysis for neural feedback systems using regressive polynomial rule inference. In Proceedings of the 22nd ACM International Conference on Hybrid Systems: Computation and Control , pages 157– 168, 2019. 12. Scott Ettinger, Shuyang Cheng, Benjamin Caine, Chenxi Liu, Hang Zhao, Sabeek Pradhan, Yuning Chai, Ben Sapp, Charles R Qi, Yin Zhou, et al. Large scale interactive motion fore-casting for autonomous driving: The waymo open motion dataset. In Proceedings of the IEEE/CVF International Conference on Computer Vision , pages 9710–9719, 2021. 13. Michael Everett, Rudy Bunel, and Shayegan Omidshafiei. Drip: Domain refinement iteration with polytopes for backward reachability analysis of neural feedback loops. IEEE Control Systems Letters , 7:1622–1627, 2023. 14. Gurobi Optimization, LLC. Gurobi Optimizer Reference Manual, 2026. 15. Chao Huang, Jiameng Fan, Xin Chen, Wenchao Li, and Qi Zhu. Polar: A polynomial arith-metic framework for verifying neural-network controlled systems. In International Sym-posium on Automated Technology for Verification and Analysis , pages 414–430. Springer, 2022. 20 Akinwande et al. 16. Guy Katz, Clark Barrett, David L Dill, Kyle Julian, and Mykel J Kochenderfer. Reluplex: An efficient smt solver for verifying deep neural networks. In International conference on computer aided verification , pages 97–117. Springer, 2017. 17. Guy Katz, Derek A Huang, Duligur Ibeling, Kyle Julian, Christopher Lazarus, Rachel Lim, Parth Shah, Shantanu Thakoor, Haoze Wu, Aleksandar Zelji´ c, et al. The marabou frame-work for verification and analysis of deep neural networks. In International conference on computer aided verification , pages 443–452. Springer, 2019. 18. Elia Kaufmann, Leonard Bauersfeld, Antonio Loquercio, Matthias M¨ uller, Vladlen Koltun, and Davide Scaramuzza. Champion-level drone racing using deep reinforcement learning. 
+
+Nature , 620(7976):982–987, 2023. 19. Niklas Kochdumper and Matthias Althoff. Sparse polynomial zonotopes: A novel set rep-resentation for reachability analysis. IEEE Transactions on Automatic Control , 66(9):4043– 4058, 2020. 20. Niklas Kochdumper and Matthias Althoff. Constrained polynomial zonotopes. Acta Infor-matica , pages 1–38, 2023. 21. Niklas Kochdumper, Christian Schilling, Matthias Althoff, and Stanley Bak. Open-and closed-loop neural network verification using polynomial zonotopes. In NASA Formal Meth-ods Symposium , pages 16–36. Springer, 2023. 22. Suhas Kotha, Christopher Brix, J Zico Kolter, Krishnamurthy Dvijotham, and Huan Zhang. Provably bounding neural network preimages. Advances in Neural Information Processing Systems , 36:80270–80290, 2023. 23. Haoyu Li, Xiangru Zhong, Bin Hu, and Huan Zhang. Two-stage learning of stabiliz-ing neural controllers via zubov sampling and iterative domain expansion. arXiv preprint arXiv:2506.01356 , 2025. 24. Udayan Mandal, Guy Amir, Haoze Wu, Ieva Daukantas, F Newell, U Ravaioli, Baoluo Meng, Michael Durling, Milan Ganai, Tobey Shim, et al. Formally verifying deep reinforcement learning controllers with lyapunov barrier certificates. In CONFERENCE ON FORMAL METHODS IN COMPUTER-AIDED DESIGN–FMCAD 2024 , page 95, 2024. 25. Diego Manzanas Lopez, Matthias Althoff, Luis Benet, Clemens Blab, Marcelo Forets, Yuhao Jia, Taylor T Johnson, Manuel Kranzl, Tobias Ladner, Lukas Linauer, et al. Arch-comp24 category report: Artificial intelligence and neural network control systems (ainncs) for continuous and hybrid systems plants. 2024. 26. Ian M Mitchell. Comparing forward and backward reachability as tools for safety analysis. In International Workshop on Hybrid Systems: Computation and Control , pages 428–443. Springer, 2007. 27. Nicholas Rober, Michael Everett, and Jonathan P How. Backward reachability analysis for neural feedback loops. In 2022 IEEE 61st Conference on Decision and Control (CDC) ,pages 2897–2904. IEEE, 2022. 28. Nicholas Rober, Sydney M Katz, Chelsea Sidrane, Esen Yel, Michael Everett, Mykel J Kochenderfer, and Jonathan P How. Backward reachability analysis of neural feedback loops: Techniques for linear and nonlinear systems. IEEE Open Journal of Control Systems ,2:108–124, 2023. 29. Meng Sha, Xin Chen, Yuzhe Ji, Qingye Zhao, Zhengfeng Yang, Wang Lin, Enyi Tang, Qiguang Chen, and Xuandong Li. Synthesizing barrier certificates of neural network con-trolled continuous systems via approximations. In 2021 58th ACM/IEEE Design Automation Conference (DAC) , pages 631–636. IEEE, 2021. 30. Chelsea Sidrane, Amir Maleki, Ahmed Irfan, and Mykel J Kochenderfer. Overt: An algo-rithm for safety verification of neural network control policies for nonlinear systems. Journal of Machine Learning Research , 23(117):1–45, 2022. 31. Chelsea Sidrane and Jana Tumova. Burns: Backward underapproximate reachability for neural-feedback-loop systems. arXiv preprint arXiv:2505.03643 , 2025. The F ABRIC Strategy 21 32. Jacob A Siefert, Trevor J Bird, Justin P Koeln, Neera Jain, and Herschel C Pangborn. Suc-cessor sets of discrete-time nonlinear systems using hybrid zonotopes. In 2023 American Control Conference (ACC) , pages 1383–1389. IEEE, 2023. 33. Gagandeep Singh, Timon Gehr, Markus P¨ uschel, and Martin Vechev. An abstract do-main for certifying neural networks. Proceedings of the ACM on Programming Languages ,3(POPL):1–30, 2019. 34. Ilya M Sobol. Distribution of points in a cube and approximate evaluation of integrals. USSR Computational mathematics and mathematical physics , 7:86–112, 1967. 35. Dawei Sun, Susmit Jha, and Chuchu Fan. Learning certified control using contraction metric. In Conference on Robot Learning , pages 1519–1539. PMLR, 2021. 36. Vincent Tjeng, Kai Xiao, and Russ Tedrake. Evaluating robustness of neural networks with mixed integer programming. arXiv preprint arXiv:1711.07356 , 2017. 37. Joseph A Vincent and Mac Schwager. Reachable polyhedral marching (rpm): A safety verifi-cation algorithm for robotic systems with deep neural network components. In 2021 IEEE In-ternational Conference on Robotics and Automation (ICRA) , pages 9029–9035. IEEE, 2021. 38. Nanzhe Wang, Haibin Chang, and Dongxiao Zhang. Deep-learning-based inverse modeling approaches: A subsurface flow example. Journal of Geophysical Research: Solid Earth ,126(2):e2020JB020549, 2021. 39. Shiqi Wang, Huan Zhang, Kaidi Xu, Xue Lin, Suman Jana, Cho-Jui Hsieh, and J Zico Kolter. Beta-crown: Efficient bound propagation with per-neuron split constraints for neural net-work robustness verification. Advances in neural information processing systems , 34:29909– 29921, 2021. 40. Xinyu Wang, Liqian Chen, Zengyu Liu, Minghao Li, and Banghu Yin. Verifying neural network controlled systems by combining forward and backward reachability analysis. In 
+
+2025 25th International Conference on Software Quality, Reliability and Security (QRS) ,pages 315–326. IEEE, 2025. 41. Haoze Wu, Clark Barrett, Mahmood Sharif, Nina Narodytska, and Gagandeep Singh. Scal-able verification of gnn-based job schedulers. Proceedings of the ACM on Programming Languages , 6(OOPSLA2):1036–1065, 2022. 42. Huan Zhang, Tsui-Wei Weng, Pin-Yu Chen, Cho-Jui Hsieh, and Luca Daniel. Efficient neu-ral network robustness certification with general activation functions. Advances in neural information processing systems , 31, 2018. 43. Xiyue Zhang, Benjie Wang, and Marta Kwiatkowska. Provable preimage under-approximation for neural networks. In International Conference on Tools and Algorithms for the Construction and Analysis of Systems , pages 3–23. Springer, 2024. 44. Xiyue Zhang, Benjie Wang, Marta Kwiatkowska, and Huan Zhang. Premap: A unifying preimage approximation framework for neural networks. Journal of Machine Learning Re-search , 26(133):1–44, 2025. 22 Akinwande et al. 
+
+# A Overapproximating the Forward Reachable Set 
+
+For completeness, we describe an approach to computing a overapproximate forward query. We can compute sound forward sets by solving Equation 1 over T time steps for all states in X0. We employ the method of [2] to compute an overapproximation of the true forward reachable set. We can abstract the nonlinear transition functions in Equation 1 by computing tight polyhedral enclosures (upper and lower bounds) for each function. These enclosures, together with the neural network controller u, can be en-coded as mixed-integer linear programs (MILPs), which enable us to overapproximate the forward reachable set next N (X0).Specifically, we can compute a lower bound on next N (X0) by solving the following optimization problem for each i ∈ [1 , . . . , n ]:
+
+min  
+
+> x∈ˆX
+
+xi +  yi + u(x)i + ϵi
+
+ · δ, (13a) s.t. M0, . . . , Mn, ϵ ∈ E, (13b) where M0, . . . , Mn denote the MILP constraints representing the system dynamics and controller. Replacing the minimization with a maximization yields an overapprox-imation of the upper bound. The resulting hyperrectangle ( X1) is guaranteed to enclose the true forward reachable set next N (X0). Sequential application of this process using 
+
+Xi for i ∈ [0 ..T − 1] is called concrete reachability analysis [30]. Note that this process approximates arbitrary sets using hyperrectangles. Sequential application of Equation (13b) may lead to a coarse overapproximation of the forward reachable set, a situation referred to as excess conservatism . To address this, we can instead represent two steps at once. For i ∈ [0 ..n ], let M′ 
+
+> i
+
+be the same as Mi, except that each variable v appearing in Mi is replaced by v′ in M′
+
+> i
+
+. To solve the two-step problem, we then solve: 
+
+min  
+
+> x∈ˆXt
+
+x′ 
+
+> i
+
++ ( y′ 
+
+> i
+
++ u′(x′)i + ϵ′) · δ (14a) 
+
+M0, . . . , Mn (14b) for each i ∈ [n]
+
+n
+
+x′ 
+
+> i
+
+= xi + ( yi + u(x)i + ϵi), ϵi ∈ E (14c) 
+
+M′
+
+> 0
+
+, . . . , M′ 
+
+> n
+
+ϵ′ ∈ E (14d) This yields lower bounds for xt+2 (as before, replacing min by max produces upper bounds). This process can be repeated to generalize from a two-step analysis to a k-step analysis for arbitrary k. Constructing ˆFN (I) this way is called symbolic reachability analysis [30]. 
+
+# B Benchmarks 
+
+TORA We would like to verify that the states of an actuated cart remain within a safe region during a specified time interval. Formally, we define the neural feedback system The F ABRIC Strategy 23 
+
+T , where nT = 4 ,
+
+DT = [ −6.0, 6.0] × [−6.0, 6.0] × [−3.14 , 3, 14] × [−2.0, 2.0] 
+
+IT = [0 .6, 0.7] × [−0.7, −0.6] × [−0.4, −0.3] × [0 .5, 0.6] 
+
+the transition functions are defined as 
+
+F T 
+
+> i
+
+=
+
+
+
+x2 if i = 1 
+
+−x1 + 0 .1 sin( x3) if i = 2 
+
+x4 if i = 3 0 if i = 4 
+
+uT is computed by a neural network with three hidden layers (each with k neurons), and four outputs, the first three of which is set to the constant zero value, δT = 0 .1,
+
+T T = 20 ,
+
+GT = [0 .5, 1.5] × [−0.5, 0.5] × [−0.2, 0.2] × [−0.2, 0.2] 
+
+AT = [ −0.2, 0.2] × [−0.2, 0.2] × [−0.2, 0.2] × [−0.2, 0.2] for every t ∈ [T ]
+
+We would like to verify that the system is safe for controllers with k ∈ { 50 , 100 , 200 }.
+
+Unicycle Car Model We would like to verify that a simplified model of an autonomous vehicle is safe. The car is modeled with four state variables, representing the x and y
+
+coordinates in a plane, the steering angle, and the velocity magnitude. Formally, we define the neural feedback system U, where nU = 4 ,
+
+DU = [ −12 .0, 12 .0] × [−12 .0, 12 .0] × [−π, π ] × [−1, 1] 
+
+IU = [9 .5, 9.55] × [−4.5, −4.45] × [2 .1, 2.11] × [1 .5, 1.51] 
+
+The transition functions are defined as s 
+
+F U 
+
+> i
+
+=
+
+
+
+x4 cos( x3) if i = 1 
+
+x4 sin( x3) if i = 2 0 if i = 3 0 if i = 4 
+
+E = {0} × { 0} × { 0} × [−10 −4, 10 −4], uU is computed by a neural network with one hidden layer with k neurons and four outputs, the first two of which are set to the constant zero value, δU = 0 .2 , T U = 50 ,
+
+GU = [1 .5, 2.5] × [1 .5, 2.5] × [−0.5, 0.5] × [−0.5, 0.5] 
+
+AU (t) = [ −0.2, 0.2] × [−0.2, 0.2] × [−π, π ], [−2, 2] for every t ∈ [T ]
+
+We would like to verify that the system is safe for controllers with k ∈ { 250 , 500 , 1000 }24 Akinwande et al. 
+
+Attitude Control Model We would like to verify that a simplified model of an au-tonomous aircraft is safe. The aircraft is modeled as a ridid body with six state variables, representing the orientation ( ψ1, ψ 2, ψ 3) using Rodrigues parameters, and rotation rates (ω1, ω 2, ω 3) of the aircraft. Formally, we define the neural feedback system R, where 
+
+nR = 6 ,
+
+DR = [ −7.0, 7.0] × [−7.0, 7.0] × [−7.0, 7.0] × [−3, 3] × [−3, 3] × [−3, 3] 
+
+IR = [4 .5, 5.0] × [3 .2, 3.7] × [−2.5, −2.0] × [−0.1, 0.1] × [−0.1, 0.1] × [−0.1, 0.1] 
+
+Let Ψ = ψ21 + ψ22 + ψ23 , then the transition functions are defined as 
+
+F R 
+
+> i
+
+=
+
+
+
+0.5( ω2(Ψ − ψ3) + ω3(Ψ + ψ2) + ω1(Ψ + 1)) if i = 1 0.5( ω1(Ψ + ψ3) + ω3(Ψ − ψ1) + ω2(Ψ + 1)) if i = 2 0.5( ω1(Ψ − ψ2) + ω2(Ψ + ψ1) + ω3(Ψ + 1)) if i = 3 0.25( ω2ω3) if i = 4 
+
+−1.5( ω1ω3) if i = 5 2( ω1ω2) if i = 6 
+
+E = {0} × { 0} × { 0} × { 0} × { 0} × { 0}, uR is computed by a neural network with three hidden layers, (each with k neurons) and six outputs, the first three of which are set to the constant zero value, δR = 0 .1 , T R = 10 ,
+
+GR = [ −0.5, 0.5] × [−0.5, 0.5] × [−0.5, 0.5] × [−0.4, 0.6] × [−0.5, 0.5] 
+
+× [−0.6, 0.4] 
+
+AR(t) = [ −0.75 , −0.55] × [0 .65 , 0.85] × [−0.45 , 0.15] × [−0.25 , 0.05] 
+
+× [−0.55 , −0.35] × [−0.05 , 0.25] for every t ∈ [T ]
+
+We would like to verify that the system is safe for controllers with k ∈ { 32 , 64 , 128 }

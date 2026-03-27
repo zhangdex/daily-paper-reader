@@ -1,0 +1,452 @@
+Title: Sampling-Based Motion Planning with Scene Graphs Under Perception Constraints
+
+URL Source: https://arxiv.org/pdf/2603.03514v1
+
+Published Time: Thu, 05 Mar 2026 01:15:51 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+> 1
+
+# Samp li ng - Based Mo ti on P lann ing w it h Scene G raphs Under Perception Constraints 
+
+Qingxi Meng 1,∗, Emiliano Flores 1,∗, Thai Duong 1, Vaibhav Unhelkar 2, and Lydia E. Kavraki 2
+
+Abs tr ac t—It will be i nc reas i ng ly common fo r r obo ts to ope r atein clu tt e red human -cen tered en vir onmen ts such as homes ,wo rkp laces , and hosp it als, whe re the robo t i s o ft en tasked toma i nt ai n pe rcep ti on cons tr a in t s, such as mon it o ri ng peop l e o rmu lti p le ob jec ts, f or sa fe ty and reli ab ility wh il e e xecu ti ng it stask . Howe ver, exi sti ng pe rcep ti on -awa re app roaches ty p i ca lly focus on l ow -deg ree -of-fr eedom (DO F) systems o r on ly cons i de r asi ng le ob jec t i n the con t ext o f h igh -DO F robo ts . T h is mo tiv a tes us to cons i de r t he p rob lem o f pe rcep ti on -awa re mo ti on p l ann i ng for h igh -DO F robo ts tha t accoun ts for mu lti-ob jec t mon it ori ng cons tr ain ts. We emp loy a scene g raph rep resen t ati on o f t he en vir onmen t, o ff eri ng a g rea t po ten ti a l f o r i nco rpo r a ti ng long -ho ri zon task and mo ti on p lann i ng thanks to it s ri ch seman ti cand spa ti al i n forma ti on . Howe ver, it does no t cap tu re pe rcep ti on -cons tr a i ned i nfo rma ti on , such as the vi ewpo i nts the use r p refer s.To add ress these cha ll enges , we p ropose M OPS -PRM , a roadmap -based mo ti on p lanne r, t ha t i n teg rates the pe rcep ti on cos t ofobse rvi ng mu lti p le ob jec ts o r humans d ir ec tly i n to mo ti on pl ann i ng fo r h igh -DO F robo ts. T he pe rcep ti on cos t i s embedded toeach ob jec t as pa rt of a scene g r aph , and used to se l ec tiv ely samp l econ fi gu r ati ons for r oadmap cons tr uc ti on , i mp li c itly en fo rci ng the pe rcep ti on cons tr a in ts . Ou r me thod i s e xt ens iv ely v a li da ted i nbo th s imu l ated and rea l- wo rl d e x pe ri men ts, ach i evi ng mo re than 
+
+∼ 36% i mp rovemen t i n t he a ve r age numbe r of de t ec t ed ob j ec t sand ∼ 17% be tt er tr ack r ate aga i ns t othe r pe rcep ti on - cons tr a ined baselines, with comparable planning times and path lengths. 
+
+I. I NTRODUCTION 
+
+# AUTONOM OUS r obo t sy st ems ha ve become mo re p r eva -len t i n a vari ety of human -cen t ered en vir onmen ts , such as wo rkp laces [1], hosp it als [ 2 ], u rban a r eas [ 3 ] and homes [4]. A ke y cha ll enge in such en vir onmen ts is t ha t t he robo to ft en has to p l an a co lli s i on -fr ee tr aj ec t o ry t o fi n ish it s own tasks , wh il e mon it ori ng o the r humans o r ob jec ts o f i n teres talong the tr ajec to ry. Fo r examp le, a househo ld robo t ma yneed to de liv er an it em wh il e keep ing a pe rson ’s face o rges tu res in vi ew , o r a museum pa tr o l r obo t ma y na vi ga te a round vi sit o rs wh il e ma inta ining vi sib ility of mu lti p le pa in ti ngs o r scu lp tur es . Such pe r cep ti on cons tr a ints a re essen ti al f o rmon it o ri ng the su rr ound ing ob jec ts [5], [ 6 ], i mp rovi ng the r obo t’ s s t a t e es ti ma ti on [7], [ 8 ], enab li ng sa f e na vi ga ti on [9 ], [10], and mapp ing and e x p lo rati on o f t he en vir onmen t [11]. The r e fo r e , we a i m t o add r ess the p r ob l em o f mo ti on p l ann ing under perception constraints in this paper. 
+
+> 1
+
+Q ing xi Meng , Em ili ano F lo r es , and Tha i D uong a r e w it h D epa rt men t of Com -pu te r Sc ience , R ice Un iv er sity, Hous t on , TX 77005 US A qm15@rice.edu 
+
+> 2
+
+Va ibha v Unhe lka r and Ly di a E . Ka vr ak i a r e w it h the Depa rt men t o fCompu t er Sc ience , Ri ce Un iv er s ity, Hous t on , TX 77005 US A, and a lso w it h Ken Kenned y I ns tit ut e, Rice Un iv e r sity, Hous ton , TX 77005 US A.
+
+vaibhav.unhelkar@rice.edu; kavraki@rice.edu  
+
+> ∗
+
+Equal contribution. 
+
+Fig. 1. A n ill us tr ati on o f ou r pe rcep ti on - awa r e mo ti on p lanne r t ha t l ever ages a scene g r aph embedded w it h pe r cep ti on cos ts to gene r at e a tr aj ec to ry fr om a sta rt t o a goa l, wh il e mon it o ri ng thr ee ob j ec ts o f i n te res t. T he sc reen o f t he monitor is the preferable viewpoint in this scenario. 
+
+A common e x amp le o f pe r cep ti on - awa re cons tr a ints inmo ti on p lann ing is ob jec t tr ack i ng and mon it ori ng , whe re the robo t ma in ta ins vi s ib ility o f a s i ng le ob jec t [5], [ 6 ], [1 2 ] o rmu lti ple ob jec ts [1 3], [14], t ha t can be e it he r sta ti c [5], [1 2] o rdy nam ic [6], [1 3], [14] i n t he en vir onmen t. Accu ra te tr ack ing of mu lti p le ob jec ts i n the en vir onmen t i s pa rti cu larly use fu l f o rco lli sion a vo idance , espec ia lly w it h agg ress iv e quad r oto r fli gh ts[5], [ 9 ], [10], o r i n c l u tt e red and d y nam i c en vir onmen ts [6 ], [1 3 ], [15]. Bes ides ob jec ts, se veral wo rks a im to ma intainvi si bility o f vi sua l f ea tu res f or accu rat e s ta te es ti ma ti on [7], [ 8], such as vi sua l-i ne rti a l odome try (VI O ) [1 6], wh i ch is c ruc i a lfo r r obo t ope rati ons in the w il d . Ano the r exciti ng resea rch dir ec ti on is ac tiv e mapp ing o r ex plo ra ti on [11], whe r e the robo t tr ajec to ry i s p lanned to e xp lo r e the unmapped r eg ions of t he en vir onmen t [17]–[1 9], eit he r b y choos ing the ne xt bes tgoa l state [17] o r b y ma xi m izing the in fo rma ti on ga in o f f u tu resensor observations [18], [19]. T he pe rcep ti on - awa re cons tr ai nts a re common ly i nteg r at ed as a cos t, heu ri s ti c , o r r ewa r d f unc ti on i n a mo ti on p l ann i ng pr ob l em , wh ich is in tur n , so lv ed b y an op ti m iza ti on so lv e r
+
+> arXiv:2603.03514v1 [cs.RO] 3 Mar 2026 2
+
+[5], [1 3 ], a sea r ch - based [ 8 ] o r samp li ng -based p lanne r [7], [1 2], [ 20], or by r ein for cemen t l ea r ni ng [10], [15]. A lt hough success fu l i n na vi ga ti on w it h mob il e robo ts, exi sti ng wo r kon pe rcep ti on - awa re mo ti on p lann ing large ly f ocuses on se tti ngs w it h s imp lifi ed r obo t mode ls o r w it h li mit ed deg rees of fr eedom (DO F). Cl ose ly r el at ed t o ou r app roach , PS - PRM [1 2 ] cons ide rs a pe r cep ti on -awa re mo ti on p lann ing p rob lem fo r a h igh -DO F robo t bu t on ly mon it o rs a known s ing leob j ec t. E xt end i ng fr om mon it ori ng a s ing l e ob jec t t o mu lti pl eob jec ts is non trivi al, as the p lanne r mus t de termine how top ri o riti ze and ach ieve the co rr ec t vi ewpo in ts o f t he ob jec tsalong the tr ajec tory t o ma xi mize the o vera ll use r-de fi ned pe rcep ti on sco re. Ou r wo rk depa rt s s ign ifi can tly fr om p ri orwo r k on p lann ing unde r pe r cep ti on cons tr a ints b y de ve lop ing a pe r cep ti on - awa r e samp li ng -based mo ti on p l anne r f or h igh -  
+
+> DO F
+
+robo ts , e . g., mob il e man ipu lat ors, t ha t a ll ows the robo t t omon it o r mu lti p le s ta ti c ob jec ts o f i n te res t, sto r ed i n a scene g raph bu ilt fr om senso r obse rv ati ons , wh il e sa ti sfyi ng the kinematic constraints on the robot configuration. Recen tly, me tri c-seman ti c maps [2 1], such as scene g raphs [22 ], ha ve eme rged as powe rf u l r ep r esen tati ons tha tun ify geome tri c, seman ti c, and topo log ica l i nf or ma ti on fo rlarge -sca le en vir onmen ts. Scene g raphs o rgan ize seman ti cand me tri c in fo r ma ti on i n a h ie r ar ch ica l s tr uc t ur e , cap tu ri ng rela ti onsh ips ac r oss abs tr ac ti on layer s. Scene g raphs ha vebeen used fo r t ask p lann ing and h igh -l evel r eason ing , i ncomb ina ti on w it h language mode ls, e.g ., Sa y Plan [ 23 ] and Au toGP T+ P [ 24], o r seman ti c ins tr uc ti ons , e. g ., GRID [2 5] and Concep tG raphs [ 26 ], o r f or exp lo ra ti ons , e .g ., RoboE X P [2 7]. As l ow -l eve l mo ti on p lann ing requ ir es geome tri c inf orma ti on and k inema ti c cons tr a int s to ensu re the feas i bility of a mo ti on pl an , r ecen t wo rk has e xp lo red the use o f scene g raphs fo r bo thtask and motion planning [28]–[30] in a hierarchical manner. A “coa r se ” t ask p lan is gene r ated a t t he h ighe r abs tr ac ti on level s, such as bu il d ings , r ooms , or ob jec t s, and is then used to gu i de a loca l geome tri c p lanne r at t he occupanc y l evel [ 28 ], [3 0], o r t o gene r ate a heu ri s ti c func ti on fo r a mu lti-heu ri sti cA * geome tri c p lanne r [ 29 ]. Howe ve r, t hese wo rks focus on low - d imens i ona l r obo t sy s tems , e. g ., r obo t o r came r a poses ,without considering kinematic constraints. Ins tead , we de ve lop a samp li ng -based pe rcep ti on - awa repr obab ili sti c roadmap (PRM ) p lanne r f o r h igh -DO F r obo ts, t ha tin teg ra tes the r obo t’ s k inema ti c, geome tri c, and pe rcep ti on cons tr ain ts, e.g ., mu lti-ob jec t mon it o ri ng . T he pe rcep ti on cons tr ain ts a re embedded w it h each ob j ec t o f i n teres t i n a scene graph as a pe rcep ti on cos t f unc ti on , wh i ch is used to infor mt he cons tr uc ti on o f a PRM . G iv en a r obo t con fi gu r a ti on , t he pe rcep ti on cos t f unc ti on desc ri bes t he pe rcep ti on sco re o f all ob jec ts o f i n teres t, t ha t can be p rede fi ned o r app roxi ma ted b ya neu ra l ne t wo rk, p re tr a i ned to fit t he con fi dence sco re o f an ob jec t de tec ti on a lgo rit hm such as YOLOE [3 1]. Fo r ex amp le ,a h igh pe r cep ti on sco re o r l ow pe rcep ti on cos t i s g iv en if t he came r a pose , ca lcu la ted vi a fo rwa r d k inema ti cs , l eads to a clea r vi ew o f mu lti ple ob jec ts o r humans in the came ra image .We de velop a pe rcep ti on -awa re PRM g raph cons tr uc ti on b yb iased ly samp li ng robo t con fi gu ra ti ons w it h low pe rcep ti on cos t, i. e ., h igh pe rcep ti on sco re. Giv en a s tart and a goa l, an A*sea rch a lgo rit hm w it h ou r cons isten t heu ri sti c des i gn r etu rns a robo t pa th on the PRM tha t ba lances be t ween the mo ti on cos t, rep r esen ti ng the pa t h’s leng t h o r ene rgy, and t he pe rcep ti on cos t, r ep resen ti ng how we ll t he robo t can mon it o r t he ob j ec tsof i n te res t a long the pa th . We e xt ens iv e ly v a li da te ou r app roach in bo th s imu la ti on and rea l-r obo t expe ri men ts. I n summa ry, we propose a Multi-Ob jec t Per cep ti on - awa r e Scene -gr aph -based 
+
+Probabilistic Road Map (MOPS-PRM) that:  
+
+> •
+
+augmen ts each ob jec t o f i n te res t i n a scene g raph w it ha l ea r ned pe r cep ti on cos t map , spec ifyi ng the p r ef er ab l econfiguration regions for multi-object monitoring.  
+
+> •
+
+cons tr uc ts a pe rcep ti on -i nf ormed PRM on t he con fi gu ra-ti on space o f a h i gh -DO F robo t b y se l ec tiv ely samp li ng nodes with low perception cost.  
+
+> •
+
+gene rat es a pe rcep ti on -awa re tr ajec to ry w it h an A* sea rch on the perception-aware PRM. II. P ROBLEM STATEMENT 
+
+We cons ide r a r obo t w it h con fi gu rati on q ∈ C = Cfree ∪Coccupied ⊆ Rn, whe re n deno tes the to tal numbe r of deg rees o ffr eedom , i nc lud i ng bo th the robo t’ s base and it s jo int s, and Cfree 
+
+and Coccupied ar e the fr ee and occup ied spaces , r espec tiv ely. The r obo t ope r ates i n a wo r kspace W ⊆ R3 and i s equ i pped wit h an onboa rd s tee rab le R G B- D came ra, con tr oll ed vi a the robot joints to observe the environment. T he goa l of mo ti on p lann ing is to fi nd a co lli s ion -fr ee pa th
+
+π : [0 , 1] → C free , fr om the s ta rt con fi gu r ati on π(0) = qstart 
+
+to a goa l r eg ion π(1) ∈ C goal . Along a pa th π, t he r obo t a lso aims to monitor a set O of N objects of interest. A mo ti on cos t cm(π), de fi ned o ve r t he space o f a ll poss ib lepa ths Π, ass igns a non -nega tiv e r ea l numbe r t o each pa th
+
+cm : Π → R≥0, e.g ., it s leng th, ene rg y o r con tr ol e ff o rt. To mode l t he ob j ec t mon it o ri ng cons tr ai n ts , we i ntr oduce a pe r cep ti on cos t f unc ti on f : Cfree × O → R≥0 tha t ass igns each pa ir o f con fi gu r ati on q ∈ C free and ob jec t o ∈ O a sca l arvalue , measu ri ng the qua lity o f t he obse rv ati on o f o by t he onboa rd came ra when t he robo t i s a t con fi gu rati on q. A lowe rpe r cep ti on qua lity i mp li es a h i ghe r pe rcep ti on cos t. We ne xt de fi ne the o ve ra ll pe rcep ti on cos t at a con fi gu r ati on q as the weighted sum of the object-wise cost: 
+
+p(q) = X
+
+> o∈O
+
+wo f (q, o ), (1) whe re the we igh t wo is a use r-de fi ned impo rt ance o f mon it o ri ng object o. The cumulative perception cost of a path is: 
+
+cp(π) = 
+
+Z 10
+
+p(π(t)) dt, (2) wh ich agg r ega t es t he pe r cep ti on cos t a l ong t he pa th π. Ou rgoa l i s to fi nd the op ti ma l pa t h π∗ tha t min imizes the we igh ted combination of motion and perception cost, i.e. ,
+
+π∗ = arg min π∈Π cm(π) + αc p(π),
+
+s.t. π(t) ∈ C free ∀t ∈ [0 , 1] ,
+
+π(0) = qstart , π(1) ∈ C goal ,
+
+(3) whe re the we igh ti ng fac to r α ≥ 0 con tr o ls the tr ade -o ff be tween motion and perception cost. 3                                                                     
+
+> Fig.2.Thisfi gu re p resen tsthe p ipe li ne o fou rplanne r. T he p lanne r t akes the scene g raph as inpu t, comb ining geome tri c and ob jec t-l evel i nforma ti on w it h a neu ralpe rcep ti on cos t f unc ti on to pe rf orm mu lti-ob jec tcons tr ained samp li ng .Samp li ng is pe rf ormed (see Sec .III-B ) t o cons tr uc ta PRM ,wh ich is sea rched using A* to generate a trajectory that effectively accomplishes perception tasks involving multiple objects along the path.
+
+III. P ERCEPTION -AWARE PLANNER WITH MULTI -O BJECT 
+
+MONITORING USING SCENE GRAPHS 
+
+An o vervi ew o f M O PS - PRM is p r ovi ded in Sec . III-A wit h de t ail s on how we de velop ou r pe rcep ti on -i nf ormed PRM cons tr uc ti on Sec . III-B , and how we augmen t a scene g raph with the perception cost in Sec. III-C. 
+
+A. MOPS-PRM Planning 
+
+Wh il e fi nd i ng the op ti ma l tr ajec to ry i n Eq . ( 3) i s cha ll eng ing due to the h igh -dimens iona l con fi gu r ati on space o f high -DO F
+
+robo ts, ou r app roach ins tead cons tr uc ts a p robab ili sti c r oadmap (PRM ) i n the fr ee space Cfree and sea rches for an op ti ma l pa th
+
+π on the PRM from the start to the goal. We de fi ne the PRM G = ( V, E ), whe r e V is the se t o f P
+
+co lli sion -fr ee con fi gu r ati ons and E the se t of edges connec ti ng them . T he edges in E are checked for co lli sions w it h obs tac les by a vali dity checke r, e . g., [ 32 ], du ri ng ou r PRM cons tr uc ti on .The nodes a re gene rated b y a “pe rcep ti on -awa r e” samp li ng scheme (Sec . III-B ), connec ted to the ir k-nea res t ne ighbo rs and checked for co lli si on , crea ti ng a se t o f PRM edges (see li nes 14-1 9 o f Alg . 1). Each edge (qu, qv ) is rep resen t ed b y a loca lmo ti on πuv (t), πuv (0) = qu, πuv (1) = qv , wh ich depends on the k inema ti c cons tr a int s o f t he robo t, e .g ., a Reeds - Shepp cu rv e fo r t he base o f a non -ho lonom ic mob il e man ipu lato r. Each edge (qu, qv ) is assigned a cost: 
+
+c(qu, qv ) = cm(πuv ) + α · cp(πuv ), (4) whe r e cm(πuv ) is the edge ’s mo ti on cos t, e.g ., t he leng tho r t o tal con tr o l e ff o rt s o f πuv , and cp(πuv ) is the edge ’sperception cost from Eq. (2): 
+
+cp(πuv ) = 
+
+Z 10
+
+X
+
+> o∈O
+
+wo f (π(t), o ) dt. (5) Howe ver, t he pe r cep ti on cos t f (q, o ) fo r each pa ir (q, o ) isty pica lly unknown in ad vance fo r an a rbitr ary con fi gu rati on q.The r efo re, we app ro xi ma te the pe r cep ti on cos t b y a neu ralcos tmap fθ (q, o ) wit h pa rame te r θ, tr a ined on supe rvi sed da tafr om an ob jec t de tec to r and augmen ted to each ob jec t o ∈ O 
+
+in a scene g raph ( see Sec . III-C ). A s a resu lt, t he edge ’sperception cost is approximated as: 
+
+cp(πuv ) ≈
+
+> K−1
+
+X
+
+> k=0
+
+X
+
+> o∈O
+
+wo fθ (π(tk), o ) δt, K ≥ 2, (6) whe re t0, t 1, . . . , t K a re d isc r ete ti mes samp led a long the edge with time steps δt = 1 
+
+> K
+
+.Aft e r t he PRM is cons tr uc ted , M O PS - PRM connec t s t he sta rt and goa l t o the roadmap and app li es an A * sea rch [33 ]wit h a cons is ten t heu ri s ti c to fi nd a pa th fr om qstart to Cgoal 
+
+for t he robo t t o fo ll ow . Fo ll ow ing [1 2 ], we de fi ne a cons isten t“hop ”-based heu ri sti c func ti on t ha t l owe r-bounds the rema in ing path cost to the goal: 
+
+h(q) = Hmin · cmin , (7) whe re Hmin (q) deno t es t he hop d i st ance , i. e ., t he m i n i mum numbe r of edges requ ir ed to reach the goa l fr om the con fi gu r a-ti on q ob ta ined vi a a sho rt es t- pa th sea rch , and cmin rep resen tsthe minimum edge cost over the entire roadmap: 
+
+cmin = min  
+
+> (u,v )∈E
+
+c(qu, qv ). (8) Fo r an y (u, v ) ∈ E, a feas ibl e pa th fr om u to the goa l i s t otake (u, v ) and then fo ll ow a sho rt es t pa th fr om v t o the goa l. Thus, we have: Hmin (qu) ≤ 1 + Hmin (qv ).Therefore, our heuristic function h(·) is consistent: 
+
+h(qu) ≤ (1 + Hmin (qv )) · cmin 
+
+≤ c(qu, qv ) + h(qv ). by Eqs. (7) and (8) T hi s f ormu l a ti on on ly r equ ir es nonnega tivity o f edge cos t s,wit hou t assum ing a spec ifi c form such as Euc li dean d is tance fo r mo ti on cos t. It app li es b road ly, e . g ., when cm is de fi ned as the tr ajec tory l eng th , ene rg y, or con tr o l eff o rt, and cp isa non -nega tiv e cos t de riv ed fr om neu r al pe rcep ti on sco r es .The we igh t α con tr o ls the tr adeo ff be tween the mo ti on and pe rcep ti on cos ts , e .g ., t he h ighe r t he we i gh t α is , t he l onge rpath the A* search might return and vice versa. 4
+
+The so lu ti on r etu rned so lv es Eq . ( 3) on ly f or tr ajec to ri es tha tli e on the PRM . Howe ve r, as t he numbe r o f nodes inc reases , t he so luti on as y mp toti ca lly con verges to the tr ue op ti ma l tr a jec tory. M O PS - PRM is ill us tr ated in Alg . 1 wit h imp lemen tati on details provided in Sec. IV-A. 
+
+Algorithm 1: MOPS-PRM Construction 
+
+Input: Se t o f ob j ec t s o f i n ter es t O, neu r al cos t map fθ ,scene graph S, number of nodes P
+
+Output: Our perception-aware PRM G = ( V, E ) 
+
+> 1
+
+V, E ← ∅  
+
+> 2
+
+while |V | < P do 
+
+// Stage 1: Sampling & projection  
+
+> 3
+
+q0 ← SAMPLE (Cfree ) 
+
+> 4
+
+Cq0 ← ∅  
+
+> 5
+
+XO ← EXTRACT CENTROIDS (O) 
+
+> 6
+
+foreach c in XO do  
+
+> 7
+
+qc 
+
+> 0
+
+← PROJECT (q0, c ) (Eq. (12)) 
+
+// Stage 2: Local sampling  
+
+> 8
+
+Cc 
+
+> local
+
+← SAMPLE LOCAL (qc
+
+> 0
+
+) 
+
+> 9
+
+foreach qc 
+
+> loc
+
+∈ C c 
+
+> local
+
+do 
+
+// Check field of view (FOV)  
+
+> 10
+
+if c ∈ FOV (qc
+
+> loc
+
+) then  
+
+> 11
+
+Cq0 ← C q0 ∪ { qc
+
+> loc
+
+}
+
+// Neural costmap & selection  
+
+> 12
+
+qnode ← arg min q∈C q0 p(q) (Eq. (10))  
+
+> 13
+
+V ← V ∪ { qnode }
+
+// Edge connection  
+
+> 14
+
+foreach qnear ∈ NEAREST NEIGHBORS (qnode ) do  
+
+> 15
+
+πloc ← LOCAL MOTION (qnode , qnear ) 
+
+> 16
+
+if ISCOLLISION FREE (πloc , S ) then  
+
+> 17
+
+cp ← PERCEPTION COST (fθ , O) (Eq. (6))  
+
+> 18
+
+c ← cm(πloc ) + α c p(πloc ) (Eq. (4))  
+
+> 19
+
+E ← E ∪ { (qnode , qnear , c )} 
+
+> 20
+
+return (V, E )
+
+B. Perception-aware Sampling 
+
+An impo rt an t sub r ou ti ne in M O PS - PRM is to samp le a se t of nodes f o r r oadmap cons tr uc ti on . As the con fi gu r a ti on space is h igh -d imens iona l, it i s bene fi cia l t o b i as the samp li ng p rocess towa r ds r eg ions w it h low pe rcep ti on cos t. G iv en a samp led con fi gu r ati on q0 ∈ C free , we wou ld li ke to fi nd a nearby q∗ that minimizes the perception cost: 
+
+q∗ = arg min q∈C f ree 
+
+
+
+p(q) + λ∥q − q0∥22
+
+
+
+, (9) whe re p(q) i s the pe rcep ti on cos t i n Eq . (1) and t he d i st ance 
+
+∥q−q0∥22 is a regu lari za ti on term w it h coe ffi cien t λ to pena li ze la rge de vi a ti on fr om q0. Howe ve r, so lvi ng Eq . ( 9) ex ac tly i schallenging for our PRM construction, as the perception cost is approximated by: 
+
+p(q) ≈ X
+
+> o∈O
+
+wo fθ (q, o ), (10) wit h a non li nea r neu ra l cos tmap fθ (q, o ). I ns tead , we in tr oduce a pe rcep ti on -awa r e loca l samp li ng scheme tha t emp iri ca lly app ro xi ma tes q∗ in two s tages , as ou tli ned in A lg. 1. T he fir st stage (li nes 1–7 of A lg . 1) p ro jec ts the samp led con -fi gu ra ti on q0 on a cons tr ained man if o ld , whe re the came rapose po in ts towa rd t he ob jec t s. T he second s tage (li nes 8 –1 2 )pe rf o rms loca l samp li ng a r ound each p ro jec ti on and se lec tsthe configuration with the lowest perception cost. I n the fir st stage , g iv en the samp le q0, we ca lcu late the came ra pose vi a for wa rd k inema ti cs , and gene r ate vi ewpo intcand ida tes b y p ro jec ti ng the came ra op ti ca l axi s towa r d a se t XO o f  N +  N
+
+> 2
+
+ + 1 des ir ed cen tr o ids , cons isti ng of t he cen tr oid o f each ob jec t o ∈ O , t he cen tr o id o f each ob jec t pa ir, and the cen tr o id o f a ll ob jec ts co ll ec tiv ely. T h iscap t ures common cases whe re po ten ti ally t he bes t vi ewpo i nteit he r f ocuses on obse rvi ng a s ing le ob jec t, all ob jec ts, or t he transition between a pair of objects. Aft e r ex pe ri men ta ti on , we obse rv ed tha t l owe r pe rcep ti on cos t s a re ob tai ned when the came ra’s op ti ca l axi s i s a li gned wit h the ob jec t cen tr oid ( as ill us tr ated in the “ Mu lti-O b jec tCons tr ained Samp li ng ” b lock in F ig . 2). L e t m(q) ∈ R3
+
+deno te the came ra cen te r, z(q) ∈ S2 the un it op ti ca l axi s, and 
+
+xc ∈ R3 t he 3 -D coo rdina tes o f t he des ir ed cen tr oid c ∈ X O .We define the lateral (image-plane) projection residual as 
+
+ϕ(q, c ) :=  I3 − z(q)z(q)⊤   xc − m(q) ∈ R3, (11) whe re I3 is the 3 × 3 iden tity ma trix [ 3 4]. T he ma trix P(q) = 
+
+I3 − z(q)z(q)⊤ i s t he o rt hogona l p roj ec to r on t o t he t angen tplane o f S2 at z(q), i. e., z(q)⊤ϕ(q, c ) = 0 and the res idua l
+
+ϕ(q, c ) has on ly t wo deg rees o f fr eedom co rr espond ing tothe l a te ra l e rr or i n t he image p l ane . We t hen p ro jec t q0 on t oa con fi gu r ati on , whose came r a pose a li gns w it h the cen tr o id
+
+c ∈ X O by solving: 
+
+qc 
+
+> 0
+
+= arg min 
+
+> q∈Rk
+
+∥ϕ(q, c )∥2 + λ∥q − q0∥22
+
+s.t. q ∈ C free , ∥q − q0∥2 ≤ ρ, 
+
+(12) whe r e λ ≥ 0 is a r egu lari za ti on we igh t t ha t encou rages the so lu ti on to be c lose to q0, and ρ > 0 is an op ti ona l tr us t-reg ion r ad ius r es tri c ti ng the p ro jec ti on to a ba ll ar ound q0.The pa r ame ter s λ and ρ all ow us to ba lance be tween the PRM co verage o f t he con fi gu rati on space and b i ased samp li ng towa r ds reg ions w it h l ow pe r cep ti on cos t. Fo r a l arge λ/ sma ll 
+
+ρ, t he p roj ec ted po i nt qc 
+
+> 0
+
+sta ys c l ose to the un if o rmly samp led 
+
+q0, encou rag ing mo re e ven co ver age o f t he con fi gu r ati on space . Fo r a sma ll λ/l arge ρ, t he p ro jec ted po in t qc 
+
+> 0
+
+tends to be biased towa r ds r eg ions w it h low pe r cep ti on cos t. T he p ro jec ti on prob l em Eq . (1 2 ) can be so lv ed e ffi cien tly vi a g rad i en t descen t, e. g ., us i ng an L- BF GS- B so lv e r [ 3 5]. If t he op ti miza ti on does no t con verge w it hi n t he it e ra ti on li mit, we d i sca r d t he samp l e
+
+q0 and obtain a new one. In the second s tage , we samp le M con fi gu rati ons {qc
+
+> 0( i)
+
+}Mi=1 
+
+around each p r ojec ted qc 
+
+> 0
+
+by add ing a ze ro -mean Gauss ian no i se n ∼ N (0, Σ) so tha t t he co rr espond ing came ra ’s fi e ldof vi ew (FOV) w ill still cap tur e the cen tr oid c ∈ X O . T h isprocess gene rates a se t of  N +  N
+
+> 2
+
+ + 1 (M +1) cand ida tes :
+
+Cq0 =
+
+nS 
+
+> c∈X O
+
+{qc
+
+> 0( i)
+
+}Mi=1 ∪ { qc
+
+> 0
+
+}
+
+o
+
+. T he pe rcep ti on cos t ofall cand ida t es i n Cq0 i s ca l cu l at ed vi a Eq . (10) effi ci en tly i npa r all el us ing the neu r al cos tmap fθ (q, o ) (see Sec . III-C ). 5
+
+The cand ida te w it h the lowes t pe rcep ti on cos t: qnode =arg min q∈C q0 p(q), i s added to ou r pe r cep ti on -awa r e PRM (li nes 1 2 -1 3 in Alg. 1 and “L oca l Samp li ng ” b lock in F ig . 2). 
+
+C. Embedding Perception Costs in Scene Graphs 
+
+Man y pe rcep ti on cons tr ai nts can be cha rac te ri zed b y a sca larsco re s, such as the con fi dence value ou tpu t s ∈ [0 , 1] o fan ob jec t de tec ti on mode l, i. e., Y OLO E [ 3 1], wh ich can be con ve rt ed to a pe rcep ti on cos t l, e. g ., ℓ = 1 − s o r ℓ = 1 /s . T oeffi cien tly que ry t he cos t du ri ng PRM cons tr uc ti on , we tr ain a neu ra l ne two r k fθ (q, o ) tha t p red icts the pe rcep ti on cos t of apa ir of con fi gu r ati on q ∈ C free and ob jec t o ∈ O . T he ne two rk
+
+fθ (q, o ) is p re -tr ained on a w ide range o f common ob jec ts,e. g ., r ep resen ta tiv e ob jec ts in a home o r a hosp it al, and can be used ac r oss d iff e r en t en vir onmen t s. We cons i de r t he r obo t’ sf or wa rd k inema ti cs as a non -tr a inab le fir st l a ye r o f t he neu r a lne two rk , ca lcu lati ng the came ra pose fr om the con fi gu rati on 
+
+q. The input of the second layer is the relative pose between the r obo t’ s onboa r d came ra and the ob jec t o, t oge the r w it han encod i ng o f t he ob jec t’ s seman ti c c lass , such as mon it or
+
+o r human . T his is fo ll owed b y a neu ra l ne two rk , such as a mu lti-l ayer pe rcep tr on ( MLP ), t ha t ou t pu t s an es ti ma te o f t he perception cost f (q, o ).The tr a ining da tase t D = {(qi, o i, s i)}Di=1 is gene ra ted us ing a task -spec ifi c pe rcep ti on mode l, wh ich p r ovi des the pe rcep ti on sco r e si f or each r obo t-ob jec t pa ir (qi, o i). T he neu ral cos tmap fθ is tr ained vi a supe rvi sed l ea r n ing to fit t he da t ase t D, enab li ng ba t ched pa r a ll e l eva l ua ti on o f pe rcep ti on cos ts. I n p rac ti ce , no t a ll ob jec ts in t he scene g r aph a re ass igned a pe rcep ti on cos tmap ; on ly t hose impo rt an t t o mon it o r aregiven this attribute. IV. E XPERIMENTAL RESULTS 
+
+In ou r expe ri men ts, we ve rify t he e ff ec tiv eness o f ou rmu lti-ob jec t pe r cep ti on - awa re scene -g r aph -based PRM w it hsimu l ated and r ea l-r obo t expe ri men ts us ing the He ll o Robo t’ sS tr etch 2 [ 36 ] and I saac S i m [37] f or s imu la ti on and vi sua l-iza ti on . T he S tr etch 2 is a h igh -DO F mob il e man ipu lato r: in ou r expe ri men ts, we con tr ol it s d iff er en ti a l-d riv e, non -ho lonom ic base (3 DoF ) t oge the r wit h the pan –tilt j o int s o f t he onboa rd came ra , i n tr oduc ing non trivi a l kinema ti c cons tr a int s,l ead i ng t o a cha ll eng i ng pe r cep ti on -awa r e p l ann i ng p r ob l em .A ll expe ri men t s we re conduc t ed on an In te l i7-1 2700 K CPU and an NVIDIA GeForce RTX4090 GPU. 
+
+A. Implementation Details 
+
+Wh il e M O PS - PRM p lanne r can adm it d iff er en t mo ti on and pe r cep ti on cos t s, and d iff er en t f o r ms o f scene g r aphs , we present the specific implementation choices that we used. The mo ti on cos t cm(π) o f a pa th π is compu ted as the sum o f t he Euc li dean d istances o f a ll i nd ivi dua l edges a long the pa th. Fo r t he A * heu ri sti c in Eq . (7), we use the Euc li dean dist ance be tween t he cu rr en t con fi gu r ati on q and the goa l as the mo ti on componen t. Meanwh il e , t he pe rcep ti on cos t l abe l
+
+ℓ, used to tr ain ou r neu ra l cos tmap in Sec . III-C , i s chosen as a quad rati c f unc ti on (1 − s)2, whe re s is the con fi dence                                                  
+
+> Fig.3.In ou rsimu lated benchma rks , t he robo tmo ves fr om a s tart t o a goa lin an o ffi ce en vir onmen twh il e mon it ori ng the fou rsc reens o f t he mon it orsplaced on the tab le. T he robo t t akes the longe rpa thto obse rv ethe mon it ors,whe rethe a rr ows ill us tr atethe came ra o ri en tati ons . T he bo tt om p lotshows the camera pan-tilt joint angles along the trajectory.
+
+sco re p r ovi ded b y t he ob j ec t de tec t or Y OL OE [ 31]. We chose this pe rcep ti on cos t t o emphas ize on h ighe r con fi dence sco res ,gu id ing the p lanne r t o favo r vi ews tha t yi e ld mo re reli ab lede t ec ti ons . A s t he mo ti on cos t and t he pe rcep ti on cos t ha vediff e ren t un it s and ranges , we no rma li ze bo th cos ts to the range [0 , 1] us i ng the ir m in i mum and ma xi mum va l ues o ve rthe en tir e r oadmap , eas ing pa r ame te r t un i ng f o r t he we i gh t α.Fo r pe rcep ti on -awa re samp li ng in Sec . III-B , an L-BFGS-B so lv er [ 35] i s used to so lv e Eq . (1 2 ) wit h pa rame ters ρ = 0 .05 ,
+
+λ = 0 .3, and t he ma xi mum it era ti ons se t t o 100. Fo r t he l oca lsamp li ng f unc ti on in the second s tage , we choose M = 5 
+
+and use a Gauss i an no i se n ∼ N (0, I). Fo r t he PRM nea res t-ne ighbo r se lec ti on in li ne 14 o f Alg . 1, t he numbe r of ne i ghbo rsis se t t o be 5, emp iri ca lly ba l anc ing g raph connec tivity and computational efficiency. We bu il d ou r scene g r aph fr om came r a images us ing the Kh r onos fr amewo rk [38 ]. At t he lowes t l ay er, t he scene g r aph con tains a seman ti ca lly anno tated mesh o f t he en vir onmen tgeome try, r ep resen ti ng obs tac les in the en vir onmen t, wh ich we con ve rt i nt o a pa ra ll e li za ti on -fri end ly C AP T po in t c l oud [39 ], all ow ing us to pe rf o rm co lli sion check ing e ffi c ien tly us ing fine-grained parallelism. T he neu ra l cos t f unc ti on i n Sec . III-C is imp l emen t ed as a mu ltil ay er pe rcep tr on ( ML P ) [40] w it h fiv e f u lly connec ted layer s o f 2 56 un it s and Re L U ac tiv ati ons . Fo r t he tr ain ing da tase t, we un if o rmly samp le 50000 robo t-i ndependen t came raposes in Isaac S im tha t keep the ob jec t i n vi ew . T hese vi ewpo in ts a re no t ti ed to a spec ifi c r obo t con fi gu ra ti on and can be used w it h an y h igh -DO F p latf orm vi a fo rwa rd k inema ti cs . We then r ende r t he co rr espond i ng i mages and e val ua t e pe rcep ti on cos t s us i ng t he YO LO E [ 3 1] mode l. T he neu r al cos t f unc ti on is tr ai ned on t hese pe rcep ti on cos ts ac ross d iv erse ob jec ts and humans fr om t he C OC O da t ase t [41], ensu ri ng app li cab ility to both real and simulated experiments. 6
+
+Fig . 4. I n this r ea l-r obo t expe ri men t, t he r obo t p lans two d iff er en t pa ths w it h t he same s t art ( shown in r ed ) and goa l ( shown in g r een ) based on a use r-spec ifi ed impo rt ance o f t he t wo pa inti ngs : t he yell ow pa th p ri oriti zes pa i nti ng 1, wh il e the b lue pa t h p ri oriti zes pa in ti ng 2 . Bo t h pa ths s tart by obse rvi ng a human w it h a mon it or and end b y l ook ing a t ano the r human s itti ng a t t he tab le wh il e the m idd le sec ti ons o f t he pa ths d iff e r as the y pri oriti ze obse rvi ng d iff e r en t pa inti ngs .TABLE I THIS TABLE COMPARES THE PERFORMANCE OF OUR METHOD WITH THREE BASELINES INTRODUCED IN SEC . IV. F OR PLANNING METRICS , Build Time ,
+
+Plan. Time , AND Path Len. DENOTE THE AVERAGE PRM CONSTRUCTION , PLANNING TIME , AND THE AVERAGE PATH LENGTH , RESPECTIVELY . F OR PE R CEP TI ON ME TRI CS , Avg. D et. Ob j. , Tr ack Ra te, Avg. Con f. , AND Sca led Av g. Con f. DENO T E T HE A V E R AGE NUMBE R O F DE T EC T ED OB J EC T S PE R FR AME ,         
+
+> THE TR ACKE RUPDA TE SUCCESS RATE
+
+, T HE A V E R AGE DE T EC TI ON CON FI DENCE SCO R E, AND T HE CON FI DENCE SCO R E SCA L ED B Y T HE A V E R AGE NUMBE ROF DETECTED OBJECTS , RESPECTIVELY .Motion Planning Perception Method Cost Fun. Build Time Plan. Time Path Len. Avg. Det. Obj. Track Rate Avg. Conf. Scaled Avg. Conf. (s) (s) (0–4) (0–1) (0–1) (0–4) Closest-Object Low-DOF Distance 5.0 0.22 16.63 0.44 0.72 0.45 0.20 Closest-Object Distance 5.0 0.08 15.66 0.50 0.65 0.42 0.21 Lowest-Cost-Object Neural 30.0 0.95 19.07 1.12 0.76 0.48 0.54 MOPS-PRM (Ours) Neural 30.0 0.98 20.42 1.53 0.89 0.49 0.75 
+
+B. Multi-Object Detection in a Simulated Office 
+
+We e va lua te ou r app r oach in a s imu lated en vir onmen tcon ta ining ob jec ts common ly f ound in an o ffi ce , such as tab les , cha ir s, humans , and mon it o rs ( an e xamp le is shown in F ig . 3 ). T h is se tti ng refl ec ts ty p ica l scena ri os faced b yrobo ti c ass ist an ts in o ffi ce en vir onmen ts, whe re the r obo t mus tpe rf o rm na vi ga ti on o r de liv e ry t asks wh il e mon it o ri ng mu lti p letask -r el evan t ob jec ts, such as sc r eens o r humans . T he task isto p lan co lli sion -fr ee mo ti ons fr om a s tart t o a goa l wh il eensu ri ng tha t t he r obo t ma i nt a ins vi si b ility o f mon it or s p laced around t he en vir onmen t. T o gene rate tes t cases , we samp le 100 
+
+mo ti on p lann i ng p rob lems b y se l ec ti ng r andom co lli si on -fr ee sta rt and goa l con fi gu r a ti ons on oppos it e s ides o f t he r oom ,ensu ri ng tha t t he robo t mus t tr ave rse the en vir onmen t wh il eba lanc i ng mo ti on and pe rcep ti on cos ts . As ill us tr a ted in F ig. 3 ,we p l ace the ob jec ts o f i nte res t i n ph ysica lly p laus ib le l oca ti ons (e. g., r es ti ng on a su rf ace rathe r t han fl oa ti ng in the a ir) t ocreate realistic and meaningful scenarios for evaluation. We compa r e M O PS - PRM aga ins t th r ee base li nes :“ Closes t- O bj ec t L ow -DO F”, “ Closes t- O b jec t”, and “L owes t-Cos t-Obj ec t”. At a con fi gu rati on q, “ Cl oses t-Ob jec t L ow -DO F”and “C loses t-O b jec t” alwa ys mon it or t he nea res t ob jec t b yp ro jec ti ng the came r a vi ew towa r d it, wh il e “L owes t- Cos t-Objec t” se lec ts t he ob j ec t w it h the lowes t pe r cep ti on cos t as eva lua t ed b y t he same neu r a l cos t f unc ti on used i n M O PS -PRM . I n “ Cl oses t-O bj ec t L ow -DO F”, pl ann i ng i s r es tri c t ed t othe non -ho lonom ic base w it h a ll o the r j oin ts fix ed , r esemb li ng pe r cep ti on - awa re p lann ing f or ae ri al o r gr ound r obo ts. Acompa ri son on the mo vemen t o f came r a jo in ts is inc luded in F ig . 3 , w it h samp le pa ths fr om the same en vir onmen t. Bo t h“C loses t- O bjec t L ow -DO F” and “ C loses t- Ob jec t” de fi ne the pe r cep ti on cos t as t he d i st ance to t he se l ec t ed ob jec t, whe reas “L owes t- Cos t-O b jec t” i ns tead uses the neu r al cos t f unc ti on of M O PS - PRM . We se t ti me li mit s fo r PRM cons tr uc ti on ,adap ted fr om OMP L [4 2], t o ensu r e s im il ar numbe r o f nodes ac r oss a ll me t hods : 5 seconds f or “ C l oses t- O bjec t L ow -DO F”and “ Closes t-Ob jec t”, and 3 0 seconds for “L owes t- Cos t- Objec t” and MOPS-PRM. Pe r cep ti on pe rf or mance is e valua ted us ing YO L OE [ 31] for ob jec t de tec ti on and D eep S O RT [4 3 ] f o r tr ack ing , whose “tr ack r ate” me tri c desc ri bes the bene fit s o f con ti nuous ly mon it o ri ng mu lti ple ob jec ts be yond de tec ti on . One ke y me tri cis the a verage numbe r o f ob jec ts de tec t ed pe r fr ame , D, wh ich measu res fr ame -t o-fr ame vi sua l co verage b y averag ing the numbe r of de tec t ed ob jec ts ac ross a ll fr ames a long a tr ajec to ry. De tec ti on con fi dence is measu r ed i n two fo rms : t he a ver age con fi dence C, compu ted as the mean con fi dence sco re si
+
+over a ll success fu l de tec ti ons in the se t S, and the sca led aver age con fi dence Csc = D C , wh ich emphas izes the ab ility to ma in tain bo th h igh -con fi dence de tec ti ons and cons isten tmulti-object coverage along the trajectory. Tab le I summa ri zes the resu lt s ac r oss the 100 plann ing pr ob lems . Bo th “ Closes t-O b jec t L ow -DO F” and “C loses t-7
+
+O b jec t” i ncu r l owe r compu ta ti ona l over head , as r efl ec t ed i nthe ir sign ifi can tly f as te r PRM cons tr uc ti on and p lann ing ti mes .Howe ver, t he ir stri ct f ocus on t he nea res t ob jec t l eads to reduced co ve rage , evi den t fr om a lowe r aver age numbe r o f ob jec tsde tec ted pe r fr ame D. T he ir con fi dence me tri cs a lso lag beh ind ,since the y do no t accoun t f or accu rat e pe rcep ti on cos t es ti ma tes fr om each r obo t con fi gu ra ti on . Meanwh il e, t he ‘L owes t-Cos t-O bjec t” base li ne ach ieves con fi dence sco res compa rab le toM O PS - PRM b y l eve rag ing the neu r al cos t f unc ti on , bu t it sinab ility t o cons ide r mu lti p le ob jec ts s imu lt aneous ly r esu lt s inou r me t hod ach i evi ng mo r e t han ∼ 36% imp rovemen t i n t he ave rage numbe r o f de t ec t ed ob j ec t s pe r fr ame and a ∼ 17% 
+
+h ighe r tr ack rat e. Fo r t h i s “tr ack rat e” me tri c, M O PS - PRM ach i eves the h i ghes t pe rf o rmance c l ea rly su r pass i ng a ll base -li nes . T h is h igh li gh ts the ad van tage o f con ti nuous ly mon it o ri ng mu lti pl e ob j ec ts be y ond me re s i ng l e-fr ame de t ec ti on . Wh il et he base li nes ma y ach i eve s li gh tly sho rt e r p lann i ng ti mes o rpa th leng ths b y f ocus ing on an ob jec t a t a ti me , M O PS - PRM exp li citly accoun ts fo r mu lti- ob jec t mon it o ri ng , and hence ,substantially improves perception performance. Fig . 5 ill us tr ates how ou r p lanne r’ s pe rf or mance sca les w it hthe PRM s ize and the numbe r o f ob jec ts. Wit h the numbe r o fob jec ts fix ed a t 5, i nc reas ing the PRM s ize inc reases r oadmap cons tr uc ti on ti me , wh il e p lann ing ti me r ema i ns low , ty pi ca lly around o r be low one second . T he a verage numbe r o f de tec ti ons pe r fr ame a lso inc r eases , i nd ica ti ng tha t a dense r r oadmap suppo rt s mo r e s tab l e pe rcep ti on qua lity. When the PRM s ize i s fix ed a t r ough ly 300 nodes , add i ng mo r e ob j ec t s d riv es up cons tr uc ti on ti me and modes tly i nc reases p l ann ing ti me . At t he same ti me , pe r cep ti on pe rf o r mance imp r oves as the numbe ro f PRM nodes o r ob jec ts inc reases , as refl ec ted in h ighe raverage de tec ti ons pe r fr ame . Wh il e the PRM cons tr uc ti on is ti me - consum ing , it on ly occu rs once , and can be r eused multiple times for path generation. The resu lt s sugges t t ha t ou r app roach rema ins p r ac ti ca l as the pr ob lem s ize inc reases , wit h mos t of t he o verhead concen tr ated in the one-time construction stage. 
+
+C. Real Robot Experiments 
+
+As shown in F ig . 4, t he robo t i s p laced in an indoo ren vir onmen t and is tasked t o mo ve fr om a s ta rti ng pos iti on shown in r ed to the co rne r o f t he room shown in g reen . T oreach th is goa l, t he robo t mus t pass th rough a na rr ow passage crea ted b y an in terv en ing cha ir, r esu lti ng in a cha ll eng ing scenario with multi-modal solutions and high collision risks. Un li ke the s imu lati on e x pe ri men ts, t his se tup in tr oduces a d iff er en t cha ll enge , s ince the ob jec ts a r e fart he r apa rt and fac ing d iff e ren t dir ec ti ons . Wh il e mon it ori ng mu lti p le ob j ec tssimu lt aneous ly, t he robo t mus t tr ans iti on it s focus be tween diff e ren t ob j ec ts o f i n ter es t wh il e ma int ain ing smoo th mo ti on and maximizing perception scores along the trajectory. The robo t i s tasked to cons ide r t he mon it o r nea r it s s ta rti ng pos iti on and a pe r son nea r t he end pos iti on , wh il e de tec ti ng one o f t wo ob jec ts , e it he r a r obo t pa in ti ng ( pa in ti ng 1) or al andscape pa i nti ng (pa i nti ng 2 ) p laced on a cab i ne t, as shown i n F i g . 4. T he p ri o rity o f mon it o ri ng each ob j ec t i s encoded by user-defined weights, as described in Sec. III-A.                 
+
+> Fig. 5. Performance of M OPS-PRM under varying number of objects and PRM sizes. In the first column, the number of objects is fixed at five. In the second ,PRM s ize is app roxi ma tely 300 nodes .We repo rt t he p lann ing and PRM construction times, and the average number of detections per frame.
+
+F ig . 4 ill us tr a tes how M O PS - PRM gene r a tes tr a jec to ri es based on wh ich pa in ti ng i s p ri o riti zed . T he two resu lti ng pa ths are shown in ye ll ow and b lue , each h igh li gh ti ng a rep resen tativ erobo t con fi gu ra ti on a l ong t he pa t h co rr espond ing to the case whe re the r espec tiv e pa inti ng is g iv en h ighe r we igh t. Averaged ove r 100 r uns , ou r planne r t akes a r ound 1. 64 seconds to gene ra teeach p l an and takes a r ound 3 0.0 seconds t o bu il d t he PRM .The pa th leng th fo r t his e x pe ri men t, measu red as the Euc li dean distance a t a ll 5-DO F edges o f t he pa th , i s a round 1 9.1 3 fo r t he yell ow pa th and a round 18 .10 f o r t he b lue pa th. T he a ver age numbe r o f ob j ec ts de t ec ted in each fr ame is a r ound 0. 8 4 on the y ell ow pa th and 0. 8 1 on the b lue pa th . T hi s e x pe ri men tdemons tr ates t he p l anne r’ s ab ility t o mon it or mu lti p le ob j ec tswh il e respec ti ng the ass igned we igh ts o f each ob j ec t of i n ter es t. V. D ISCUSSION 
+
+We de velop M O PS - PRM , a r oadmap - based pe rcep ti on -aware motion planner for high-DOF robots tasked with multi-ob jec t mon it o ri ng . Pe rcep ti on awa reness is mode led vi a a cos tmap ancho red to ob jec ts o f i nter es t i n a scene g raph ,gu idi ng the pe rcep ti on -awa re PRM cons tr uc ti on and A* sea rch to p roduce pa ths t ha t ba l ance mo ti on e ffi cienc y w it h pe rcep ti on qua lity. T his enab les app li ca ti ons such as museum pa tr o l, pa ti en t mon it ori ng , o r i ndus tri a l i nspec ti on whe r e r obo ts mus tmo ve e ffi c i en tly wh il e ma in t a in ing vi si bility o f ke y ob j ec ts.As scene g r aphs ha ve shown tr emendous po t en ti al f o r t ask and motion planning in semantically rich environments, our work se rv es as a fir st st ep towa rds pe rcep ti on -awa re task and mo ti on plann ing for h igh -DO F r obo ts , and can be furt he r ext ended toleve rage the scene g raph ’s topo log y f or pe rcep ti on -awa re task -leve l r eason ing . Bes ides , we a lso a i m to e xt end the fr amewo r kto i nc lude tr ee - based p lanne rs ( e. g., RR T v ari an t s), hand le map unce rt ain ty f or mo re robus t p lann ing , ex p lore pe rcep ti on -awa remo ti on p lann ing in d y nam ic and inter ac tiv e en vir onmen ts,and hand l e p revi ous ly unseen ob j ec t s , e . g ., by i nco r po r a ti ng open-set object detection [44]. REFERENCES [1] A. Bo l u and ¨O. Ko rc¸ ak , “ Adap tiv e task p l ann ing f o r mu lti-r obo t sma rt warehouse,” IEEE Access , vol. 9, pp. 27 346–27 358, 2021. 8
+
+[2] P. Qian , F. Ba jr ak t ari, C. Qui nt er o- Pena , Q. Meng , S . Ham li n , L. E.Ka vr ak i, and V. V. Unhe lka r, “ ASTR ID: A Robo ti c Tu to r f o r Nu r se Tr a in ing to Reduce Hea lt hca r e- Assoc ia ted I n fec ti ons ,” i n Robo ti cs :Science and Syst. , 2025. [3] Y. Li ao , J. Xi e, and A . G ei ge r, “ K itti-36 0: A no vel da tase t and benchma r ks f or u rban scene unde rst and ing i n 2 D and 3 D,” I EEE Tr ansac ti ons on Pa tt er n A na ly s is and Mach i ne I nt elli gence , v ol. 45, no . 3 , pp . 3292 –33 10, 2023. [4] N . M. M. Sha fi ull ah , A. Ra i, H . E tuku r u, Y. Li u, I. Mis r a, S . Ch int ala, and L. P into, “ On b ri ng i ng r obo ts home ,” arXiv prep ri nt arXiv: 23 11.1 6098 ,2023. [5] D. Fa l anga , P. Foehn , P. L u, and D. Sca r amuzza , “ PAMPC : Pe r cep ti on -aware model predictive control for quadrotors,” in IEEE/RSJ Int. Conf. on Intell. Robots and Syst. , 2018. [6] H . Masna vi, A. K . Si ngh , and F . Janab i-Sha rifi, “ Diff er en ti ab le -op ti mi za ti on based neu ra l po li cy f o r occ lus i on -awa re ta rge t tr ack i ng ,” 
+
+IEEE Robotics and Automation Letters , 2024. [7] B . I ch ter, B. L and ry, E . Schme rli ng , and M . Pa vone , “ Pe rcep ti on -awa remo ti on p lann ing vi a mu lti ob j ec tiv e sea r ch on gpus ,” i n Robo ti cs Resea rch .Cham: Springer International Publishing, 2020, pp. 895–912. [8] L. Ba rt olome i, L. T eix e ir a, and M . Ch li, “ Pe r cep ti on - awa r e pa th p lann ing f o r ua v s us i ng seman ti c segmen tati on ,” i n I EEE / RS J I nt. Con f. on I n tell. Robots and Syst. , 2020, pp. 5808–5815. [9] A . L oque r cio , E. Kau fmann , R. Ran ftl, M. M ¨u ll er, V. Ko lt un , and D . Sca r amuzza , “L ea r n ing h i gh -speed fli gh t i n the w il d,” Sc ience Robotics , vol. 6, no. 59, p. eabg5810, 2021. [10] Y. Song , K . Sh i, R. Pen icka , and D . Sca r amuzza , “L ea r n ing pe r cep ti on -awa re ag il e fli gh t i n c lutt er ed en vir onmen ts ,” i n IEEE Int. Con f. Robo t. Autom. , 2023, pp. 1989–1995. [11] J. A . Placed , J. S tr ade r, H. Ca rrill o , N . A tanaso v, V. I nde lman , L. Ca rl one ,and J. A. Cas te ll anos , “ A su rv ey on ac tiv e s imu lt aneous loca li za ti on and mapp ing : St ate o f t he a rt and new fr on ti er s ,” IEEE Tr ansac ti ons on Robotics , vol. 39, no. 3, pp. 1686–1705, 2023. [12] Q . Meng , E . F lo r es , C. Qu int er o -Pe ˜na , P. Qi an , Z. Ki ngs ton , S. K .Ham li n, V. Unhe lka r, and L. E. Ka vr ak i, “L ook as y ou leap : Plann i ng s i mu lt aneous mo ti on and pe r cep ti on f or high - do f r obo ts ,” arXiv prep ri ntarXiv:2509.19610 , 2025. [13] J. T or des ill as and J. P. How , “ Pan the r: Pe r cep ti on - awa r e tr a jec t ory pl anne ri n d ynam ic en vir onmen ts ,” I EEE Access , v o l. 10, pp . 22 662 –22 6 77, 2022. [14] H . Zhang , J. Huo , Y. Huang , J. Cheng , and X. Li, “ Pe r cep ti on - awa r ebased ua v tr aj ec to ry p lanne r vi a gene ra tiv e ad ver sa ri al se lf-i mit a ti on learning from demonstrations,” IEEE Internet of Things Journal , 2024. [15] A . S ing la , S. Padakand la , and S . Bha tnaga r, “ Memo ry- based deep r e in -f o rcemen t l ea r n ing f or obs tac l e a voi dance in ua v w it h li m it ed en vir onmen tknow ledge ,” IEEE Tr ansac ti ons on In t elli gen t Tr anspo rt ati on S yst ems ,vol. 22, no. 1, pp. 107–118, 2021. [16] A . I. Mou ri k i s and S . I. Roume li oti s, “ A mu lti-sta te cons tr a in t ka lman filt e r f o r vi si on - ai ded i ne rti a l na vi ga ti on ,” i n I EEE I n t. Con f. Robo t. Autom. , 2007, pp. 3565–3572. [17] A . Bir che r, M. Kame l, K . A lexi s , H . Oley ni ko va, and R . S iegwa rt, “ Reced i ng ho ri zon ” ne xt-bes t-vi ew ” pl anne r f o r 3D ex plo r ati on ,” i n
+
+IEEE Int. Conf. Robot. Autom. , 2016, pp. 1462–1468. [18] Z . Zhang , T. Hende r son , S. Ka r aman , and V. Sze , “ Fsm i: Fas t compu tati on o f shannon mu tua l i nfor ma ti on fo r i nf orma ti on -t heo reti c mapp ing ,” The I n terna ti ona l J ou rna l o f Robo ti cs Resea rch , v ol. 39 , no . 9, pp . 1155–1177, 2020. [19] A . Asgha riv askas i and N . At anaso v, “ Seman ti c oc tr ee mapp ing and shannon mu tua l i n fo r ma ti on compu ta ti on f or r obo t ex p lo ra ti on ,” IEEE Transactions on Robotics , vol. 39, no. 3, pp. 1910–1928, 2023. [20] G . Cos t an te , C. Fo r s ter, J. Del me ri co , P. V a li g i, and D. Sca r amuzza ,“ Pe r cep ti on - awa re pa th p l ann i ng ,” arXiv p rep ri n t a rXiv:1 6 05.04151 ,2016. [21] M . B . Al ati se and G . P. Hancke , “ A r evi ew on cha ll enges o f au tonomous mob il e r obo t and senso r f us ion me t hods ,” IEEE A ccess , v ol. 8 , pp .39 830–39 846, 2020. [22] X. Chang , P. Ren , P. X u, Z. Li, X. Chen , and A. Haup t mann , “ Acomp rehens iv e su rv ey o f scene g r aphs : Gene r ati on and app li ca ti on ,” 
+
+I EEE Tr ansac ti ons on Pa tt ern Ana ly s is and Mach ine I nt elli gence , v ol. 45, no. 1, pp. 1–26, 2021. [23] K . Rana , J. Ha vil and , S. G arg , J. A bou - Chak r a, I. Re i d, and N . Suende r-hau f, “ Sa y plan : G r ound ing l arge l anguage mode ls us ing 3 D scene g r aphs f o r sca l ab le r obo t t ask p lann ing ,” i n Con f erence on Robo t L ea rn ing .PMLR, 2023, pp. 23–72. [24] T. Birr, C. Poh l, A. Y ounes , and T. Asf ou r, “ Au togp t+ p : Aff o rdance -based t ask p l ann i ng w it h l a rge language mode l s,” i n Robo ti cs : Sc i ence and Syst. , 2024. [25] Z . N i, X. D eng , C . T ai, X. Zhu , Q . Xi e, W. Huang , X. Wu , and L. Zeng ,“G ri d : Scene -g raph -based i ns tr uc ti on -d riv en robo ti c t ask p lann i ng ,” i n
+
+2 024 I EEE /RS J I nt er na ti ona l Con fe rence on In te lli gen t Robo ts and Systems (IROS) . IEEE, 2024, pp. 13 765–13 772. [26] Q . G u, A . Kuwa j er wa la, S . Mo ri n, K . M. J atavall abhu la, B. Sen , A . A ga r-wa l, C . R iv e r a, W. Pau l, K. E lli s , R. Che ll appa , e t al. , “ Concep t gr aphs :O pen -v ocabu l ary 3D scene g r aphs f or pe rcep ti on and p lann ing ,” i n IEEE Int. Conf. Robot. Autom. , 2024, pp. 5021–5028. [27] H . Ji ang , B. Huang , R. Wu , Z. Li, S . Ga rg, H . Na yy e ri, S . Wang ,and Y. Li, “ Roboe x p: Ac ti on -cond iti oned scene g r aph vi a in ter ac tiv eexpl or ati on f o r r obo ti c man ipu lati on ,” i n Con fe rence on Robo t L ea rn ing .PMLR, 2025, pp. 3027–3052. [28] A . Ra y, C. B rad ley, L. Ca rl one , and N . Ro y, “T ask and mo ti on p l ann i ng in h i er ar ch i ca l 3d scene g r aphs ,” i n P roceed ings o f t he I nte rna ti ona lSymposium on Robotics Research (ISRR) , 2024. [29] Z . D ai, A . A sgha riv askas i, T. D uong , S. Li n , M.- E. T zes , G . Pappas , and N . A tanaso v, “ O pti ma l scene g r aph p lann ing w it h large l anguage mode lguidance,” in IEEE Int. Conf. Robot. Autom. , 2024, pp. 14 062–14 069. [30] V. K . Vi swana than , A . Pa tel, M . A . Saucedo , S . G . Sa tpu t e, C . Kane ll ak i s,and G. N iko lakopou los , “ Spade : Towa r ds sca lab le pa th p lann ing a rch it ec t ur e on ac ti onab le mu lti-doma in 3d scene g r aphs ,” i n 202 5I EEE /RS J I nt e rna ti ona l Con f erence on I n te lli gen t Robo ts and S y st ems (IROS) . IEEE, 2025, pp. 17 510–17 517. [31] A. Wang, L. Liu, H. Chen, Z. Lin, J. Han, and G. Ding, “Yoloe: Real-ti me see i ng an yt hi ng ,” i n P roceed i ngs o f t he IEEE /CV F I nt er na ti ona lConference on Computer Vision , 2025, pp. 24 591–24 602. [32] W. T homason , Z . K ings ton , and L. E . Ka vr ak i, “ Mo ti ons in m icr oseconds vi a vec tori zed samp li ng -based p lann ing ,” i n I EEE I nte rna ti ona lCon fe rence on Robo ti cs and Aut oma ti on (I CR A ), Sep t. 20 24, pp . 874 9–875 6. [ O nli ne ]. Avail ab le: htt ps ://i eee xp lor e.i eee .o rg/ documen t/10 6111 9 0[33] P. E . Ha rt, N . J. Nil sson , and B . Raphae l, “ A fo r ma l bas is f o r t he heu ri s ti cde te rmina ti on o f m in imum cos t pa ths ,” I EEE tr ansac ti ons on S yst ems Science and Cybernetics , vol. 4, no. 2, pp. 100–107, 1968. [34] Y. Ma , S. Soa tt o, J. Ko ˇseck ´a, and S . Sas try, A n i nvit ati on to 3 - d vi sion :from images to geometric models . Springer, 2004, vol. 26. [35] C. Zhu , R. H . Byr d , P. L u , and J. Noceda l, “ Al go rit hm 77 8 : L- b fgs - b:Fo rtr an sub r ou ti nes f or l arge - sca l e bound -cons tr a ined op ti m iza ti on ,” 
+
+ACM Trans. Math. Softw. , vol. 23, no. 4, p. 550–560, Dec. 1997. [36] C . C. Kemp , A . Eds inge r, H . M. C lever, and B . Ma tu levi ch , “T he des i gn of s tr etch : A compac t, li gh t we igh t mob il e man ipu l ator f o r i ndoo r human en vir onmen ts ,” i n I EEE I nt. Con f. Robo t. Au tom ., 2 022 , pp . 3 150– 3157. [37] N VI DI A, “ N vi di a isaac s im ,” htt ps :// de ve lope r. nvi di a.com /i saac - s im ,2022, [Accessed 08-Aug-2024]. [38] L. Schm id , M. Aba te , Y. Chang , and L. Ca rl one , “ Kh r onos : A un i-fi ed app r oach f or spa ti o-t empo r al me tri c- seman ti c s l am i n d ynam i cenvironments,” in Robotics: Science and Syst. , 2024. [39] C . W. Ramse y, Z. K ings ton , W. T homason , and L. E . Ka vr ak i, “ Co lli s i on -aff or di ng po int tr ees : Si md - amenab le nea r es t ne ighbo rs f or f as t co lli s i on checking,” in Robotics: Science and Syst. , 2024. [40] D . E . Rume lha rt, G. E. Hi nt on , and R . J. Willi ams , “L ea rn ing rep re -sen ta ti ons b y back -p ropaga ti ng e rr o rs ,” Na t u re, v o l. 323 , no . 6 0 88 , pp .533–536, 1986. [41] T.-Y. Li n , M. Ma ir e , S . Be l ong i e, J. Ha ys , P. Pe r ona , D . Ramanan ,P. D oll ´a r, and C . L. Zit ni ck , “ Mi cr oso ft coco : Common ob jec ts i ncon t ext,” i n Compu te r vi s ion – ECC V 2 014: 1 3 t h Eu ropean con f erence ,zu ri ch , Sw it ze rl and , Sep tembe r 6 -1 2, 2014, p roceed ings , pa rt v 1 3.Springer, 2014, pp. 740–755. [42] I. A . S¸ ucan , M . Mo ll, and L. E. Ka vr ak i, “T he O pen Mo ti on P lann ing Li b r ary,” IEEE Robo ti cs & Au toma ti on Magaz ine , v o l. 1 9, no . 4, pp .72–82, December 2012. [43] N . Wo jke , A . Bew l ey, and D . Pau l us , “ S imp le on li ne and r ea lti me tr ack i ng w it h a deep assoc iati on me tri c,” i n 2017 I EEE I nte rna ti ona l Con ference on Image Processing (ICIP) . IEEE, 2017, pp. 3645–3649. [44] S. Li u, Z. Zeng , T. Ren , F. Li, H . Zhang , J. Y ang , Q. Ji ang , C. Li, J. Y ang , H . Su , e t a l. , “ Gr ound ing d i no : Ma rryi ng d ino w it h g r ounded p re -tr ai n i ng fo r open -se t ob j ec t de t ec ti on ,” i n Eu ropean con f erence on computer vision . Springer, 2024, pp. 38–55.

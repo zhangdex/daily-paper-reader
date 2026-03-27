@@ -1,0 +1,591 @@
+Title: ReLU Barrier Functions for Nonlinear Systems with Constrained Control: A Union of Invariant Sets Approach
+
+URL Source: https://arxiv.org/pdf/2603.15286v1
+
+Published Time: Tue, 17 Mar 2026 06:35:14 GMT
+
+Number of Pages: 7
+
+Markdown Content:
+# ReLU Barrier Functions for Nonlinear Systems with Constrained Control: A Union of Invariant Sets Approach 
+
+Pouya Samanipour and Hasan A. Poonawala 
+
+Abstract — Certifying safety for nonlinear systems with poly-topic input constraints is challenging because CBF synthesis must ensure control admissibility under saturation. We propose an approximation–verification pipeline that performs convex barrier synthesis on piecewise-affine (PWA) surrogates and certifies safety for the original nonlinear system via facet-wise verification. To reduce conservatism while preserving tractability, we use a two-slope Leaky ReLU surrogate for the extended class-K function α(·) and combine multiple certificates using a Union of Invariant Sets (UIS) . Counterexamples are handled through local uncertainty updates. Simulations on pen-dulum and cart-pole systems with input saturation show larger certified invariant sets than linear-α designs with tractable computation time. 
+
+I. I NTRODUCTION 
+
+Safety is paramount in controlling dynamical systems, especially in robotics and autonomous driving where fail-ures can be catastrophic. Formal safety guarantees typically certify that trajectories remain inside a safe region despite input constraints [1]. Barrier functions (BFs) and control barrier functions (CBFs) provide such certificates [2], [3]: a CBF induces an invariant set by enforcing that, on its boundary, some admissible control keeps trajectories inside. Two practical obstacles are: (i) input constraints may eliminate feasible safety-preserving controls, and (ii) many methods assume prior knowledge of a safe/invariant set. When h(x) must be synthesized, the choice of extended class-K function 
+
+α(·) further trades tractability for conservatism, with linear choices enabling convex programs but often shrinking the certified set. The rise of machine learning [4] in control has enabled neural CBF approaches for safety-critical systems. However, these methods typically rely on nonconvex training with expensive verification [5]–[8]. SEEV [9] improves verifica-tion efficiency, but still depends on nonconvex training and does not provide convex synthesis under input saturation or a systematic mechanism to enlarge invariant sets. Data-driven Forward Invariant (FI) set estimation methods [10] can reduce modeling assumptions, but likewise do not yield con-vex synthesis under saturation. Soft-minimum barriers [11] improve feasibility under constraints by smoothing backup trajectories, yet require a known safe set and restrict α(·),which can be conservative.  
+
+> Pouya Samanipour and Hasan A. Poonawala are with the Department of Mechanical and Aerospace Engineering, University of Kentucky, Lexington, USA
+
+{samanipour.pouya,hasan.poonawala }@uky.edu .The corresponding author is Hasan A.Poonawala. This work was supported by the National Science Foundation under Grant 2330794. 
+
+In our prior work [12], we developed a convex framework for FI set construction for PWA systems with saturated inputs, but it (i) restricted α(·) to be linear and (ii) applied only to PWA dynamics. This paper synthesizes CBFs for nonlinear systems under input constraints while reducing conservatism without sacri-ficing convex synthesis. Leveraging the equivalence between ReLU networks and continuous PWA functions, we perform LP-based barrier synthesis on surrogate PWA models, then transfer guarantees to the true nonlinear system via facet-wise verification with local uncertainty updates. To sys-tematically enlarge certified regions, we introduce a Union of Invariant Sets (UIS) that combines multiple certificates through a max-composition (geometric intuition in Fig. 1). 
+
+Contributions. 
+
+1) Leaky-ReLU surrogate for α(·): A two-slope design that avoids bilinear nonconvexity while reducing con-servatism relative to linear α.2) Union of Invariant Sets (UIS): A max-composition that certifies the union of multiple LP-based invariant sets (Fig. 1), yielding a region never smaller than the best single-α certificate, with no extra optimization. 3) Approximation–verification pipeline: Convex syn-thesis on surrogate PWA models combined with facet-wise verification and local uncertainty updates to en-sure safety for the original nonlinear system under input constraints. Overall, the method preserves convex synthesis, reduces conservatism, and extends certificates from tractable surro-gates to constrained nonlinear dynamics. II. P RELIMINARIES 
+
+We introduce the notation and concepts used in this paper. 
+
+Notation.: For a set S, conv( S), Int( S), and ∂S denote its convex hull, interior, and boundary, respectively. For a matrix A, A⊤ denotes its transpose. 
+
+A. Piecewise Affine Functions 
+
+A piecewise affine (PWA) function is defined on a partition 
+
+P = {Xi}i∈I(P) of a domain D ⊂ Rn by affine components 
+
+(Ai, a i):
+
+f (x) = Aix + ai, x ∈ Xi, (1) where each cell Xi is a bounded polytope of the form 
+
+Xi = { x ∈ Rn | Eix + ei ⪰ 0 }. (2) Specifically, each cell Xi in the partition can be represented as the convex hull of its set of vertices, F0(Xi), as follows: 
+
+Xi = conv {F 0(Xi)}. (3) 
+
+> arXiv:2603.15286v1 [eess.SY] 16 Mar 2026
+
+Fig. 1: Geometric interpretation of the Union of Invari-ant Sets (UIS). Each solid curve shows an invariant set obtained with a different linear α(x). Instead of selecting one candidate set, UIS certifies the union (red dashed line) via max-composition of the corresponding barrier functions. This typically yields a larger certified safe region and never smaller than the best single-α choice, without incurring additional optimization cost. 
+
+B. Forward Invariance and Barrier Functions 
+
+We consider nonlinear control-affine dynamics 
+
+˙x = f (x) + g(x)u, x ∈ D ⊂ Rn, u ∈ U ⊂ Rm, (4) where f and g are locally Lipschitz, and U = {u : Auu ≤
+
+cu} is a compact polytopic input set. 
+
+Definition 1 (Forward invariance [3]): A set S ⊆ D is FI for (4) if x(0) ∈ S implies x(t) ∈ S for all t ≥ 0.
+
+Definition 2 (Control barrier function (CBF) [3]): Acontinuously differentiable function h : D → R is a CBF for (4) if 
+
+S = {x ∈ D | h(x) ≥ 0} (5) is FI. A sufficient condition is the existence of an extended class-K∞ function α such that 
+
+inf 
+
+> u∈U
+
+Lf h(x) + Lg h(x)u ≥ − α(h(x)) , ∀x ∈ D , (6) where Lf h and Lg h denote Lie derivatives of h along f and 
+
+g.
+
+Definition 3 (Barrier function for closed-loop dynamics): 
+
+Given a feedback law u = κ(x), the closed-loop system 
+
+˙x = fcl (x) := f (x) + g(x)κ(x) (7) admits a barrier function h(x) if the set S in (5) is FI whenever 
+
+Lfcl h(x) ≥ − α(h(x)) , ∀x ∈ D . (8) III. P ROBLEM DESCRIPTION 
+
+We aim to synthesize a CBF for the nonlinear control-affine dynamics (4), subject to polytopic input constraints. The goal is to certify a forward-invariant set S defined in (5) that guarantees safety under all admissible controls. Obtaining such a CBF is nontrivial: for nonlinear dy-namics, synthesizing a valid h(x) under input constraints generally leads to a nonconvex optimization problem, which is computationally intractable in practice. To address this, we develop an approximation-verification pipeline that maintains convex optimization problems while ensuring rigorous certification. The pipeline proceeds in five steps: 1) Approximation: Represent the closed-loop nonlinear dynamics with a piecewise affine (PWA) surrogate obtained from a ReLU neural network. 2) Synthesis: Construct a PWA barrier function for the surrogate dynamics via linear programming. 3) Enlargement: Reduce conservatism by typically en-larging the certified invariant set using the Union of Invariant Sets (UIS) method, facilitated by a Leaky ReLU design for α(·).4) Verification: Certify that the synthesized PWA barrier function satisfies the CBF condition (6) for the original nonlinear dynamics with polytopic input constraints, using a facet-wise check based on Farkas’ lemma. 5) Local uncertainty update: If verification fails, rather than relearning the nonlinear dynamics, locally update the surrogate model’s uncertainty and re-solve the convex program to obtain an adjusted barrier function. This formulation bridges ReLU-based approximations with barrier-function design, provides a convex route to CBF synthesis for nonlinear systems, and ensures that failed cer-tificates can be corrected through local surrogate uncertainty updates. IV. PWA BARRIER FUNCTIONS FOR SURROGATE 
+
+DYNAMICS 
+
+Direct synthesis of a CBF or certification of a FI set for the nonlinear dynamics (4) under polytopic input constraints is generally intractable. To address this, we fix a reference feedback law u = κ(x) and approximate the resulting closed-loop dynamics (7) on a bounded domain D by a piecewise affine (PWA) surrogate 
+
+ˆfcl (x) = PWA( x), x ∈ D . (9) Our primary objective in this section is to present an auto-mated search algorithm for obtaining the certified invariant set of the surrogate PWA approximation. We achieve this through the optimization framework detailed below. We build on the optimization framework from [12], which certifies FI sets for PWA dynamics of the form (9). Since this construction depends on the partition P, we introduce the relevant index sets. The cells that intersect the domain boundary are 
+
+I∂D (P) = {i ∈ I(P) : Xi ∩ ∂D̸ = ∅} . (10) Vertices are classified as 
+
+Ib(P) = {(i, k ) : vk ∈ ∂D, i ∈ I∂D (P), v k ∈ F 0(Xi)},IInt (P) = {(i, k ) : vk /∈ ∂D, i ∈ I(P), v k ∈ F 0(Xi)}.
+
+(11) Here, Ib(P) corresponds to boundary vertices, while IInt (P)
+
+corresponds to interior vertices. We parameterize the barrier function as a PWA function on the same partition: 
+
+hi(x) = sTi x + ti, i ∈ I(P), (12) where si ∈ Rn and ti ∈ R. In cell Xj , we model local affine dynamics with bounded additive uncertainty, 
+
+˙x = Aj x + aj + δx, δx ∈ ∆j ,
+
+where ∆j is a polytopic uncertainty set (challenges addressed in verification). The derivative of hi is 
+
+˙hj (x) = sTj (Aj x + aj + δx ), x ∈ Int ( Xj ) , δx ∈ ∆j .
+
+(13) Since sTj δx is linear in δx , it suffices to evaluate (13) at 
+
+F0(∆ j ).The robust optimization problem is 
+
+min  
+
+> si,t i,τ Int i,τ bi
+> M
+
+X
+
+> i=1
+
+τbi +
+
+> N
+
+X
+
+> i=1
+
+τInt i , (14a) Subject to: 
+
+hi(vk) − τbi ≤ − ϵ1, ∀(i, k ) ∈ Ib(P), (14b) 
+
+hi(vk) + τInt i ≥ ϵ2, ∀(i, k ) ∈ IInt (P), (14c) 
+
+sTj (Aj vk + aj + δx ) + αh i(vk) ≥ ϵ3,
+
+∀(i, k ) ∈ I(P), ∀δx ∈ F 0(∆ j ), (14d) 
+
+hi(vk) = hj (vk), ∀vk ∈ F 0(Xi) ∩ F 0(Xj ), (14e) 
+
+τbi , τ Int i ≥ 0, (14f) with tolerances ϵ1, ϵ 2, ϵ 3 > 0. In (14a), M and N denote the number of boundary and interior vertices, respectively. Con-straints (14b)–(14c) regulate boundary and interior vertices, using slack variables to preserve feasibility. Constraint (14d) enforces the barrier condition at all vertices of the uncertainty set, while (14e) ensures continuity across cells. 
+
+Remark 1: The optimization (14) is always feasible, but a nonzero P 
+
+> i
+
+τbi indicates that the resulting set is not certified invariant. In this case, refinement of boundary (and possibly interior) cells is required, following the vector field refinement procedure of [13]. In (14), the barrier function h(x) is synthesized through optimization. Thus, the choice of the class-K∞ function α(·)
+
+not only controls the strictness of the barrier condition but also directly influences the resulting h(x) and the size of the certified invariant set. Unlike standard CBF formulations where h(x) is fixed and α(·) acts as a tuning gain, here α(·)
+
+fundamentally shapes the optimization landscape. In [12], α(·) was restricted to the linear form α(s) = αs ,with α > 0 tuned via bisection search over {α1, . . . , α m},retaining the largest feasible set. While effective, computing the volume of these sets in higher dimensions is expensive and often conservative, as nonlinear α(·) can yield typically larger invariant sets. This motivates exploring nonlinear α(·), such as Leaky ReLU. To address the conservatism of linear α(·), we in-troduce Leaky ReLU functions as a flexible choice, enabling less conservative invariant set estimation. Combined with the Union of Invariant Sets (UIS) method, this typically enlarges the certified region by merging multiple LP-derived invariant sets via max-composition. 
+
+A. Leaky ReLU: A Practical Choice for α(·) in BF Design 
+
+As shown in the prior section, the choice of α(·) critically influences the certified FI set, since h(x) is synthesized through optimization (14). To avoid the conservatism of linear functions and the complexity of optimizing arbitrary 
+
+K∞ functions, we propose the Leaky ReLU as a practical substitute. It requires only two tunable parameters, yet ap-proximates nonlinear K∞ functions and aligns naturally with neural network architectures. 
+
+Theorem 1: Let S ⊂ D ⊆ Rn denote the super-level set (5) of a locally Lipschitz function h : D → R under the closed-loop dynamics (7). Assume h(D) ⊂ [hmin , h max ]
+
+with hmin < 0 < h max , where these bounds are derived from the problem domain. The following are equivalent: (a) There exists α ∈ K ∞ such that the barrier condi-tion (8) holds on D—using classical derivatives where 
+
+h is smooth and Clarke generalized derivatives other-wise—rendering S FI. Moreover, α satisfies the one-sided slope bounds at 0:
+
+lim sup 
+
+> s↓0
+
+α(s)
+
+s < ∞, lim inf 
+
+> s↑0
+
+α(s)
+
+s > 0. (15) (b) There exist 0 < α 1 ≤ αm < ∞ and the extended K∞
+
+function 
+
+α(s) = 
+
+(
+
+αms, s ≥ 0,α1s, s < 0, (16) such that the barrier condition (8) holds on D, render-ing S FI. 
+
+Proof: (b) ⇒ (a). The function α in (16) is continuous, strictly increasing, radially unbounded, and satisfies α(0) = 0, hence α ∈ K ∞. For locally Lipschitz h, let ∂C h(x) denote the Clarke generalized gradient. The CBF condition (8) in the nonsmooth setting is 
+
+sup  
+
+> ζ∈∂Ch(x)
+
+ζ⊤fcl (x) ≥ − α h(x), ∀x ∈ D ,
+
+which aligns with the classical condition where h is differen-tiable. Standard nonsmooth CBF results (e.g., [14]) confirm this ensures forward invariance of S = {x : h(x) ≥ 0}. Thus (a) holds. 
+
+(a) ⇒ (b). Let α satisfy (15) and the (smooth/nonsmooth) CBF inequality in (8). Define 
+
+αm := sup 
+
+> s∈(0 ,h max ]
+
+α(s)
+
+s , α1 := inf 
+
+> s∈[hmin ,0)
+
+α(s)
+
+s .
+
+By compactness of [hmin , h max ] and the one-sided slope bounds (15), 0 < α 1 ≤ αm < ∞. For all s ∈ [hmin , h max ],
+
+α(s) ≤
+
+(
+
+αms, s ≥ 0,α1s, s < 0, =: α(s), α(0) = 0 .
+
+Thus, for every x ∈ D ,
+
+sup  
+
+> ζ∈∂Ch(x)
+
+ζ⊤fcl (x) ≥ − α h(x) ≥ − α h(x),showing the CBF condition holds with α, ensuring S’s invariance. Thus (b) holds. 
+
+Remark 2: Theorem 1 applies to locally Lipschitz h, cov-ering both smooth and nonsmooth barrier functions. In the nonsmooth case, the derivative in (8) uses Clarke gradients, aligning with [14], and supports PWA functions from (14) as well as smooth cases. 
+
+Remark 3: Theorem 1 is essential as h(x), synthesized via (14), is unknown beforehand. In our optimization, α(·)
+
+must uphold the barrier constraint (8) across all points in D,unlike standard CBFs that verify it only on ∂S , ensuring S’s invariance. This result enables certification with a two-parameter Leaky ReLU. Any invariant set certifiable by α ∈ K ∞ is also certifiable by α. We adopt this as a tractable, NN-compatible surrogate for α(·), simplifying optimization while preserving certifiability. 
+
+B. Union of Invariant Sets (UIS) 
+
+Building on the Leaky ReLU design for α(·), we introduce the Union of Invariant Sets (UIS) method. Directly encoding a Leaky ReLU α(·) into (14) makes the barrier constraint nonconvex, typically requiring a mixed-integer program that undermines convexity. Instead, UIS solves (14) for multiple linear α(x) = γx , each as a convex program, and unites the resulting invariant sets. The key innovation is max-composition of the associated barrier functions, certifying the 
+
+union as forward-invariant. Unlike our prior α-sweep, which tested various γ values, selected the largest single invariant set, and discarded other results—wasting computation—UIS harnesses all LP solutions to yield a single, enlarged certified region without additional solves or costly set comparisons. 
+
+Notation.: Because the solution of (14) depends on both the partition and α(·), we write the certified set and barrier as S(i) := S(i)(Pi, α i) and h(i) := h(i)(x, Pi, α i), with 
+
+αi(x) = αix unless otherwise stated. 
+
+Lemma 1: Consider the dynamical system given by (9) with an equilibrium at the origin, defined on a compact set D.Let α = [ αmin , . . . , α max ] be a set of m parameters ordered in ascending order. Suppose that the corresponding invariant sets, obtained through the optimization problem (14) are denoted by S(i)(Pi, α i) for i = 1 , . . . , m with α(x) = αix.Then, the following results hold: 1) There exists an invariant set S with respect to the dynamical system (9), where S is given by: 
+
+S =
+
+> m
+
+[
+
+> i=1
+
+S(i)(Pi, α i). (17) 2) The set S is rendered asymptotically stable in D with the following BF and class-K∞ function: 
+
+h(x, P, α ) = max  
+
+> i
+
+{h(i)(x, Pi, α i)}, (18) where α(x) is defined as: 
+
+α(x) = αmax σ( αmin αmax )(x), (19) and σ( αmin αmax )(x) denotes the Leaky ReLU function as defined in (16). The partition P is the product partition defined as: 
+
+P = P1 × P 2 × · · · × P m, (20) where: 
+
+P∗ = P1 × P 2 = {Xk}k∈I(P∗),Xk = {Xi∩Xj : i ∈ I(P1), j ∈ I(P2), dim (Xk) = n}.
+
+Proof: (1) If x0 ∈ S, then x0 ∈ S(k) for some k. Since 
+
+S(k) is invariant for (9), the trajectory remains in S(k) ⊆ S,proving invariance. (2) By construction h = max i h(i)(x, Pi, α i), so S = {x :
+
+h(x) ≥ 0}, and h is locally Lipschitz and PWA on P. At differentiable points x∗ where h(x∗) = h(k)(x∗, Pk, α k),
+
+˙h(x∗) = ˙h(k)(x∗, Pk, α k).
+
+If h(x∗) > 0, then αmax h(x∗) ≥ αkh(k)(x∗, Pk, α k) and feasibility of h(k)() gives 
+
+˙h(x∗) + αmax h(x∗) ≥
+
+˙h(k)(x∗, Pk, α k) + αkh(k)(x∗, Pk, α k) ≥ 0.
+
+If h(x∗) < 0, then α(h(x∗)) = αmin h(x) ≥
+
+αkh(k)(x∗, Pk, α k), so 
+
+˙h(x∗) + α(h(x∗)) ≥ 0.
+
+Nondifferentiable points. Since h(x) =max i h(i)(x, Pi, α i) and each h(i)(x, Pi, α i) is locally Lipschitz, Clarke calculus yields 
+
+∂C h(x) = co 
+
+n
+
+∂C h(i)(x, Pi, α i) : i ∈ arg max  
+
+> j
+
+h(j)(x, Pj , α j )
+
+o
+
+.
+
+Hence 
+
+sup  
+
+> ζ∈∂Ch(x)
+
+ζ⊤PWA( x)= max    
+
+> i∈arg max jh(j)(x, Pj,α j)
+
+sup  
+
+> ζ∈∂Ch(i)(x, Pi,α i)
+
+ζ⊤PWA( x)
+
+≥ − α h(x),
+
+since each active h(i) satisfies the BF inequality and α
+
+dominates the corresponding linear slope. Therefore, the BF condition holds everywhere for h with α, implying forward invariance and asymptotic stability of S in D.
+
+Remark 4: UIS requires no additional optimization be-yond the baseline multi-α synthesis. It simply reuses the LP solutions already obtained for different linear gains and performs a max-composition step, yielding the certified union without extra solve cost. 
+
+Corollary 1: Let S′ = arg max i vol( S(i)) among sets obtained from Algorithm 1 with linear α(x) = αix. Then 
+
+S′ ⊆ S, i.e., UIS never returns a smaller certified set than the best single linear choice. 
+
+Proof: The result follows directly from the construction of the UIS algorithm. Algorithm 1 Union of Invariant Sets (UIS) for PWA dy-namics (9) 
+
+Require: PWA( x) dynamics (9), slope grid α =
+
+{α1, . . . , α m}. 
+
+> 1:
+
+for j = 1 , 2, . . . , m do  
+
+> 2:
+
+Set α(s) = αj s. 
+
+> 3:
+
+Solve (14a)–(14f) for (9) with α(s) to obtain 
+
+h(j)(x, Pj , α j ) and the certified set S(j)(Pj , α j ). 
+
+> 4:
+
+while PMi=1 τbi̸ = 0 or PNi=1 τInt i̸ = 0 do  
+
+> 5:
+
+Refine cells with nonzero slacks as in [13].  
+
+> 6:
+
+Re-solve (14a)–(14f) on the refined partition to update h(j)(x, Pj , α j ) and S(j)(Pj , α j ). 
+
+> 7:
+
+end while  
+
+> 8:
+
+end for  
+
+> 9:
+
+Form the UIS barrier and set: 
+
+h(x, P, α ) = max  
+
+> j
+
+h(j)(x, Pj , α j )
+
+S =
+
+> m
+
+[
+
+> j=1
+
+S(Pj , α j ) 
+
+> 10:
+
+return S and h(x, P, α ).Corollary 1 shows that UIS does not always yield a strictly larger invariant set (e.g., S(P4, α 4) in Fig. 1 may add no new points). Importantly, since our baseline already solves the multi-α LP sweep, UIS incurs no additional optimization cost while still enabling potentially larger certified sets. In practice, we select an initial α0 uniformly at random from α,solve for S(P0, α 0), and then evaluate nearby values of α.Note that Algorithm 1 as stated has no built-in termination condition and can in principle run indefinitely. V. C ONSTRUCTING CBF S FOR NONLINEAR DYNAMICS 
+
+The UIS framework estimates FI sets for surrogate PWA dynamics (9), but this does not imply invariance for the original nonlinear system (4). A natural idea is to incorporate model mismatch as additive uncertainty in each polytopic region. However, doing so from the outset poses two chal-lenges: (i) it significantly increases the size of the LP (14), and (ii) constructing accurate uncertainty bounds ∆j for every region is nontrivial and often conservative. We instead adopt a scalable solve–verify–update pipeline. First, we synthesize a barrier function for the surrogate PWA model with no uncertainty. This step uses a fixed nominal feedback controller, so the resulting barrier certifies a forward-invariant set for the induced surrogate closed-loop dynamics. Next, we verify whether the candidate barrier satisfies the CBF condition for the original nonlinear system with input constraints. Unlike synthesis, this step checks whether any admissible control exists that can keep trajectories within the estimated safe set. Verification is performed via Farkas’ lemma on selected boundary regions. Importantly, because the candidate barrier is piecewise affine, its zero-level set can be decomposed into a finite number of facet patches —each corresponding to a local active region of the max-composed function. We exploit this structure to check the CBF condition only on these boundary patches, not the full domain. This patch-wise verification is exact and highly efficient. If a violation is found, we extract a counterexample state and compute the deviation between the true dynamics and the surrogate model at that point. This yields a cell-local un-certainty set ∆j , which is added only to the affected region. We then re-solve the LP globally, keeping the rest of the model unchanged. This selective update avoids conservative global uncertainty while preserving tractability. 
+
+Facet index set.: Let 
+
+h(x, P, α ) = max 
+
+> k∈Ih
+
+hk(x, Pk, α k), Ih = {1, 2, . . . , m },
+
+and, let P = {Xj } denote the fixed (refined) partition of h.Collect the boundary cell–active piece pairs 
+
+IF := (j, k ) : ∃ x ∈ Xj s.t. h(x, P, α ) = 0 ,h(x, P, α ) = hk(x, Pk, α k) .
+
+For each (j, k ) ∈ I F , define the facet patch 
+
+Fj,k :=  x ∈ Xj : hk(x, Pk, α k) = 0 ,hk(x, Pk, α k) ≥ hℓ(x, Pℓ, α ℓ) ∀ℓ ∈ Ih .
+
+Local verification : Consider the input constraint set 
+
+U = {u : Auu ≤ cu}. On each facet patch Fj,k , we check the CBF condition (6) by eliminating u with Farkas’ lemma for (4). For every (j, k ) ∈ I F , solve 
+
+Φ⋆j,k := min  
+
+> x, λ ≥0
+
+s⊤ 
+
+> k
+
+f (x) + λ⊤cu
+
+s.t. x ∈ Fj,k ,λ⊤Au = s⊤ 
+
+> k
+
+g(x),
+
+(21) where sk := ∇hk is constant on Xj . If Φ⋆j,k < 0 then a counterexample exists on Fj,k —i.e., there is an x ∈ Fj,k 
+
+for which no u ∈ U can satisfy (6); otherwise the CBF constraint holds on that patch. This guarantee is independent of the nominal law κ(x) used during synthesis, ensuring the safe set is physically realizable even if the practical control law differs from the nominal one. In implementation, we apply a standard CBF-QP safety filter that minimally modifies κ(x), and feasibility of this filter on each verified facet patch follows from (21). This elimination-based “exact verification” mirrors the dual/support-function formulations used in [7]. 
+
+Practical note.: Problem (21) has decision variables 
+
+(x, λ ) only, with x ∈ Rn and λ ∈ Rp, where p is the number of inequality rows in A for U = {u : Auu ≤ cu}. Thus the program dimension is n + p; the control u is eliminated via Farkas’ lemma. The set constraint x ∈ Fj,k ⊆ Xj is polyhe-dral (hence cheap), while the coupling λ⊤Au = s⊤ 
+
+> k
+
+g(x) and the term s⊤ 
+
+> k
+
+f (x) are smooth in x. Each per– (j, k ) instance is local and small, and can be solved reliably with off-the-shelf nonlinear solvers (e.g., scipy.optimize ). A. Cell-local robustification via uncertainty update 
+
+If verification produces a counterexample x∗ ∈ Fj,k , set 
+
+e∗ := f (x∗) − ˆf (x∗),
+
+∆j := 
+
+(
+
+{δx : |δx | ≤ | e∗|} , Φ⋆j,k < 0,
+
+{0}, otherwise, where | · | is taken componentwise (box uncertainty). Using the counterexample, we obtain a tighter local uncertainty only in cell Xj , avoiding an overly conservative global bound. 
+
+B. Search algorithm 
+
+The complete procedure is summarized in Algorithm 2. We begin by applying UIS to synthesize a candidate barrier function on the surrogate dynamics without uncertainty. This is followed by patch-wise verification on the original nonlinear system. If a violation is detected, we compute a cell-local uncertainty ∆j , re-solve the LP with this localized robustification, and repeat. The loop terminates when all patches pass verification, yielding a valid CBF for the nonlinear system. 
+
+Scalability.: Both the UIS solves (per cell) and the facet verifications (per (j, k )) are independently parallelizable (no cross-coupling), enabling efficient multicore/GPU execution; optional partition refinement can be applied locally when needed. VI. R ESULTS AND SIMULATIONS 
+
+All computations are performed in Python 3.11 on a 2.1 GHz CPU with 8 GB RAM. A tolerance of 10 −6 determines nonzero values, and ϵ1 = ϵ2 = ϵ3 = 10 −4 in the examples. 
+
+Example 1 (Inverted Pendulum [12]): The inverted pendulum system can be modeled as follows: 
+
+˙x1 = x2, ˙x2 = sin( x1) + u
+
+where x1 represents the pendulum’s angle, and x2 is its angular velocity. We apply a nominal control law u =
+
+−3x1 − 3x2, subject to saturation limits between −1.5 and 
+
+1.5. The system’s domain is D = π − || x|| ∞ ≥ 0, where 
+
+|| x|| ∞ denotes the infinity norm. The closed-loop dynamics under this nominal control are approximated using a ReLU neural network with a single hidden layer of eight neurons. The invariant set is estimated by solving the optimization problem (14) with multiple linear α values, specifically α = [0 .025 , 0.05 , 0.06] , and with no uncertainty included in the PWA approximation. As illustrated in Fig. 2, each level set corresponds to an invariant set obtained from the single-α method of [12]. The UIS max-composition certifies their union, yielding a strictly larger invariant set than any individual level set. Moreover, the certified set is verified on the original nonlinear dynamics, and the computational times are reported in Table I. 
+
+Example 2 (Barrier Certificate Verification): We con-sider the nonlinear system from [7], [8]: 
+
+˙x1 = x21 + x1x2 + x1, ˙x2 = x1x2 + x22 + x2,
+
+Algorithm 2 UIS → Nonlinear Verify → Cell-Local Robus-tify & Refine (no-failure) 
+
+Require: Nonlinear dynamic (7), fixed partition P∗ =
+
+{Xj }, nominal PWA model ˆf , input set U = {u :
+
+Auu ≤ cu}, tolerances ε, ε 3 
+
+> 1:
+
+Start from UIS (no uncertainty): Solve (14) with ∆j =
+
+∅ ∀ j to obtain h(x, P, α ) = max i h(i)(x, Pi, α i). 
+
+> 2:
+
+Verify on nonlinear facets: For each (j, k ) ∈ I F (facet 
+
+Fj,k ), compute Φ⋆j,k via (21) using the original dynamics 
+
+f (x), g (x) and input set U . 
+
+> 3:
+
+while there exists (j, k ) ∈ I F with Φ⋆j,k < 0 (witness 
+
+x∗ ∈ Fj,k ) do  
+
+> 4:
+
+Update ∆j & re-solve: For each counterexample x∗,let e∗ = f (x∗) − ˆf (x∗) and update ∆j ← conv  ∆j ∪{± e∗}; re-solve (14).  
+
+> 5:
+
+while PNi=1 τbi̸ = 0 do  
+
+> 6:
+
+for each i with τbi̸ = 0 and τInt i̸ = 0 do  
+
+> 7:
+
+Refine cells as in [13].  
+
+> 8:
+
+end for  
+
+> 9:
+
+Re-solve the same LP (14) (robust only on cells with ∆j̸ = ∅).  
+
+> 10:
+
+end while  
+
+> 11:
+
+Update h(x, P, α ) = max i hi(x, Pi, α i) from the LP solution.  
+
+> 12:
+
+Re-verify: Recompute Φ⋆j,k via (21) using the original dynamics f (x), g (x) and U on all facets.  
+
+> 13:
+
+end while  
+
+> 14:
+
+Return h(x, P, α ) as the certified CBF for (4); the safe set is S = {x : h(x, P, α ) ≥ 0}.over the domain D = {x : ∥x∥∞ ≤ 2}. The goal is to verify that trajectories starting in the initial region Im =
+
+{0.5 ≤ x1, x 2 ≤ 1} do not enter the unsafe set Um =
+
+{− 1 ≤ x1, x 2 ≤ 0}. We approximate the system using a single-hidden-layer ReLU neural network with 20 neurons. Invariant sets corresponding to fixed α values are computed via (14), and their max-composition is certified using the UIS approach. This results in a provably safe set that is strictly larger than any single-α solution or SOS-based barrier, and comparable in coverage to SyntheBC [8]. Table I reports the total certification time. While [7] uses a deeper network (two hidden layers with 256 ReLU neurons) and spends over 315 seconds (or several hours using SMT) to certify a Darboux-style barrier, our approach uses a compact single-layer ReLU model with only 20 neurons. A comparison of the results is shown in Fig. 3. 
+
+Example 3 (Cart-Pole with Input Saturation): We study the classic cart-pole system [15] with state x, ˙x, θ, ˙θ,cart mass mc = 1 .0, pole mass mp = 0 .1, pole length 
+
+l = 1 .0, and gravity g = 9 .81 . The horizontal input force 
+
+fx is saturated within [−30 , 30] N. Following [15], we shift 
+
+θ 7 → π − θ so that the upright equilibrium is at the origin. The system is stabilized by the LQR controller from [16], 
+
+u = x + 2 .4109 ˙ x + 34 .3620 θ + 10 .7009 ˙θ, Fig. 2: The final invariant set is obtained by verifying a CBF synthesized through the UIS method with three different choices of α, as described in Sec. IV-B. TABLE I: Computation and verification times (in seconds) for different examples. 
+
+Example UIS Computation Verification Total 
+
+Inverted Pendulum 1 34 12 46 Barrier Certificate 2 57 23 80 Cart-Pole 3 1349 117 1466 
+
+with domain D = {x ∈ R4 : 1 − | x|∞ ≥ 0}. The closed-loop dynamics are identified by a single-hidden-layer ReLU NN (15 neurons). Applying the UIS method with two slopes 
+
+α1 = 0.35 and α2 = 0.55 yields a certified invariant set, demonstrating the scalability of our framework to 4D nonlinear dynamics with input saturation. The certification is verified on the nonlinear dynamics, and the computational times are summarized in Table I. VII. C ONCLUSION 
+
+We presented an approximation–verification framework for synthesizing CBFs in nonlinear systems with input con-straints. The approach combines convex synthesis on PWA surrogates using a two-slope Leaky ReLU α(·), enlargement via a Union of Invariant Sets (UIS), and facet-wise verifica-tion with local uncertainty updates. Simulations on pendulum and cart-pole systems show that the method certifies larger invariant sets than linear-α designs while remaining tractable. Future work will address scalability to higher-dimensional systems and integration with predictive control. REFERENCES [1] H. M. Hedesh and M. Siami, “Delay independent safe control with neural networks: Positive lur’e certificates for risk aware autonomy,” 
+
+arXiv preprint arXiv:2510.06661 , 2025. [2] A. D. Ames, J. W. Grizzle, and P. Tabuada, “Control barrier function based quadratic programs with application to adaptive cruise control,” in 53rd IEEE Conference on Decision and Control , pp. 6271–6278, IEEE, 2014. [3] A. D. Ames, S. Coogan, M. Egerstedt, G. Notomista, K. Sreenath, and P. Tabuada, “Control barrier functions: Theory and applications,” in 2019 18th European control conference (ECC) , pp. 3420–3431, IEEE, 2019. 
+
+Fig. 3: The final invariant set is obtained by UIS with two different α values (see Sec. IV-B) for Example 2. The certified region is compared against baselines from sum-of-squares (SOS) programming and SyntheBC, showing that UIS achieves a larger invariant set. 
+
+[4] N. Golmohammadi, M. M. Rayguru, and S. Baidya, “A hierarchical optimization framework using deep reinforcement learning for task-driven bandwidth allocation in 5g teleoperation,” in IEEE INFOCOM 2025 - IEEE Conference on Computer Communications Workshops (INFOCOM WKSHPS) , pp. 1–6, 2025. [5] Y.-C. Chang, N. Roohi, and S. Gao, “Neural lyapunov control,” 
+
+Advances in neural information processing systems , vol. 32, 2019. [6] C. Dawson, Z. Qin, S. Gao, and C. Fan, “Safe nonlinear control using robust neural lyapunov-barrier functions,” in Conference on Robot Learning , pp. 1724–1735, PMLR, 2022. [7] H. Zhang, J. Wu, Y. Vorobeychik, and A. Clark, “Exact veri-fication of relu neural control barrier functions,” arXiv preprint arXiv:2310.09360 , 2023. [8] Q. Zhao, X. Chen, Y. Zhang, M. Sha, Z. Yang, W. Lin, E. Tang, Q. Chen, and X. Li, “Synthesizing relu neural networks with two hidden layers as barrier certificates for hybrid systems,” in Proceedings of the 24th International Conference on Hybrid Systems: Computation and Control , pp. 1–11, 2021. [9] H. Zhang, Z. Qin, S. Gao, and A. Clark, “Seev: Synthesis with efficient exact verification for relu neural barrier functions,” Advances in Neural Information Processing Systems , vol. 37, pp. 101367–101392, 2024. [10] A. K. Strong, A. Kashani, C. Danielson, and L. J. Bridgeman, “Data driven synthesis of invariant sets for unmodeled lipschitz dynamical systems using a tree data structure,” in 2025 American Control Conference (ACC) , pp. 2566–2571, 2025. [11] P. Rabiee and J. B. Hoagg, “Soft-minimum barrier functions for safety-critical control subject to actuation constraints,” in 2023 American Control Conference (ACC) , pp. 2646–2651, 2023. [12] P. Samanipour and H. Poonawala, “Invariant set estimation for piece-wise affine dynamical systems using piecewise affine barrier function,” 
+
+European Journal of Control , p. 101115, 2024. [13] P. Samanipour and H. A. Poonawala, “Automated stability analysis of piecewise affine dynamics using vertices,” in 2023 59th Annual Allerton Conference on Communication, Control, and Computing (Allerton) , pp. 1–8, 2023. [14] P. Glotfelter, J. Cort´ es, and M. Egerstedt, “Nonsmooth barrier func-tions with applications to multi-robot systems,” IEEE control systems letters , vol. 1, no. 2, pp. 310–315, 2017. [15] R. Tedrake, “Underactuated robotics: Learning, planning, and control for efficient and agile machines course notes for mit 6.832,” Working draft edition , vol. 3, no. 4, p. 2, 2009. [16] J. Wu, A. Clark, Y. Kantaros, and Y. Vorobeychik, “Neural lyapunov control for discrete-time systems,” Advances in neural information processing systems , vol. 36, pp. 2939–2955, 2023.

@@ -1,0 +1,702 @@
+Title: From Global to Local: Hierarchical Probabilistic Verification for Reachability Learning
+
+URL Source: https://arxiv.org/pdf/2603.24990v1
+
+Published Time: Fri, 27 Mar 2026 00:28:06 GMT
+
+Number of Pages: 7
+
+Markdown Content:
+# From Global to Local: Hierarchical Probabilistic Verification for Reachability Learning 
+
+Ebonye Smith 1, Sampada Deglurkar 1, Jingqi Li 2, Gechen Qu 1, and Claire J. Tomlin 1
+
+Abstract — Hamilton–Jacobi (HJ) reachability provides for-mal safety guarantees for nonlinear systems. However, it be-comes computationally intractable in high-dimensional settings, motivating learning-based approximations that may introduce unsafe errors or overly optimistic safe sets. In this work, we propose a hierarchical probabilistic verification framework for reachability learning that bridges offline global certification and online local refinement. We first construct a coarse safe set using scenario optimization, providing an efficient global probabilistic certificate. We then introduce an online local refinement module that expands the certified safe set near its boundary by solving a sequence of convex programs, recovering regions excluded by the global verification. This refinement reduces conservatism while focusing computation on critical regions of the state space. We provide probabilistic safety guarantees for both the global and locally refined sets. Integrated with a switching mechanism between a learned reachability policy and a model-based controller, the proposed framework improves success rates in goal-reaching tasks with safety constraints, as demonstrated in simulation experiments of two drones racing to a goal with complex safety constraints. 
+
+I. I NTRODUCTION 
+
+Provably safe controller design is essential for deploy-ing autonomous systems in safety-critical settings such as multi-agent coordination, human–robot interaction, and high-speed navigation in cluttered environments. Among those applications, a central challenge is to characterize the set of states from which a system can be driven to a desired goal while satisfying safety constraints [1]. Hamilton–Jacobi (HJ) reachability [2]–[4] computes such sets, but classical HJ methods suffer from the curse of dimensionality [5] in high-dimensional systems. To overcome this issue, prior works have proposed learning-based approaches that approximate reachable sets and synthesize corresponding control policies [6]–[9]. However, while they enable scalability, they may introduce errors that lead to overly optimistic approximations that misclassify unsafe regions as safe. 
+
+*This work was supported by NSF Safe Learning Enabled Systems, the DARPA Assured Autonomy, ANSR, and TIAMAT programs, and the NASA ULI on Safe Aviation Autonomy. E.S. was supported by NSF GRFP, and J.L. by an Oden Institute Fellowship. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of any aforementioned organizations. 
+
+> 1
+
+Ebonye Smith (corresponding author), Sampada Deglurkar, Gechen Qu, and Claire J. Tomlin are with the Department of Electrical Engineering and Computer Sciences, University of California Berkeley, Berkeley, CA 94720, USA, tel:510-643-6610, ebonyesmith@berkeley.edu, sampada deglurkar@berkeley.edu, qugch@berkeley.edu, tomlin@berkeley.edu 
+
+> 2
+
+Jingqi Li is with the Oden Institute of Computational Engineering and Sciences, University of Texas at Austin, Austin, TX 78712, USA, tel: 765-337-0678, jingqi.li@austin.utexas.edu (b ) Certified Global Set and  
+
+> Local Refinement
+> (a) Hybrid Switching Framework
+
+Local 
+
+Refinement 
+
+Safe Set 
+
+Recovery 
+
+Global 
+
+Verification 
+
+Target Set 
+
+Checking State 
+
+not in 
+
+State 
+
+not in 
+
+State 
+
+not in 
+
+Fig. 1. (a) Building on a learned reachability value function and policy from prior work (e.g., [9]), our hierarchical verification framework provides probabilistic safety guarantees based on whether the state lies in the globally or locally verified set; otherwise, safe set recovery drives it to a verified region. Our key novelty is leveraging scenario optimization for local safe set expansion. (b) Drone racing example in which the ego drone (blue) reaches a refined local safe set that guarantees safe overtaking of an opponent (black). 
+
+To ensure safety under learning-based approximations, verification becomes necessary. Existing methods can be categorized along three axes. First, deterministic approaches provide worst-case guarantees but can be overly conserva-tive in practice [9]–[14], whereas probabilistic methods are typically less conservative but may require many samples to achieve tight guarantees [15]–[23]. Second, verification acting globally over the entire state space is computation-ally expensive and sensitive to outliers [22], while local 
+
+verification focuses on regions of interest, enabling more sample-efficient and accurate certification. Third, due to its high computational cost, global verification is typically performed offline [19], whereas online refinement enables adaptive correction of overly conservative certificates during execution. Existing approaches typically operate within a single regime, limiting their ability to balance accuracy, efficiency, and scalability in high-dimensional systems. In this work, we propose a multi-tier, hierarchical frame-work that couples probabilistic global certification with adaptive local refinement, enabling scalable verification with improved accuracy. We first construct an offline coarse global safe set via scenario optimization [24], yielding an efficient but conservative probabilistic certificate. To reduce conservatism and focus computation on relevant regions, we introduce an online local refinement module that performs targeted sampling near the safe set boundary. By solving a sequence of convex programs, the method expands the cer-
+
+> arXiv:2603.24990v1 [eess.SY] 26 Mar 2026
+
+tified region and recovers safe states discarded by the global approximation while maintaining probabilistic guarantees. The framework further incorporates a switching mechanism between a learned reachability policy and a model-based controller: when the state lies outside the reach-avoid set, where the learned policy may be unreliable, the model-based controller is warm-started using the learned policy to produce a safer control action. Specifically, our contributions are:  
+
+> •
+
+Hierarchical Safe, Target-Reaching Framework: Amulti-tier framework combining global probabilistic verification with online local refinement, integrating a learned reachability policy with a model-based con-troller for safe goal-reaching.  
+
+> •
+
+Scenario-Based Local Expansion: An efficient method for safe set expansion via scenario optimization, re-covering regions that would otherwise be discarded by conservative global verification.  
+
+> •
+
+Probabilistic Safety Guarantees: Theoretical guaran-tees for both globally and locally verified sets, ensuring safety under local refinement.  
+
+> •
+
+Empirical Validation: Simulation results in drone rac-ing demonstrating improved success rates in safe over-taking compared to baseline methods. II. P RELIMINARIES 
+
+In this section, we review reachability analysis and sce-nario optimization, which underpins our new probabilistic verification framework in Section III. 
+
+A. Reachability Learning 
+
+Consider a discrete-time nonlinear dynamical system 
+
+xt+1 = f (xt, u t), where xt ∈ Rn and ut ∈ U ⊆ Rm
+
+represent the state and control at time t. Let r : Rn → R
+
+be a Lipschitz continuous reward function with Lipschitz constant Lr , where r(x) > 0 indicates that a state x is in the target set T . Similarly, let c : Rn → R be a Lipschitz continuous constraint function with Lipschitz constant Lc,where c(x) ≤ 0 represents states for which constraint c is violated. Our goal is to identify the set of initial states from which the system can be safely controlled to T by control policy π : Rn → U within a finite time horizon T ∈ Z+,referred to as the reach-avoid (RA) set [25]: 
+
+R := 
+
+ x0 : ∃π such that ∃t < T, 
+
+(r(xt) > 0 ∧ ∀τ ∈ [0 , t ], c (xτ ) > 0) 
+
+
+
+. (1) Denote by ξπx0 a state trajectory from a state x0 under control policy π. We define the time-discounted RA measure 
+
+gγ (ξπx0 , t ) as 
+
+gγ (ξπx0 , t ) := min 
+
+n
+
+γtr(xt), min   
+
+> τ=0 ,...,t
+
+γτ c(xτ )
+
+o
+
+, (2) where γ ∈ (0 , 1) and we have gγ (ξπx0 , t ) > 0 if and only if there exists a trajectory from x0 reaching the target set safely within t time steps. Given a horizon T , the finite-horizon RA value function 
+
+Vγ (x, T ) evaluates the maximum RA measure: 
+
+Vγ (x0, T ) := max  
+
+> π
+
+sup 
+
+> t=0 ,...,T
+
+gγ (ξπx0 , t ). (3) Thus, for all γ ∈ (0 , 1) , the super-zero level set of Vγ (x, T ),defined as Vγ := {x : Vγ (x, T ) > 0}, is equal to the RA set. We leverage learning-based reachability methods (e.g., [8], [9]), which use deep reinforcement learning (RL) to learn a deterministic control policy π and value function Vγ . In the rest of the paper, we denote the learned policy by πlp .
+
+B. Scenario Optimization Theory 
+
+Scenario optimization is a data-driven framework used to provide probabilistic guarantees for optimization problems under uncertainty ∆:
+
+min  
+
+> z∈Z
+
+c⊤z
+
+s.t. P∆{h(z, ∆) > 0} ≤ ϵ (4) where z ∈ Z ⊆ Rd is the decision variable, h is convex, and ϵ ∈ (0 , 1) is the maximum allowable risk. To solve (4) without assuming a specific distribution for ∆, we employ the scenario approach , replacing the chance constraint with 
+
+N deterministic constraints sampled from ∆:
+
+z∗ 
+
+> N
+
+= arg min  
+
+> z∈Z
+
+c⊤z
+
+s.t. 
+
+> N
+
+^
+
+> i=1
+
+h(z, δ (i)) ≤ 0
+
+(5) where each δ(i) is an i.i.d. realization of ∆. For user-specified risk level ϵ and confidence parameter β, the required number of deterministic constraints N to achieve a probabilistic guarantee is given in Theorem 1. 
+
+Theorem 1 (Sample Complexity [16], [26]) . Let ϵ be the risk level and β ∈ (0 , 1) be the confidence parameter. Denote by 
+
+PS the probability measure associated with the number of scenarios N ≥ 2
+
+> ϵ
+
+
+
+ln 1 
+
+> β
+
++ d
+
+
+
+, taken from ∆ and by P∆ the probability measure associated with ∆. Then z∗ 
+
+> N
+
+satisfies the following inequality: 
+
+PS (P∆(h(z∗ 
+
+> N
+
+, δ ) > 0) ≤ ϵ) ≥ 1 − β. (6) Inequality (6) states that with high confidence, the proba-bility of an unseen realization δ ∈ ∆ causing a violation of constraint h is bounded by ϵ. Typically, β is set to be a very small value, such as 0.001 , to ensure a higher confidence. This comes at a low cost to the sample complexity given the log inverse relationship between β and N . However, a smaller value of ϵ incurs a larger sample complexity, and thus ϵ is chosen with consideration of the risk versus sample complexity trade-off. III. H YBRID REACHABILITY VERIFICATION METHOD 
+
+In this section, we describe our hierarchical verification framework. We start with a scenario optimization-based technique to estimate how much two trajectories of the dynamics can deviate from each other in order to enable the global verification (Section III-A). Then Section III-B describes our global probabilistic certificate, and Section III-C describes our local probabilistic certificate. The final hierarchical certificate structure is given in Section III-D 1.
+
+A. Probabilistic Dynamics Bounding 
+
+For global verification of the RA set, we must quantify the global sensitivity of the dynamics under the learned policy 
+
+πlp . The deterministic verification technique in [9] leverages the Lipschitz constant of the dynamics. Here, we alleviate conservatism by instead estimating a trajectory deviation quantity ∆x∗ 
+
+> t
+
+using samples. We collect N i.i.d. scenario pairs {(¯ x(i)0 , x (i)0 )}Ni=1 sampled uniformly, where each nominal state ¯x(i)0 is sampled uni-formly from ¯X , and each perturbed state x(i)0 is sampled from an ϵx-ball Bϵx (¯ x(i)0 ). Thus, each pair takes value from the set 
+
+Xpair . For each pair, we generate a nominal control sequence 
+
+U(i) = {u(i)0 , . . . , u (i) 
+
+> T
+
+} by applying πlp to ¯x(i)0 , yielding the nominal trajectory ¯ξ(i). For computational simplicity, we approximate the control for x(i)0 using the same sequence 
+
+U(i), yielding the perturbed trajectory ξ(i).The global sensitivity bound ∆x∗ 
+
+> t
+
+is obtained by solving: 
+
+min  
+
+> ∆xt∈R
+
+∆xt
+
+s.t. PXpair (∥xt − ¯xt∥2 > ∆xt) ≤ ϵ. (7) We leverage scenario optimization theory to obtain the following scenario program: 
+
+∆x∗ 
+
+> t
+
+= min  
+
+> ∆xt∈R
+
+∆xt
+
+s.t. 
+
+> N
+
+^
+
+> i=1
+
+
+
+x(i) 
+
+> t
+
+− ¯x(i) 
+
+> t2
+
+≤ ∆xt
+
+ (8) By Theorem 1, the trajectory deviation remains bounded by 
+
+∆x∗ 
+
+> t
+
+with probability 1 − ϵ and confidence 1 − β:
+
+PS1
+
+ PXpair (∥xt − ¯xt∥2 > ∆x∗ 
+
+> t
+
+) ≤ ϵ ≥ 1 − β (9) where PS1 denotes the probability measure associated with the number of samples taken. 
+
+B. Coarse Global Verification 
+
+We leverage the global sensitivity bound ∆x∗ 
+
+> t
+
+derived in Section III-A to obtain a probabilistically certified lower bound of the value function, denoted as ˇVγ , under learned policy πlp , as illustrated in Theorem 2. 
+
+Theorem 2 (Global Probabilistic Safety) . Let x0 ∈ B ϵx (¯ x0).Suppose that for each t ∈ { 0, 1, . . . , T }, ∆x∗ 
+
+> t
+
+is as calcu-lated above. Let ˇrt := r(¯ xt) − Lr ∆x∗ 
+
+> t
+
+and ˇct := c(¯ xt) −
+
+Lc∆x∗ 
+
+> t
+
+. Define a certificate function ˇVγ (¯ x0, T ),
+
+ˇVγ (¯ x0, T ) := max  
+
+> t=0 ,...,T
+
+min {γt ˇrt, min   
+
+> τ=0 ,...,t
+
+γτ ˇcτ }. (10) 
+
+Then, the following probabilistic guarantee holds: 
+
+PS1 (PXpair ({Vγ (x0) < 0}∩{ ˇVγ (¯ x0, T ) ≥ 0}) ≤ ϵ) ≥ 1−β. 
+
+Proof. Let t ∈ { 1, . . . , T }. Define the set of states orig-inating from the ball Bϵx (¯ x0) under the nominal controls  
+
+> 1Code for this project can be found at: https://github.com/ebo nyelsmith/Hierarchical_Probabilistic_Verification .
+
+as Xt := {xt : xτ +1 = f (xτ , π lp (¯ xτ )) , τ ≤ t − 1, x 0 ∈Bϵx (¯ x0)}. Observe that the set ¯Xt, ¯x0 := {xt : ∥xt − ¯xt∥2 ≤
+
+∆x∗ 
+
+> t
+
+} is a convex outer approximation of Xt. By Lipschitz continuity of r(x), we have that with confidence 1 − β,
+
+∀xt ∈ ¯Xt, ¯x0 , PXpair (|r(xt) − r(¯ xt)| ≤ Lr ∆x∗ 
+
+> t
+
+) ≥ 1 − ϵ
+
+which yields a lower bound of r(xt), for all xt ∈ ¯Xt, ¯x0 :
+
+PXpair (ˇ rt ≤ r(xt)) ≥ 1 − ϵ. 
+
+Similarly, define a lower bound of c(xt), for all xt ∈ ¯Xt, ¯x0 :
+
+PXpair (ˇ ct ≤ c(xt)) ≥ 1 − ϵ. 
+
+As shown in (10), we can use ˇrt and ˇct to construct a probabilistic lower bound function ˇVγ (¯ x0, T ) for Vγ (x0),for all x0 ∈ B ϵx (¯ x0). In other words, ˇVγ (¯ x0, T ) serves as a lower bound of Vγ (x) with probability 1−ϵ over the support 
+
+Xpair . Denote by X and Y the events {Vγ (x0) < ˇVγ (¯ x0, T )}
+
+and { ˇVγ (¯ x0, T ) ≥ 0}, respectively. Thus, we have with confidence at least 1 − β, PXpair (X) ≤ ϵ. By the law of total probability, we have, with confidence at least 1 − β,
+
+PXpair (X ∩ Y ) + PXpair (X ∩ Y c) ≤ ϵ, 
+
+i.e., PXpair (X ∩Y ) ≤ ϵ. Thus, with confidence at least 1−β,
+
+PXpair ({Vγ (x0) < 0} ∩ { ˇVγ (¯ x0, T ) ≥ 0}) ≤ ϵ. 
+
+Theorem 2 states that with high confidence, the probability that the lower bounded value function classifies an unsafe state as safe is upper bounded by ϵ. We define the verified global safe set Vglobal as the super-zero level set of ˇVγ :
+
+Vglobal := {x ∈ ¯X | ˇVγ (x, T ) ≥ 0}. (11) For each state in Vglobal , the failure probability for safely reaching T is bounded by ϵ with confidence 1 − β.
+
+C. Local Growth Iterative Refinement 
+
+The global verification tier is inherently conservative due to the choice of ϵx. Therefore, it may be the case that the current state is not within the coarse global set but is safe. To “reclaim” safe regions that may be misclassified unsafe, we present a quickly computed, high-resolution local refinement on the boundary of Vglobal , defined ∂Vglobal , closest to the current state, a technique inspired by [19]. Let ˇxt ∈ ∂Vglobal and define a local candidate neighbor-hood Br (ˇ xt) on the boundary of Vglobal . We probabilistically verify the local refinement via iterative scenario optimization to obtain the maximum verifiable radius r∗:
+
+r∗ = max  
+
+> r∈R
+
+r
+
+s.t. 
+
+> N
+
+^
+
+> j=1
+
+sup  
+
+> t∈[0 ,T ]
+
+gγ (ξπlp 
+
+> x(j)0
+
+, t ) > 0, ∀x(j)0 ∈ B r (ˇ xt).
+
+(12) As detailed in Algorithm 1, this refinement consists of specifying some initial refinement radius around the closest boundary point of the verified global set, ˇxt ∈ ∂Vglobal (lines 1-2). For M iterations, N initial conditions within the region Algorithm 1: IterativeGrowth 
+
+Input: xt, πlp , Vglobal , N , rmax , M , T
+
+Output: rsaf e , Vlocal , 
+
+> 1:
+
+Initialize: r∗ ← rmax  
+
+> 2:
+
+Find closest boundary point ˇx ∈ ∂Vglobal to xt 
+
+> 3:
+
+for iter= 0, 1, . . . , M − 1 do  
+
+> 4:
+
+Si ← Sample N states IID from Br (ˇ xt) and roll out trajectories ξπlp  
+
+> x
+
+. 
+
+> 5:
+
+if ∃x ∈ S i s.t. max t∈[0 ,T ] gγ (ξπlp  
+
+> x
+
+, t ) ≤ 0 then  
+
+> 6:
+
+r∗ ← min x ∥x − ˇxt∥2
+
+s.t. max t∈[0 ,T ] gγ (ξπlp  
+
+> x
+
+, t ) ≤ 0 
+
+> 7:
+
+else  
+
+> 8:
+
+break  
+
+> 9:
+
+end if  
+
+> 10:
+
+end for  
+
+> 11:
+
+return Vlocal := Br∗ (ˇ xt)
+
+are sampled and simulated under the learned policy (lines 3-4). The RA measure (2) is evaluated for each trajectory, and if a violation is found, the radius of the local refinement is reduced to exclude the closest violation (lines 5-6) and the process is repeated by resampling new initial conditions. If no violations are found, the radius and verified refinement 
+
+Vlocal := Br∗ (ˇ x) are returned (lines 7-11). Using Theorem 1, we obtain the following guarantee on the local growth refinement: 
+
+PS2 (PVlocal ( sup  
+
+> t∈[0 ,T ]
+
+gγ (ξπlp 
+
+> x(j)0
+
+, t ) ≤ 0) ≤ ϵ) ≥ 1 − β (13) where PS2 denotes the probability measure associated with the samples. The inequality in (13) implies that, within the local refinement, the probability of failing to safely reach the target set is bounded by ϵ with high confidence. 
+
+D. Hierarchical Verification and Control Framework 
+
+Our new verification framework features a hybrid switch-ing logic that prioritizes the highest available tier of verified safety. In addition to the learned policy, we employ a Model Predictive Path Integral (MPPI) controller [27], warm-started with the learned policy, as a model-based fallback if the current state of the system is not inside one of the locally verified sets. Although the learned reachability policy may incur approximation errors and cannot guarantee safety, using it as a warm-start for MPPI permits still leveraging the learned policy in a useful way. Moreover, even optimal reach-avoid policies may not guarantee that the system remains within the target set indefinitely [28]. Thus, we also employ MPPI to reach the goal state once the current state is within the target set T .As verification entails a trade-off between accuracy and computational cost, the multi-tier structure enables adap-tive verification, performing only the computation needed to certify the reachability set. The resulting hierarchical architecture is detailed in Algorithm 2, with switching logic illustrated in Fig. 1. 
+
+Algorithm 2: Hierarchical Safe Control Framework 
+
+Input: State xt, Verified safe set Vglobal , Policy πlp 
+
+Output: Control action ut
+
+// Tier 0: Maintain Advantage Mode  
+
+> 1:
+
+T ← UpdateSet (xt) // Update Target Set  
+
+> 2:
+
+if xt ∈ T then  
+
+> 3:
+
+u∗ 
+
+> 0: H
+
+← MPPI Fast  
+
+> 4:
+
+return u∗ 
+
+> 0
+> 5:
+
+else if xt ∈ V global then  
+
+> 6:
+
+// Tier 1: Global Verification  
+
+> 7:
+
+return πlp (xt) 
+
+> 8:
+
+else if xt ∈ V local ← IterativeGrowth (xt, π lp , Vglobal )
+
+then  
+
+> 9:
+
+// Tier 2: Local Refinement  
+
+> 10:
+
+return πlp (xt) 
+
+> 11:
+
+else  
+
+> 12:
+
+// Tier 3: Safe Recovery (MPPI)  
+
+> 13:
+
+u∗ 
+
+> 0: H
+
+← MPPI Rec (Warmstart = πlp ) 
+
+> 14:
+
+return u∗ 
+
+> 0
+> 15:
+
+end if 
+
+1) Tier 0: Target Maintenance Mode: If xt ∈ T , we apply a fast MPPI controller to maintain the system within the target set. 2) Tier 1: Global Verification Mode: If xt ∈ V global , we use πlp to safely reach the target set. 3) Tier 2: Local Refinement Mode: If xt /∈ V global but 
+
+xt ∈ V local , the agent utilizes the “reclaimed” local refinement from Algorithm 1. The agent continues to leverage πlp , as the local neighborhood has been probabilistically certified for that specific policy. 4) Tier 3: Safety Recovery Mode: If the state xt cannot be certified by either the global or local verification, the system switches to a recovery MPPI controller. Warm-started by πlp , the controller minimizes a safety-oriented cost defined by the distance to the nearest verified RA set boundary, thereby steering the system toward re-entry into the verified set when feasible. IV. T HEORETICAL REACH -AVOID GUARANTEES 
+
+Given the multi-tier structure, our theoretical guarantees are conditioned on the verification mode. Accordingly, we consider the probabilistic guarantees sequentially. 
+
+A. Tier 1 & Tier 2: Probabilistic RA Set Verification 
+
+Global verification mode (tier 1) and local refinement mode (tier 2) make similar guarantees aligned with prob-abilistic certification via scenario optimization. 
+
+Proposition 1 (Sequential Probabilistic Guarantees) . For the global certificate, if x ∈ V global , we achieve the following probabilistic guarantee: 
+
+PS1 (P ¯X ({Vγ (xt) < 0} ∩ { ˇVγ (¯ xt, T ) ≥ 0}) ≤ ϵ) ≥ 1 − βIf xt /∈ V global but xt ∈ V local , we leverage the local certificate as the next “expert” to consider: 
+
+PS2 (PVlocal ( sup  
+
+> t∈[0 ,T ]
+
+gγ (ξπlp 
+
+> x(j)0
+
+, t ) ≤ 0) ≤ ϵ) ≥ 1 − β
+
+Proof. This follows from Theorems 1 and 2. 
+
+Remark 1. If xt ∈ V global ∩ V local , the problem evolves into choosing between “experts” (or confidence of probabilistic guarantees), which we defer to future work. B. Tier 3: Finite-time Recovery 
+
+If xt /∈ (Vglobal ∪ V local ), no safety guarantees can be made. Thus, the best course of action is safe recovery via reachability warm-started MPPI. The forward RA set of the current state xt, Vrecover , should be computed. If Vrecover ∩Vlocal ̸ = ∅ or Vrecover ∩ V global ̸ = ∅, then there exists a trajectory at time step t such that recovery to Vlocal or Vglobal 
+
+is achieved. V. E XPERIMENTS AND RESULTS 
+
+A. Drone Racing Case Study 
+
+We consider a drone racing example as defined in [9], a challenging high-dimensional testbed with dynamic inter-actions and safety-critical constraints, where the ego agent must safely overtake an opponent to pass through the gate first. For computational efficiency, we set β = 0 .001 and 
+
+ϵ = 0 .1 for both global and local verification, requiring 158 samples each. The reason for choosing this ϵ value is to reduce conservatism and sample complexity; smaller values can be used at the cost of increased samples and computation. 
+
+1) Joint System Dynamics: We consider a 12D non-cooperative racing scenario involving an ego drone (e)and an opponent drone ( o). The state of each drone i ∈{e, o } is defined by its 3D position and velocity: xit =[pix,t , v ix,t , p iy,t , v iy,t , p iz,t , v iz,t ] ∈ R6. The joint system state is defined as the concatenation xt = [ xet , x ot ] ∈ X ⊆ R12 .The i-th drone is modeled by double-integrator dynamics, with control input uit = [ aix,t , a iy,t , a iz,t ], satisfying uit ∞ ≤
+
+ϵu := 1 m/s 2. We assume the opponent has bounded control authority and follows an LQR controller that drives it toward the gate aggressively, with high speed. 
+
+2) Target Set: The mission objective is to pass through a narrow gate centered at [0 , 0, 0] with width w and height h.However, for the purpose of reachability, the target set for the ego drone is defined as 
+
+T =
+
+ x : pey − poy > 0, vey − voy > 0,
+
+|pex| < 0.3, |pez | < 0.3
+
+
+
+. (14) This target set requires the ego drone to be ahead of and faster than the opponent while staying within a corridor for gate passage (radius 0.3 m). 
+
+3) Safety Constraints: To ensure safe flight, the ego drone should avoid the area affected by the downward airflow from the opponent drone, leading to the following nonconvex constraint, which is challenging to satisfy: 
+
+ pex,t − pox,t 
+
+pey,t − poy,t 
+
+ 22
+
+>
+
+
+
+1+max( poz,t −pez,t , 0) 
+
+
+
+×0.2, (15) where the collision avoidance region between the ego and opponent drone grows as their height difference increases. Moreover, to ensure the ego drone passes through the gate without colliding with its boundaries, we impose the follow-ing constraints as in [9]: 
+
+±pex,t − pey,t > −0.05 , ±pez,t − pey,t > −0.05 . (16) 
+
+B. Hypothesis 1: The reachability-based guidance of our method leads to a higher success rate than soft- and hard-constrained model-based controllers or RL policies. 
+
+We empirically compare our framework to various safe baseline methods: MPPI with a control barrier function (CBF) safety filter, MPPI with safe soft constraints, and proximal policy optimization (PPO) with a CBF safety filter. We sample 500 initial conditions in a bounded region of the state space and roll out the trajectories. Success is quantified by the ego safely reaching the gate before the opponent, and our framework achieves a higher rate of success than its safe counterparts as shown in Figure 3(a). Qualitatively, baseline methods tend to prioritize goal-reaching at the expense of safety, whereas our method demonstrates more robust collision avoidance during overtaking (Fig. 2). 
+
+C. Hypothesis 2: The hierarchical control framework fea-tures a better combination of MPPI and learning. 
+
+Similar to Section V-B, we conduct an empirical study comparing our framework to baseline methods: Hybrid Ab-lation which conducts switching but replaces the reachability policy with MPPI, pure MPPI with no safety consideration, MPPI warm-started with the reachability policy, and the reachability policy only. We select these baselines to observe the interaction between MPPI, the reachability policy, and the switching mechanism. We sample 500 initial conditions in a bounded region of the state space and roll out the trajectories. The results in Figure 3(b) highlight the necessity of both the switching mechanism and the reachability policy as none of the other baselines achieved the same rate of success as our hierarchical framework. Notably, the reachability policy prioritizes reaching the target set but does not guarantee maintaining the system within it, a limitation inherent to reachability theory, as also observed in [28]. This explains its lower success rate when used alone. VI. CONCLUSIONS In this work, we propose an efficient hierarchical proba-bilistic verification framework for reachability learning that unifies global, local, offline, and online verification. By combining a coarse global certificate via scenario optimiza-tion with local convex refinement, the approach reduces conservatism while focusing computation on critical regions. −0.5 0.0 0.5         
+
+> x [m]
+> −2.5
+> −2.0
+> −1.5
+> −1.0
+> −0.5
+> 0.0
+> y [m]
+> t = 0.0s
+> −0.5 0.0 0.5
+> x [m]
+> t = 0.7s
+> −0.5 0.0 0.5
+> x [m]
+> t = 1.1s
+> −0.5 0.0 0.5
+> x [m]
+> t = 1.4s
+> −0.5 0.0 0.5
+> x [m]
+> t = 1.8s
+> Ego (Hybrid)
+> Ego (MPPI (Unsafe))
+> Ego (MPPI + CBF)
+> Ego (MPPI + Safe Cost)
+> Ego (PPO + CBF)
+> Opponent
+> Gate
+> Refinement
+> Safe Set
+
+Fig. 2. Evolution of a drone racing simulation against an opponent (black), comparing our method (Hybrid, dark blue) with various baselines. Baselines struggle to balance safety and goal-reaching, whereas our method achieves both, safely overtaking and reaching the gate. Moreover, we observe that the ego agent leverages safe recovery MPPI to try to enter the locally refined set. 0 50 100   
+
+> Success Rate (%)
+> Hybrid (ours)
+> MPPI + CBF
+> MPPI + Safe
+> PPO + CBF
+> 90.2%
+> 62.4%
+> 63.2%
+> 14.2%
+> (a) Safety-Critical Baselines
+> 050 100
+> Success Rate (%)
+> Hybrid (ours)
+> Hybrid Ablation
+> (no reach.)
+> MPPI
+> (no safety)
+> MPPI + Reach.
+> Warmstart
+> Reachability
+> Policy Only
+> 90.2%
+> 68.4%
+> 63.4%
+> 62.8%
+> 51.8%
+> (b) Learning & Ablation Study
+
+Fig. 3. (a) Performance of our framework compared to control barrier function (CBF) and soft-constraint baselines. (b) Ablation study comparing the hybrid method to its learning-only and model-based variants. In both (a) and (b), the results for our method are shown for reference. Our framework achieves higher success probability over 500 sampled initial conditions, effectively balancing collision avoidance and goal-reaching. 
+
+A switching mechanism between learned and model-based controllers ensures safe and efficient control. The framework provides probabilistic safety guarantees and improves per-formance in safety-critical tasks, as demonstrated in drone racing simulations. Future work includes hardware validation and extension to more complex multi-agent settings and uncertain real-world environments. REFERENCES [1] K. P. Wabersich, A. J. Taylor, J. J. Choi, K. Sreenath, C. J. Tom-lin, A. D. Ames, and M. N. Zeilinger, “Data-driven safety filters: Hamilton-jacobi reachability, control barrier functions, and predictive methods for uncertain systems,” IEEE Control Systems Magazine ,vol. 43, no. 5, pp. 137–177, 2023. [2] C. Tomlin, G. J. Pappas, and S. Sastry, “Conflict resolution for air traffic management: A study in multiagent hybrid systems,” IEEE Transactions on automatic control , vol. 43, no. 4, pp. 509–521, 2002. [3] J. Lygeros, “On reachability and minimum cost optimal control,” 
+
+Automatica , vol. 40, no. 6, pp. 917–927, 2004. [4] I. M. Mitchell, A. M. Bayen, and C. J. Tomlin, “A time-dependent hamilton-jacobi formulation of reachable sets for continuous dynamic games,” IEEE Transactions on automatic control , vol. 50, no. 7, pp. 947–957, 2005. [5] S. Bansal, M. Chen, S. Herbert, and C. J. Tomlin, “Hamilton-jacobi reachability: A brief overview and recent advances,” in 2017 IEEE 56th annual conference on decision and control (CDC) , pp. 2242– 2253, IEEE, 2017. [6] S. Bansal and C. J. Tomlin, “Deepreach: A deep learning approach to high-dimensional reachability,” in 2021 IEEE International Con-ference on Robotics and Automation (ICRA) , pp. 1817–1824, IEEE, 2021. [7] J. F. Fisac, N. F. Lugovoy, V. Rubies-Royo, S. Ghosh, and C. J. Tomlin, “Bridging hamilton-jacobi safety analysis and reinforcement learning,” in 2019 International Conference on Robotics and Automation (ICRA) ,pp. 8550–8556, IEEE, 2019. [8] K.-C. Hsu, V. Rubies-Royo, C. J. Tomlin, and J. F. Fisac, “Safety and liveness guarantees through reach-avoid reinforcement learning,” 
+
+arXiv preprint arXiv:2112.12288 , 2021. [9] J. Li, D. Lee, J. Lee, K. S. Dong, S. Sojoudi, and C. Tomlin, “Certifiable reachability learning using a new lipschitz continuous value function,” IEEE Robotics and Automation Letters , vol. 10, no. 4, pp. 3582–3589, 2025. [10] M. Althoff and B. H. Krogh, “Zonotope bundles for the efficient computation of reachable sets,” in 2011 50th IEEE conference on decision and control and European control conference , pp. 6814–6821, IEEE, 2011. [11] S. Coogan, “Mixed monotonicity for reachability and safety in dy-namical systems,” in 2020 59th IEEE Conference on Decision and Control (CDC) , pp. 5074–5085, IEEE, 2020. [12] H. Hu, M. Fazlyab, M. Morari, and G. J. Pappas, “Reach-sdp: Reach-ability analysis of closed-loop systems with neural network controllers via semidefinite programming,” in 2020 59th IEEE conference on decision and control (CDC) , pp. 5929–5934, IEEE, 2020. [13] T. Lew and M. Pavone, “Sampling-based reachability analysis: A random set theory approach with adversarial sampling,” in Conference on robot learning , pp. 2055–2070, PMLR, 2021. [14] M. Abate and S. Coogan, “Robustly forward invariant sets for mixed-monotone systems,” IEEE Transactions on Automatic Control , vol. 67, no. 9, pp. 4947–4954, 2022. [15] L. Liebenwein, C. Baykal, I. Gilitschenski, S. Karaman, and D. Rus, “Sampling-based approximation algorithms for reachability analysis with provable guarantees,” in Robotics: Sciences and Systems , 2018. [16] A. Devonport and M. Arcak, “Estimating reachable sets with scenario optimization,” in Learning for dynamics and control , pp. 75–84, PMLR, 2020. [17] M. E. Cao, M. Bloch, and S. Coogan, “Estimating high probability reachable sets using gaussian processes,” in 2021 60th IEEE Confer-ence on Decision and Control (CDC) , pp. 3881–3886, IEEE, 2021. [18] A. Devonport, F. Yang, L. El Ghaoui, and M. Arcak, “Data-driven reachability analysis with christoffel functions,” in 60th IEEE Confer-ence on Decision and Control (CDC) , pp. 5067–5072, IEEE, 2021. [19] A. Lin and S. Bansal, “Generating formal safety assurances for high-dimensional reachability,” in 2023 IEEE International Conference on Robotics and Automation (ICRA) , pp. 10525–10531, IEEE, 2023. [20] L. Lindemann, M. Cleaveland, G. Shim, and G. J. Pappas, “Safe planning in dynamic environments using conformal prediction,” IEEE Robotics and Automation Letters , vol. 8, no. 8, pp. 5116–5123, 2023. [21] A. Lin and S. Bansal, “Verification of neural reachable tubes via sce-nario optimization and conformal prediction,” in 6th Annual Learning for Dynamics & Control Conference , pp. 719–731, PMLR, 2024. [22] A. Lin, A. Pinto, and S. Bansal, “Robust verification of controllers under state uncertainty via hamilton-jacobi reachability analysis,” 
+
+arXiv preprint arXiv:2511.14755 , 2025. [23] E. Dietrich, R. Devonport, S. Tu, and M. Arcak, “Data-driven reach-ability with scenario optimization and the holdout method,” in IEEE 64th Conference on Decision and Control (CDC) , pp. 3925–3931, IEEE, 2025. [24] M. C. Campi and S. Garatti, Introduction to the scenario approach .SIAM, 2018. [25] K. Margellos and J. Lygeros, “Hamilton–jacobi formulation for reach– avoid differential games,” IEEE Transactions on automatic control ,vol. 56, no. 8, pp. 1849–1861, 2011. [26] M. C. Campi, S. Garatti, and M. Prandini, “The scenario approach for systems and control design,” Annual Reviews in Control , vol. 33, no. 2, pp. 149–157, 2009. [27] G. Williams, P. Drews, B. Goldfain, J. M. Rehg, and E. A. Theodorou, “Aggressive driving with model predictive path integral control,” in 
+
+IEEE international conference on robotics and automation (ICRA) ,pp. 1433–1440, IEEE, 2016. [28] G. Chenevert, J. Li, S. Bae, D. Lee, et al. , “Solving reach-avoid-stay problems using deep deterministic policy gradients,” Accepted by IEEE international conference on robotics and automation (ICRA) , 2026.

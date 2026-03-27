@@ -1,0 +1,1129 @@
+Title: STARDIS: Strategic Scheduling and Deceptive Signaling for Satellite Intrusion Detection System Deployment
+
+URL Source: https://arxiv.org/pdf/2603.03678v1
+
+Published Time: Thu, 05 Mar 2026 01:27:10 GMT
+
+Number of Pages: 16
+
+Markdown Content:
+> IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 1
+
+# STARDIS: Strategic Scheduling and Deceptive Signaling for Satellite Intrusion Detection System Deployment 
+
+Yuzhou Xiao ∗, Linan Huang ∗,†, Member, IEEE , Jiachen Sun, Student Member, IEEE , Peilong Liu, Member, IEEE , Chunxiao Jiang, Fellow, IEEE , Linling Kuang †, Member, IEEE This article has been accepted for publication in the IEEE Journal on Selected Areas in Communications. Copyright may be transferred without notice, after which this version may no longer be accessible. 
+
+Abstract —Satellite communication networks operate under stringent computational constraints and are susceptible to so-phisticated cyberattacks. This paper introduces a novel defense framework that decouples security optimization into ground-based analysis and onboard real-time execution. In the long-term loop, the ground segment processes historical data to estimate key statistical parameters of the task environment. Additionally, we incorporate the time-varying characteristics of satellite wireless links to account for the dynamic communication context. In the short-term loop, the satellite employs a receding horizon optimization that models dynamic task arrivals and maximizes a utility function considering detection rates and resource costs. To counter intelligent adversaries interception, we introduce a deception mechanism using Bayesian persuasion theory. By strategically manipulating the short-term action sequences in the telemetry downlink, we mislead an external attacker’s beliefs. We mathematically model the attacker’s optimal response under channel uncertainty and demonstrate that our framework signif-icantly reduces attacker utility. The approach’s effectiveness is formally proven using Lyapunov theory. 
+
+Index Terms —Satellite networks, intrusion detection, Bayesian persuasion, game theory, resource management 
+
+I. I NTRODUCTION 
+
+Satellite internet is rapidly evolving into a cornerstone of global connectivity, enabling applications ranging from 6G and Internet of Things (IoT) to mission-critical services across industries [1], [2]. The transition from isolated, closed-loop architectures to large-scale, IP-based infrastructures has critically broadened the attack surface of satellite systems [3]– [6]. High-profile incidents, such as the malware attack on 
+
+∗Linan Huang and Yuzhou Xiao are co-first authors and contributed equally to this work. †Corresponding authors: Linan Huang (email: huangli-nan@tsinghua.edu.cn) and Linling Kuang (email: kll@tsinghua.edu.cn). This work was supported in part by the National Natural Science Foundation of China under Grant 62401313, Grant 62325108, and Grant 62341131. The Project Supported by National Natural Science Foundation of China No.62341109, No.62341106, Shanghai Municipal Science and Technology Major Project, and Tsinghua University Initiative Scientific Research Program. Y. Xiao is with the School of Automation, Beijing Institute of Technology, Beijing 100081, China (e-mail: y.xiao@bit.edu.cn) L. Huang, P. Liu, C. Jiang, and L. Kuang are with the Beijing National Research Center for Information Science and Technology (BNRist), Tsinghua University, Beijing 100084, China (e-mail:huanglinan@tsinghua.edu.cn; plliu@tsinghua.edu.cn; jchx@tsinghua.edu.cn; kll@tsinghua.edu.cn }). J. Sun is with the Department of Electronic Engineering, Tsinghua Univer-sity, Beijing 100084, China (e-mail: sjc20@mails.tsinghua.edu.cn). C. Jiang and L. Kuang are also with State Key Laboratory of Space Network and Communications, Tsinghua University, Beijing, China. 
+
+Viasat modems, highlight the real cyber-physical threats to modern satellite networks [4], [7]–[9]. Securing satellite internet demands a paradigm shift from traditional, terrestrial-centered security models [10]. While ground segments and user segments are essential components, they represent inherently flawed vantage points for compre-hensive threat detection. Ground-based Intrusion Detection Systems (IDS) are fundamentally constrained by the high-latency and bandwidth-limited satellite-to-ground link, render-ing them ineffective against real-time, intra-satellite threats. Concurrently, user terminals, being geographically dispersed and often physically insecure, are susceptible to compromise and thus cannot serve as a reliable foundation for system-wide security monitoring. This challenge is magnified by the accelerating trend of migrating core functionalities directly into the space segment. For instance, next-generation satellite architectures are increas-ingly designed to host core network functions and advanced data processing on board [11]. Such a shift means that sophis-ticated attacks can be initiated and executed entirely within the space segment, bypassing terrestrial defenses completely. Therefore, to ensure timely detection and enable autonomous response, embedding security capabilities directly within the satellite payload is not merely an enhancement, but a critical necessity [12]. This directly motivates the development of on-board IDS. The architecture of the user segment, space segment, ground segment, and the reasons for deploying IDs on board are shown in Fig. 1. By placing an IDS on board, threat data can be processed in situ, allowing for immediate defensive actions while con-serving bandwidth [13], [14]. However, this approach creates a fundamental conflict: the high computational demands of modern IDS are at odds with the strict Size, Weight, and Power (SWaP) constraints of satellite hardware [13], [15]. To address the strict Size, Weight, and Power (SWaP) constraints of satellite platforms, a two-pronged approach is envisioned. A foundational strategy involves adapting lightweight IDS tech-niques, originally conceived for resource-limited settings like terrestrial IoT, to engineer efficient on-board detection modules [15], [16]. However, a more profound strategy emerges from exploiting the intrinsic variability of satellite mission work-loads. This allows security to be reframed as a schedulable, mission-aware task within a unified resource management framework [17], [18]. Consequently, the IDS can dynamically modulate its operational intensity, escalating to high-fidelity,  
+
+> arXiv:2603.03678v1 [cs.GT] 4 Mar 2026 IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 2
+
+User Segment  Space Segment  Ground Segment 
+
+> IDS on User Vulnerabilities:
+> Resource-Constrained APs
+> Untrusted Physical Access
+> IDS on Space Rationale:
+> Centralized Traffic Aggregation
+> Global Vantage Point
+> IDS on Ground Challenges:
+> Ambiguous Attack Signatures
+> High-Latency Reactive Defense
+> External / Internal
+> Networks
+> App
+> Server
+> Database
+> User Equipment (UE)
+> NOCC
+> Satcom
+> Access Points
+> (AP)
+> Satellite Computing Server
+> Untrusted Zone
+> On-board IDS
+> Zoom in
+> Inter-Satellite Links
+> Gateway Earth Station
+> Potential Attack Path
+
+Fig. 1. The necessity of deploying IDS in the space segment. 
+
+computationally-intensive analysis during periods of resource abundance, and reverting to baseline, low-overhead monitoring when mission-critical functions demand priority. This strategic scheduling fosters a truly resource-aware and service-aware security posture, dynamically aligning defensive rigor with both operational tempo and real-time resource capacity. Yet this optimization itself introduces a critical vulnera-bility: by design, an optimal policy tends to be predictable. A strategic adversary can exploit this predictability, learn-ing the scheduling patterns and launching attacks during low-surveillance windows—effectively transforming resource-efficient defense into a time-sensitive attack surface. This exposes a fundamental asymmetry: while the defender seeks efficiency, the attacker exploits regularity. To counter such strategic exploitation, a purely reactive or static defense is insufficient. Instead, deceptive defense emerges as a com-pelling paradigm—one that breaks the attacker’s assumptions by introducing controlled unpredictability into the system. By strategically obfuscating the IDS scheduling policy, or even simulating false detection patterns, the satellite can manipulate the adversary’s belief and induce suboptimal attack timing. Unlike wired terrestrial networks, satellite communications rely on open wireless channels that are inherently vulnerable to interception. However, these channels are also subject to rapid quality fluctuations due to high mobility, path loss, and atmospheric fading. An intelligent attacker attempting to inter-cept telemetry to plan attacks faces significant physical layer challenges. The received signal may be delayed, distorted, or entirely missing due to deep fading or shadowing effects. Previous works often ignored these physical constraints, as-suming perfect communication links. This paper fills that gap by analyzing how channel fluctuations impact the attacker’s information acquisition and proposing a method to actively use these fluctuations—alongside artificial delays—as a defensive tool. To this end, we propose STARDIS (Strategic Scheduling and Deceptive Signaling), a novel game-theoretic framework integrating two synergistic components. The first component, 
+
+STAR (Strategic Scheduling) , establishes a unified resource STARDIS Framework (Defender's Proactive Defense)   
+
+> Ground Segment Space Segment Scope of Our Work
+> Mission
+> Workflows
+> Security
+> Responses
+> STAR: Strategic Scheduling
+> (Base Model)
+> Joint Mission &
+> Security Optimization
+> DIS: Deceptive Signaling
+> (Enhanced Model)
+> Bayesian Persuasion
+> Mechanism
+> Deceptive Signals
+> Induced Attack Rational Attacker
+> Belief Update &
+> Strategy Choice
+> Enhancement
+> True IDS Policy
+
+Fig. 2. Overview of the STARDIS proactive defense framework. The ground-based STAR module optimally co-schedules mission and security tasks to determine a true security policy. This policy informs the space-based DIS module, which uses Bayesian persuasion to generate deceptive public signals. These signals manipulate a rational attacker’s beliefs, steering their actions toward outcomes that are advantageous for the defender and feeding back into the defense cycle. 
+
+allocation framework to resolve the inherent contention be-tween routine mission operations and high-priority security tasks. This framework formally models the satellite’s workload by co-scheduling two distinct task types—predictable mission workflows and stochastic security responses—as competitors within a single optimization problem [18]. The solution yields an optimal, resource-aware IDS policy that intelligently governs the allocation of the satellite’s finite computational resources. Building upon this, the second component, DIS (Deceptive Signaling) , introduces a protective layer of strate-gic deception. This layer is founded on Bayesian Persuasion theory [19]–[21], where the defender (the “Sender”) commits to a carefully engineered signaling scheme embedded in public telemetry. While correlated with the true IDS state, the signals are designed to manipulate a rational attacker’s (the “Receiver’s”) beliefs [22], [23] and persuade them to choose an attack strategy favorable to the defender [24]. As a key theoretical contribution, we leverage Lyapunov stability theory to rigorously prove the stability of the resulting per-suasive equilibrium, guaranteeing the long-term suppression of attacker utility and enhancement of the defender’s security posture. Fig. 2 illustrates our proactive defense framework. The main contributions of this paper are summarized as follows: 1) Unified Security and Mission-Task Optimization Framework: We propose a novel ground-satellite co-ordinated defense framework that integrates intrusion detection into the satellite’s native multi-task scheduling system. By abstracting the IDS as schedulable peri-odic and aperiodic tasks, our approach enables dynamic optimization of detection performance versus resource consumption. The long-term optimal policy is computed on the ground and executed via a lightweight on-board decision-maker, realizing a resource-aware and respon-sive security architecture. 2) Strategic Deception via Channel-Aware Bayesian Persuasion: We introduce a strategic deception mecha-nism based on Bayesian persuasion theory that integrates a realistic wireless channel model accounting for fading, IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 3
+
+noise, and latency. This approach models the dynamic interplay of beliefs between the defender and the attacker under channel uncertainty. It allows the satellite to generate a persuasive signaling policy that manipulates the attacker’s beliefs, guiding them toward suboptimal actions by turning the physical properties of the link into a defensive tool. 3) Credibility-Constrained Deception and Stability Guarantee: To resolve the inherent conflict between deception and trustworthiness, we design a novel cred-ibility budget using Kullback-Leibler (KL) divergence to constrain the information manipulation. Furthermore, we provide a rigorous theoretical guarantee for the long-term stability and effectiveness of our strategy. By constructing a Lyapunov function from the attacker’s maximum expected utility, we formally prove that our signaling policy forces the system to converge to a state where the adversary’s impact is minimized. II. R ELATED WORK 
+
+Our research builds on two primary domains: the chal-lenge of implementing robust security within the resource-constrained environment of satellites, and the use of advanced game-theoretic methods for proactive defense. Specifically, the rapid evolution of Space-Air-Ground Integrated Networks (SAGIN) facilitates ubiquitous connectivity but simultaneously introduces complex security challenges due to the integration of heterogeneous segments. In such dynamic environments, efficient collaborative offloading and resource allocation are fundamental not only for mission performance but also for sustaining robust defense mechanisms [25]. This section re-views the state of the art in these areas to contextualize our contributions. 
+
+A. Resource-Aware Intrusion Detection in Satellite Networks 
+
+The shift to IP-based Low Earth Orbit (LEO) mega-constellations has made satellite networks critical infrastruc-ture, yet has also exposed them to terrestrial cyber threats and expanded the attack surface [3]. Documented incidents like the Viasat modem attack, alongside persistent jamming and spoofing, confirm that sophisticated actors are actively targeting these systems with threats such as Denial-of-Service (DoS) and selective forwarding attacks [4], [7]–[9], [26], [27]. While some research addresses these risks via physical layer security or cryptography [4], our focus is on real-time, on-board operational security. Deploying an IDS on a satellite is vital for timely response but is challenged by severe SWaP constraints and the use of less powerful, radiation-hardened processors [13]. This has spurred research into “lightweight” IDS, which minimize com-putational footprints using techniques like feature selection, often borrowing from IoT and vehicular network domains [15], [16], [27]. However, these designs typically assume a static resource budget and are not adaptive. Concurrently, the field of dynamic resource management in satellites has well-established models for scheduling periodic and aperiodic tasks to optimize resource utilization [5], [6], [17], [18]. The primary gap in the literature, which our work addresses, is that these resource management frameworks do not treat security as a schedulable, resource-consuming task. We bridge this gap by designing an IDS whose operational intensity is the output of a dynamic optimization problem, thus making security truly resource-aware. 
+
+B. Game-Theoretic Deception for Proactive Defense 
+
+Against strategic adversaries who learn and adapt, reactive security is insufficient. Game theory provides a mathematical framework for modeling these conflicts, leading to proactive defenses like Moving Target Defense and cyber deception [9], [28]–[31]. However, a sophisticated attacker may anticipate simple deception, rendering it ineffective [32]. This requires more advanced methods that exploit the inherent information asymmetry in cyber warfare [23]. Our work advances this paradigm by employing Bayesian Persuasion (BP), a form of information design [19]. In the BP framework, a defender (“Sender”) commits to a signaling policy that is correlated with the true state of the world, designed to persuade a rational, Bayesian attacker (“Receiver”) to take actions favorable to the defender [20]. This commit-ment distinguishes BP from classic cheap talk signaling games [22]. While the concept has been explored for cyber-physical systems [21], [24], its application to protect an adaptive defense policy from being learned and exploited is novel. We extend this interaction into a Bayesian persuasion framework and, critically, provide rigorous theoretical guarantees for its stability using Lyapunov theory, a tool for analyzing equilibria in dynamic systems [33], [34]. This synthesis of resource optimization, information-theoretic deception, and stability analysis represents a holistic advance in satellite security. Table I contrasts our proposed framework with existing works across several key capability dimensions. III. S YSTEM MODELING AND ARCHITECTURE 
+
+To realize an intelligent on-board defense, we should first accurately model the operational environment of the satellite, including its hardware architecture, task characteristics, com-munication links, and the threat model. This section establishes the foundational system model that describes how the ground and space segments collaborate, how tasks are prioritized and queued under heterogeneous resource constraints, and how the physical channel and adversary are mathematically characterized. 
+
+A. Two-Timescale Architecture 
+
+Our strategy is built upon a two-timescale architecture, as depicted in Fig. 3, which decouples the scheduling problem into a ground-based, long-term analysis and an onboard, short-term real-time optimization. This separation is crucial for managing computational complexity while maintaining adaptability in a dynamic satellite environment. 
+
+Ground-Based Computation (Long-Term Loop): The ground segment, functioning as the Network Operations Con-trol Center (NOCC), is responsible for the following offline, long-timescale operations: IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 4
+
+TABLE I COMPARISON OF OUR WORK WITH THE STATE OF THE ART IN COMMUNICATION SECURITY 
+
+Existing Works Satellite-Specific Context Dynamic Resource-Awareness Models Strategic Adversary Info-Theoretic Deception Theoretical Guarantee [9] ✗ ✗ ✓ ✓ ✗
+
+[15] ✗ ✗ ✗ ✗ ✗
+
+[16] ✗ ✗ ✗ ✗ ✗
+
+[18] ✓ ✓ ✗ ✗ ✓
+
+[21] ✗ ✗ ✓ ✓ ✓
+
+[32] ✗ ✗ ✓ Partial ✓
+
+This work ✓ ✓ ✓ ✓ ✓Ground Segment (NOCC)  Space Segment (Onboard)   
+
+> Parameter
+> Estimation
+> Situational
+> Analysis
+> Receding Horizon
+> Optimization
+> Policy Execution
+> Real-time
+> Realization
+> Internal Threat External Attacker
+> Uplink: Model Params
+> Downlink: Telemetry
+> Short-Term
+> Loop Long-Term
+> Loop
+> Knows Policy
+> Intercepts Data
+> Update IDS Action Sequence
+
+Fig. 3. The proposed two-timescale architecture. The ground segment performs long-term parameter estimation and uplinks model parameters to the satellite. Onboard, the space segment employs short-term receding horizon optimization to generate real-time action sequences. The framework considers an internal threat accessing the policy and an external attacker intercepting the telemetry. 
+
+1) Data Analysis: It processes extensive historical mission data to build and validate statistical models of the operational environment. 2) Parameter Estimation: From this analysis, it estimates key statistical parameters, most notably the average ar-rival rates λ j for aperiodic tasks. This process establishes the long-term operational requirements needed to ensure system stability. 3) Parameter Uplink: The output is not a fixed schedule, but a set of validated model parameters which are then uplinked to the satellite to guide its real-time decisions. It is important to note that due to the significant differ-ence in timescales, the ground segment does not dynamically react to instantaneous attacker actions within the short-term optimization window. Consequently, in our simulation model, the parameters provided by the ground are treated as fixed constants over the execution horizon Nt .
+
+Onboard Real-Time Optimization (Short-Term Loop): The satellite operates on a fast timescale, employing a receding horizon control strategy. At the beginning of each decision horizon, the onboard scheduler solves a deterministic opti-mization problem for the upcoming time window. The primary 
+
+inputs to this problem are the statistical model parameters provided by the ground (e.g., average task arrival rates), fixed task specifications (e.g., resource demands and execution deadlines), and the real-time system state. The outputs of the optimization are the optimal binary scheduling sequences that dictate which mission and security tasks to execute in each time slot. This approach makes the problem computationally tractable for onboard processors while allowing the satellite to react swiftly to operational realities. Specifically, the onboard resource allocation problem in-volves binary decision variables and nonlinear coupling, falling into the class of Mixed-Integer Nonlinear Program-ming (MINLP), which is generally NP-hard. Furthermore, the derivation of the optimal signaling policy requires solving a global convex optimization problem over high-dimensional be-lief spaces, while the channel-aware defense strategy requires complex stochastic integration of Shadowed Rician fading statistics. Performing these heavy computations onboard is prohibitive due to the strict SWaP constraints and the limited capability of radiation-hardened satellite processors [35], [36]. Therefore, offloading these computationally intensive tasks to the ground segment is necessary, allowing the satellite to focus solely on the lightweight receding horizon execution. 
+
+B. Unified Task and Queue Model 
+
+Unlike terrestrial data centers with abundant homogeneous servers, satellites operate with strictly constrained and hetero-geneous hardware. We model the satellite’s onboard comput-ing platform as a system comprising a set of distinct resource types, denoted by K = {1, . . . , K} (e.g., General Purpose Processors (CPU) for logic control and Field Programmable Gate Arrays (FPGA) or GPUs for parallel signal processing). The system operates over a discrete-time horizon of Nt slots, indexed by t ∈ { 0, 1, . . . , Nt − 1}.Tasks are defined along three orthogonal dimensions: task nature , priority level , and arrival pattern . This multi-dimensional classification allows for a more granular and realistic representation of the satellite’s operational state. The 3D task classification diagram can be seen in Fig. 4. 1) Task Nature: This dimension distinguishes between the fundamental objectives of a task.  
+
+> •
+
+Mission Tasks ( TM ): These encompass the satellite’s primary operational functions, such as remote sens-ing data processing, user-requested computations, or delay-tolerant data relaying.  
+
+> •
+
+Security Tasks ( TS): These are initiated by the on-board IDS to protect the satellite. Examples include IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 5Priority 
+
+> High
+> Low
+> Periodicity
+> Aperiodic
+> Periodic
+> Task Nature
+> Mission
+> Security
+> Origin:
+> Low / Aperiodic /
+> Mission
+> Example:
+> High-Priority / Periodic /
+> Security Task
+> High Priority
+> Low Priority
+
+Fig. 4. Task classification for 3 dimensions. 
+
+deep packet inspection, cryptographic verification, anomaly analysis, or executing countermeasures. 2) Priority Level: This dimension dictates a task’s schedul-ing precedence and its ability to preempt other tasks.  
+
+> •
+
+High-Priority (Preemptive): These tasks are critical and can interrupt the execution of lower-priority tasks to gain immediate access to computational resources.  
+
+> •
+
+Low-Priority (Preemptible): These tasks can be sus-pended or aborted by the scheduler to accommodate high-priority tasks. 3) Arrival Pattern: This dimension characterizes the pre-dictability of a task’s arrival.  
+
+> •
+
+Periodic (Deterministic): These tasks arrive at reg-ular, predictable intervals. Their scheduling can be planned in advance.  
+
+> •
+
+Aperiodic (Stochastic): These tasks arrive unpre-dictably, often modeled by a stochastic process (e.g., a Poisson distribution), reflecting events like ad-hoc user requests or random cyberattacks. The combination of these three dimensions creates a spec-trum of eight distinct task categories. This framework moves beyond a rigid mission-versus-security view, enabling more sophisticated scheduling decisions. For instance, a critical but non-security-related mission task (e.g., an emergency orienta-tion adjustment) can be modeled as a high-priority, aperiodic mission task . Conversely, a routine security log audit could be a low-priority, periodic security task .Consequently, the most pressing threats are encapsulated as high-priority, aperiodic security tasks , which demand im-mediate, preemptive execution to preserve system integrity. Specifically, a primary example of such urgency is the real-time validation of telecommands. As emphasized by He et al. 
+
+[37], the injection of spoofed uplink commands can result in unauthorized orbit maneuvers or payload misuse, potentially leading to the irreversible physical loss of satellite control; thus, command verification should be strictly enforced as a hard real-time constraint before execution. In parallel, the onboard system should contend with software-driven threats such as malware propagation. As noted in comprehensive surveys by Guo et al. [38], modern satellites within space-air-ground integrated networks are increasingly vulnerable to ransomware-like behaviors. Upon the detection of such anomalies, the immediate isolation of the compromised pro-cess is mandatory to contain the breach and prevent system-wide paralysis. These tasks are therefore assigned the highest scheduling priority to mitigate risks that could otherwise be catastrophic. Each individual task S j across all categories is uniformly characterized by a tuple: 
+
+S j := ( req j, a j, d j, p j), (1) where req j is the request arrival time, a j is the earliest feasible start time, d j is its execution deadline, and p j is the required processing time (i.e., the net resource occupancy duration). In Fig. 5, the “Task Execution” bar visually represents the total turnaround time, which may be longer than p j if the task experiences suspension due to preemption. A task is defined to be schedulable if d j − a j ≥ p j.As depicted in Fig. 5, all incoming tasks first enter a global input queue Q. An admission controller then assesses their schedulability (i.e., if di − t ≥ pi at the current time t)before moving them to buffers. To reflect specific hardware affinities, the scheduler dispatches tasks to the appropriate resource queues (e.g., dispatching image matrix operations to the FPGA queue). A critical feature of our unified model Task Scheduling Model with  Timing Parameters    
+
+> Task Model:
+> Periodic Task Arrivals Aperiodic Task Arrivals
+> Input Queue
+> Admission
+> Control
+> Dropped / Expired Tasks
+> Heterogeneous Resources
+> Resource 1 Resource 2 Resource
+> Preemption
+
+...  
+
+> Time Task Execution
+> Request Arrival
+> (Earliest Start) (Deadline)
+> Processing Time
+
+... 
+
+> Preempted Task
+> (Return)
+> Preempted Task
+> (Discard)
+
+Fig. 5. The proposed unified scheduling model. Periodic and aperiodic tasks arrive in a common queue Q. Feasible tasks are admitted to buffers, designated as Ready Workload ( RW ), for heterogeneous resources. High-priority tasks can preempt ongoing low-priority tasks, ensuring immediate response to critical events. The timing parameters for any task S j are shown below. 
+
+is preemptive priority . The arrival of any high-priority task grants it immediate access to a computational resource, even if it means preempting an ongoing, lower-priority task. The preempted task can be either discarded or returned to the buffer for later rescheduling. This mechanism ensures that urgent events, whether mission-critical or security-related, are han-dled with minimal delay, directly modeling the core challenge of balancing operational integrity with security assurance. While Fig. 5 depicts preemption initiated by an aperiodic IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 6
+
+task to highlight the handling of unpredictable bursts, the preemption logic is general and applies to any high-priority task regardless of its arrival pattern. 
+
+1) Resource Demand and System State Definition: To cap-ture hardware heterogeneity, each task j is characterized by a resource demand vector r j = {r j,k}k∈K , where r j,k ∈ [0, 1]
+
+is the normalized resource usage. The scheduler’s decisions are represented by binary variables: x j(t) ∈ { 0, 1} for mission tasks and xscan (t) ∈ { 0, 1} for the IDS scan. Crucially, the instantaneous load of the satellite determines the ”opportunity” for attacks. We define the idle capacity at time t, denoted by z(t), as the minimum fraction of available resources across all types: 
+
+z(t) = min  
+
+> k∈K
+
+1 − ∑ 
+
+> j∈J(t)
+
+r j,k x j(t) − rs,k xscan (t)
+
+!
+
+. (2) A low value of z(t) implies the system is congested, creating a vulnerability window that the attacker seeks to exploit, while a high z(t) indicates available capacity for security scanning. 
+
+C. Time-Varying Wireless Channel Model 
+
+We consider the downlink telemetry transmission from the satellite to the ground, which an adversary attempts to intercept. Due to the high mobility of the satellite, the channel exhibits rapid time-varying characteristics. 
+
+1) Large-Scale and Small-Scale Fading: The received signal-to-noise ratio (SNR) at the attacker’s receiver at time slot t, denoted by γ(t), is expressed as: 
+
+γ(t) = Ptx Gtx (θ (t)) Grx |h(t)|2
+
+N0Lpath (d(t)) (3) Here, d(t) is the slant distance between the satellite and the attacker, which varies according to the orbital dynamics. 
+
+Lpath (d(t)) represents the path loss. The term |h(t)| represents the small-scale fading amplitude. We adopt the Shadowed Rician fading model [39], widely used for land mobile satel-lite channels. The probability density function of the signal envelope r = |h(t)| is given by: 
+
+fR(r) = 
+
+ 2b0m
+
+2b0m + Ω
+
+m rb0
+
+e− r22b0
+
+·
+
+> ∞
+
+# ∑
+
+> k=0
+
+(1 − m)k
+
+(k!)2
+
+ Ωr2
+
+2b0(2b0m + Ω)
+
+k (4) where 2 b0 is the average power of the multipath component, 
+
+Ω is the average power of the Line-of-Sight component, and 
+
+m is the Nakagami parameter characterizing the shadowing severity. 
+
+2) Dynamic Link Quality and Erasure: The attacker cannot successfully demodulate every packet. We model the reception as a probabilistic event. Let ξ (t) ∈ { 0, 1} be the erasure indica-tor, where ξ (t) = 1 implies successful reception (interception). The probability of success depends on the instantaneous SNR: 
+
+P(ξ (t) = 1) = 1 − Pout (γ(t)) (5) where Pout is the outage probability when SNR falls below a decoding threshold γth .
+
+3) Dynamic Latency and Information Age: The attacker receives the signal with a delay. The total delay D(t) consists of propagation delay, processing delay, and our proposed strategic artificial delay: 
+
+D(t) = τprop (t) + τproc (t) + δadd (t) (6) where τprop (t) = d(t)/c varies with orbit. The term δadd (t) is the artificial delay introduced by our STARDIS framework. By manipulating δadd (t), the defender can control the ”fresh-ness” (Age of Information [40]) of the intelligence obtained by the attacker. 
+
+D. Adversarial Attack Model 
+
+We model the adversary’s actions over a finite time hori-zon composed of Nt discrete time slots, indexed by t ∈{0, 1, . . . , Nt − 1}. This formalism parallels the DoS attack models in networked control, where attack frequency and 
+
+duration are core metrics [26]. At each time slot t, the attacker makes a binary decision, represented by the variable 
+
+xatt (t) ∈ { 0, 1}, where xatt (t) = 1 signifies that an attack is actively being launched, and xatt (t) = 0 indicates no attack. The adversary’s goal is to devise an optimal attack sched-ule, denoted by the sequence {xatt (t)}Nt −1 
+
+> t=0
+
+, that maximizes a cumulative utility function. This utility function captures the inherent trade-off between the immediate rewards gained from successful attacks and the costs associated with their execution. The attacker’s time-averaged utility, UA, is formulated as: 
+
+UA = 1
+
+NtNt −1
+
+# ∑
+
+> t=0
+
+[ξ (t) · α(1 − z(t)) xatt (t) − β (1 + ka (t − 1)) xatt (t)] 
+
+(7) Here, ξ (t) represents the binary erasure outcome defined in Eq. (5). If ξ (t) = 0 (signal lost), the attacker acts blindly, significantly reducing the expected reward effectiveness. The first term within the summation represents the reward from attacking. This reward is proportional to the satellite’s “detec-tion gap” (1 − z(t)) , where z(t) ∈ [0, 1] is the fraction of idle computing capacity of the IDS at time t. A lower value of z(t)
+
+implies that the IDS is heavily loaded, thus presenting a more opportune moment for an attack to succeed [9]. The parameter 
+
+α > 0 is a scaling factor for this reward. The second term constitutes a dynamic cost for launching an attack. Instead of a simple static penalty, this cost is designed to reflect the escalating risk and resource depletion from sustained offensive operations. The core of this mechanism is a state variable, a(t), which quantifies the attacker’s accumulated operational intensity. Its evolution is governed by the first-order recursive equation: 
+
+a(t) = ( 1 − η)a(t − 1) + ηxatt (t), with a(−1) = 0. (8) Here, the parameter η ∈ (0, 1] serves as a memory factor. When the attacker is inactive ( xatt (t) = 0), the intensity a(t)
+
+decays exponentially, modeling resource recovery or the dissi-pation of exposure risk. Conversely, when an attack is initiated (xatt (t) = 1), the intensity increases. A smaller η implies a longer memory, causing costs to aggregate over extended IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 7
+
+periods, whereas a larger η signifies a shorter memory. The cost at time t is amplified by the intensity from the previous state, a(t −1), via the multiplier (1+ka (t −1)) . The parameter 
+
+β > 0 represents the base cost of an attack, while k > 0 scales the influence of historical actions on the current cost. This design makes consecutive attacks progressively more costly, thereby discouraging long, uninterrupted assault sequences and incentivizing more strategic, intermittent behavior. This framework avoids a simplistic hard budget constraint on total attack duration (e.g., ∑ xatt (t) ≤ Eatt ) in favor of this more realistic soft-cost mechanism. The dynamic cost term acts as an implicit budget, naturally penalizing overuse. Such a formulation better reflects real-world scenarios where an adversary is constrained by the escalating operational costs and risks of sustained activity rather than a fixed, predetermined resource limit [26]. 
+
+Remark 1. (Rationale for Soft Cost Modeling) We model the consumption of attack resources as a “soft cost” (a penalty term in the utility function) rather than a “hard budget” (a strict inequality constraint) to accurately reflect the nature of advanced persistent threats in satellite networks. In practice, sophisticated attackers are rarely limited by a hard energy cap, such as a battery limit. Instead, their primary constraint is the risk of exposure, which accumulates with the frequency and intensity of their actions. By formulating this as a soft cost, we capture the rational trade-off between the desire for immediate impact and the strategic need to remain stealthy to avoid detection or countermeasures. This modeling approach aligns with recent game-theoretic frameworks for cyber-physical se-curity, which emphasize risk-oriented resource allocation and defensive deception [41], [42]. 
+
+The attacker’s optimization problem is to maximize its util-ity subject to operational constraints. The complete problem is formulated as follows: max 
+
+> {xatt (t)}
+
+1
+
+NtNt −1
+
+# ∑
+
+> t=0
+
+h
+
+α 1 − z(t)xatt (t) − β  1 + ka (t − 1)xatt (t)
+
+i
+
+(9.1) s.t. a(t) = ( 1 − η)a(t − 1) + ηxatt (t), (9.2) 
+
+xatt (t) + xscan (t) ≤ 1, (9.3) 
+
+xatt (t) ∈ { 0, 1}, ∀t ∈ { 0, . . . , Nt − 1}. (9.4) Constraint (9.3) enforces a crucial tactical consideration: the attacker refrains from launching an attack when the IDS is performing an active scan ( xscan (t) = 1). Constraint (9.4) ensures the binary nature of the attack decision at each time slot. To solve this problem, the adversary should execute a sophisticated strategy, dynamically timing its attacks to coincide with periods of low IDS capacity (low z(t)) while interspersing these with periods of inactivity to allow the accumulated cost intensity a(t) to decay, thereby maximizing long-term utility. 
+
+Remark 2. (Telemetry Interception) Our adversarial model assumes the attacker can intercept telemetry data to learn the IDS configuration. This assumption is grounded in two operational realities. First, telemetry is the primary mecha-nism for ground operators to monitor the real-time operational state of critical onboard subsystems, including dynamically scheduled security functions [43]. This requires the inclusion of IDS configuration data within the telemetry stream for performance validation. Second, although satellite downlinks are typically encrypted, their security is often undermined by inadequate key management practices. Many satellites employ weak cryptographic keys or fail to perform regular key updates (i.e., static keys), rendering the encryption susceptible to cryptanalysis [44]. Furthermore, the broadcast nature of the link and vulnerabilities within the ground segment pro-vide plausible interception vectors. Real-world incidents have demonstrated that compromising ground infrastructure can grant access to sensitive data, bypassing the need to break link-layer encryption [45]. 
+
+IV. STAR: S TRATEGIC RESOURCE SCHEDULING 
+
+OPTIMIZATION 
+
+Based on the system model established in Section III, the core challenge for the defender is to optimally allocate finite onboard resources. The STAR component addresses this by formulating a dynamic optimization problem that resolves the contention between routine mission operations and urgent security responses. This section details the construction of the security utility function, the mathematical formulation of the receding horizon optimization, and the lightweight heuristic solver. 
+
+A. IDS Performance and Utility Function 
+
+The core challenge is to balance the tangible benefit of robust intrusion detection against the inherent cost of resource consumption. We model this trade-off through a carefully constructed utility function. The IDS effectiveness is param-eterized by its average scan frequency f and the per-scan duration, ds. We posit that the detection performance, y, is a monotonically increasing and saturating function of the total scan effort f d s. This captures the principle of diminishing returns, where initial increases in scanning yield significant security gains, but the marginal benefit decreases as scanning becomes more aggressive. A logistic function is a suitable candidate for this relationship: 
+
+y( f , ds) = ymax 
+
+1 + e−k( f d s−θ ) , (10) where ymax is the maximum achievable performance, and 
+
+k, θ > 0 are shaping parameters. We aim to maximize a time-averaged utility, U(t), that encapsulates the system’s overall desirability at each time slot. We employ a quadratic utility function, as its convexity facilitates analysis and penalizes large deviations more sig-nificantly. The function is composed of three distinct terms. The first term, α y( f , ds)2, constitutes the primary reward for achieving a high level of detection performance. The second term, β xscan (t)2, represents the direct, intrinsic cost of activating a scan, such as its energy consumption or CPU-cycle expenditure. Finally, and most critically, the third term, γ y( f , ds)2(1 − z(t)) , serves as an adaptive, context-aware penalty. This term becomes substantial only when high-performance scans (large y) are scheduled during periods of IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 8
+
+high system load (small z), thus intelligently discouraging IDS activation when resources are scarce and promoting symbiotic coexistence with payload tasks. 
+
+B. Onboard Receding Horizon Optimization Formulation 
+
+With the utility function defined in Sec. IV-A and the system state z(t) defined in Eq. (2), we can now formulate the onboard resource allocation problem. The goal is to determine the optimal sequence of decision variables {x j(t), xscan (t)} over the horizon Nt .We define the aggregate scanning frequency f as: 
+
+f = 1
+
+Ntk+Nt −1
+
+# ∑
+
+> t=k
+
+xscan (t). (11) The optimization problem [BD] solved onboard is formu-lated as follows: 
+
+[BD ] max   
+
+> xj(t),xscan (t)
+
+1
+
+Ntk+Nt −1
+
+# ∑
+
+> t=k
+
+h
+
+α y( f , ds)2 − β xscan (t)2
+
+− γ y( f , ds)2(1 − z(t)) 
+
+i
+
+s.t. ∑ 
+
+> j∈J(t)
+
+r j,kx j(t) + rs,kxscan (t) ≤ 1, ∀t, ∀k ∈ K , (PS) 
+
+# ∑ 
+
+> j∈J(t)
+
+w jx j(t) + wsxscan (t) ≤ Pmax , ∀t, (PC) 
+
+> ds−1
+
+# ∑
+
+> τ=0
+
+xscan (t + τ) = ds xscan (t), ∀t, (SD) 1
+
+Ntk+Nt −1
+
+# ∑
+
+> t=k
+
+x j(t) ≥ λ j ¯r j, ∀ j ∈ TM,a, (TS) where (PS) is the Per-Slot Heterogeneous Resource Capacity constraint, (PC) is the Power and Thermal Constraint enforcing a normalized power budget Pmax , (SD) is the Scan Durational constraint, and (TS) is the Task Stability constraint, where 
+
+TM,a represents the set of aperiodic mission tasks. This for-mulation is a MINLP solved onboard at each decision epoch. 
+
+Remark 3. (Handling of High-Priority Tasks and Preemption) Although high-priority tasks are not represented by a separate class of decision variables for tractability, their preemptive behavior is effectively enforced via the Task Stability (TS) and Capacity (PS) constraints. When a high-priority task jarrives with a stringent arrival rate requirement λ j, the (TS) constraint becomes binding, forcing the solver to set x j(t) = 1.If resources are insufficient, the solver should set x scan (t) = 0
+
+or x j′ (t) = 0 (for lower priority j ′) to satisfy Eq. PS. Thus, preemption is a mathematical consequence of feasibility rather than an explicit control variable. C. Solution Methodology: Lightweight Heuristic 
+
+The optimization problem [BD] falls into the category of MINLP, which is generally NP-hard. While exact solvers are theoretically optimal, their computational overhead is prohibitive for satellite onboard processors. To ensure real-time feasibility under strict SWaP constraints, we employ a lightweight greedy heuristic (Algorithm 1). This approach reduces the complexity to O(1) per slot by decoupling manda-tory constraints from the utility maximization. 
+
+Algorithm 1 Lightweight Greedy Heuristic Solver  
+
+> 1:
+
+Input: Current state, Task Queue J (t), Idle Capacity 
+
+z(t). 
+
+> 2:
+
+Step 1 (Mandatory): Schedule high-priority tasks (e.g., Relay) to satisfy Stability Constraint (TS); Update z(t). 
+
+> 3:
+
+Step 2 (Conditional): Calculate marginal utility ∆U =
+
+U(xscan = 1) −U(xscan = 0). 
+
+> 4:
+
+if ∆U > 0 and z(t) ≥ rs then  
+
+> 5:
+
+Set xscan (t) ← 1; Update z(t). 
+
+> 6:
+
+end if  
+
+> 7:
+
+Step 3 (Fill): Allocate remaining z(t) to low-priority routine tasks.  
+
+> 8:
+
+Output: Decision variables x j(t), xscan (t).As shown in Algorithm 1, the solver first prioritizes mission-critical tasks to guarantee the near-zero deadline miss rate (Table IV). Subsequently, it performs a binary check for the IDS scan based on the instantaneous utility gain ∆U. This logic ensures decisions are made instantaneously within the control cycle without iterative convergence. V. DIS: S TRATEGIC DECEPTION AND STABILITY 
+
+While the STAR module optimizes resource allocation, the resulting deterministic schedule creates predictable vulnera-bility gaps. The DIS component mitigates this risk not by changing the schedule, but by manipulating the information revealed to the adversary defined in Section III-D. This section details the strategic deception mechanism based on Bayesian persuasion, incorporates credibility constraints to ensure signal plausibility, and rigorously proves the long-term stability of the defense using Lyapunov theory. 
+
+A. Bayesian Persuasion with Credibility Constraints 
+
+In the baseline scenario, the attacker “fully understands” the IDS configuration as transmitted through the telemetry. Hence, the attacker can optimize its attacks accordingly. To counter this, the defender employs a Bayesian persuasion information strategy. It embeds a false IDS configuration in the telemetry to mislead the attacker about the true service state of each satellite. To rigorously establish the connection between the resource scheduling and the signaling game, we explicitly define the system state and the signal within the context of the satellite’s operation. We define the true state of nature ω(t) not as an abstract variable, but as the direct output of the STAR scheduling module. Specifically, ω(t) ≜ {xscan (t), z(t)}, where 
+
+xscan (t) represents the actual IDS activation status and z(t)
+
+represents the true idle capacity available at time t. This state is privately known to the defender. The signal m is defined as the ”revealed” IDS configuration embedded within the public telemetry downlink. The attacker does not observe an arbitrary abstract variable; rather, they attempt to intercept this specific telemetry packet. Consequently, the attacker’s observation is IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 9
+
+physically constrained by the channel model defined in Section III-C, where the reception of m depends on the propagation delay and the erasure probability ξ (t).Formally, we treat the true system state (e.g., the actual scan schedule and load sequence) as a random “state of nature” 
+
+ω ∈ Ω. The defender commits to a signaling policy π(m|ω) ex-ante. This policy specifies the conditional probability of trans-mitting a signal m ∈ M for every possible state ω. During real-time operation, the defender privately observes the realized state ω and generates a signal m according to the pre-designed policy π. Crucially, the attacker only observes the signal m but not the true state ω. Upon receiving m, the attacker updates its belief about ω from a common prior μ0 to a posterior 
+
+μm via Bayes’ rule. Then, the attacker chooses an attack schedule that maximizes its expected utility under that belief. This setting exactly corresponds to the Bayesian Persuasion framework [46]. The defender (sender) selects the optimal policy π based on the prior distribution μ0 to minimize the attacker’s maximum expected utility. The attacker (receiver) observes the resulting signal m and takes an action a ∈ A (the attack plan) that best responds to its posterior belief μm. The attacker’s expected utility given signal m is 
+
+E[UA(a; ω) | m] = max  
+
+> a∈A
+
+# ∑
+
+> ω′∈Ω
+
+uA(a, ω′)μm(ω′),
+
+where μm(ω′) ∝ μ0(ω′)π(m|ω′). Anticipating this, the de-fender chooses π to minimize the attacker’s maximum achiev-able utility. In essence, the defender solves min  
+
+> π
+
+Eω∼μ0, m∼π(·| ω)
+
+"
+
+max  
+
+> a∈A
+
+# ∑
+
+> ω′∈Ω
+
+uA(a, ω′)μm(ω′)
+
+#
+
+,
+
+subject to the Bayes-Plausibility constraint. This ensures that on average, the posterior beliefs equal the prior belief: 
+
+Eπ [μm] = μ0.The key insight is that by carefully designing π, the de-fender can induce the attacker to choose a suboptimal attack plan relative to the true state. This strategic signaling approach has been studied in security contexts [21], [23], where it has been shown that a defender can persuade a rational attacker to take actions favorable to the defender. However, a purely abstract persuasion model is insufficient. Such a model assumes the receiver will blindly trust the signal regardless of the level of deception. This is not realistic in our context. A signaling policy that generates messages far from the underlying reality will quickly lose credibility. Without a constraint to limit the deviation from the truth, the defender might generate implausible signals that a rational attacker would simply ignore. To formalize this and provide rigorous performance guarantees, we now develop a constrained opti-mization framework and analyze its long-term stability using tools from control theory. 
+
+1) The Bayesian Persuasion Framework with Credibility Constraints: The defender’s core task is to design a signaling policy π : Ω → ∆(M) that minimizes the attacker’s maximum expected utility. A rational attacker, upon observing signal m
+
+and forming posterior belief μm, will choose an action a∗(μm)
+
+that maximizes their expected utility: 
+
+a∗(μm) = arg max  
+
+> a∈A
+
+UA(a, μm) = arg max  
+
+> a∈A
+
+# ∑
+
+> ω∈Ω
+
+uA(a, ω)μm(ω).
+
+Anticipating this best response, the defender’s optimization problem is to select the policy π that solves: min  
+
+> π
+
+Eω∼μ0, m∼π(·| ω)
+
+
+
+max  
+
+> a∈A
+
+UA(a, μm)
+
+
+
+.
+
+This minimization is subject to two fundamental constraints: 1) Bayes-Plausibility: The policy should be consistent with the prior belief, i.e., Eπ [μm] = μ0. This ensures the attacker cannot be systematically biased in one direction over the long run. 2) Credibility Constraint: The policy should not be ex-cessively deceptive. We constrain the expected KL diver-gence between the true state distribution (a point mass 
+
+δω ) and the attacker’s posterior belief μm:
+
+Eω∼μ0, μm∼τ(π) [DKL (δω ∥ μm)] ≤ C,
+
+where C ≥ 0 is the credibility budget. Since the actual state ω is realized and known to the defender, the distribution δω acts as a deterministic point mass. Consequently, the KL divergence simplifies to the self-information (or “surprise”) of the true state given the attacker’s belief: 
+
+DKL (δω ∥ μm) = ∑
+
+> x∈Ω
+
+δω (x) log δω (x)
+
+μm(x) = − log (μm(ω)) .
+
+Therefore, this constraint effectively bounds the expected negative log-likelihood of the true state. By limiting this value, we ensure that the attacker assigns a sufficient probability mass to the ground truth within their posterior belief, thereby maintaining the plausibility of the signal. Based on these constraints, we explicitly describe the op-timal persuasion policy π∗ as the specific signaling strategy that minimizes the attacker’s maximum expected utility while satisfying the credibility budget C. By solving this constrained optimization, the defender identifies the most effective way to mislead the attacker without violating the statistical bounds of plausibility. 
+
+Remark 4. A smaller C forces signals to be more truthful, while C → ∞ recovers the standard unconstrained persuasion model. This constraint creates a crucial trade-off: more ag-gressive deception (larger C) may yield lower attacker utility in the short term, but at the cost of generating less plausible signals. This entire constrained optimization problem can be formulated as a convex program, making it computationally tractable to find the optimal policy π∗.B. Predictive Signaling with Channel State Information 
+
+The satellite possesses ephemeris data and can predict its future trajectory and channel quality. Let W be the prediction horizon. The satellite estimates the large-scale channel com-ponents for t . . . t +W .Let ˆ γ(t + k) be the predicted average SNR. The defender’s optimization problem is to generate a sequence of signals IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 10 
+
+{m(t)} and artificial delays {δadd (t)} to minimize the at-tacker’s utility while maintaining credibility. The optimization objective is revised to account for the channel state h:min  
+
+> π,δadd
+> W−1
+
+# ∑
+
+> k=0
+
+Eh
+
+h
+
+max  
+
+> a
+
+UA(a, μm|h(t + k), δadd (t + k)) 
+
+i
+
+(13) Subject to the total latency constraint: 
+
+τprop (t) + δadd (t) ≤ Dmax (14) Crucially, if the predicted channel quality is low (high erasure probability), the defender can transmit truthful but non-sensitive data, saving the “deception budget” (defined by the KL divergence capacity constraint C) for times when the channel is clear. Furthermore, by increasing δadd (t) when the channel is strong, the defender degrades the timeliness of the intercepted information. To rigorously demonstrate the theoretical advantage of this channel-aware strategy over static deception, we establish the following theorem regarding the optimal allocation of the credibility budget. 
+
+Theorem 1 (Optimality of Channel-Adaptive Credibility Al-location) . Consider a time-varying channel where the signal erasure probability P out (γ(t)) varies with the channel state 
+
+γ(t). Let Πstatic be the set of channel-agnostic signaling policies satisfying a fixed credibility constraint C, and Πadapt 
+
+be the set of channel-adaptive policies satisfying the same constraint on average over the time horizon W . The minimum attacker utility achievable under Πadapt is strictly lower than that under Πstatic , i.e., 
+
+min 
+
+> π∈Πadapt
+
+¯UA(π) < min 
+
+> π∈Πstatic
+
+¯UA(π), (15) 
+
+provided that the channel variance is non-zero. The optimal policy π∗ exhibits a “water-filling” property where the degree of deception (measured by the KL divergence D KL (δω || μm))is monotonically increasing with the channel quality (SNR). Proof: We provide a sketch of the proof using Lagrangian duality. Let the objective function at time t be ft (πt , γt ),representing the attacker’s expected utility given policy πt
+
+and channel SNR γt . The attacker only updates beliefs upon successful reception (event ξ = 1). Thus, the utility can be decomposed as: 
+
+UA(t) = ( 1 − Pout (γt )) ·Urx (πt ) + Pout (γt ) ·Uprior , (16) where Urx is the utility derived from the received signal and 
+
+Uprior is the utility from the prior. The defender minimizes 
+
+∑UA(t) subject to ∑ E[DKL (πt )] ≤ W ·C.Constructing the Lagrangian L = ∑W −1 
+
+> t=0
+
+UA(t) + 
+
+λ (∑W −1 
+
+> t=0
+
+DKL (πt ) − WC ), and taking the derivative with respect to the policy intensity, we observe that the marginal reduction in attacker utility is weighted by the reception probability (1 − Pout (γt )) .Under the static policy, the deception cost is uniform. However, under the adaptive policy, the Karush-Kuhn-Tucker conditions imply that for time slots with high Pout (poor channel), the shadow price of deception is high (low return on investment), forcing DKL → 0. Consequently, the budget is reallocated to slots with low Pout (good channel), allowing for a more aggressive signal manipulation (larger DKL ) exactly when the attacker is most capable of receiving data. By the convexity of the utility function with respect to information revelation, this non-uniform allocation yields a strictly lower cumulative utility. This theoretical result formalizes the concept of “Oppor-tunistic Deception,” proving that integrating physical layer dynamics into the persuasion framework is not merely an engineering heuristic, but a mathematically optimal strategy for resource-constrained defense. 
+
+C. Lyapunov-Based Stability Analysis of the Persuasive Equi-librium 
+
+Having established a method to find an optimal policy 
+
+π∗, we now provide a rigorous proof demonstrating that this strategy robustly minimizes the attacker’s utility over time. We employ Lyapunov’s second method to prove that the system converges to a stable equilibrium. Unlike static analyses, we explicitly address the stability under the proposed two-time-scale framework, accounting for the long-term variations in channel statistics handled by the ground segment and the real-time execution onboard. First, we define a Lyapunov candidate function V : ∆(Ω) →
+
+R≥0 as the value function of the attacker’s decision problem: 
+
+V (μt ) := max  
+
+> a∈A
+
+UA(a, μt ) = max  
+
+> a∈A
+
+# ∑
+
+> ω∈Ω
+
+uA(a, ω)μt (ω).
+
+From the defender’s perspective, V (μt ) is a measure of system vulnerability. The function V (μt ) is inherently convex, being the pointwise maximum of a set of linear functions. To proceed, we establish the positive definiteness of our chosen Lyapunov function. 
+
+Lemma 1 (Positive Definiteness) . Let E ∗ ⊂ ∆(Ω) be the set of beliefs corresponding to the minimal attacker utility achievable under the constrained persuasion problem. The function V (μt )
+
+is positive definite with respect to the equilibrium set E ∗, in the sense that V (μt ) > min μ′∈∆(Ω) V (μ′) for all μt /∈ E∗ and V (μt ) = min μ′∈∆(Ω) V (μ′) for all μt ∈ E∗.Proof. The proof follows directly from the definition of V (μt )
+
+as the maximum achievable utility and E∗ as the set of beliefs that minimize this value. Since min μ′∈∆(Ω) V (μ′) is the global minimum, any belief μt /∈ E∗ should yield a strictly higher utility. We now formally prove that the dynamic interaction consti-tutes an asymptotically stable system. We extend the standard stability definition to incorporate the expectation over time-varying channel states ht , which are modeled statistically in the long-term loop. 
+
+Theorem 2 (Monotonic Decrease and Convergence) . Let the system state be the attacker’s belief μt . Under the defender’s optimal persuasion policy π∗, the expected change in the Lyapunov function is non-positive. That is, for any belief μt :
+
+Eπ∗,ht [V (μt+1) | μt ] −V (μt ) ≤ 0. (17) IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 11 
+
+Furthermore, the system trajectory converges to the largest invariant set contained in 
+
+{μ ∈ ∆(Ω) | Eπ∗ [V (μt+1) | μ] −V (μ) = 0} ,
+
+which corresponds to the optimal posterior distribution in-duced by π∗.Proof. The proof hinges on the optimality of the de-fender’s policy π∗ and the convexity of V (μ). Let V ∗(μt ) = 
+
+Eπ∗ [V (μt+1) | μt ] be the defender’s objective function value given prior μt .Consider a trivial, uninformative policy πnull , which reveals no new information. Under such a policy, the attacker’s posterior belief remains identical to the prior: μt+1 = μt , and the utility is V (μt ). Since π∗ is optimal, the expected utility it induces must be no greater than that of πnull . Thus, we have: 
+
+Eπ∗ [V (μt+1) | μt ] ≤ V (μt ).
+
+This inequality shows that the expected drift ∆V is non-positive. In the context of the two-time-scale framework, the channel state ht introduces stochasticity into the attacker’s reception capability (erasure channel). However, the ground-based long-term loop estimates the statistical distribution of ht (e.g., Shadowed Rician parameters) and provides these to the on-board optimizer. Consequently, the policy π∗ is derived by minimizing the expected utility over the distribution of ht . The robustness of the optimization ensures that the monotonicity holds in expectation, i.e., Eht [∆V ] ≤ 0, ensuring long-term stability despite instantaneous channel fluctuations. Finally, by LaSalle’s Invariance Principle for stochastic sys-tems, the system trajectories converge to the largest invariant set where the drift is zero, which is the optimal posterior distribution induced by π∗.
+
+1) Interpretation and Implications: This Lyapunov-based proof offers a formal guarantee of the robustness and self-correcting nature of the proposed persuasive IDS. In the context of our two-time-scale framework, stability implies that the system can withstand not only the short-term stochastic-ity of channel realizations but also recover from significant informational perturbations. Such perturbations could be:  
+
+> •
+
+External Intelligence: The attacker receives a tip from an external source, causing a sudden shift in their belief 
+
+μt . 
+
+> •
+
+Zero-Day Discovery: The public disclosure of a new vulnerability abruptly changes the state space Ω or the prior belief μ0. 
+
+> •
+
+Defender Error: A temporary misconfiguration of the IDS sends an unintended or noisy signal. The established monotonicity ensures that even when the attacker’s belief is “knocked” away from the equilibrium by these perturbations or by accumulated errors in the long-term loop, the defender’s optimal signaling strategy will actively guide it back. The IDS thus dynamically manages the at-tacker’s beliefs to maintain a persistent state of high security, validating the framework’s resilience in a fluid, adversarial environment. 
+
+Remark 5. (Mathematical Basis of Dynamic Management) 
+
+We clarify that although the strategic signaling process in-volves repeated interactions, the concept of “dynamically man-aging” beliefs is non-trivial and is formally captured by the negative drift of the Lyapunov function. Unlike a sequence of independent static games where beliefs might reset, our model accounts for persistent belief states that are subject to external perturbations (as detailed in Section V-B). As shown in Eq. 
+
+(17) , the optimal policy guarantees E[V (μt+1)|μt ]−V (μt ) ≤ 0.This inequality provides a necessary restoring force: if the attacker’s belief μt is pushed away from the secure equilibrium by external intelligence or channel noise, the signaling strategy actively forces the belief trajectory to converge asymptotically back to the state of minimum attacker utility. Thus, the system does not simply repeat a static equilibrium; it actively steers the belief dynamics toward stability against fluctuations. 2) Quantitative Utility Comparison: To crystallize the tan-gible benefits of our approach, Table II provides a quantitative comparison of the attacker’s optimal expected utility, U∗ 
+
+> A
+
+, un-der different benchmark information regimes. This highlights the value of strategic information control. As demonstrated by the theory, the utility achieved by the attacker under our optimal persuasive deception is guaranteed to be less than or equal to that under the no-information regime. Depending on the specific utility structure and the credibility constraint C, it is often significantly lower than the utility under full disclosure as well, showcasing the power of strategic information control. This confirms that the pro-posed method effectively converts the defender’s information advantage into a quantifiable utility gain, providing a provably effective direction for intelligent satellite security. 
+
+D. Integrated Algorithmic Implementation 
+
+To provide a comprehensive view of the proposed frame-work and resolve the timing relationships between resource scheduling and deceptive signaling, we summarize the execu-tion flow in Algorithm 2. The STARDIS framework operates on a receding horizon basis. While the satellite executes tasks at every discrete time slot t, the optimization of the resource schedule and the generation of the deceptive signal occur at the beginning of each decision horizon (every Nt slots). 
+
+Algorithm 2 details the interaction between the STAR and DIS modules. Initially, the ground segment computes the long-term statistical parameters and the optimal signaling policy π∗,which are uplinked to the satellite. Onboard, the cycle begins by updating the system state and solving the resource alloca-tion problem (Eq. (12)) for the upcoming horizon. Based on the optimization results, the true security state ω is determined. Subsequently, the DIS module samples a deceptive signal m
+
+from the policy π∗ and calculates the channel-adaptive delay 
+
+δadd . Finally, the satellite enters the execution loop, performing the scheduled tasks and broadcasting the deceptive telemetry for the duration of the horizon. This hierarchical structure ensures that the high computational cost of optimization is amortized over the horizon Nt , while maintaining real-time responsiveness. IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 12                                  
+
+> TABLE II ATTACKER UTILITY COMPARISON ACROSS INFORMATION REGIMES
+> Information Regime Defender’s Strategy ( π)Attacker’s Equilibrium Utility ( U∗
+> A)
+> No Information Uninformative signal (e.g., always sends “All Clear”). Attacker acts on prior μ0.
+> U∗
+> A(No Info ) = max aUA(a,μ0)
+> Full Disclosure Fully revealing signal (e.g., π(ω) = mω). At-tacker knows the true state ω.
+> U∗
+> A(Full Disc ) = Eω∼μ0[max auA(a,ω)]
+> Optimal Persuasive Deception Optimal policy π∗from the constrained prob-lem. Attacker acts on posteriors μm.
+> U∗
+> A(Persuasion ) = Eπ∗[max aUA(a,μm)]
+
+Algorithm 2 STARDIS Integrated Execution Loop 
+
+Require: Ground inputs: Statistical parameters Θ, Optimal signaling policy π∗, Horizon length Nt . 
+
+> 1:
+
+Initialization: Load Θ and π∗. Set k ← 0.  
+
+> 2:
+
+while System is Active do  
+
+> 3:
+
+— Phase 1: Short-term Optimization (STAR) —  
+
+> 4:
+
+Update task queue J (k) and resource state.  
+
+> 5:
+
+Solve problem (12) to obtain optimal sequences 
+
+{x∗ 
+
+> j
+
+(t), x∗
+
+> scan
+
+(t)} for t ∈ [k, k + Nt − 1]. 
+
+> 6:
+
+Calculate average idle capacity zavg over the horizon.  
+
+> 7:
+
+Quantize zavg to obtain true state ω. 
+
+> 8:
+
+— Phase 2: Deceptive Signaling (DIS) —  
+
+> 9:
+
+Estimate channel state ˆ γ for the horizon.  
+
+> 10:
+
+Sample deceptive signal m ∼ π∗(·| ω). 
+
+> 11:
+
+Calculate artificial delay δadd based on ˆ γ and budget C. 
+
+> 12:
+
+— Phase 3: Real-time Execution Loop —  
+
+> 13:
+
+for t = k to k + Nt − 1 do  
+
+> 14:
+
+Execute mission tasks where x∗ 
+
+> j
+
+(t) = 1.  
+
+> 15:
+
+if x∗
+
+> scan
+
+(t) = 1 then  
+
+> 16:
+
+Activate Host-based IDS (HIDS) module.  
+
+> 17:
+
+end if  
+
+> 18:
+
+Broadcast telemetry packet containing signal m with delay δadd . 
+
+> 19:
+
+Update system logs and task status.  
+
+> 20:
+
+end for  
+
+> 21:
+
+k ← k + Nt . 
+
+> 22:
+
+end while 
+
+VI. C ASE STUDY 
+
+In this section, we present a comprehensive case study to validate the theoretical findings and demonstrate the practical efficacy of our proposed STARDIS framework. The evaluation is structured in two main parts. First, we assess the perfor-mance of the STAR component, demonstrating its ability to es-tablish a unified resource allocation framework that efficiently resolves contention between routine mission operations and high-priority tasks under heterogeneous resource constraints. Second, we evaluate the DIS component, quantifying the security gains achieved by employing channel-aware Bayesian persuasion to mislead a strategic adversary. 
+
+A. Simulation Setup 
+
+We model a LEO satellite’s on-board computing system operating over a discrete-time horizon of Nt = 2000 time slots. Each time slot corresponds to a scheduling epoch of 100 ms. The simulation environment is designed to reflect a realistic space-based edge computing scenario with heterogeneous pro-cessing units. 
+
+1) Heterogeneous Resource and Task Model: Unlike sim-plified homogeneous models, we define the satellite’s com-putational capacity as a vector covering two distinct resource types: General Purpose Processors (CPU) and Hardware Ac-celerators (FPGA). The total capacity is normalized to Ctotal =[1.0, 1.0]. Tasks consume these resources asymmetrically, re-flecting the specialized nature of on-board workloads. We consider three classes of tasks:  
+
+> •
+
+Routine On-board Processing Tasks (Mapped to: 
+
+Low-Priority, Aperiodic, Mission Tasks ): These repre-sent delay-tolerant computations like image compression. They arrive following a Poisson process with rate λp =
+
+0.3 tasks/slot. Their resource demand is FPGA-intensive: 
+
+rp = [ 0.05 , 0.15 ]. They have a soft deadline of 50 slots. As low-priority tasks, they are preemptible and possess lower weight coefficients in the utility function.  
+
+> •
+
+Priority Data Relay Tasks (Mapped to: High-Priority, Periodic, Mission Tasks ): These represent critical data for-warding operations. They arrive deterministically every 30 slots. Their resource demand is CPU-intensive (routing logic): rr = [ 0.20 , 0.10 ]. They have a firm deadline of 15 slots and are effectively non-preemptible due to high priority. Consistent with the high-priority classification, these tasks force a binding (TS) constraint in the opti-mization, ensuring they are scheduled immediately upon arrival.  
+
+> •
+
+Urgent IDS Scan Task (Mapped to: High-Priority, Ape-riodic, Security Tasks ): This is the security mechanism managed by STARDIS. Its execution is triggered dy-namically by the STAR scheduler based on the utility maximization logic. It requires balanced but significant resources: rs = [ 0.15 , 0.05 ] and has a fixed duration ds = 5slots. This task is assigned the highest priority to model immediate threat response. Its execution is determined by the STAR scheduler’s optimization of the security utility term, allowing it to preempt routine processing tasks if necessary. 
+
+2) Wireless Channel and Attacker Model: To capture the time-varying nature of the telemetry downlink (as requested in Section III-B), we employ a Shadowed Rician fading model. The channel parameters are set to (b0 = 0.158 , m = 19 .4, Ω =
+
+1.29 ), corresponding to an Average Shadowing scenario typ-ically observed at mid-elevation angles in LEO orbits. The attacker attempts to intercept the telemetry to identify IDS inactivity. However, interception is probabilistic: successful reception ( ξ (t) = 1) depends on the instantaneous Signal-to-IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 13 
+
+TABLE III SIMULATION PARAMETER SETTINGS 
+
+Parameter Description Symbol Value System & Channel Environment 
+
+Time Horizon Nt 2000 slots Total Resource Capacity (CPU, FPGA) Ctotal [1.0, 1.0]
+
+Channel Fading (Shadowed Rician) (b0, m, Ω) (0.158 , 19 .4, 1.29 )
+
+Decoding SNR Threshold γth 5 dB 
+
+Task Specifications 
+
+Routine Task Arrival Rate λp 0.3 tasks/slot Routine Task Demand (CPU, FPGA) rp [0.05 , 0.15 ]
+
+Priority Task Demand (CPU, FPGA) rr [0.20 , 0.10 ]
+
+IDS Scan Demand (CPU, FPGA) rs [0.15 , 0.05 ]
+
+Utility & Game Parameters 
+
+Defender’s Detection Utility Weight α 10 Defender’s Resource Cost Weight β 0.5 Mission Failure Penalty Weight γ 2Sigmoid Steepness k 0.5 Sigmoid Center θ 0.5 Attacker’s Reward Weight αA 10 Attacker’s Cost Weight βA 0.1 Attacker’s Memory Factor η 0.1 Credibility Budget Range C [0.01 , 0.5]
+
+Noise Ratio (SNR) exceeding a decoding threshold γth = 5dB. Our defense employs Predictive Signaling , adjusting the deception strategy based on channel state predictions to optimize the credibility budget usage. To facilitate reproducibility and provide a clear overview of the simulation environment, we summarize the key parameter settings and their specific values used in our case study in Table III. 
+
+3) Benchmarks: We compare STARDIS against three base-lines:  
+
+> •
+
+FCFS (First-Come, First-Served) : A non-preemptive scheduler processing tasks in arrival order.  
+
+> •
+
+SP (Static Priority) : A preemptive scheduler with fixed priority ( IDS > Relay > Routine ) but no channel aware-ness.  
+
+> •
+
+STAR-Only (No Deception) : The optimized scheduler operating with full transparency, allowing the attacker to perfectly observe the schedule (assuming successful interception). 
+
+B. Performance of STAR: Heterogeneous Scheduling Effi-ciency 
+
+This section evaluates the STAR component’s ability to maximize resource utility while guaranteeing critical tasks. 
+
+1) Visualizing Resource Allocation: Fig. 6 presents amacro-level timeline comparison across three scheduling poli-cies: FCFS, SP, and the proposed STAR. The visualization explicitly distinguishes between CPU (solid lines) and FPGA (dashed lines) utilization to highlight the impact of resource heterogeneity. In the FCFS baseline (top), a “Head-of-Line” blocking phe-nomenon is evident: when a CPU-intensive Relay task (Dark Blue) occupies the scheduling window, subsequent FPGA-intensive Routine tasks (Light Blue) are blocked despite the FPGA being idle. This results in significant resource wastage, as shown by the drop in the FPGA load curve. In the SP policy (middle), while high-priority Security scans (Orange) are executed immediately, they aggressively preempt Routine tasks, leading to task fragmentation and resource starvation. In contrast, the STAR policy (bottom) demonstrates superior “resource packing” efficiency. As highlighted by the annotation Triple Co-Scheduling ,STAR identifies the precise resource slack during the concur-rent execution of Relay and Routine tasks and opportunisti-cally inserts IDS scans. This allows all three task types to coexist, maintaining both CPU and FPGA utilization near saturation levels. 0                
+
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1
+> FCFS (Baseline)
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1
+> Static Priority (SP)
+> AATriple Co-Scheduling
+> 510 15 20 25 30 35 40 45 50 55 60
+> Time Slot (100ms)
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1
+> STAR (Proposed)
+> Mission: Routine (High FPGA) Mission: Relay (High CPU) Security: IDS Scan CPU Load FPGA Load
+
+Fig. 6. Resource timeline comparison (Macro View). FCFS suffers from blocking, SP causes starvation, while STAR achieves Triple Co-Scheduling, maximizing heterogeneous resource usage. 
+
+2) Timeline Analysis and Deadline Compliance: To ex-plicitly address the impact of scheduling latency on mission-critical tasks, Fig. 7 provides a granular view of task execution timelines using a Gantt-chart style visualization. The figure incorporates Task Arrival Markers (▽) and Deadline Con-straints (vertical red lines) specifically for high-priority Relay tasks. The visualization reveals distinct behaviors under conges-tion. In the FCFS baseline (top), a significant lag is evident between the arrival marker and the start of execution due to blocking; this delay pushes the task completion beyond the red deadline line, triggering a visible “Miss!” event. While the SP policy (middle) successfully meets these deadlines, it achieves this by aggressively fragmenting the continuous Routine task blocks, visually confirming resource starvation. In sharp contrast, the STAR policy (bottom) leverages co-scheduling to process Relay tasks immediately upon arrival without halting background operations. The “Met” labels confirm that all critical tasks are completed well within their deadline windows, visually supporting the claim that STAR eliminates deadline misses while maintaining high concur-rency. 
+
+3) Quantitative Analysis: Table IV quantifies these gains. STAR achieves the highest aggregate utilization (81.2% CPU, 84.5% FPGA). Most importantly, consistent with the visual evidence in Fig. 7, it maintains a Priority Relay Task Dead-line Miss Rate of 0.02% , which is statistically negligible and comparable to the rigid SP policy. However, unlike SP, which starves routine tasks (only 89.5% completion), STAR success-fully completes 98.2% of routine workloads. This validates IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 14 Routine                  
+
+> Relay
+> IDS
+> FCFS (Baseline)
+> Miss! Miss! Miss! Miss!
+> Routine
+> Relay
+> IDS
+> Static Priority (SP)
+> 510 15 20 25 30 35 40 45 50 55 60
+> Time Slot (100ms)
+> Routine
+> Relay
+> IDS
+> STAR (Proposed)
+> Met Met
+> Triple Co-Scheduling Zone
+> Routine Task (FPGA) Relay Task (CPU) IDS Scan (Security) Relay Arrival Deadline
+
+Fig. 7. Detailed Task Scheduling Timeline (Gantt Chart). Explicit Arrival (▽) and Deadline markers reveal that FCFS results in Deadline Misses (Red zone) due to blocking. In contrast, STAR ensures all high-priority tasks are 
+
+Met (Green) through efficient Triple Co-Scheduling. 
+
+that STAR’s co-scheduling formulation effectively converts resource heterogeneity from a constraint into an optimization opportunity. 
+
+TABLE IV PERFORMANCE COMPARISON OF SCHEDULING POLICIES UNDER 
+
+HETEROGENEOUS CONSTRAINTS 
+
+Metric FCFS SP STAR 
+
+Overall CPU Utilization (%) 68.2 75.4 81.2 
+
+Overall FPGA Utilization (%) 62.1 71.8 84.5 
+
+Routine Task Completion Rate (%) 92.1 89.5 98.2 
+
+Priority Relay Deadline Miss Rate (%) 18.4 0.0 0.02 
+
+Defender Utility (Normalized) 1.00 1.35 1.92 
+
+C. Effectiveness of DIS: Channel-Aware Deception 
+
+Having established the scheduling baseline, we evaluate the security enhancements provided by the Deceptive Signaling (DIS) module. 
+
+1) Utility Reduction under Channel Uncertainty: We eval-uate the security performance of the DIS module. Fig. 8 plots Attacker Utility against the Credibility Budget C, which limits deception to ensure the signal remains plausible. A higher 
+
+C allows more aggressive deception, effectively lowering the attacker’s utility. We compare three scenarios: STAR-Only” (no deception), Static Deception”, and our “STARDIS”. STARDIS performs the best by using channel information. It saves its credibility budget by being truthful during poor channel conditions (deep fading) and concentrates deception when the signal is strong. As a result, at C = 0.2, STARDIS reduces attacker utility by an extra 13.1% over Static Deception and more than 35% compared to the baseline. 
+
+2) Impact of Prior Beliefs and Channel-Aware Decep-tion: Responding to the need to understand the robustness of Bayesian persuasion, Fig. 9 explores the sensitivity of the defense to the Attacker’s Prior Belief ( μ0). We vary 
+
+μ0—the attacker’s initial probability estimate that the IDS is active—from 0.05 to 0.95. Unlike static defense models, the results reveal a critical monotonic trend driven by 0.05 0.1 0.15 0.2 0.25 0.3 0.35 0.4 0.45 0.5 
+
+Credibility Budget (C )   
+
+> 0.4
+> 0.6
+> 0.8
+> 1
+> 1.2
+> 1.4
+> 1.6
+> 1.8
+> Attacker Exp. Utility
+> STAR-Only(Benchmark)
+> StaticDeception
+> STARDIS(Proposed)
+
+Fig. 8. Attacker’s Expected Utility vs. Credibility Budget. The STARDIS framework achieves lower attacker utility than static deception by opportunis-tically managing the credibility budget based on channel states. 
+
+deterrence . As μ0 increases, the attacker perceives a higher risk of detection, which naturally reduces their expected utility (dashed gray line) even without active deception. The core contribution of STARDIS is demonstrated by the divergence between the channel-aware scenarios. Under 
+
+Good Channel Conditions (High Credibility Budget, C = 0.5, solid red line), the system can leverage high-fidelity decep-tive signals. This capability allows STARDIS to significantly suppress the attacker’s utility, especially in the low-belief region ( μ0 < 0.4), effectively persuading the attacker to ”wait” even when the system is actually vulnerable. In contrast, under Poor Channel Conditions (Low Credibility Budget, 
+
+C = 0.1, orange line), the defense is constrained by the need to maintain signal plausibility, resulting in a utility curve closer to the baseline. Simultaneously, the Defender’s Utility (blue line) increases with μ0, reflecting the dual benefits of resource-saving (due to attacker inaction) and successful threat mitigation. This analysis confirms that STARDIS effectively converts the defender’s information advantage into quantifiable security gains, scaling adaptively with the physical channel quality. 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1
+
+> Attacker Prior Belief ( 770)
+> -0.2
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1
+> 1.2
+> 1.4
+> 1.6
+> 1.8
+> Attacker Exp. Utility ( ##)
+> 1
+> 1.5
+> 2
+> 2.5
+> 3
+> 3.5
+> 4
+> 4.5
+> Defender Utility ( "")
+> Impact of Channel-Aware Deception on Utilities
+> Attacker: Baseline (No Deception)
+> Attacker: STARDIS (Poor Channel/Low C)
+> Attacker: STARDIS (Good Channel/High C)
+> Defender: STARDIS (Good Channel)
+
+Fig. 9. Sensitivity to Prior Beliefs. IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 15 
+
+3) Belief Evolution and Utility Suppression: Fig. 10 visual-izes the dynamics of attacker belief and utility. During Channel Erasure (gray zones, e.g., t ∈ [16 , 19 ]), the loss of telemetry resets the attacker’s belief to the prior ( μ0 = 0.5), which falls below the attack threshold ( μth = 0.55). This triggers blind attacks that inevitably fail due to link severance, resulting in negative utility, as highlighted by the red-shaded areas. In the subsequent Recovery phases (white zones), the absence of deception exposes true resource dips (e.g., at t ≈ 21), allowing the attacker to launch successful exploits with high utility peaks. In contrast, the Optimal Deception phases (green zones, e.g., t ∈ [25 , 36 ]) demonstrate the core advantage of STARDIS. By strategically disseminating deceptive signals, the mechanism maintains the attacker’s belief above the safety threshold ( μt > 0.55) even during actual vulnerability windows. Consequently, the attacker is persuaded to remain dormant, and their realizable utility is successfully suppressed to zero. Attack Threshold                            
+
+> ErasureErasure
+> OptimalDeceptionOptimalDeception
+> RecoveryRecovery
+> 510 15 20 25 30 35 40 45 50 55 60
+> TimeSlott
+> 0
+> 0.2
+> 0.4
+> 0.6
+> 0.8
+> 1
+> 1.2
+> Defense Level / Belief
+> -1
+> -0.5
+> 0
+> 0.5
+> 1
+> 1.5
+> 2
+> 2.5
+> 3
+> 3.5
+> Attacker Utility UA(t)
+> TrueDefenseLevel!(t)AttackerBelief7tAttackerUtilityUA(t)
+
+Fig. 10. Belief Evolution under Channel Erasures. The gray zones indicate periods where deep fading prevents the attacker from observing the signal, verifying the opportunity for predictive resource saving. 
+
+D. Discussion 
+
+To address network-level constraints and enhance robust-ness, we may consider the role of Inter-Satellite Links (ISL) [47]. In scenarios where the direct downlink is exposed to the attacker (e.g., high SNR condition), the satellite can leverage ISL to route sensitive security logs to a neighboring satellite that is currently in a ”blind spot” relative to the attacker or has a poorer channel condition. This spatial decoupling effectively denies the attacker access to critical telemetry even when the primary link is physically vulnerable, validating the method’s applicability to large-scale constellations. VII. C ONCLUSION 
+
+In this paper, we presented STARDIS, a proactive defense framework that resolves the inherent conflict between opera-tional efficiency and robust security for resource-constrained satellite systems. Our approach uniquely distributes the de-fense problem: long-term statistical modeling is performed on the ground, while short-term, real-time scheduling and intrusion detection are handled onboard via receding horizon optimization. This creates an efficient but predictable defense posture. To counter the vulnerability of an external attacker intercepting the satellite’s short-term plans, we introduced a strategic deception layer grounded in Bayesian persuasion with a constrained deception budget. This layer proactively manipulates the time-varying telemetry downlink by design-ing strategic signaling policies to mislead the adversary. We established the long-term effectiveness of this defense by constructing a Lyapunov function to prove its convergence to a state of minimized attacker utility. Future work will focus on extending this framework to coordinated constellation defense via Inter-Satellite Links and incorporating online learning to adaptively counter diverse adversarial behaviors. REFERENCES [1] C.-S. Choi, “Analysis of a Delay-Tolerant Data Harvest Architecture Leveraging Low Earth Orbit Satellite Networks,” IEEE Journal on Selected Areas in Communications , vol. 42, no. 2, pp. 335–347, 2024. [2] S. A. Torrens, V. Petrov, and J. M. Jornet, “Modeling Interference From Millimeter Wave and Terahertz Bands Cross-Links in Low Earth Orbit Satellite Networks for 6G and Beyond,” IEEE Journal on Selected Areas in Communications , vol. 42, no. 5, pp. 1371–1386, 2024. [3] M. Manulis, C. P. Bridges, R. Harrison, J. Liskill, L. Monaco, T. Rose, M. Simon, and C. W¨ uest, “Cyber security in new space,” International Journal of Information Security , vol. 20, no. 3, pp. 287–311, Jun 2021. [4] J. Liu, W. Liu, Q. Wu, D. Li, and S. Chen, “Survey on key security tech-nologies for space information networks,” Journal of Communications and Information Networks , vol. 1, no. 1, pp. 72–85, Jun. 2016. [5] Y. Hao, Z. Song, Z. Zheng, Q. Zhang, and Z. Miao, “Joint communica-tion, computing, and caching resource allocation in LEO satellite MEC networks,” IEEE Access , vol. 11, pp. 6708–6716, 2023. [6] J. Li, K. Xue, D. Wei, J. Liu, and Y. Zhang, “Energy efficiency and traffic offloading optimization in integrated satellite/terrestrial radio access networks,” IEEE Transactions on Wireless Communications , vol. 19, no. 4, pp. 2367–2381, 2020. [7] L. Yu, J. Hao, J. Ma, Y. Sun, Y. Zhao, and B. Luo, “A Comprehensive Analysis of Security Vulnerabilities and Attacks in Satellite Modems,” in Proceedings of the 2024 ACM SIGSAC Conference on Computer and Communications Security , ser. CCS ’24. New York, NY, USA: Association for Computing Machinery, 2024, pp. 3287–3301. [8] C. Swope, K. A. Bingen, M. Young, and K. LaFave, “Space Threat Assessment 2025,” Center for Strategic and International Studies, Washington, DC, Tech. Rep., Apr. 2025. [Online]. Available: https://www.csis.org/analysis/space-threat-assessment-2025 [9] A. Javadpour, F. Ja’fari, T. Taleb, M. Shojafar, and C. Benza¨ ıd, “A com-prehensive survey on cyber deception techniques to improve honeypot performance,” Computers & Security , vol. 140, p. 103792, 2024. [10] T. K. Rodrigues and N. Kato, “Hybrid Centralized and Distributed Learning for MEC-Equipped Satellite 6G Networks,” IEEE Journal on Selected Areas in Communications , vol. 41, no. 5, pp. 1446–1458, 2023. [11] 5G Americas, “New Developments and Advances in 5G and Non-terrestrial Networks,” 5G Americas, Tech. Rep., February 2025. [Online]. Available: https://www.5gamericas.org/wp-content/uploads/ 2025/02/WP New-Developments-and-Advances-in-5G-and-NTN-.pdf [12] B. Mao, X. Zhou, J. Liu, and N. Kato, “On an Intelligent Hierarchical Routing Strategy for Ultra-Dense Free Space Optical Low Earth Orbit Satellite Networks,” IEEE Journal on Selected Areas in Communica-tions , vol. 42, no. 2, pp. 348–363, 2024. [13] Z. Zheng, J. Guo, and E. Gill, “Onboard autonomous mission re-planning for multi-satellite system,” Acta Astronautica , vol. 145, pp. 28–43, 2018. [14] S. Yao, Y. Lin, M. Wang, K. Xu, M. Xu, C. Xu, and H. Zhang, “Leoedge: A satellite-ground cooperation platform for the ai inference in large leo constellation,” IEEE Journal on Selected Areas in Communications ,vol. 43, no. 1, pp. 36–50, 2025. [15] S. Roy, S. Sankaran, and M. Zeng, “Green Intrusion Detection Systems: A Comprehensive Review and Directions,” Sensors , vol. 24, no. 17, p. 5516, 2024. [16] K. M. Sai, B. B. Gupta, C.-H. Hsu, and D. Perakovi´ c, “Lightweight Intrusion Detection System In IoT Networks Using Raspberry pi 3b+,” in CEUR Workshop Proceedings , vol. 3080, 2021, pp. 58–67. [17] B. Sprunt, L. Sha, and J. Lehoczky, “Aperiodic task scheduling for Hard-Real-Time systems,” Real-Time Systems , vol. 1, no. 1, pp. 27–60, 1989. IEEE JOURNAL ON SELECTED AREAS IN COMMUNICATIONS, VOL. XX, NO. X, JULY 2025 16 
+
+[18] X. Li, J. Yang, and H. Fan, “Dynamic Network Resource Autonomy Management and Task Scheduling Method,” Mathematics , vol. 11, no. 5, p. 1232, 2023. [19] E. Kamenica and M. Gentzkow, “Bayesian Persuasion,” American Eco-nomic Review , vol. 101, no. 6, pp. 2590–2615, 2011. [20] D. Bergemann and S. Morris, “Information Design, Bayesian Persuasion, and Bayes Correlated Equilibrium,” American Economic Review , vol. 106, no. 5, pp. 586–591, 2016. [21] M. O. Sayin and T. Bas ¸ar, “Deception-as-Defense Framework for Cyber-Physical Systems,” in Safety, Security and Privacy for Cyber-Physical Systems , R. M. G. Ferrari and A. M. H. Teixeira, Eds. Cham: Springer, 2021, pp. 287–317. [22] V. P. Crawford and J. Sobel, “Strategic Information Transmission,” 
+
+Econometrica , vol. 50, no. 6, pp. 1431–1451, 1982. [23] H. Xu, Z. Rabinovich, S. Dughmi, and M. Tambe, “Exploring infor-mation asymmetry in two-stage security games,” in Proceedings of the Twenty-Ninth AAAI Conference on Artificial Intelligence . Palo Alto, CA, USA: AAAI Press, 2015, pp. 1057–1063. [24] Q. Zhu and T. Bas ¸ar, “Game-Theoretic Approach to Feedback-Driven Multi-stage Moving Target Defense,” in Decision and Game Theory for Security , ser. Lecture Notes in Computer Science, S. K. Das, C. Nita-Rotaru, and M. Kantarcioglu, Eds., vol. 8252. Springer International Publishing, 2013, pp. 246–263. [25] L. Huang, P. Liu, X. Chen, C. Jiang, L. Kuang, and J. Lu, “A consol-idated game framework for cooperative defense against cross-domain cyber attacks in satellite-enabled internet of things,” IEEE Internet of Things Journal , vol. 12, no. 9, pp. 12 853–12 868, 2025. [26] Y. Sun, J. Lu, D. W. C. Ho, and L. Li, “Real-time Estimation of DoS Duration and Frequency for Security Control,” IEEE Transactions on Automatic Control , 2025, early Access. [27] H. Sedjelmaci, N. Kaaniche, A. Boudguiga, and N. Ansari, “Secure Attack Detection Framework for Hierarchical 6G-Enabled Internet of Vehicles,” IEEE Transactions on Vehicular Technology , vol. 73, no. 2, pp. 2633–2642, 2024. [28] M. Tambe, Security and Game Theory: Algorithms, Deployed Systems, Lessons Learned . Cambridge, UK: Cambridge University Press, 2011. [29] T. E. Carroll and D. Grosu, “A game theoretic investigation of deception in network security,” Security and Communication Networks , vol. 4, no. 10, pp. 1162–1172, 2011. [30] D. Ma, Z. Tang, X. Sun, L. Guo, L. Wang, and K. Chen, “Game Theory Approaches for Evaluating the Deception-based Moving Target Defense,” in Proceedings of the 9th ACM Workshop on Moving Target Defense . New York, NY, USA: ACM, 2022, pp. 67–78. [31] L. Huang and Q. Zhu, “A dynamic games approach to proactive defense strategies against advanced persistent threats in cyber-physical systems,” 
+
+Computers & Security , vol. 89, p. 101660, 2020. [32] ——, “Duplicity games for deception design with an application to insider threat mitigation,” IEEE Transactions on Information Forensics and Security , vol. 16, pp. 4843–4856, 2021. [33] M. J. Neely, “Queue stability and probability 1 convergence via lyapunov optimization,” 2010. [Online]. Available: https://arxiv.org/abs/1008.3519 [34] J. B. Clempner, “On lyapunov game theory equilibrium: Static and dynamic approaches,” International Game Theory Review , vol. 20, no. 02, p. 1750033, 2018. [35] Q. Tang, Z. Fei, B. Li, and Z. Han, “Computation offloading in leo satellite networks with hybrid cloud and edge computing,” IEEE Internet of Things Journal , vol. 8, no. 11, pp. 9164–9176, 2021. [36] Q. Xiu, J. Liu, X. Liu, and J. Wang, “Computation offloading and resource allocation in satellite edge computing networks: Amulti-agent reinforcement learning approach,” Computer Networks , vol. 272, p. 111680, 2025. [Online]. Available: https://www.sciencedirect. com/science/article/pii/S1389128625006474 [37] J. He, X. Li, X. Zhang, W. Niu, and F. Li, “A synthetic data-assisted satellite terrestrial integrated network intrusion detection framework,” 
+
+IEEE Transactions on Information Forensics and Security , vol. 20, pp. 1739–1754, 2025. [38] H. Guo, J. Li, J. Liu, N. Tian, and N. Kato, “A survey on space-air-ground-sea integrated network security in 6g,” IEEE Communications Surveys & Tutorials , vol. 24, no. 1, pp. 53–87, 2022. [39] A. Abdi, W. C. Lau, M. S. Alouini, and M. Kaveh, “A new simple model for land mobile satellite channels: First- and second-order statistics,” 
+
+IEEE Transactions on Wireless Communications , vol. 2, no. 3, pp. 519– 528, May 2003. [40] S. Kaul, R. Yates, and M. Gruteser, “Real-time status: How often should one update?” in Proceedings of IEEE INFOCOM , March 2012, pp. 2731–2735. [41] Z. Wan, J.-H. Cho, M. Zhu, A. H. Anwar, C. A. Kamhoua, and M. P. Singh, “Resisting multiple advanced persistent threats via hypergame-theoretic defensive deception,” IEEE Transactions on Network and Service Management , vol. 20, no. 3, pp. 3816–3830, 2023. [42] S. Wei, Z. Wu, J. Xu, Y. Cheng, and Q. Hu, “Security risk assessment and risk-oriented defense resource allocation for cyber-physical distri-bution networks against coordinated cyber attacks,” Journal of Modern Power Systems and Clean Energy , vol. 13, no. 1, pp. 312–324, 2025. [43] L. Yip, “Performance assessment of lpd/lpi satellite communication systems,” 2023 IEEE Aerospace Conference , pp. 1–7, 2023. [44] P. Tedeschi, S. Sciancalepore, and R. Di Pietro, “Satellite-based communications security: A survey of threats, solutions, and research challenges,” Computer Networks , vol. 216, p. 109246, 2022. [Online]. Available: https://www.sciencedirect.com/science/article/pii/ S138912862200319X [45] S. S. Saha, S. Rahman, M. U. Ahmed, and S. K. Aditya, “Ensuring cybersecure telemetry and telecommand in small satellites: Recent trends and empirical propositions,” IEEE Aerospace and Electronic Systems Magazine , vol. 34, pp. 34–49, 2019. [46] M. Gentzkow and E. Kamenica, Bayesian Persuasion . Singapore: World Scientific, 2025. [47] N. Kato, Z. M. Fadlullah, F. Tang, B. Mao, S. Tani, A. Okamura, and J. Liu, “Optimizing space-air-ground integrated networks by artificial intelligence,” IEEE Wireless Communications , vol. 26, no. 4, pp. 140– 147, 2019.
