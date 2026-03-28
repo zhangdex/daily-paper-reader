@@ -1,0 +1,658 @@
+Title: SaferPath: Hierarchical Visual Navigation with Learned Guidance and Safety-Constrained Control
+
+URL Source: https://arxiv.org/pdf/2603.01898v1
+
+Published Time: Tue, 03 Mar 2026 04:08:19 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# SaferPath: Hierarchical Visual Navigation with Learned Guidance and Safety-Constrained Control 
+
+Lingjie Zhang, Zeyu Jiang, Changhao Chen ∗
+
+Abstract — Visual navigation is a core capability for mobile robots, yet end-to-end learning-based methods often struggle with generalization and safety in unseen, cluttered, or narrow environments. These limitations are especially pronounced in dense indoor settings, where collisions are likely and end-to-end models frequently fail. To address this, we propose SaferPath, a hierarchical visual navigation framework that leverages learned guidance from existing end-to-end models and refines it through a safety-constrained optimization-control module. SaferPath transforms visual observations into a traversable-area map and refines guidance trajectories using Model Predictive Stein Vari-ational Evolution Strategy (MP-SVES), efficiently generating safe trajectories in only a few iterations. The refined trajectories are tracked by an MPC controller, ensuring robust navigation in complex environments. Extensive experiments in scenarios with unseen obstacles, dense unstructured spaces, and narrow corridors demonstrate that SaferPath consistently improves success rates and reduces collisions, outperforming represen-tative baselines such as ViNT and NoMaD, and enabling safe navigation in challenging real-world settings. 
+
+I. I NTRODUCTION 
+
+Navigation is a fundamental capability of mobile robots, enabling autonomous operation and the execution of complex tasks in dynamic and uncertain environments. Due to limited prior knowledge and the inherent unpredictability of the real world, enhancing navigation in previously unseen environ-ments remains one of the central challenges in robotics [1], [2]. Traditional navigation approaches typically rely on pre-built maps (e.g., occupancy grids [3] or topological graphs [4]) to plan paths. These methods often require complex sensor fusion, such as integrating LiDAR or depth cameras, and planning algorithms such as A* [5] or RRT [6]. With the rapid advancement of embodied AI, end-to-end visual navigation has attracted growing attention. These methods leverage deep neural networks (DNNs) to directly map visual inputs to actions, reducing reliance on explicit environmental modeling and planning [1]. However, their performance depends heavily on large-scale, diverse training datasets for robust generalization. Collecting and annotating such datasets is costly, and distribution mismatches between training and deployment environments can lead to significant performance degradation. Furthermore, real-world scenarios                  
+
+> Lingjie Zhang, Zeyu Jiang and Changhao Chen are with PEAK-Lab, The Hong Kong University of Science and Technology (Guangzhou), Guangzhou, 511453, China (
+
+zljjacob@gmail.com, zjiang122@connect.hkust-gz.edu.cn, changhaochen@hkust-gz.edu.cn )This work was supported by National Natural Science Foundation of China (NFSC) under the Grant Number 62573370 and Key Area Project of Education Department of Guangdong Province (No. 2025ZDZX3051).   
+
+> ∗Corresponding Author. Observation
+> Goal Visual Navigation Model
+> Traversability Score Mapper
+> !~
+> !!
+> "!
+> Safety -Constrained
+> Control
+
+Fig. 1: SaferPath is a hierarchical navigation framework that uses a end-to-end visual navigation model for guidance and integrates safety-constrained control module, significantly improving obstacle avoidance and narrow-passage traversal for safe navigation in challenging environments. 
+
+often include unseen obstacles, unstructured layouts, and nar-row passages—for example, indoor navigation for domestic robots—where collisions are likely and safety is critical. Diffusion-based navigation models [7] are particularly prone to performance degradation in these settings, as confirmed in our experiments. This raises two fundamental questions: 
+
+Q1. How can the safety and robustness of end-to-end vi-sual navigation models be improved without retraining when deployed in diverse and dynamic environments? 
+
+Q2. Since training data often lack dense and narrow sce-narios, can the proposed approach enhance navigation performance and safety in such challenging environ-ments? To address these challenges, we propose SaferPath, a novel hierarchical visual navigation framework with learned guid-ance and safety-contrained control. SaferPath is designed as a flexible modular layer above end-to-end navigation models. Instead of directly executing the trajectories predicted by an end-to-end model, we use them only as guidance trajectories. Specifically, visual observations are first transformed into a traversable-area map. The learned guidance trajectory is then refined by formulating the problem as a model predictive optimization task. To reduce the high computation require-ments of nonlinear optimization, we introduce the Model Predictive Stein Variational Evolution Strategy (MP-SVES), which recasts trajectory refinement as an efficient variational inference process. MP-SVES generates safety-constrained solutions within only a few iterations, thereby avoiding the   
+
+> arXiv:2603.01898v1 [cs.RO] 2 Mar 2026 Observation
+> Goal
+> MP -SVES
+> Transformer
+> Learned Guidance
+> Trajectory
+> MPC
+> Emergency
+> Indicator
+> Follow safety
+> constrained
+> trajectory.
+> Halt & rotate
+> until path
+> acquisition.
+> 𝑧 !
+> Diffusion
+> Trajectory
+> Found
+> No Trajectory
+> Found
+> Traversability Score Mapper
+> Obstacle
+> Free
+> Depth
+> Estimation
+> Gradient
+> Weighting
+> Binary
+> Mask
+> Score
+> Mapping
+> Visual Navigation Model
+> Encoder 𝜓 "
+> Safety -Constrained Control
+> 𝑾 ~
+> 𝝁 𝒌
+> 𝑪 𝒌
+> Constraint
+> 10 steps update
+> Encoder 𝜙 #
+
+Fig. 2: SaferPath Pipeline overview. SaferPath can be integrated with various end-to-end visual navigation models. The Traversability Score Mapper processes RGB observations to generate a score map S, which, together with the learned guidance trajectory, is passed to the MP-SVES module. If optimization fails, the Emergency Indicator stops the robot and rotates it until a traversable trajectory is found; otherwise, the MPC controller executes trajectory tracking. 
+
+heavy computational cost of conventional nonlinear solvers. The refined, safety-constrained trajectory is subsequently tracked by an MPC controller, ensuring robust and precise navigation in complex environments. Across diverse scenarios, SaferPath consistently outper-forms strong baselines, maintaining high success rates and low collision counts even in cluttered or narrow environ-ments. Compared to the representative visual navigation model NoMaD [7], SaferPath improves performance by 40% in robust navigation under unseen obstacles and over 50% in exploration within dense unstructured environments, while successfully navigating narrow corridors where all baselines fail. In summary, our main contributions are as follows.  
+
+> •
+
+We propose SaferPath, a hierarchical visual navigation framework that flexibly builds on end-to-end models by leveraging learned guidance while incorporating safety-constrained control, thereby enhancing navigation accu-racy and robustness in complex unknown environments.  
+
+> •
+
+We introduce Model Predictive Stein Variational Evo-lution Strategy (MP-SVES), a novel optimization algo-rithm that efficiently solves nonconvex nonlinear prob-lems and generates feasible, safety-constrained trajecto-ries within only a few iterations.  
+
+> •
+
+We conduct extensive experiments across diverse scenarios—including navigation with unseen obsta-cles, exploration in dense unstructured environ-ments, and obstacle avoidance in narrow indoor pas-sages—demonstrating that SaferPath significantly out-performs representative baselines such as ViNT and NoMaD. II. R ELATED WORK 
+
+A. Embodied Navigation 
+
+With the development of embodied intelligence, learning-based methods, in contrast to geometry-based approaches, emphasize the development of reliable navigation strategies by learning from data-driven navigation experiences[8]. Typically, learning-based navigation strategies are formu-lated as sequence prediction tasks, where current and histor-ical observations are exploited to generate future behaviors under a generative modeling paradigm[9], [10], [11]. Several studies have explored end-to-end navigation frameworks that integrate heterogeneous sensing modalities, including Li-DAR, depth perception, and proprioceptive measurements, to enhance long-range global navigation performance [12], [13], [14]. ViNT[15] and other recent works[7], [16], [17] propose purely vision-based, end-to-end, map-free robot navigation approaches, where models directly process sequences of visual observations to infer future motions or navigation actions, enabling autonomous navigation in complex or pre-viously unseen environments. 
+
+B. Learning-Enhanced Model Predictive Control 
+
+Model Predictive Control (MPC) uses known system dy-namics to optimize control inputs for predicting and regulat-ing future states. Its strengths in real-time optimization and constraint handling make it ideal for motion planning in em-bodied intelligent robots[18]. However, MPC is less effective for long-horizon predictions due to increasing computational complexity and accumulation of model inaccuracies over time. Recent works have integrated model-based control ap-proaches with generative models, combining the flexibility of these models with the real-time performance and robustness of MPC to enhance control accuracy and efficiency in robotic systems. Huang et al. introduced the Subgoal Diffuser, a diffusion-based framework that generates adaptive, coarse-to-fine subgoals to guide MPC, enabling robust planning for long-horizon robotic manipulation tasks[19]. In SICNav-Diffusion, the diffusion model is integrated with the MPC framework to facilitate safe trajectory prediction in crowd navigation environments[20]. Other researchers[21] also try to combine MPC with a generative model. In this work, we integrate end-to-end visual navigation models with MPC-based prediction under safety constraints, addressing the lim-itations of purely end-to-end approaches and achieving more reliable and robust navigation in real-world environments. III. M ETHOD 
+
+Prior end-to-end navigation models often improve perfor-mance via sophisticated designs or larger datasets, yet still generalize poorly to unseen environments. To address this, we propose a hierarchical navigation framework where a end-to-end visual navigation model providing learned guidance trajectory based on current and past observations while a seperate optimization and control module enforces safety and dynamic constraints. This design reduces reliance on the end-to-end model, requiring it only to provide coarse directional guidance for more reliable navigation. Figure 2 illustrates the overall hierarchical navigation framework, with further details provided in the following sections. 
+
+A. Preliminaries 
+
+SaferPath builds upon end-to-end visual navigation mod-els. These models take the robot’s current and historical RGB observations as input, optionally conditioned on a target image or target position. The inputs are first processed by a visual encoder to produce latent representations, which are then passed through a downstream neural network to predict the trajectory. Formally, the model can be expressed as: 
+
+fθ : RL×H×W ×C × G → Xt, Xt = fθ (It, g ), (1) where It = {It−L+1 , . . . , I t}, It ∈ RL×H×W ×C denotes the current and historical observations, where L is the history length, H and W denote the image height and width, and 
+
+C is the number of channels. g ∈ G is the goal image, which is typically one of a sequence of images organized as a topological map along the navigation path. Xt =
+
+{x0, . . . , xt+T } is the predicted trajectory with Xt ∈ Rd
+
+representing the robot’s position trajectory over time. For instance, we use NoMaD [7] as a base end-to-end model. NoMaD employs an EfficientNet-B0 encoder [22] to encode both the observation sequence It and the goal image g, producing tokenized latent representations zt. These tokens are then processed by Transformer layers [23] to generate a contextual vector ct, which a diffusion model [24] uses to predict the trajectory Xt. Additionally, NoMaD supports a goal-mask input, enabling exploration without an explicit goal. 
+
+B. Traversability Score Mapper 
+
+The Traversability Score Mapper (TSM) module con-structs a safety-aware score map from RGB images to delineate navigable regions for trajectory planning. First, depth estimation is performed using the DepthAnythingV2 model [25], producing a normalized depth map in the range [0 , 1] . Gaussian smoothing reduces noise, followed by vertical gradient computation via a Sobel operator to highlight depth discontinuities associated with obstacles. To emphasize regions near the robot, a spatially varying weight that increases from top to bottom of the image is applied. The weighted gradient is thresholded to generate a preliminary binary map, labeling obstacles as 0 and traversable areas 
+
+Algorithm 1: Trajectory Optimization via MP-SVES 
+
+Input: Learned guidance trajectory Xref ,t , score map 
+
+S
+
+Output: Safety constrained trajectory Xopt ,t  
+
+> 1
+
+Parameters: Particle number P , sample number m,iteration number N , kernel weight γ, step size η 
+
+> 2
+
+Initialize μp, Cp for p = 1 , . . . , P  
+
+> 3
+
+for each timestep t do  
+
+> 4
+
+for n = 1 to N do  
+
+> 5
+
+for p = 1 to P do  
+
+> 6
+
+ϵp,i ∼ N (0, I), for i = 1 , . . . , m  
+
+> 7
+
+Wp,i ← μp + Lpϵp,i , Cp = LpLp⊤ 
+
+> 8
+
+Jp,i ← J(Wp,i , S, Xref ) 
+
+> 9
+
+ωp,i ← exp( −Jp,i )Pmj=1 exp( −Jp,j ) 
+
+> 10
+
+∆ ¯Wp ← Pmi=1 ωp,i (Wp,i − μp) 
+
+> 11
+
+gker  
+
+> p
+
+← PP −1  
+
+> q=1 ,q ̸=p
+
+∇μp ker (μp, μq ) 
+
+> 12
+
+μp ← μp + η · (∆ ¯Wp + γgker  
+
+> p
+
+) 
+
+> 13
+
+Cp ← Cp + η · Pmi=1 ωp,i ϵp,i ϵ⊤ 
+
+> p,i
+> 14
+
+end  
+
+> 15
+
+end  
+
+> 16
+
+W∗ 
+
+> t
+
+← arg min 
+
+> Wp,i
+
+Jp,i s.t. constraints  
+
+> 17
+
+Xopt ,t ← W∗ 
+
+> t
+
+· Xref ,t  
+
+> 18
+
+end 
+
+as 1, with adjustments near the bottom rows to prevent misclassification. This binary map is refined using horizontal and vertical gradient analysis to detect boundaries and segment obstacle versus free-space regions. A Euclidean distance transform then computes pixel-wise distances to these regions, yielding a smooth score map. In this map, costs are defined as: positive near obstacles (increasing with distance from bound-aries), negative in free-space (decreasing with distance), and zero at boundary transitions. Finally, the map is normalized to [−1, 1] , producing a continuous score map S that encap-sulates safe navigation regions for trajectory planning. 
+
+C. Safety-Constrained Control 
+
+We employ the score map S from TSM as a safety constraint for trajectory planning. Since S is nonconvex, nonlinear, and highly variable, solving the optimal control problem directly using classic methods such as sequential quadratic programming (SQP)[26] or interior point methods (IPM)[27] is computationally expensive and unsuitable for real-time operation. To overcome this, we propose Model 
+
+Predictive Stein Variational Evolution Strategy (MP-SVES), which reformulates trajectory optimization as a model pre-dictive task. MP-SVES combines sampling-based methods [28], [29] with Stein variational strategies [30], [31] to accelerate convergence. The safety constrained trajectory is then executed using an MPC control module. 
+
+MP-SVES Optimization: In the first step, the learned guidance trajectory Xref =
+
+h
+
+x(k) 
+
+> ref
+
+, y (k)
+
+> ref
+
+i⊤K−1
+
+> k=0
+
+from end-to-end visual navigation model is passed to the MP-SVES optimization module. The goal of this module is to optimize the learned guidance trajectory by adjusting its parameters while ensuring that the safety constrained trajectory remains as close as possible to learned guidance trajectory, while also satisfying safety constraints defined by the score map S. The optimization is formulated by applying an anisotropic scaling to the learned guidance trajectory points: 
+
+X(k) 
+
+> opt
+
+=
+
+"
+
+x(k)
+
+> opt
+
+y(k)
+
+> opt
+
+#
+
+=
+
+wx 00 wy
+
+ "
+
+x(k)
+
+> ref
+
+y(k)
+
+> ref
+
+#
+
+, k = 0 , . . . , K − 1,
+
+(2) where wx and wy are optimization parameters controlling the scaling of learned guidance trajectory in the x and y dimen-sions. This scaling-based approach allows the optimization to preserve key geometric characteristics of the original tra-jectory, such as general shape and heading, while providing flexibility to adjust its size and improve compliance with safety constraints. The MP-SVES optimization algorithm formulates trajec-tory optimization as a model predictive problem, where the goal is to identify the optimal scaling parameters W =diag( wx, w y ) that minimize the following objective function subject to system dynamics and feasibility constraints: 
+
+min  
+
+> W
+
+J(W, S, Xref ) = 
+
+> K−1
+
+X
+
+> k=0
+
+∥X(k) 
+
+> opt
+
+− X(k) 
+
+> ref
+
+∥2
+
+> Q
+
++ λsK−1X
+
+> k=0
+
+S
+
+
+
+X (k)
+
+> tube
+
+
+
++ λr ∥W − I∥22
+
+s. t. Xopt, init = Xref 
+
+X(k) 
+
+> opt
+
+= W · X(k) 
+
+> ref
+
+, k = 0 , . . . , K − 1
+
+S
+
+
+
+X (k)
+
+> tube
+
+
+
+≤ δ, k = 0 , . . . , K − 1
+
+where X (k) 
+
+> tube
+
+=
+
+
+
+X(k) 
+
+> opt
+
++ α n(k) α ∈ [ −d
+
+2 , d
+
+2 ]
+
+
+
+,
+
+(3) 
+
+K is the prediction horizon at each timestep. Q, λs, and λr
+
+are tuning parameters controlling tracking accuracy, safety, and regularization. d denotes the robot width. n(k) denotes the unit normal vector orthogonal to the trajectory at timestep k.This formulation seeks scaling parameters that keep safety constrained trajectory close to the learned guidance trajec-tory while satisfying the safety constraints. The MP-SVES iterative procedure used to update W and obtain safety constrained trajectory is summarized in Algorithm 1, where 
+
+μp and Cp represent the mean and covariance matrix of particle p. The repulsion gradient, ∇μp ker (μp, μq ), is the gradient of the kernel function, typically the RBF ker-nel ker (μp, μq ) = exp 
+
+
+
+− ∥μp−μq ∥2
+
+> 2σ2
+
+
+
+, generating repulsive forces to prevent mode collapse and maintain diversity. W∗
+
+> t
+
+denotes the optimal scaling parameters that satisfy safety constraints. In practice, MP-SVES algorithm requires only about 10 iterations to obtain a feasible safety constrained trajectory, making it significantly more efficient than gradient descent methods that directly optimize over the score map. When 1.0   
+
+> 0.8
+> 0.6
+> 0.4
+> 0.2
+> 0.0
+> -0.2
+> -0.4
+
+𝛿           
+
+> Obstacle
+> Safety Constrained Trajectory (!=-0.10)
+> Learned Guidance Trajectory
+> Safety Constrained Boundary
+> Safety Constrained Trajectory ( !=-0.15)
+> Safety Constrained Trajectory ( !=-0.20)
+
+Fig. 3: Safety constrained trajectories under different safety thresh-olds, with the robot maintaining varying safe distances from obsta-cles by adjusting threshold δ
+
+facing obstacles, we vary the safety threshold to show how safety constrained trajectories change: Smaller (more negative) thresholds lead to stricter safety constraints, caus-ing safety constrained trajectories to deviate further from obstacles (Fig. 3). In cases where obstacles are too close and no feasible solution can be found, the situation is clas-sified as dangerous. In such cases, the Emergency Indicator commands the robot to stop immediately and rotate toward the direction with a larger free-space region until a feasible safety constrained trajectory is obtained. 
+
+Model Predictive Control: Once a safety constrained trajectory has been obtained, it is passed to the MPC module. The purpose of this module is to compute the optimal control inputs Ut = ( vt, ω t) at each time step t, ensuring that the robot’s state Xt = ( xt, y t, θ t) closely follows safety con-strained trajectory Xopt , while respecting system dynamics, physical constraints. The MPC problem is formulated as: 
+
+min  
+
+> U(0)
+> t,..., U(K−1)
+> t
+
+( K−1X
+
+> k=0
+
+
+
+∥X(k) 
+
+> t
+
+− X(k)
+
+> opt , t
+
+∥2 
+
+> Q
+
++ ∥U(k) 
+
+> t
+
+∥2
+
+> R
+
+
+
++ ∥X(K) 
+
+> t
+
+− X(K)
+
+> opt , t
+
+∥2
+
+> Qf
+
+| {z }
+
+> terminal cost
+
+)
+
+s.t. X(0)  
+
+> t
+
+= X(0) 
+
+> opt ,t
+
+,
+
+X(k+1)  
+
+> t
+
+= f (X(k) 
+
+> t
+
+, U(k) 
+
+> t
+
+), k = 0 , . . . , K − 1,
+
+X(k) 
+
+> t
+
+∈ X , U(k) 
+
+> t
+
+∈ U , k = 0 , . . . , K − 1,
+
+(4) where f (·) denotes the robot’s kinematic model, U(k) 
+
+> t
+
+=(v(k) 
+
+> t
+
+, ω (k) 
+
+> t
+
+) is the control input at time t + k, X and U are the feasible state and control input constraint sets. The objective of the MPC is to penalize deviations from safety constrained trajectory Xopt and excessive control in-puts, while ensuring that the trajectory remains within the dynamic constraints. The robot’s kinematic model f (·) is defined as: 
+
+xt+1 = xt + vt cos( θt)∆ t, yt+1 = yt + vt sin( θt)∆ t, θt+1 = θt + ωt∆t, 
+
+(5) where ∆t is the time step. 
+
+Complete Process The entire process is summarized as follows:  
+
+> •
+
+MP-SVES Optimization refines learned guidance tra-jectory, ensuring it adheres to safety constraints while remaining as close as possible to learned guidance trajectory.  
+
+> •
+
+MPC Control computes the optimal control inputs based on safety constrained trajectory, ensuring the robot follows the trajectory while respecting dynamic and physical constraints. By combining MP-SVES optimization and MPC control, this approach enables robust trajectory tracking in dynamic and narrow environments. IV. E XPERIMENTS 
+
+In this section, we conducted comprehensive experiments to evaluate the effectiveness of our method. Section IV-A describes the experimental setup. Section IV-B evalu-ates robustness when facing previously unseen obstacles. Section IV-C assesses obstacle avoidance performance in unguided exploration within dense environments. Section IV-D tests navigation in narrow corridors, requiring precise obstacle avoidance and path planning. Section IV-E validates our method in real-world scenarios, demonstrating safe and reliable navigation under practical conditions. Finally, Sec-tion IV-F analyzes the contribution of each module through ablation study. 
+
+A. Experimental Setup 
+
+Baselines: We compare our method against the following pure RGB visual navigation baselines:  
+
+> •
+
+General Navigation Model (GNM): A general-purpose visual navigation policy trained on diverse datasets collected across multiple environments and robot platforms [16].  
+
+> •
+
+Visual Navigation Transformer (ViNT): Atransformer-based foundation model for visual navigation that generates subgoals via diffusion-based planning [15].  
+
+> •
+
+Navigation with Goal Masked Diffusion (NoMaD): 
+
+A diffusion-based navigation policy that handles both goal-directed navigation and exploration in unknown environments [7]. 
+
+Datasets: To ensure fair comparison, all methods are trained on the same set of navigation datasets:  
+
+> •
+
+SACSoN/HuRoN: 70+ hours indoor trajectories with human interactions[32].  
+
+> •
+
+SCAND: 9 hours of trajectories from Spot and Jackal robots in diverse social navigation scenarios [33]. SaferPath (Ours, NoMaD) SaferPath (Ours, ViNT) SaferPath ( Ours, GNM)       
+
+> ViNT NoMaD GNM Collision Start End Obstacle
+> Fig. 4: The figure illustrates the scene from Robust Navigation under Unseen Obstacles experiment. The scene above (Scene A) introduces obstacles along the sides of the road in the original environment, while the scene below (Scene B) includes all the obstacles from Scene A and adds additional obstacles in the middle of the road. The figures display some examples of successful trajectories of our method and examples of collision scenarios of the baseline methods.
+> •
+
+GoStanford2: 16 hours of Turtlebot2 trajectories col-lected across multiple campus buildings [34].  
+
+> •
+
+RECON: 18 months of navigation data supporting cross-domain tasks in varied environments [35]. 
+
+Training: All methods are trained on RGB images and trajectory sequences from the datasets above, using a single NVIDIA RTX 4090 GPU, batch size 256, for 20 epochs. 
+
+Evaluation Metrics: We evaluate navigation performance using success rate and average number of collisions per trial .All simulation experiments and ablation study are repeated 50 times to ensure statistical reliability. 
+
+Scenario Configuration: All evaluation scenarios are unseen during training. The robot’s full trajectory is recorded within a fixed time horizon. A trial is considered successful if the robot reaches the designated goal region within this limit; otherwise, it is marked as a failure. Collisions are counted whenever the robot briefly contacts an obstacle or wall before reaching the goal. 
+
+B. Robust Navigation under Unseen Obstacles 
+
+In this experiment, we evaluate the robustness of our framework when the robot encounters obstacles that are absent from the learned guidance. Specifically, we use guid-ance generated in the original environment without these obstacles, and during deployment we introduce additional, previously unseen obstacles along the navigation path while keeping the guidance unchanged. This setup contains dy-namic environmental changes and tests the model’s ability to handle unforeseen perturbations. The experimental design is illustrated in Fig. 4, where obstacles are randomly placed along indoor corridors to interfere with the planned navigation trajectory. In Scene A, obstacles are positioned along the sides of the corridors, TABLE I: Performance comparison of Robust Navigation under Unseen Obstacles experiment. Our method outperforms all baseline methods in the same scene. When more obstacles are introduced into the scene, our method experiences less performance drop compared to the baseline methods.                              
+
+> Method Scene A Scene B Success (%) Coll. Success (%) Coll.
+> GNM 68 0.70 26 1.22 ViNT 94 0.22 80 0.80 NoMaD 56 1.46 20 2.34 SaferPath(Ours, GNM) 82 0.08 74 0.06
+> SaferPath(Ours, ViNT) 94 094 0.08 SaferPath(Ours, NoMaD) 98 0.02 94 0.06
+
+TABLE II: Performance comparison of Exploration in Dense Unstructured Environments experiment. Our method demonstrates significantly better obstacle avoidance capability compared to the baseline method.       
+
+> Method Success (%) Coll.
+> NoMaD 38 2.66 SaferPath(Ours, NoMaD) 96 0.04
+
+causing minimal occlusion of the robot’s view. In Scene B, additional obstacles are placed in the middle of the corridors, creating significant occlusion and posing greater challenges to navigation. As shown in Fig. 4, these occlusions can temporarily restrict the robot’s field of view, leading to partial or complete loss of guidance information and potentially unsafe trajectory predictions. Table I summarizes the results. SaferPath(Ours, GNM/V-iNT/NoMaD) denotes our framework built on these end-to-end visual navigation models. In Scene A, with only a few additional obstacles, all baseline methods achieve moderate success rates. In Scene B, where occlusions are more severe, baseline performance drops significantly: GNM and NoMaD show larger declines, while ViNT remains relatively more robust. NoMaD also exhibits higher collision counts, likely due to its reliance on goal masks during training, which can lead to unsafe trajectories when guidance is unavailable; in contrast, GNM and ViNT produce more conservative behav-iors under such conditions. When our module is integrated, all enhanced versions maintain high success rates and low collision counts across both Scene A and Scene B, with only minor performance reduction under heavy occlusion. These results demonstrate that our module effectively mitigates guidance unavailability, enabling safe and reliable navigation in dynamically changing environments. 
+
+C. Exploration in Dense Unstructured Environments 
+
+In this experiment, we evaluate the framework’s abil-ity to explore challenging unstructured environments with dense obstacles in the absence of explicit goal guidance. The method leverages its goal mask mechanism to enable exploration without external inputs. A dense obstacle field is constructed, and the robot is initialized within this region (see Fig. 5). The task is considered successful if the robot exits the obstacle field within a predefined time limit. Performance is assessed using two metrics: success rate and average number of collisions. Start Constrained Region Free -Space Region  
+
+> SaferPath (Ours, NoMaD) NoMaD
+
+Fig. 5: In Exploration in Dense Unstructured Environments experi-ment, the trajectory of SaferPath (Ours, NoMaD) (green) effectively avoids dense obstacles and reaches the free-space region. In con-trast, the NoMaD trajectory (red) is more chaotic and results in significantly more collisions. 
+
+TABLE III: Performance comparison in Obstacle Avoidance in Narrow Corridors experiment. Our method significantly outper-forms the baseline methods, with all baseline methods failing in this experiment.               
+
+> Method Success (%) Coll.
+> GNM 04.36 NoMaD 04.10 ViNT 04.04 SaferPath(Ours, GNM) 76 0.42 SaferPath(Ours, NoMaD) 54 0.52 SaferPath(Ours, ViNT) 80 0.16
+
+Table II reports the results. In dense obstacle fields without guidance, our method demonstrates effective obstacle avoid-ance and reliable navigation. Compared to NoMaD, it im-proves the success rate by over 50% while also significantly reducing collisions, underscoring its robustness and safety in unguided exploration scenarios. 
+
+D. Obstacle Avoidance in Narrow Corridors 
+
+In this experiment, we evaluate navigation performance in narrow and unstructured indoor environments (see Fig. 7). This setting imposes stringent requirements on accurate ob-stacle avoidance and precise path planning through confined corridors, where even small deviations can result in wall collisions. The irregular layout of the passageways further challenges the real-time performance and robustness of dif-ferent methods. Table III summarizes the results. All baseline methods fail in this demanding navigation task, unable to maintain safe trajectories in such constrained spaces. In contrast, the three enhanced versions equipped with our module achieve significantly higher success rates and lower collision counts. Taking ViNT as an example, we visualize the trajectories from all trials for both the original and enhanced versions. The results clearly show that our module enables the robot to remain within safe passage areas, while the original ViNT frequently produces unsafe trajectories that lead to collisions and task failure. 
+
+E. Real-World Navigation on a Quadruped Robot 
+
+We conducted real-world experiments to validate the ef-fectiveness of our method in practical scenarios. The exper-Safety Constrained Trajectory Learned Guidance Trajectory Fig. 6: Our SaferPath deployed on the Unitree Go2 successfully avoids both unseen and dynamic obstacles, navigates narrow spaces, and consistently remains within safe areas. When no traversable trajectory is available, the Emergency Indicator stops the robot and reorients it toward a safe direction. Start End SaferPath (Ours, ViNT) ViNT 
+
+Fig. 7: The figure illustrates partial trajectories from Obstacle Avoidance in Narrow Corridors experiment, where the trajectory of SaferPath (Ours, ViNT) (green) is clearly smoother and safer, with significantly fewer collisions compared to ViNT (red). This demonstrates the superior obstacle avoidance capability and robust-ness of SaferPath in complex environments over ViNT. 
+
+iments were performed on a Unitree Go2 quadruped robot equipped with an Intel D435i camera, using only its RGB functionality for perception. For navigation, we deployed SaferPath (ours) alongside NoMaD for comparison. Figure 6 shows representative scenarios where four baseline methods are prone to collisions. In these cases, the reference trajecto-ries often bring the robot dangerously close to obstacles. By contrast, after integrating SaferPath, the robot is able to (i) maintain a safe distance from side walls, (ii) navigate narrow passages without collisions, (iii) react promptly to emergency situations by stopping and rerouting to a feasible path, and (iv) avoid obstacles positioned in the center of its trajectory. These results demonstrate that SaferPath enables robust and safe navigation in real-world environments, effectively handling narrow passages and dynamic obstacles. 
+
+TABLE IV: The ablation study reveals that all modules are essential, with MP-SVES being the most critical for system stability and performance.           
+
+> Method Success (%) Coll.
+> SaferPath(Ours w/o TSM, ViNT) 60 1.34 SaferPath(Ours w/o MP-SVES, ViNT) 02.28 SaferPath(Ours w/o Em, ViNT) 70 1.14 SaferPath(Ours, ViNT) 80 0.16
+
+F. Ablation Study 
+
+To analyze the contribution of individual components, we conduct an ablation study by selectively removing the Traversability Score Mapper (TSM), MP-SVES, and Emer-gency Indicator modules:  
+
+> •
+
+w/o TSM : Remove the Traversability Score Mapper, eliminating the score-map safety constraint.  
+
+> •
+
+w/o MP-SVES : Remove the MP-SVES module, placing all constraints into the MPC module and solving with a conventional nonlinear solver IPOPT[36].  
+
+> •
+
+w/o Em : Remove the Emergency Indicator module, such that when a safety-constrained trajectory is infeasible, the learned guidance trajectory is executed directly. We repeat the obstacle avoidance in complex environ-ments experiment using ViNT as the underlying end-to-end visual navigation model. Table IV summarizes the results. Removing any module degrades performance. In particular, eliminating MP-SVES causes the success rate to drop to 0%, underscoring its critical role in ensuring system stability. Without the Traversability Score Mapper, the success rate decreases by 20% and collisions increase significantly, high-lighting its importance for obstacle avoidance. Removing the Emergency Indicator module also reduces success rates and increases collisions, showing its necessity in extreme cases. These results directly address the research questions posed in the Introduction. For Q1 , the proposed module signif-icantly improves the safety and robustness of end-to-end visual navigation: in environments with additional obstacles, augmented models maintain high success rates and low colli-sion counts, demonstrating that feasible and safe trajectories are preserved. For Q2 , in narrow and cluttered environments that are underrepresented in training data, the module enables efficient and collision-free navigation, yielding substantial performance gains. Consistent results across both simulation and real-world experiments confirm the effectiveness and generality of our approach. V. C ONCLUSION 
+
+We propose SaferPath, a hierarchical visual navigation framework that leverages learned guidance from end-to-end visual navigation models while ensuring safe and feasible trajectory execution. By effectively utilizing the directional information provided by these models, SaferPath employs the MP-SVES algorithm to optimize trajectories, generat-ing safety constrained paths in just a few iterations while handling both safe zone navigation and emergency obstacle avoidance. Extensive experiments demonstrate that our ap-proach outperforms state-of-the-art end-to-end visual models by over 40%, and is capable of safe navigation even in complex and narrow environments. Despite these improvements, the method is limited by the restricted field of view of RGB observations, which may lead to collisions when obstacles are outside the camera’s view. Future work will focus on incorporating richer sensory modalities and predictive scene understanding to further improve robustness in cluttered and dynamic settings. REFERENCES [1] Y. Liu, L. Liu, Y. Zheng, Y. Liu, F. Dang, N. Li, and K. Ma, “Embodied navigation,” Science China Information Sciences , vol. 68, no. 4, p. 141101, 2025. [2] T. Zhang, X. Hu, J. Xiao, and G. Zhang, “A survey of visual navigation: From geometry to embodied ai,” Engineering Applications of Artificial Intelligence , vol. 114, p. 105036, 2022. [3] A. Elfes, “Using occupancy grids for mobile robot perception and navigation,” Computer , vol. 22, no. 6, 1989. [4] S. Thrun and A. Bücken, “Integrating grid-based and topological maps for mobile robot navigation,” in Proceedings of the national conference on artificial intelligence , 1996, pp. 944–951. [5] P. E. Hart, N. J. Nilsson, and B. Raphael, “A formal basis for the heuristic determination of minimum cost paths,” IEEE Transactions on Systems Science and Cybernetics , vol. 4, no. 2, pp. 100–107, 1968. [6] S. M. LaValle, “Rapidly-exploring random trees : a new tool for path planning,” The annual research report , 1998. [7] A. Sridhar, D. Shah, C. Glossop, and S. Levine, “NoMaD: Goal Masked Diffusion Policies for Navigation and Exploration,” arXiv pre-print , 2023. [8] H. Liu, D. Guo, and A. Cangelosi, “Embodied intelligence: A synergy of morphology, action, perception and learning,” ACM Computing Surveys , Feb. 2025. [9] W. Zheng, R. Song, X. Guo, C. Zhang, and L. Chen, “Genad: Generative end-to-end autonomous driving,” arXiv preprint arXiv: 2402.11502 , 2024. [10] Y. Hu, J. Yang, L. Chen, K. Li, C. Sima, X. Zhu, S. Chai, S. Du, T. Lin, W. Wang, L. Lu, X. Jia, Q. Liu, J. Dai, Y. Qiao, and H. Li, “Planning-oriented autonomous driving,” in Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition ,2023. [11] G. Kahn, P. Abbeel, and S. Levine, “Badgr: An autonomous self-supervised learning-based navigation system,” IEEE Robotics and Automation Letters , vol. 6, no. 2, pp. 1312–1319, 2021. [12] J. Liang, P. Gao, X. Xiao, A. J. Sathyamoorthy, M. Elnoor, M. C. Lin, and D. Manocha, “Mtg: Mapless trajectory generator with traversabil-ity coverage for outdoor navigation,” in 2024 IEEE International Conference on Robotics and Automation (ICRA) . IEEE, 2024, pp. 2396–2402. [13] J. Liang, A. Payandeh, D. Song, X. Xiao, and D. Manocha, “Dtg: Diffusion-based trajectory generation for mapless global navigation,” 2024. [14] A. Saviolo and G. Loianno, “Nova: Navigation via object-centric visual autonomy for high-speed target tracking in unstructured gps-denied environments,” arXiv preprint arXiv:2506.18689 , 2025. [15] D. Shah, A. Sridhar, N. Dashora, K. Stachowicz, K. Black, N. Hirose, and S. Levine, “ViNT: A foundation model for visual navigation,” in 
+
+7th Annual Conference on Robot Learning , 2023. [16] D. Shah, A. Sridhar, A. Bhorkar, N. Hirose, and S. Levine, “GNM: A General Navigation Model to Drive Any Robot,” in International Conference on Robotics and Automation (ICRA) , 2023. [17] Y. Zeng, H. Ren, S. Wang, J. Huang, and H. Cheng, “Navidiffusor: Cost-guided diffusion model for visual navigation,” arXiv preprint arXiv:2504.10003 , 2025. [18] R. Grandia, F. Farshidian, A. Dosovitskiy, R. Ranftl, and M. Hutter, “Frequency-aware model predictive control,” IEEE Robotics and Au-tomation Letters , vol. 4, no. 2, pp. 1517–1524, 2019. [19] Z. Huang, Y. Lin, F. Yang, and D. Berenson, “Subgoal diffuser: Coarse-to-fine subgoal generation to guide model predictive control for robot manipulation,” in 2024 IEEE International Conference on Robotics and Automation (ICRA) , 2024, pp. 16 489–16 495. [20] S. Samavi, A. Lem, F. Sato, S. Chen, Q. Gu, K. Yano, A. P. Schoellig, and F. Shkurti, “Sicnav-diffusion: Safe and interactive crowd navigation with diffusion trajectory predictions,” IEEE Robotics and Automation Letters , vol. 10, no. 9, pp. 8738–8745, 2025. [21] H. Xue, C. Pan, Z. Yi, G. Qu, and G. Shi, “Full-order sampling-based mpc for torque-level locomotion control via diffusion-style annealing,” 2024. [22] M. Tan and Q. V. Le, “Efficientnet: Rethinking model scaling for convolutional neural networks,” 2020. [23] A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. Kaiser, and I. Polosukhin, “Attention is all you need,” 2023. [24] J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,” 2020. [25] L. Yang, B. Kang, Z. Huang, X. Xu, J. Feng, and H. Zhao, “Depth anything: Unleashing the power of large-scale unlabeled data,” in 
+
+CVPR , 2024. [26] J. F. Bonnans, J. C. Gilbert, C. Lemaréchal, and C. A. Sagastizábal, 
+
+Numerical Optimization: Theoretical and Practical Aspects , second revised edition of translation of 1997 french edition ed., ser. Univer-sitext. Berlin: Springer-Verlag, 2006. [27] S. J. Wright, Primal-Dual Interior-Point Methods . Society for Industrial and Applied Mathematics, 1997. [28] E. Theodorou, J. Buchli, and S. Schaal, “A generalized path integral control approach to reinforcement learning,” Journal of Machine Learning Research , vol. 11, no. 104, pp. 3137–3181, 2010. [29] G. Williams, P. Drews, B. Goldfain, J. M. Rehg, and E. A. Theodorou, “Aggressive driving with model predictive path integral control,” in 
+
+2016 IEEE International Conference on Robotics and Automation (ICRA) , 2016, pp. 1433–1440. [30] Q. Liu and D. Wang, “Stein variational gradient descent: A general purpose bayesian inference algorithm,” 2019. [31] C. V. Braun, R. T. Lange, and M. Toussaint, “Stein variational evolution strategies,” ArXiv , vol. abs/2410.10390, 2024. [32] N. Hirose, D. Shah, A. Sridhar, and S. Levine, “Sacson: Scalable autonomous control for social navigation,” IEEE Robotics and Au-tomation Letters , vol. 9, no. 1, pp. 49–56, 2024. [33] H. Karnan, A. Nair, X. Xiao, G. Warnell, S. Pirk, A. Toshev, J. Hart, J. Biswas, and P. Stone, “Socially compliant navigation dataset (scand): A large-scale dataset of demonstrations for social navigation,” IEEE Robotics and Automation Letters , 2022. [34] N. Hirose, A. Sadeghian, M. Vázquez, P. Goebel, and S. Savarese, “Gonet: A semi-supervised deep learning approach for traversability estimation,” pp. 3044–3051, 2018. [35] D. Shah, B. Eysenbach, N. Rhinehart, and S. Levine, “Rapid ex-ploration for open-world navigation with latent goal models,” in 5th Annual Conference on Robot Learning , 2021. [36] F. E. Curtis, O. Schenk, and A. Wächter, “An interior-point algorithm for large-scale nonlinear optimization with inexact step computations,” 
+
+SIAM Journal on Scientific Computing , vol. 32, no. 6, pp. 3447–3475, 2010.

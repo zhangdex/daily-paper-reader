@@ -1,0 +1,511 @@
+Title: Finite-time Convergent Control Barrier Functions with Feasibility Guarantees
+
+URL Source: https://arxiv.org/pdf/2603.22445v1
+
+Published Time: Wed, 25 Mar 2026 00:07:18 GMT
+
+Number of Pages: 7
+
+Markdown Content:
+# Finite-time Convergent Control Barrier Functions with Feasibility Guarantees 
+
+Anni Li, Yingqing Chen, Christos G. Cassandras and Wei Xiao 
+
+Abstract — This paper studies the problem of finite-time convergence to a prescribed safe set for nonlinear systems whose initial states violate the safety constraints. Existing Control Lyapunov-Barrier Functions (CLBFs) can enforce recovery to the safe set but may suffer from the issue of chattering and they do not explicitly consider control bounds. To address these limitations, we propose a new Control Barrier Function (CBF) formulation that guarantees finite-time convergence to the safe set while ensuring feasibility under control constraints. Specifically, we strengthen the initially violated safety constraint by introducing a parameter which enables the exploitation of the asymptotic property of a CBF to converge to the safe set in finite time. Furthermore, the conditions for the existence of such a CBF under control bounds to achieve finite-time convergence are derived via reachability analysis and constraint comparison, providing a systematic approach for parameter design. A case study on 2D obstacle avoidance is presented to demonstrate the effectiveness and advantages of the proposed method. 
+
+I. INTRODUCTION Constrained optimal control problems subject to safety requirements are central to cyber-physical systems and multi-agent systems with safety-critical autonomous agents. Ensuring strict constraint satisfaction in such dynamic systems is therefore a key challenge, for which Barrier Functions (BFs) have emerged as an effective tool in solving optimization problems [1]. In control systems, BFs are Lyapunov-like functions [ 2], [3]. They have been used to prove set invariance [ 4 ], [ 5], [ 6], as well as for multi-objective control [ 7]. It was proved in [2 ] that if a BF for a given safe set satisfies Lyapunov-like conditions, then the set is forward invariant. A BF that is less restrictive in the sense that it is allowed to decrease when far away from the boundary of the set was proposed in [ 8]. Control BFs (CBFs) are a version of BFs used for control systems which is employed to map a state constraint onto a state-feedback control constraint. In recent years, CBFs have received increasing attention in the effort to provide 
+
+guarantees for enforcing critical safety constraints [ 8] [ 9 ] [ 10 ][11 ]. This is largely due to the fact that solving optimal control problems for nonlinear systems with nonlinear constraints is computationally prohibitive for real-time applications. CBFs have been shown to provide a computationally efficient alternative at the expense of potentially more conservative control. However, this type of CBFs is mainly designed for systems that are initially safe.  
+
+> Anni Li is with the Electrical and Computer Engineering department at UNC-Charlotte.
+
+ali20@charlotte.edu  
+
+> Yingqing Chen, Christos G. Cassandras are with Division of Systems Engineering at Boston University.
+
+{yqchenn,cgc }@bu.edu .Wei Xiao is with the robotics engineering department at WPI and with CSAIL, MIT. weixy@mit.edu .
+
+To account for systems that initially violate the safety constraint or systems that may evolve outside the safe set due to random events or encounter previously unmodeled unsafe regions (e.g., the traffic control problem for roundabouts studied in [ 12 ]), one may employ robust CBFs by choosing extended class K functions instead of class K functions [ 13 ][14 ]. In this way, the system state will always be stabilized to the safe set whenever the safety constraint is violated since the CBF can be viewed as a general form of Control Lyapunov Function [ 15 ]. However, the use of extended class K functions cannot ensure that a safety constraint is satisfied in finite time .To ensure that the system converges to the safe set in finite time, i.e., ensure finite-time convergence, Control Lyapunov-Barrier functions (CLBFs) have been proposed in [ 16 ] [ 17 ]. Nevertheless, this approach does not usually take into account control bounds which may easily conflict with the CLBF constraint, thus leading to infeasibility. Moreover, chattering behaviors at the boundary of the safe set commonly arise as the corresponding derivative of the extended class K function may become infinite at the boundary [ 18 ]. Unifying barrier and Lyapunov functions, as proposed in [ 2 ], [ 19 ], may also be used in principle, so as to implement finite-time convergence specifications, but this method is only considered for linear state constraints. Finite-time convergence to a safe set that avoids the drawback of CLBFs has recently been studied in diffusion models [ 20 ] or using time-varying functions [ 21 ], but these works are done without considering control bounds. In this paper, we formalize the finite-time convergence method proposed in [ 20 ] for general control systems that initially violate the safety constraint. We propose finite-time convergent CBFs , which can strictly ensure the satisfaction of the initially violated constraint within a specified time. Further, we analyze the feasibility of such finite-time convergent CBFs under control bounds using reachability analysis and constraint comparison. As a result, we can determine parameters for a finite-time convergent CBF such that it will never conflict with control bounds, thus ensuring the feasibility of the eventual optimization problem. Due to the convergence property of the proposed finite-time convergent CBF, we can find the reachable set from the initial system state and even find the parameters based only on the initial system state that can ensure the feasibility of the finite-time convergent CBF. All these properties facilitate the parametric design of controllers based on feasibility-guaranteed finite-time convergent CBFs. In summary, we make the following two contributions in this paper: 1) We formalize the finite-time convergent CBF proposed 
+
+> arXiv:2603.22445v1 [eess.SY] 23 Mar 2026
+
+for diffusion models [ 20 ] to general nonlinear control affine systems, and analyze the associated parametric controller design. 2) We propose a feasibility analysis method to ensure the existence of a valid finite-time convergent CBF under control bounds using reachability analysis and constraint comparison. The remainder of the paper is organized as follows. We present preliminaries on CBFs and CLBFs in Sec.II, and formulate a constrained optimal control problem in Sec.III. We propose the feasibility guaranteed finite-time convergent CBF in Sec. IV. A case study of a 2D robot obstacle avoidance problem is given in Sec. V. We conclude this paper in Sec.VI. II. PRELIMINARIES In this section, we introduce preliminary material on CBFs [ 8] for safety and CLBFs for finite-time safety convergence. 
+
+A. Control Barrier Functions 
+
+Definition 1: (Class K function [22 ]) A continuous func-tion α : [0 , a ) → [0 , ∞), a > 0 belongs to class K if it is strictly increasing and α(0) = 0 . A continuous function 
+
+β : R → R belongs to extended class K if it is strictly increasing and β(0) = 0 .We consider an affine control system (assumed to be deterministic): 
+
+˙x = f (x) + g(x)u (1) where x ∈ X ⊂ Rn, f : Rn → Rn and g : Rn → Rn×q are locally Lipschitz continuous, and u ∈ U ⊂ Rq is the control constraint set that is defined as follows ( umin ∈ Rq , umax ∈
+
+Rq ): 
+
+U := {u ∈ Rq : umin ≤ u ≤ umax }, (2) where the inequalities in the above are interpreted component-wise. 
+
+Definition 2: (Forward invariance [ 8 ]) A set C ⊂ Rn is forward invariant for system (1) if its solutions for u ∈ U
+
+starting at x(0) ∈ C satisfy x(t) ∈ C, ∀t ≥ 0.
+
+Definition 3: (Relative degree [ 22 ]) The relative degree of a (sufficiently many times) differentiable function b : Rn → R
+
+with respect to system (1) is defined as the number of times it needs to be differentiated along the dynamics until any component of the control u shows up in the corresponding derivative. In this paper, we refer to the relative degree of b as the relative degree of the constraint since the function b is used to define a constraint b(x) ≥ 0. For a constraint b(x) ≥ 0
+
+with relative degree m ≥ 1, we define ψ0(x) := b(x), and then we further define a sequence of CBFs ψi : Rn → R, i ∈{1, . . . , m }:
+
+ψi(x) := ˙ψi−1(x) + αi(ψi−1(x)) , i ∈ { 1, . . . , m }, (3) where αi, i ∈ { 1, . . . , m } denote (m − i)th order differen-tiable class K functions. Next, we define a sequence of safe sets Ci, i ∈ { 1, . . . , m }
+
+corresponding to CBFs (3): 
+
+Ci := {x ∈ Rn : ψi−1(x) ≥ 0}, i ∈ { 1, . . . , m }. (4) 
+
+Definition 4: (High Order Control Barrier Function (HOCBF) [10 ]) Let Ci, i ∈ { 1 . . . , m } be defined by (4) and ψi(x), i ∈ { 1, . . . , m } be defined by (3). A function b :
+
+Rn → R is a High Order Control Barrier Function (HOCBF) of relative degree m for system (1) if there exist (m − i)th 
+
+order differentiable class K functions αi, i ∈ { 1, . . . , m − 1}
+
+and a class K function αm s.t. 
+
+sup 
+
+> u∈U
+
+[Lf ψm−1(x) + Lg ψm−1(x)u + αm(ψm−1(x))] ≥ 0,
+
+(5) for all x ∈ ∩ mi=1 Ci. In (5), the left part is actually ψm(x),
+
+Lf (or Lg ) denotes Lie derivatives along f (or g). The HOCBF in Def. 4 is a general form of the relative degree one CBF [ 8], [ 9]. In other words, if m = 1 , a HOCBF reduces to the CBF constraint form: 
+
+Lf b(x) + Lg b(x)u + α1(b(x)) ≥ 0, (6) and the HOCBF is also a general form of the exponential CBF [ 23 ] (i.e., setting all class K functions as linear functions in a HOCBF). The following theorem establishes the safety guarantee properties of HOCBFs. 
+
+Theorem 1: ([ 10 ]) Given a HOCBF b(x) from Def. 4 with the safe sets Ci, i ∈ { 1, . . . , m } defined by (4), if x(0) ∈∩mi=1 Ci, then any Lipschitz continuous controller u(t) ∈ U
+
+that satisfies the HOCBF constraint in (5), ∀t ≥ 0 renders 
+
+∩mi=1 Ci forward invariant for system (1). 
+
+B. Control Lyapunov-Barrier Function 
+
+Definition 5: (Control Lyapunov-Barrier Function (CLBF) ) A function b : Rn → R is a Control Lyapunov-Barrier Function (CLBF) for system (1) if there exist a 
+
+p > 0 and 0 < q < 1 such that 
+
+sup 
+
+> u∈U
+
+[Lf b(x) + Lg b(x)u + pb q (x)] ≥ 0, (7) for all x /∈ C1.CLBFs are mainly designed for systems that initially violate a safety constraint, and they ensure that the constraint is satisfied within a specified time. In particular, a CLBF guarantees that the safety constraint b(x) ≥ 0 is satisfied within time b1−q (x(0))  
+
+> p(1 −q)
+
+. A class of such high-order CLBFs has been studied in [18]. In the literature, constrained optimal control problems with quadratic cost functions are commonly reformulated [ 8] by incorporating CBFs or HOCBFs to replace original state constraints. The time line is discretized and an optimization problem with constraints given by the CBFs/HOCBFs is solved at each time step. Note that these constraints are linear in control (see (5)) and the state value is given and fixed at the beginning of each time interval, therefore, the resulting optimization problem becomes a Quadratic Program (QP). The optimal control obtained from each QP is then applied over the entire time interval. The system state is updated by integrating dynamics (1). This procedure is repeated until the final time is reached. Mathematically, suppose the objective is to minimize R T 
+
+> 0
+
+uT Hu for system (1), where H ∈ Rq×qis positive definite. We partition the time interval [0 , T ] into a set of small time intervals {[0 , ∆t), [∆ t, 2∆ t), . . . }, where 
+
+∆t > 0. Within each [ω∆t, (ω + 1)∆ t) (ω = 0 , 1, 2, . . . ), the control input is assumed to be constant. Then at t = ω∆t,the following QP is solved: 
+
+min  
+
+> u(t)
+
+uT (t)Hu(t)
+
+s.t. umin ≤ u ≤ umax ,Lf ψm−1(x) + Lg ψm−1(x)u + αm(ψm−1(x)) ≥ 0.
+
+(8) CLBFs can also be incorporated into the above QP to ensure that the system state satisfies the safety constraint within a specified time. However, existing works usually do not consider the control bound as it can easily conflict with the CLBF constraint. Moreover, the CLBF may exhibit chattering behavior at the boundary of the safe set, as the derivative of pb q (x) in (7) goes to infinity when b(x) = 0 .In what follows, we show how we can ensure the feasibility of the finite-time convergence requirement while avoiding the chattering issue with a new proposed finite-time convergent CBF. III. PROBLEM FORMULATION AND APPROACH We begin by formulating a general constrained optimal control problem as follows. 
+
+Objective : (Minimizing cost) We consider an optimal control problem for system (1) with the cost defined as: 
+
+min 
+
+> u(t)
+
+Z T
+
+> 0
+
+C(|| u(t)|| )dt, (9) where T > 0, || · || denotes the 2-norm of a vector, C(·) is a strictly increasing function of its argument. 
+
+Safety guarantees : System (1) should always satisfy a safety constraint: 
+
+b(x(t)) ≥ 0, ∀t ∈ [0 , T ], (10) where b : Rn → R is continuously differentiable and has relative degree m ∈ N with respect to system (1). The problem can be extended to a more general setting with multiple simultaneous safety constraints of this form. 
+
+Safe Goal Constraint : System (1) should satisfy an ini-tially violated safety constraint at time tf ∈ [0 , T ]:
+
+h(x(tf )) ≥ 0, (11) where h : Rn → R is continuously differentiable and 
+
+h(x(0)) < 0.
+
+Control constraints : The control of the system (1) should always satisfy the control bound as defined in (2). A control policy is feasible for system (1) if all the safety constraints (11) and (10) and control bound (2) are satisfied for all times. 
+
+Problem 1: Find a feasible control policy for system (1) such that the cost (9) is minimized, and all safety constraints (11) and (10) are satisfied. 
+
+Approach: To solve Problem 1, our method is based on the proposed finite-time convergent CBF that enforces the constraint (11). We use a CBF/HOCBF to enforce the safety constraint (10), and directly take the cost (9) as the objective to minimize. Our proposed finite-time convergent CBF is flexible to be designed in a way that it will never conflict with the control bounds using constraint comparison and reachability analysis, as described next, thus ensuring the feasibility of the safety convergence problem. IV. F EASIBILITY -G UARANTEED FINITE -T IME CONVERGENT CBF S
+
+In this section, we define a new type of CBF termed finite-time convergent CBF with feasibility guarantees. This finite-time convergent CBF was first studied in diffusion models [20] without considering any control bounds. 
+
+A. Finite-Time convergent CBFs 
+
+Consider a safety constraint h(x) ≥ 0 that has relative degree one with respect to (1) and is initially violated as shown in (11) (the case where the relative degree is > 1 is the subject of ongoing research). The constraint has to be satisfied at time tf ∈ [0 , T ]. Te first problem we address is that employing a CLBF to enforce the finite-time convergence requirement may introduce a chattering behavior at the boundary of the safe set. To avoid this problem, we propose a new finite-time convergent CBF. It is known that a CBF with extended class K functions possesses the Lyapunov stability property if the corresponding safety constraint is initially violated [ 18 ]. Although this property is helpful to make the system state converge to the safe set, the system state may never reach the safe set by a desired finite time as this convergence is asymptotic. To employ the asymptotic stability of a CBF, we begin by strengthening the constraint with a constant r > 0 by defining a new constraint 
+
+s(x) := h(x) − r, (12) Then, we define s(x) as a valid finite-time convergent CBF as follows: 
+
+Definition 6 (Valid Finite-Time Convergent CBF): Given a safety convergence requirement h(x) ≥ 0 with h(x(0)) < 0
+
+as in (11), a strengthened safety convergence function s(x)
+
+defined in (12) is a valid finite-time convergent CBF if 
+
+sup 
+
+> u∈U
+
+[Lf s(x) + Lg s(x)u + ks (x)] ≥ 0, (13) for all x ∈ X, where k > 0.The following theorem shows the effectiveness of a valid finite-time convergent CBF: 
+
+Theorem 2: Given a valid finite-time convergent CBF 
+
+s(x) defined as in (6), if the parameters r and k are chosen such that 
+
+r ≥ (r − h(x(0))) e−kt f , (14) then the system state converges to the safe set defined by 
+
+h(x) ≥ 0 in finite time tf , i.e., h(x(tf )) ≥ 0.
+
+Proof: Define V (x) as 
+
+V (x) := −s(x) = r − h(x). (15) Since r > 0 and h(x(0)) < 0, we have V (x(0)) > 0.Substituting equation (15) into the constraint in (13), we have 
+
+Lf V (x) + Lg V (x)u + kV (x) ≤ 0, (16) which is equivalent to 
+
+˙V (x) + kV (x) ≤ 0. (17) Now, let us consider the case where the equality holds, i.e., 
+
+˙V (x) + kV (x) = 0 , (18) the solution of V (x) is then given by 
+
+V (x(t)) = V (x(0)) e−kt . (19) Applying the comparison lemma [ 22 ], equations (17)-(19) imply 
+
+V (x(t)) ≤ V (x(0)) e−kt (20) Substituting (15) into (20), we have 
+
+r − h(x(t)) ≤ (r − h(x(0))) e−kt ,
+
+which can be rewritten as 
+
+−h(x(t)) ≤ (r − h(x(0))) e−kt − r (21) Since the parameters r and k are chosen such that r ≥
+
+(r − h(x(0))) e−kt f , (21) yields 
+
+−h(x(tf )) ≤ (r − h(x(0))) e−kt f − r ≤ 0, (22) Thus, we have h(x(tf )) ≥ 0, and the system state converges to the safe set defined by h(x) ≥ 0 in finite time tf .Note that (20) implies that V (x) = r−h(x) asymptotically converges to 0, indicating that h(x) asymptotically converges to r > 0, thereby avoiding the chattering issues that may happen in the CLBF method. 
+
+Remark 1 (Existence of a finite-time convergent CBF): As shown in Def. 6, finding a valid finite-time convergent CBF remains challenging due to the control bound in (2). Specifically, a valid finite-time convergent CBF should satisfy both the corresponding constraint in (13) and the control bound (2) simultaneously. This problem remains largely underexplored in the literature and it is the second problem we address in the reminder of this paper by studying the feasibility of the proposed finite-time convergent CBFs. 
+
+B. Feasibility Analysis of Finite-Time convergent CBFs 
+
+In this subsection, we show how to find a valid finite-time convergent CBF using constraint comparison and reachability analysis. 
+
+Reachable Set. As shown in the proof of Thm. 2, the inequality (20) holds for all x, indicating V (x) = −s(x) = 
+
+r − h(x) is strictly decreasing. Since r is a positive constant, 
+
+h(x) is strictly increasing. Therefore, we can find the reachable set R(x(0)) for system state x in a finite-time convergent CBF: 
+
+R(x(0)) = {y ∈ Rn : h(x(0)) ≤ h(y) ≤ 0}. (23) From equation (23) , the reachable set R(x(0)) is closed if the safe set defined by h(x) ≥ 0 is closed. 
+
+Constraint Comparison. Suppose Lg s(x) ≤ 0 (the inequality is interpreted component-wise) and all the com-ponents in Lg s(x) do not change sign for all x ∈ R(x(0)) .The cases in which those assumptions are not satisfied can be addressed similarly, as shown in [24]. Since Lg s(x) ≤ 0, we multiply −Lg s(x) with the control bound (2) and get 
+
+−Lg s(x)umin ≤ − Lg s(x)u ≤ − Lg s(x)umax , (24) The finite-time convergent CBF constraint in (13) can be rewritten as 
+
+−Lg s(x)u ≤ Lf s(x) + ks (x) (25) Comparing the control constraint (24) with the finite-time convergent CBF constraint (25), their intersection is non-empty if 
+
+Lf s(x) + ks (x) ≥ − Lg s(x)umin .
+
+We define a candidate finite-time convergent CBF as follows: 
+
+Definition 7 (candidate finite-time convergent CBF): 
+
+Given a safety convergence requirement h(x) ≥ 0 with 
+
+h(x(0)) < 0 as in (11), a strengthened safety convergence function s(x) defined in (12) is a candidate finite-time convergent CBF if there exists a controller u such that 
+
+Lf s(x) + Lg s(x)u + ks (x) ≥ 0, (26) for all x ∈ X, where k > 0.The main difference between a valid finite-time convergent CBF in Def. 6 and a candidate finite-time convergent CBF in Def. 7 lies in that a valid finite-time convergent CBF considers the control bound u ∈ U given in (2) while a candidate valid finite-time convergent CBF does not. The following lemma will be used to show the feasibility of the finite-time convergent CBF: 
+
+Lemma 1: [ 24 ] If the control u is such that the finite-time convergence constraint in (25) is conflict free with (24), then the control bound (2) is also conflict free with the the finite-time convergence constraint in (25). The following theorem shows the existence of a valid finite-time convergent CBF (i.e., feasibility guaranteed finite-time convergent CBF): 
+
+Theorem 3: Given a candidate finite-time convergent CBF 
+
+s(x) as in Def. 7 with r and k chosen such that r ≥ (r −
+
+h(x(0))) e−kt f , if the parameters r and k satisfy 
+
+min  
+
+> x∈R(x(0))
+
+Lf s(x)+ ks (x) ≥ max  
+
+> x∈R(x(0))
+
+−Lg s(x)umin , (27) then, s(x) is a valid finite-time convergent CBF defined in Def. 6, and the system state is guaranteed to satisfy h(x(tf )) ≥ 0
+
+under the control bound (2). 
+
+Proof: Since 
+
+min  
+
+> x∈R(x(0))
+
+Lf s(x) + ks (x) ≥ max  
+
+> x∈R(x(0))
+
+−Lg s(x)umin ,
+
+we have 
+
+Lf s(x) + ks (x) ≥ − Lg s(x)umin (28) satisfied for all x ∈ R(x(0)) as R(x(0)) is the reachable set of system states under the candidate finite-time convergent CBF. Since s(x) is a candidate finite-time convergent CBF, it follows from (26) that the following inequality holds for all x:
+
+Lf s(x) + ks (x) ≥ − Lg s(x)u (29) Comparing (24) and (29) , the satisfaction of (28) implies that the constraint 
+
+−Lg s(x)umin ≤ − Lg s(x)u ≤ − Lg s(x)umax ,
+
+is conflict-free with the candidate finite-time convergent CBF constraint in Def. 7: 
+
+Lf s(x) + Lg s(x)u + ks (x) ≥ 0.
+
+By Lemma 1, the finite-time convergent CBF constraint in Def. 7 is also conflict-free with the control bound (2), and we have that 
+
+sup 
+
+> u∈U
+
+[Lf s(x) + Lg s(x)u + ks (x)] ≥ 0, ∀x,
+
+Hence, s(x) is a valid finite-time convergent CBF. Since r
+
+and k are chosen such that r ≥ (r − h(x(0))) e−kt f , by Thm. 2 we have that h(x(tf )) ≥ 0 is guaranteed to be satisfied under the control bound (2). Note that if Lg s(x) > 0, then the condition (27) in Thm. 3 becomes 
+
+min  
+
+> x∈R(x(0))
+
+Lf s(x) + ks (x) ≥ max  
+
+> x∈R(x(0))
+
+−Lg s(x)umax .
+
+Remark 2 (Choosing r and k): In practice, since s(x) is strictly increasing, as shown in the proof of Thm. 2, it suffices to check the condition Lf s(x(0)) + ks (x(0)) ≥−Lg s(x(0)) umin at the initial time 0, especially when 
+
+Lg s(x) is a constant and when Lf s(x) is either a constant or increasing. This happens in many examples, such as adaptive cruise control and 2D robot navigation control examples (considered in the next section of this paper). This observation significantly facilitates the choice of parameters r and k in order to find a valid finite-time convergent CBF without considering the entire reachable set of the system. 
+
+Remark 3: (Addressing conflict between safety constraint (10) and safety convergence (11)) We can employ a similar technique of finding a valid finite-time convergent CBF to address the possible conflict between safety constraint (10) and safety convergence (11). In practice, however, we find that the main feasibility issue for a finite-time convergent CBF lies in the conflict between the safety convergence (11) and the control bound (2). 
+
+Solution to Problem 1. To address Problem 1, we use a finite-time convergent CBF to enforce the safety convergence (11), and use a CBF/HOCBF to enforce the safety constraint(s) (10). Then, we can formulate an optimization problem, and use the time discretization method introduced at the end of Sec. II to solve it. Eventually, we get a sequence of QPs to be solved at discretized time instants. V. CASE STUDY In this section, we consider a robot 2D obstacle avoidance example, and compare our proposed method with a CLBF-based controller. We use the Quadprog to solve the QP, and use the ODE45 to integrate the dynamics in MATLAB . All the computation runs on a Intel(R) Core(TM) i7-14700HX CPU computer. The computation time for each QP is less than 0.01 s.We consider single integrator dynamics ˙x = u1, ˙y = u2
+
+for the robot, where (x, y ) ∈ R2 is the location of the robot, and u = ( u1, u 2) ∈ R2 is the control. The control bounds 
+
+are defined as 
+
+u1,min ≤ u1 ≤ u1,max ,u2,min ≤ u2 ≤ u2,max , (30) where u1,min < 0, u 2,min < 0, u 1,max > 0, u 2,max > 0.
+
+umax = ( u1,max , u 2,max ), umin = ( u1,min , u 2,min ).We consider four obstacles in the environment, and the corresponding safety constraints are defined as: 
+
+bi(x) := ( x − xo,i )2 + ( y − yo,i )2 − R2 
+
+> i
+
+, i ∈ { 1, . . . , 4} (31) where (xo,i , y o,i ) ∈ R2 denotes the location of the obstacle 
+
+i, and Ri > 0 denotes its radius. The safe goal constraint is defined as 
+
+(x − xc)2 + ( y − yc)2 ≤ R2, (32) where (xc, y c) ∈ R2 and R > 0, and h(x) = R2 −(x−xc)2 −
+
+(y − yc)2 ≥ 0 with h(x(0)) < 0. We require h(x(tf )) ≥ 0
+
+for a finite time tf > 0.The objective function (9) is explicitly defined as 
+
+min 
+
+> u(t)
+
+Z T
+
+> 0
+
+|| u(t)|| 2dt. (33) The problem is to find an optimal control that minimizes (33) subject to (30) - (32). We use both a CLBF [ 12 ] and a finite-time convergent CBF to enforce the safety convergence requirement (32), i.e., 
+
+h(x) ≥ 0. In the case of using a CLBF, we choose q = 1 /3
+
+in Def. 5 and p = h1−q (x(0))   
+
+> tf(1 −q)
+
+.For the case of a finite-time convergent CBF, we define a strengthened constraint 
+
+s(x) = h(x) − r, (34) We then define s(x) as a candidate finite-time convergent CBF as in Def. 7. In order to ensure h(x(tf )) ≥ 0, we choose 
+
+r and k such that 
+
+r ≥ (r − h(x(0))) e−kt f (35) following Thm. 2. Further, to ensure a valid finite-time convergent CBF, we require 
+
+Lf s(x) + ks (x) ≥ − Lg s(x)umax , ∀x (36) following Thm. 3. Note that in this case Lg s(x) > 0, thus we consider umax in (27) instead of umin . As Lf s(x) = 0 and 
+
+−Lg s(x)umax has the maximum value at the initial state, Fig. 1. Robot trajectories under different random initial positions with the proposed finite-time convergent CBF. The robot can reach the safety convergence set in specified time tf = 6s while guaranteeing safety (avoidance with respect to all obstacles). 
+
+we only need to consider the condition in Thm. 3 at the initial time 0, and (36) becomes: 
+
+k ≤ −Lg s(x(0)) umax 
+
+h(x(0)) − r .
+
+Combining the last equation with the finite-time convergence condition (35), it follows that r, k have to satisfy: 
+
+− 1
+
+tf
+
+ln 
+
+ rr − h(x(0)) 
+
+
+
+≤ k ≤ −Lg s(x(0)) umax 
+
+h(x(0)) − r .
+
+Finally, we use CBFs to enforce all the safety constraints, and we get the following QP to be solved at each time step following time discretization: 
+
+min  
+
+> u(t)
+
+|| u(t)|| 2
+
+s.t. 
+
+Lf s(x) + Lg s(x)u + ks (x) ≥ 0,Lf bi(x) + Lg bi(x)u + αi(bi(x)) ≥ 0, i ∈ { 1, . . . , 4},
+
+umin ≤ u ≤ umax .
+
+(37) where bi(x) = ( x − xo,i )2 + ( y − yo,i )2 − R2 
+
+> i
+
+.
+
+Simulation parameters. We define all the class K func-tions as linear functions with slope 2 in CBFs. The initial po-sition x(0) is randomly generated. In Fig. 1, the center of safe goal set is (xc, y c) = (0 , 0) m, the center of the four obstacles are (xo, 1, y o, 1) = (2 , 2.5) m, (xo, 2, y o, 2) = (−2, 2.5) m, 
+
+(xo, 3, y o, 3) = (2 , −2.5) m, (xo, 4, y o, 4) = ( −2, −2.5) m. In Fig. 4, the center of the obstacle is (xo, y o) = ( −1, −1) m.Other parameters are Ri = 1m, R = 1m, u 1,max =
+
+−u1,min = 2 m/s, u 2,max = −u2,min = 2 m/s , tf = 6 s.
+
+Results. The simulation results are summarized in Figs. 1 - 4. As shown in Fig. 1, where the safe goal constraint 
+
+h(x(tf )) ≥ 0 is illustrated by the blue circle, indicating that the robot is required to converge to this set in finite time. The red circles represent obstacles corresponding to t=s                             
+
+> 0123456
+> u1=(m=s)
+> -2
+> 0
+> 2
+> t=s
+> 0123456
+> u2=(m=s)
+> -2
+> 0
+> 2
+> t=s
+> 0123456
+> h(x)
+> -40
+> -20
+> 0
+> 5.999995 6
+> -1
+> 0
+> 1
+> 2#10 -3
+> Fig. 2. Control and h(x)profiles corresponding to the 10 trajectories in Fig. 1 with the proposed feasibility guaranteed finite-time CBF. The control bounds are strictly satisfied, and the finite-time convergence h(x(tf)) ≥0
+> is satisfied at tf= 6 s.
+
+unsafe sets, which the robot must avoid at all times. The initial positions of robots are randomly generated. Using the proposed feasibility guaranteed finite-time convergent CBF method, we can ensure that the robot reach the desired safe set (blue circle) while avoiding all the obstacles. Specifically, set 
+
+tf = 6 s, as shown in the last frame of Fig. 2, the robot under 10 randomly generated initial positions ultimately reaches the safe set within finite time tf as hi(x(tf = 6)) > 0
+
+for i = 1 , ..., 10 , and the control bounds are also strictly satisfied for all the trajectories as shown in the top two plots in Fig. 2. In the bottom plot, the finite-time convergent CBFs 
+
+hi(x), i = 1 , ..., 10 increase asymptotically to the desired value r, thereby demonstrateing the asymptotic convergence property proved in Thm. 2. Moreover, we compare the proposed finite-time convergent CBF with the CLBF method. The resulting robot trajectories under the two methods are shown in Fig. 3, where the blue curve corresponds to the CLBF method and the green curve represents the proposed method labeled FCCBF. It can be observed that the blue trajectory enters the red circle, indicating a collision with the obstacle, whereas the green trajectory remains outside the red circle, demonstrating that the proposed finite-time convergent CBF ensures the feasibility of the control policy while maintaining safety. Specifically, the control inputs of the proposed finite-time convergent CBF and CLBF methods, along with the evolution of the safety constraint b(x), are shown in Fig. 4, where the blue curve corresponds to the CLBF method and the orange curve represents the proposed finite-time convergent CBF (FCCBF) approach. The top two plots illustrate the control policies, where the control bounds are strictly satisfied for both methods. The sudden change in each curve indicates that the robot is avoiding the obstacle, which means the robot under CLBF gets close to the obstacle slower than the proposed FCCBF method. As a result, in the bottom plot, the blue curve becomes negative around t = 5s ,indicating a violation of the safety constraint, which means the corresponding CLBF control policy is infeasible. The reason behind this is that the time left for the CLBF-based controller to react to the obstacle is less than the time available using the proposed method, which makes the safety constraint conflict with the control bound. Meanwhile, the orange curve is always above 0, demonstrating that the proposed method guarantees safety and also maintains feasibility. x=m      
+
+> -6 -4 -2 0246
+> y=m
+> -6
+> -5
+> -4
+> -3
+> -2
+> -1
+> 0
+> 1
+> 2
+
+Initial  
+
+> Safegoalset
+
+Obstacle
+
+FCCBF
+
+CLBF  
+
+> -1 -0.5 0
+> -2.4
+> -2.2
+> -2
+> -1.8
+> -1.6
+
+Fig. 3. Robot trajectories under the proposed Finite-time convergent CBF (FCCBF) and CLBF method. The safety constraint (31) is violated as the blue trajectory (CLBF) enters the red circle, indicating a collision with the obstacle. The green curve (FCCBF) remains outside of the obstacle, ensuring conflict-free all the time. t=s      
+
+> 0123456
+> u1=(m=s)
+> -2
+> 0
+> 2
+
+t=s      
+
+> 0123456
+> u2=(m=s)
+> -2
+> 0
+> 2
+
+t=s         
+
+> 0123456
+> b(x)
+> 0
+> 10
+> 20
+> 30
+> 4.99 4.995 55.005
+> -0.3
+> -0.2
+> -0.1
+> 0
+> 0.1
+> CLBF
+> FCCBF
+
+Fig. 4. Control and b(x) profiles under CLBF and the Finite-time convergent CBF (FCCBF) method. The control bounds are strictly satisfied. The safety constraint b(x) ≥ 0 is not satisfied at around t = 5 s under the CLBF method, whereas the proposed method remains nonnegative for all time. 
+
+VI. CONCLUSION & FUTURE WORK This paper proposes a feasibility guaranteed finite-time convergent CBF that can ensure the system to satisfy an initially violated constraint under control bound, and this is achieved by employing the asymptotic property of the strengthened constraint and reachability analysis with constraint comparison. We validate the effectiveness of the proposed methods on a 2D obstacle avoidance example with results showing finite-time convergence with feasibility guarantees. Future work will focus on the extension of the framework to high-order systems, as well as how to address the possible conflict between safety constraint and safety convergence requirements. REFERENCES [1] S. P. Boyd and L. Vandenberghe, Convex optimization . New York: Cambridge university press, 2004. [2] K. P. Tee, S. S. Ge, and E. H. Tay, “Barrier lyapunov functions for the control of output-constrained nonlinear systems,” Automatica , vol. 45, no. 4, pp. 918–927, 2009. [3] P. Wieland and F. Allgower, “Constructive safety using control barrier functions,” in Proc. of 7th IFAC Symposium on Nonlinear Control System , 2007. [4] J. P. Aubin, Viability theory . Springer, 2009. [5] S. Prajna, A. Jadbabaie, and G. J. Pappas, “A framework for worst-case and stochastic safety verification using barrier certificates,” IEEE Trans. on Automatic Control , vol. 52, no. 8, pp. 1415–1428, 2007. [6] R. Wisniewski and C. Sloth, “Converse barrier certificate theorem,” in 
+
+Proc. of 52nd IEEE Conference on Decision and Control , Florence, Italy, 2013, pp. 4713–4718. [7] D. Panagou, D. M. Stipanovic, and P. G. Voulgaris, “Multi-objective control for multi-agent systems using lyapunov-like barrier functions,” in Proc. of 52nd IEEE Conference on Decision and Control , Florence, Italy, 2013, pp. 1478–1483. [8] A. D. Ames, J. W. Grizzle, and P. Tabuada, “Control barrier function based quadratic programs with application to adaptive cruise control,” in Proc. of 53rd IEEE Conference on Decision and Control , 2014, pp. 6271–6278. [9] P. Glotfelter, J. Cortes, and M. Egerstedt, “Nonsmooth barrier functions with applications to multi-robot systems,” IEEE control systems letters ,vol. 1, no. 2, pp. 310–315, 2017. [10] W. Xiao and C. Belta, “High-order control barrier functions,” IEEE Transactions on Automatic Control , vol. 67, no. 7, pp. 3655–3662, 2021. [11] W. Xiao, C. G. Cassandras, and C. Belta, Safe autonomy with control barrier functions: Theory and applications . Springer. [12] Y. Chen and C. G. Cassandras, “Optimal safe sequencing and motion control for mixed traffic roundabouts,” in 2025 IEEE 64th Conference on Decision and Control (CDC) . IEEE, 2025, pp. 4988–4993. [13] X. Xu, P. Tabuada, J. W. Grizzle, and A. D. Ames, “Robustness of control barrier functions for safety critical control,” IFAC-PapersOnLine ,vol. 48, no. 27, pp. 54–61, 2015. [14] M. Jankovic, “Robust control barrier functions for constrained sta-bilization of nonlinear systems,” Automatica , vol. 96, pp. 359–367, 2018. [15] A. D. Ames, K. Galloway, and J. W. Grizzle, “Control lyapunov functions and hybrid zero dynamics,” in Proc. of 51rd IEEE Conference on Decision and Control , 2012, pp. 6837–6842. [16] M. Srinivasan, S. Coogan, and M. Egerstedt, “Control of multi-agent systems with finite time control barrier certificates and temporal logic,” in IEEE Conference on Decision and Control , 2018, pp. 1991–1996. [17] A. Li, L. Wang, P. Pierpaoli, and M. Egerstedt, “Formally correct composition of coordinated behaviors using control barrier certificates,” in 2018 IEEE/RSJ International Conference on Intelligent Robots and Systems , 2018, pp. 3723–3729. [18] W. Xiao, C. A. Belta, and C. G. Cassandras, “High order control lyapunov-barrier functions for temporal logic specifications,” in 2021 American Control Conference (ACC) . IEEE, 2021, pp. 4886–4891. [19] K. Sachan and R. Padhi, “Barrier lyapunov function based state-constrained control for a class of nonlinear systems,” IFAC-PapersOnLine , vol. 51, no. 1, pp. 7–12, 2018. [20] W. Xiao, T.-H. Wang, C. Gan, R. Hasani, M. Lechner, and D. Rus, “Safediffuser: Safe planning with diffusion probabilistic models,” in 
+
+The thirteenth international conference on learning representations ,2025. [21] Y. Chen, C. G. Cassandras, W. Xiao, and A. Li, “Exact-time safety recovery using time-varying control barrier functions with optimal barrier tracking,” https://arxiv.org/abs/2603.19119 , 2026. [22] H. K. Khalil, Nonlinear Systems . Prentice Hall, third edition, 2002. [23] Q. Nguyen and K. Sreenath, “Exponential control barrier functions for enforcing high relative-degree safety-critical constraints,” in Proc. of the American Control Conference , 2016, pp. 322–328. [24] W. Xiao, C. Belta, and C. G. Cassandras, “Sufficient conditions for feasibility of optimal control problems using control barrier functions,” 
+
+Automatica , vol. 135, p. 109960, 2022.

@@ -1,0 +1,296 @@
+Title: HUGE-Bench: A Benchmark for High-Level UAV Vision-Language-Action Tasks
+
+URL Source: https://arxiv.org/pdf/2603.19822v1
+
+Published Time: Mon, 23 Mar 2026 00:49:09 GMT
+
+Number of Pages: 23
+
+Markdown Content:
+# HUGE-Bench: A Benchmark for High-Level UAV Vision-Language-Action Tasks 
+
+Jingyu Guo 1∗, Ziye Chen 1∗, Ziwen Li 2, Zhengqing Gao 2, Jiaxin Huang 2,Hanlue Zhang 2, Fengming Huang 3,4, Yu Yao 4, Tongliang Liu 2,4†,Mingming Gong 1,2†
+
+> 1
+
+The University of Melbourne, 2MBZUAI, 3Navlyn, 4The University of Sydney 
+
+> ∗
+
+Equal contribution; †Corresponding author. 
+
+https://jingyu198.github.io/HUGE_Bench 
+
+Abstract. Existing UAV vision–language navigation (VLN) benchmarks have enabled language-guided flight, but they largely focus on long, step-wise route descriptions with goal-centric evaluation, making them less diagnostic for real operations wherecbrief, high-level commands must be grounded into safecmulti-stage behaviors. We present HUGE-Bench ,a benchmark for High-Level UAV Vision–Language–Action (HL-VLA) tasks that tests whether an agent can interpret concise language and exe-cute complex, process-oriented trajectories with safety awareness. HUGE-Bench comprises 4 real-world digital twin scenes, 8 high-level tasks, and 2.56M meters of trajectories, and is built on an aligned 3D Gaus-sian Splatting (3DGS)–Mesh representation that combines photorealis-tic rendering with collision-capable geometry for scalable generation and collision-aware evaluation. We introduce process-oriented and collision-aware metrics to assess process fidelity, terminal accuracy, and safety. Experiments on representative state-of-the-art VLA models reveal sig-nificant gaps in high-level semantic completion and safe execution, high-lighting HUGE-Bench as a diagnostic testbed for high-level UAV auton-omy. 
+
+Keywords: High-Level VLA · Benchmark · Data generation 
+
+# 1 Introduction 
+
+Unmanned aerial vehicles (UAVs) are increasingly deployed for inspection, search-and-rescue, infrastructure monitoring, and logistics, yet operating them in clut-tered 3D environments remains labor-intensive and error-prone. Operators must translate high-level intent into dense waypoints and continuous low-level control while maintaining situational awareness and safety. Recent advances in vision-language-navigation (VLN) suggest a promising alternative: language-guided flight, where users express intent in natural language and an agent grounds it into perception and actions [2,7,17,20]. In the UAV domain, aerial VLN benchmarks have further catalyzed progress by standardizing tasks, datasets, and evaluation   
+
+> arXiv:2603.19822v1 [cs.CV] 20 Mar 2026 2J. Guo et al.
+> Fig. 1: Overview of HUGE-Bench. Our benchmark comprises four 3DGS–Mesh digital-twin environments reconstructed from real-world scenes, eight high-level UAV VLA tasks, and 2.56 million meters of trajectory data. In addition, we develop a collision-aware simulation platform that enables collision-free trajectory collection and facilitates safety evaluation.
+
+protocols [7, 20]. However, existing benchmarks still only partially reflect how UAVs are commanded and evaluated in real operations. A central mismatch lies in instruction style and task abstraction. Most VLN settings emphasize long, step-wise route descriptions, and evaluation is largely goal-centric, e.g., Success Rate (SR) and Success weighted by Path Length (SPL) [2], sometimes complemented by normalized Dynamic Time Warping (nDTW) and Success weighted by nDTW (SDTW) for trajectory fidelity [10]. In contrast, UAV operators typically issue brief, high-level commands (e.g., “in-spect the building on the left”), leaving the system to infer targets, decompose subtasks, and execute a multi-stage procedure safely. Such commands stress semantic grounding from aerial viewpoints, 3D spatial reasoning over direc-tion/altitude/distance, and memory across stages. Yet most existing UAV bench-marks are still formulated as route-following VLN, which makes them less di-agnostic for short, underspecified commands and process-oriented multi-stage behaviors (Table 1). This gap is further amplified by environment representation and safety mod-eling. Benchmark validity depends on both photorealistic perception and phys-ically executable collision checking. Mesh-based simulators support physics and collision queries (e.g., high-fidelity UAV simulation in AirSim) [27], but may in-HUGE-Bench 3                                            
+
+> Table 1: Comparison of UAV navigation and action benchmarks. “Source” in-dicates whether the environments are synthetic or reconstructed from real-world data. “3D Rep.” denotes the 3D scene representation. “Subtask” indicates whether the bench-mark provides explicit multi-stage task decomposition rather than single-step naviga-tion. “Len. (m/w)” measures trajectory length normalized by instruction length. “Col-lision” indicates explicit collision-aware evaluation.
+> Benchmark Source 3D Rep. Subtask Len. (m/w) Collision Type
+> AerialVLN [20] Syn. Mesh ×7.97 ×VLN CityNav [19] Real P. Cloud ×20.92 ×VLN TravelUAV [31] Syn. Mesh ×2.45 ✓VLN Openfly [7] Syn., Real Mesh, 3DGS ×1.68 ×VLN UAV-Flow [30] Syn., Real Mesh ×<4×VLA
+> HUGE-Bench Real 3DGS-Mesh ✓32.07 ✓VLA
+
+troduce a perception gap for vision–language grounding. Conversely, neural ren-dering such as 3D Gaussian Splatting (3DGS) provides real-time, photorealistic novel-view rendering [15], but native 3DGS is appearance-first and does not di-rectly yield collision-ready geometry. Recent efforts toward physically executable 3DGS highlight the need for hybrid designs that pair 3DGS rendering with mesh-based collision bodies [21], which is particularly crucial for safety-critical UAV evaluation. Moreover, current evaluation protocols under-measure process correctness. Goal-only metrics can miss important failure modes in high-level missions: a policy may reach an endpoint while skipping required procedures, drifting from the intended process, or colliding en route. Many UAV missions are inherently process-oriented (inspection coverage, orbiting with clearance, map-ping completeness), and thus require metrics that assess procedural completion beyond endpoint success. To address these limitations, we introduce HUGE-Bench , a benchmark for High-Level UAV Vision Language Action (HL-VLA) control. HUGE-Bench con-tains 4 real-world 3DGS-Mesh scenes, 8 high-level tasks, and 2.56M meters of tra-jectories, together with collision-aware simulation. Unlike route-following VLN, HUGE-Bench targets the operational regime where a short command implies structured multi-stage behaviors. Our task suite spans landing, road/building inspection, area mapping, orbiting (altitude/radius control), multi-turn spiral-down, and obstacle-aware region traversal (Fig. 1). HUGE-Bench is enabled by a real-to-sim pipeline that couples photorealistic rendering with physics-grounded collision evaluation (Fig. 2). We reconstruct an aligned 3DGS–Mesh digital twin: 3DGS supports realistic perception, while the mesh provides colli-sion queries and depth. This design supports scalable trajectory generation while preserving an explicit safety channel (collision outcomes), enabling evaluation of both semantic grounding under short commands and safe execution. We propose evaluation tailored to high-level UAV behaviors. For process-critical tasks, we report Trajectory Coverage Rate (TCR) to quantify procedural completion rather than endpoint success alone. For goal-oriented landing we 4 J. Guo et al.  
+
+> Fig. 2: Trajectory generation pipeline of HUGE-Bench. Starting from real-world data collection, we reconstruct 3D environments using 3DGS and mesh repre-sentations. Landmarks are localized and annotated to generate spatial descriptions and task instructions. Trajectories are collected in the simulation platform with multimodal observations, including RGB, depth, 4-DoF state, and subtask phases.
+
+report SR, and for safety-critical traversal we additionally measure Collision Rate (CR) and Collision-aware Success weighted by Path Length (CSPL) to jointly reflect success, efficiency, and collision-free execution. Using this protocol, we benchmark representative VLA and VLM models (OpenVLA, FastVLM, π0,and π0.5) [11,12,16,29]. Results reveal substantial gaps in process completion and safe execution under short instructions, positioning HUGE-Bench as a diagnostic and safety-relevant testbed for high-level UAV VLA. In summary, our contributions are three-fold: 
+
+– HL-VLA task formulation. We introduce a new benchmark setting for HL-VLA tasks, where UAVs must interpret short, potentially ambiguous commands and execute multi-stage semantic behaviors. 
+
+– Real-to-sim benchmark. We build HUGE-Bench, a UAV benchmark con-structed from real-world scenes and an aligned 3DGS–Mesh digital twin, en-abling large-scale trajectory generation and realistic safety-aware evaluation. 
+
+– Process-oriented and safety evaluation. We propose process-oriented and collision-aware metrics that evaluate UAV execution along three dimen-sions: process fidelity, terminal accuracy, and safety. HUGE-Bench 5
+
+# 2 Related Work 
+
+2.1 Aerial Vision–Language Navigation and VLA 
+
+Vision–Language Navigation (VLN) studies instruction-conditioned navigation, typically evaluated with goal-centric success/efficiency metrics (e.g., SR/SPL) and trajectory-faithfulness scores (e.g., nDTW/SDTW) [2, 10, 17]. Large-scale VLN datasets and variants (e.g., R4R, RxR, CVDN, REVERIE) further expose long-horizon and grounded language challenges [13, 18, 24,28]. Methodologically, VLN has progressed from imitation/RL baselines to pretraining and transformer-based policies with longer memory and stronger grounding [4, 5, 8, 9]. Aerial VLN inherits this protocol but must handle continuous 3D flight dynamics, larger scale, and stronger safety constraints. AerialVLN proposes Look-ahead Guidance (LAG) to mitigate supervision mismatch between short-est paths and language-described routes [20]. OpenFly scales aerial VLN via automated trajectory–instruction generation across multiple engines and in-troduces a keyframe-aware agent with history and token merging [7]. Recent VLM/VLA-based navigation explores video-conditioned action prediction and cross-embodiment generalization [6, 32, 33]. Despite these advances, the domi-nant formulation remains route-following with detailed instructions. In contrast, we study high-level UAV Vision Language Action tasks under short, underspec-ified commands, where success requires process-oriented multi-stage execution and safety-aware behavior. 
+
+2.2 UAV VLN/VLA Benchmarks 
+
+UAV benchmarks vary widely in data sources, scene representations, annotation granularity, and safety protocols. As summarized in Table 1, AerialVLN [20], CityNav [19], and OpenFly [7] are primarily VLN-style benchmarks without intermediate subtask annotations and with limited collision-centric evaluation, while TravelUAV and OpenUAV emphasizes more realistic UAV simulation and assistant-guided object search [31]. UAV-Flow shifts to language-conditioned fine-grained control with real-world episodes, complementing VLN with a VLA-style control regime [30]. Overall, existing resources underrepresent the regime of short language driving long, multi-stage flights and rarely standardize collision-aware evaluation. HUGE-Bench is designed to occupy this missing region with (i) high-level task definitions, (ii) scalable trajectory generation, and (iii) explicit collision-aware evaluation enabled by our digital twin. 
+
+2.3 Environment Representations and Evaluation 
+
+Safety-relevant benchmarking depends on both photorealistic perception and physically executable collision checking. UAV simulation platforms such as Air-Sim support physics-based UAV dynamics and collision queries [27], while em-bodied AI simulators and datasets (e.g., Habitat, Matterport3D, HM3D) pro-vide efficient rendering and large-scale reconstructed geometry [3,25,26]. Neural 6 J. Guo et al.  
+
+> Fig. 3: Difference between previous VLN tasks and HL-VLA tasks. Left: a VLN task example [20] where the UAV follows a long-horizon navigation instruction through multiple landmarks. Right: a HL-VLA task example with a high-level instruc-tion decomposed into temporally aligned subtasks for structured trajectory execution.
+
+rendering, especially 3D Gaussian Splatting (3DGS), enables high-quality real-time novel-view synthesis [15], but is not collision-ready by default; recent work therefore advocates hybrid designs that pair 3DGS rendering with mesh-based collision bodies for physically executable evaluation [21]. On the metrics side, classic VLN emphasizes SR/SPL and trajectory similarity (nDTW/SDTW), and complementary measures such as instruction-fidelity/coverage have also been proposed [2, 10, 13]. Motivated by the need to evaluate process correct-ness and safety in high-level UAV behaviors, HUGE-Bench adopts an aligned 3DGS–Mesh digital twin and reports process-oriented and collision-aware met-rics (TCR/SR/CR/CSPL) tailored to multi-stage trajectories rather than goal-only navigation. 
+
+# 3 HUGE-Bench 
+
+We introduce HUGE-Bench, a benchmark for high-level Vision–Language–Action control of UAVs. HUGE-Bench includes (i) a task suite with representative high-level UAV behaviors, (ii) a scalable trajectory and annotation generation pipeline grounded in real-world capture, (iii) collision-aware simulation and data gener-ation platform based on an aligned 3DGS–Mesh digital twin, and (iv) process-oriented evaluation metrics that jointly measure process fidelity, terminal accu-racy, and safety. An overview of the pipeline is shown in Fig. 2. 
+
+3.1 High-level VLA Tasks for UAVs 
+
+We consider a UAV VLA policy that, given the current observation (e.g., RGB or RGBD) and a natural-language instruction, predicts the next-step action target, such as velocity commands or the next state along a trajectory: 
+
+at = πθ (ot, x, st) , (1) where ot denotes the UAV observation at time t, x is the instruction, st is the current state, and at is the action target (e.g., velocity vt or the next state st+1 )predicted by the policy πθ with parameters θ.HUGE-Bench 7 
+
+> Fig. 4: Examples of HL-VLA tasks in HUGE-Bench. Each example shows a natural-language instruction, the corresponding first-person view (FPV) observations highlighting target regions, and the resulting multi-stage flight trajectory.
+
+High-level instructions in our setting are short and potentially ambiguous, reflecting realistic human interaction patterns (e.g., “inspect the building on the left”). Unlike step-by-step low-level commands, a high-level instruction typically implies a sequence of latent subtasks. For example, “inspect the building on the left” requires the UAV to: (1) identify the referred building from an aerial viewpoint, (2) approach it, (3) descend to an inspection altitude, (4) orbit while maintaining safe clearance, and (5) return to the initial altitude and position. Therefore, HL-VLA for UAVs stresses: (1) Language grounding and subtask decomposition under short and underspecified instructions, (2) Semantic visual understanding from aerial perspectives, and (3) 3D spatial reasoning (direction, altitude, distance, orientation). A comparison between conventional UAV VLN and our proposed HL-VLA task is illustrated in Fig. 3 Based on these requirements, we define eight representative tasks (see Fig. 4): 1. Target Landing: orient toward a target, reach its overhead position, descend to a specified altitude, and hover (referred to as Landing ). 2. Road Inspection: reach the road, descend to inspection altitude, align with the required direction, perform inspection, then ascend back to the start altitude and stop (referred to as Inspection-R ). 3. Adaptive Building Inspection: approach the building boundary, descend to inspection altitude, select an orbit direction, circumnavigate along the bound-ary with adaptive clearance, then return to the start pose (referred to as 
+
+Inspection-B ). 4. Area Mapping: move to the boundary of a target region, descend to a spec-ified altitude, perform coverage-style mapping, and return to the start alti-tude (referred to as Mapping ). 5. Orbiting at Different Heights: reach the target overhead location at a speci-fied altitude, enter a circular track, loiter, then exit and return (referred to as Orbit-H ). 8 J. Guo et al. 
+
+6. Orbiting with Different Radius: similar to 5. but with an instruction-conditioned orbit radius (referred to as Orbit-R ). 7. Multi-turn Spiral Down: execute a spiral loiter pattern (multi-turn) condi-tioned on the instruction (referred to as Spiral Down ). 8. Region Traversal with Obstacle Avoidance: traverse a designated area while detecting obstacles and executing avoidance behaviors (referred to as Traver-sal ). Collectively, these tasks probe target recognition, directional grounding, depth and altitude awareness, and multi-stage trajectory completion in a unified HL-VLA setting. 
+
+3.2 Trajectory Data Generation 
+
+HUGE-Bench trajectories are generated through a real-to-sim pipeline that cou-ples photorealistic perception with physics-grounded collision awareness. The pipeline consists of: (1) real-world data capture, (2) aligned 3DGS–mesh digital twin reconstruction, (3) annotation generation, and (4) simulator-based trajec-tory collection. 
+
+Real-world Data Capture. We collect data using a DJI M400 UAV equipped with a Zenmuse L2 payload across four representative outdoor scenes: office buildings, dense urban blocks, swamp and farmland, and construction roads. The total covered area is approximately 6.45 km 2. Flights are performed at 
+
+∼ 85 m above ground, recording GPS from GNSS, UAV pose, camera pose, and high-resolution RGB images ( 5280 × 3956 ). To improve reconstruction quality at near-ground altitudes, we additionally capture supplementary low-altitude views. 
+
+3D Environment Reconstruction. For each scene, we reconstruct both a 3DGS model and a triangle mesh. This joint 3DGS–Mesh digital twin repre-sentation is central to HUGE-Bench: 3DGS provides high-fidelity renderings for realistic perception inputs. The mesh provides collision-enabled geometry and supports physics-based queries, as well as depth via ray casting. 
+
+Landmark Localization. We place a grid of top-down cameras at ∼ 60 m alti-tude and render the 3DGS scene to obtain global 2D map views, while rendering the mesh to obtain aligned depth. We then use an LLM to localize landmarks on the rendered maps and output normalized image coordinates. After manual re-view to remove ambiguous or incorrect labels, we back-project pixel coordinates using camera intrinsics and depth to obtain pixel-level 3D landmark positions. For semantically extended regions (e.g., buildings, roads, fields), we additionally provide human-annotated masks. HUGE-Bench 9 
+
+> Fig. 5: Dataset statistics of HUGE-Bench. We analyze trajectory length dis-tributions across tasks (left), the proportion of different task types (middle), and the vocabulary distribution in instructions through verb and landmark word clouds (right).
+
+Spatial Direction Descriptions. Many HL tasks cannot be reliably speci-fied with only generic nouns like “building” or “road,” especially when multiple visually similar candidates appear in view or when a route direction must be specified (e.g., road inspection “along the right side”). To address this, before trajectory collection we select the intended target, sample random initial views in its vicinity, and use the target mask to prompt an LLM to produce human-like spatial referring expressions (e.g., “upper-left,” “center,” “along the right side of the frame”). This yields instructions combining directional phrases with generic categories (e.g., “the building in the upper-left”), enabling more precise language grounding under high-level commands. 
+
+Simulator-based Trajectory Collection Trajectory collection is conducted in Isaac Sim [22], which offers GPU-accelerated rendering and PhysX-based rigid-body simulation. First, we import the aligned 3DGS–Mesh digital twin into the simulator. Then we generate a sequence of 3D waypoints using task-specific rules. During execution, the simulator records synchronized multimodal streams including RGB, depth, pose, flight states, and collision signals, enabling scal-able data generation and standardized evaluation. For data sampling, we record frames at approximately 1 m spatial intervals along the trajectory; during turns, we additionally sample at every 5◦ heading change to better capture viewpoint transitions. For the obstacle-avoidance traversal task, we generate paths using an RRT-based planner [14]. Because dense triangle meshes can significantly increase planning and collision-query cost, we perform mesh cleaning floater removal and mesh decimation to reduce complexity. Additional implementation details are provided in the Appendix. 
+
+3.3 Data Analysis 
+
+Fig. 5 summarizes the dataset statistics. Trajectory lengths vary substantially across tasks: Mapping exhibits the longest and most diverse trajectories, while Landing, Orbit-H, Orbit-R, and Spiral Down are shorter and more concentrated. The task distribution is relatively balanced, with Mapping as the largest subset (20.4%) and Traversal the smallest (8.1%). The two word clouds summarize the dominant semantics in HL-VLA instructions. The left cloud is dominated by 10 J. Guo et al. 
+
+scene entities and landmarks (e.g., building, road, tree, obstacle). The right cloud highlights action-oriented verbs (e.g., fly, orbit, avoid, inspect, spiral), suggesting that the tasks emphasize high-level motion primitives and inspection behaviors beyond simply reaching a goal. 
+
+3.4 Dataset Splits 
+
+We partition our dataset into three splits: train, test-seen, and test-unseen. This design aims to evaluate a model’s ability to generalize across both outdoor en-vironments and natural-language instructions. In our benchmark, we define test-seen as trajectories whose target landmark appears in the training set. Although the landmark itself is seen during training, the initial observation in the first frame is randomized, including the agent’s altitude, horizontal distance to the target, and the relative direction with respect to the landmark. This split evaluates whether the model can robustly reach a familiar target under novel initial viewpoints and spatial configurations. To further assess generalization to new scenarios and language, we construct a test-unseen split from two complementary sources: (1) Landmark-unseen: we hold out a subset of landmarks that never appear in training. (2) Instruction-unseen: we apply instruction-level generalization by randomly diversifying the language. Specifically, we use an LLM to generate paraphrases that replace the verb or the textual description of the target landmark while preserving the in-tended task semantics. In total, our dataset contains: 5,330 trajectories in train, 593 trajectories in test-seen, and 294 trajectories in test-unseen. This split mea-sures the model’s ability to handle novel landmarks and linguistic variations beyond the training distribution. 
+
+3.5 Evaluation Metrics 
+
+Classic goal-oriented VLN benchmarks mainly emphasize terminal success. In contrast, our HL-VLA suite contains heterogeneous tasks with different evalua-tion priorities: some are process-oriented (the intermediate execution matters), some are goal-oriented (only the final arrival matters), and some require both safety and efficiency during traversal. Accordingly, we report different metrics for different task types. For tasks such as inspection, mapping, and orbiting where completing the intended multi-stage procedure is crucial, we measure how well a predicted trajectory covers the intended ground-truth process using Trajectory Coverage Rate (TCR) .Given a ground-truth trajectory T gt = {pi}Ni=1 and a predicted trajectory 
+
+T pred (treated as a polyline), we compute the point-to-trajectory distance: 
+
+di = min  
+
+> q∈Tpred
+
+∥pi − q∥2. (2) TCR is then defined as: 
+
+TCR = 1
+
+N
+
+> N
+
+X
+
+> i=1
+
+I(di < δ ), (3) HUGE-Bench 11 
+
+where δ is a tolerance threshold (in meters). In our experiments we report 
+
+TCR@ K with multiple distance tolerances, where K denotes the threshold value in meters, i.e., TCR@1 , TCR@2 , and TCR@5 correspond to δ ∈ { 1 m , 2 m , 5 m },respectively. A larger K yields a more forgiving notion of coverage. Intuitively, TCR measures how much of the intended process is covered by the predicted behavior, rather than only whether the final endpoint is reached. For target landing and point-to-point traversal tasks where the primary ob-jective is reaching the goal, we report Success Rate (SR) [7, 20]. A trial is successful if the Euclidean distance between the predicted final position and the ground-truth endpoint is within a tolerance threshold. For tasks involving traversing cluttered environments and avoiding obsta-cles, we additionally evaluate safety and efficiency. We record collisions along the predicted trajectory and compute Collision Rate (CR) as the fraction of episodes in which at least one collision occurs, following common practice in collision-aware simulation benchmarks [23]. To jointly reflect goal reaching, collision-free execution, and path efficiency, we further report Collision-aware SPL (CSPL) based on Success weighted by Path Length (SPL) [1]: 
+
+CSPL = S · (1 − I(C > 0)) · L
+
+max( P, L ) , (4) where S indicates terminal success, L is the reference (ground-truth) path length, and P is the predicted path length. Here, I(C > 0) is an episode-level collision indicator that equals 1 if any collision occurs in the episode and 0 otherwise. Overall, these metrics capture process fidelity (TCR), terminal accuracy (SR), and safety and efficiency (CR, CSPL), enabling a faithful evaluation of HL-VLA behaviors across diverse task types. 
+
+# 4 Experiments 
+
+4.1 Baselines 
+
+The HL-VLA task requires both strong vision–language understanding and re-liable spatial perception. We therefore evaluate the performance of representa-tive state-of-the-art VLA models on HUGE-Bench. Specifically, we select Open-VLA [16], π0 [12], π0.5 [11], and FastVLM [29] as our baselines, as they cover a trade-off between general-purpose capability and efficiency. For FastVLM, we use FastVLM to efficiently encode visual and language inputs into hidden states, and we append π0’s action expert–initialized from π0–to predict actions. Following prior work [30], we provide the model with visual observations from two time steps: the first frame of the trajectory and the current frame. This two-frame input is intended to help the model infer the agent’s relative position and progress in 3D space. To ensure a fair comparison, all baselines are evaluated under the same input format and protocol on HUGE-Bench. Additional details on the models, training procedures, and implementation settings are provided in the Appendix. 12 J. Guo et al. 
+
+Table 2: Performance comparison under different HL-VLA tasks. Results are reported on Seen (S) and Unseen (U) splits. Bold indicates the best result on the unseen set. Task Metric OpenVLA FastVLM π0 π0.5
+
+S U S U S U S UInspection-B TCR@1 0.048 0.041 0.062 0.039 0.046 0.038 0.062 0.010 TCR@2 0.063 0.056 0.120 0.069 0.113 0.080 0.123 0.048 TCR@5 0.107 0.095 0.231 0.207 0.244 0.176 0.236 0.182 Mapping TCR@1 0.042 0.034 0.318 0.168 0.284 0.222 0.032 0.027 TCR@2 0.044 0.039 0.509 0.396 0.430 0.409 0.038 0.028 TCR@5 0.057 0.043 0.609 0.484 0.516 0.507 0.176 0.104 Orbit-H TCR@1 0.072 0.071 0.125 0.112 0.122 0.111 0.227 0.154 
+
+TCR@2 0.088 0.083 0.192 0.177 0.197 0.173 0.362 0.251 
+
+TCR@5 0.115 0.108 0.382 0.345 0.388 0.343 0.706 0.514 
+
+Orbit-R TCR@1 0.062 0.061 0.095 0.104 0.102 0.106 0.201 0.163 
+
+TCR@2 0.073 0.072 0.153 0.153 0.157 0.153 0.345 0.282 
+
+TCR@5 0.105 0.098 0.313 0.304 0.322 0.307 0.599 0.509 
+
+Spiral Down TCR@1 0.038 0.037 0.130 0.076 0.139 0.074 0.090 0.061 TCR@2 0.044 0.043 0.263 0.156 0.266 0.135 0.183 0.101 TCR@5 0.067 0.061 0.544 0.344 0.532 0.346 0.540 0.294 Inspection-R TCR@1 0.012 0.008 0.294 0.202 0.276 0.247 0.198 0.159 TCR@2 0.026 0.022 0.572 0.411 0.578 0.416 0.486 0.380 TCR@5 0.101 0.089 0.926 0.748 0.927 0.764 0.939 0.711 Traversal TCR@1 0.041 0.048 0.064 0.074 0.094 0.101 0.031 0.038 TCR@2 0.056 0.063 0.105 0.104 0.154 0.152 0.039 0.045 TCR@5 0.095 0.107 0.203 0.179 0.291 0.327 0.065 0.069 Landing TCR@1 0.206 0.175 0.226 0.258 0.258 0.288 0.465 0.405 
+
+TCR@2 0.221 0.198 0.286 0.338 0.326 0.381 0.647 0.552 
+
+TCR@5 0.259 0.247 0.437 0.527 0.457 0.530 0.870 0.671 
+
+SR 0.006 0.005 0.611 0.533 0.647 0.600 0.947 0.601 
+
+4.2 Results 
+
+Table 2 summarizes performance on our high-level UAV tasks under test-seen and test-unseen. We report TCR@K at multiple horizons; higher values indicate better process completion. For the Landing task, we additionally report SR, where an episode is successful if the distance between the predicted and ground-truth endpoints is below 10 m . We highlight in bold the best-performing model on the unseen split for each metric. HUGE-Bench 13 Metric FastVLM π0                    
+
+> SUSUCR ↓0.705 0.734 0.529 0.673 CSPL ↑0.061 0.058 0.224 0.205
+> Table 3: Safety evaluation of base-line method. We compare FastVLM and π0on Traversal task under Seen (S) and Unseen (U) splits using CR and CSPL.
+> Fig. 6: A visualization of model pre-dictions for traversal tasks. The green trajectories indicate collision-free results, and the red trajectories denote trajectories that result in collisions.
+
+Across most tasks, the two π-based policies achieve the strongest perfor-mance, particularly on unseen. This suggests that policies benefiting from large-scale robot pretraining can transfer non-trivial skills to aerial high-level control, despite the domain gap (see Appendix for more details). FastVLM typically ranks second and remains competitive on several tasks, while OpenVLA under-performs consistently, indicating that existing VLA systems are still challenged by our process-oriented, multi-stage UAV trajectories driven by short and am-biguous instructions. Moreover, the results suggest a consistent ordering of task difficulty: Landing appears to be the easiest task overall, followed by Inspection-R and Mapping, while Traversal and Spiral Down remain the most challenging. This indicates that the benchmark covers a wide range of difficulty levels, with orbiting and inspection tasks occupying an intermediate regime, further moti-vating our multi-granularity evaluation. To evaluate safety behavior, we further study the Traversal task using collision-aware metrics enabled by our 3DGS–Mesh digital twin. We report CR and CSPL in Table 3. The π policy exhibits substantially stronger obstacle avoidance com-pared to FastVLM, π0 reduces CR on both splits and improves collision-aware success. These results emphasize that photorealistic perception alone is insuf-ficient; reliable high-level UAV execution also requires 3D geometric reasoning and safety-aware planning. As shown in Fig. 7, we also present visualizations of successful inference examples for each task. It can be seen that even for multi-stage complex tasks, the drone still demonstrates the capability to execute them end-to-end. 
+
+# 5 Conclusion 
+
+We introduce HUGE-Bench, a benchmark for evaluating high-level UAV vision– language–action capabilities in long-horizon missions. HUGE-Bench targets a practical operating regime in which a UAV must execute multi-stage tasks from brief, high-intent instructions while maintaining semantic correctness and safety. Unlike conventional UAV-VLN settings that primarily emphasize reaching a des-tination, our benchmark reflects a more realistic paradigm: short instruction →14 J. Guo et al.   
+
+> Fig. 7: Visualization of successful results from π0across different tasks.
+
+implicit subtask decomposition → stage-wise execution. To enable fine-grained diagnosis, we incorporate explicit stage annotations and process-oriented metrics to quantify execution progress and stage completion. To support scalable and cost-effective evaluation, we build an end-to-end data and assessment pipeline that combines real UAV capture with an aligned 3DGS–Mesh digital twin. This hybrid representation leverages the high-fidelity rendering of 3DGS and the collision-aware geometry of meshes, enabling phys-ically actionable simulation with collision-sensitive assessment as well as large-scale data generation. HUGE-Bench further releases richly annotated episodes, including RGB, depth, pose, destination semantics, and subtask stage labels. We also propose a unified evaluation protocol that jointly characterizes stage com-pletion, trajectory efficiency, and collision safety. Experiments with representa-tive state-of-the-art VLA models reveal substantial gaps in high-level semantic stage completion and safe execution, highlighting the value of HUGE-Bench for diagnosing limitations and advancing high-level UAV VLA systems. 
+
+Limitations The current benchmark primarily focuses on static environments. Incorporating diverse and realistic dynamics, e.g., moving obstacles, changing illumination and weather, or non-stationary objects, remains an important di-rection to better reflect real-world deployment conditions. Furthermore, while our digital-twin pipeline improves physical plausibility and enables collision-aware evaluation, bridging the gap from complex long-horizon high-level VLA behaviors in simulation to robust real-world execution is still challenging. Future work should investigate stronger domain generalization, online adaptation, and hardware-in-the-loop validation to facilitate reliable real-world deployment. HUGE-Bench 15 
+
+# References 
+
+1. Anderson, P., Chang, A.X., Chaplot, D.S., Dosovitskiy, A., Gupta, S., Koltun, V., Kosecka, J., Malik, J., Mottaghi, R., Savva, M., Zamir, A.: On evaluation of embodied navigation agents (2018) 2. Anderson, P., Wu, Q., Teney, D., Bruce, J., Johnson, M., Sünderhauf, N., Reid, I., Gould, S., van den Hengel, A.: Vision-and-language navigation: Interpreting visually-grounded navigation instructions in real environments. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR). pp. 3674–3683 (2018) 3. Chang, A., Dai, A., Funkhouser, T., Halber, M., Niessner, M., Savva, M., Song, S., Zeng, A., Zhang, Y.: Matterport3d: Learning from rgb-d data in indoor envi-ronments. In: International Conference on 3D Vision (3DV) (2017) 4. Chen, S., Guhur, P.L., Schmid, C., Laptev, I.: History aware multimodal trans-former for vision-and-language navigation. In: Advances in Neural Information Processing Systems (NeurIPS) (2021) 5. Chen, S., Li, Q., Qiu, H., Chen, Y., Wang, W., Xie, W., et al.: Think global, act lo-cal: Dual-scale graph transformer for vision-and-language navigation. In: Proceed-ings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) (2022) 6. Cheng, A.C., Ji, Y., Yang, Z., Gongye, Z., Zou, X., Kautz, J., Biyik, E., Yin, H., Liu, S., Wang, X.: Navila: Legged robot vision-language-action model for navigation (2024) 7. Gao, Y., Li, C., You, Z., Liu, J., Li, Z., Chen, P., Chen, Q., Tang, Z., Wang, L., Yang, P., Tang, Y., Tang, Y., Liang, S., Zhu, S., Xiong, Z., Su, Y., Ye, X., Li, J., Ding, Y., Wang, D., Wang, Z., Zhao, B., Li, X.: Openfly: A versatile toolchain and large-scale benchmark for aerial vision-language navigation (2025) 8. Gu, J., Zhang, H., Zhao, H., Guo, J., et al.: Vision-and-language navigation: A survey of tasks, methods, and future directions. In: Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (ACL) (2022) 9. Hao, W., Li, C., Li, X., Carin, L., Gao, J.: Towards learning a generic agent for vision-and-language navigation via pre-training. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) (2020) 10. Ilharco, G., Jain, V., Ku, A., Ie, E., Baldridge, J.: General evaluation for instruction conditioned navigation using dynamic time warping (2019) 11. Intelligence, P., Black, K., Brown, N., Darpinian, J., Dhabalia, K., Driess, D., Esmail, A., Equi, M., Finn, C., Fusai, N., Galliker, M.Y., Ghosh, D., Groom, L., Hausman, K., Ichter, B., Jakubczak, S., Jones, T., Ke, L., LeBlanc, D., Levine, S., Li-Bell, A., Mothukuri, M., Nair, S., Pertsch, K., Ren, A.Z., Shi, L.X., Smith, L., Springenberg, J.T., Stachowicz, K., Tanner, J., Vuong, Q., Walke, H., Walling, A., Wang, H., Yu, L., Zhilinsky, U.: π0.5: a vision-language-action model with open-world generalization (2025). https://doi.org/10.48550/arXiv.2504.16054 
+
+12. Intelligence, P., Black, K., Brown, N., Driess, D., Esmail, A., Equi, M., Finn, C., Fusai, N., Groom, L., Hausman, K., Ichter, B., Jakubczak, S., Jones, T., Ke, L., Levine, S., Li-Bell, A., Mothukuri, M., Nair, S., Pertsch, K., Shi, L.X., Tanner, J., Vuong, Q., Walling, A., Wang, H., Zhilinsky, U.: π0: A vision-language-action flow model for general robot control (2024). https://doi.org/10.48550/arXiv.2410. 24164 
+
+13. Jain, V., Magalhaes, G., Ku, A., Vaswani, A., Ie, E., Baldridge, J.: Stay on the path: Instruction fidelity in vision-and-language navigation (2019) 16 J. Guo et al. 14. Karaman, S., Walter, M.R., Perez, A., Frazzoli, E., Teller, S.: Anytime motion planning using the rrt. In: 2011 IEEE international conference on robotics and automation. pp. 1478–1483. ieee (2011) 15. Kerbl, B., Kopanas, G., Leimkuhler, T., Drettakis, G.: 3d gaussian splatting for real-time radiance field rendering. ACM Transactions on Graphics 42 (4) (2023) 16. Kim, M., Pertsch, K., Karamcheti, S., Xiao, T., Balakrishna, A., Nair, S., Rafailov, R., Foster, E., Lam, G., Sanketi, P., Vuong, Q., Kollar, T., Burchfiel, B., Tedrake, R., Sadigh, D., Levine, S., Liang, P., Finn, C.: Openvla: An open-source vision-language-action model (2024) 17. Krantz, J., Wijmans, E., Majumdar, A., Batra, D., Lee, S.: Beyond the nav-graph: Vision-and-language navigation in continuous environments. In: Computer Vision – ECCV 2020. pp. 104–120 (2020) 18. Ku, A., Anderson, P., Patel, R., Ie, E., Baldridge, J.: Room-across-room: Multi-lingual vision-and-language navigation with dense spatiotemporal grounding. In: Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP) (2020) 19. Lee, J., Miyanishi, T., Kurita, S., Sakamoto, K., Azuma, D., Matsuo, Y., Inoue, N.: Citynav: Language-goal aerial navigation dataset with geographic information (2024) 20. Liu, S., Zhang, H., Qi, Y., Wang, P., Zhang, Y., Wu, Q.: Aerialvln: Vision-and-language navigation for uavs. In: Proceedings of the IEEE/CVF Interna-tional Conference on Computer Vision (ICCV). pp. 15338–15348 (2023). https: //doi.org/10.1109/ICCV51070.2023.01411 
+
+21. Miao, B., Wei, R., Ge, Z., Sun, X., Gao, S., Zhu, J., Wang, R., Tang, S., Xiao, J., Tang, R., Li, J.: Sage-3d: Towards physically executable 3d gaussian for embodied navigation (2025) 22. NVIDIA: NVIDIA Isaac Sim. https://docs.isaacsim.omniverse.nvidia.com/ latest/index.html (2025), version 5.1.0. GitHub: https://github.com/isaac-sim/IsaacSim . Accessed: 2026-03-06 23. Puig, X., Undersander, E., Szot, A., Dallaire Cote, M., Yang, T.Y., Partsey, R., Desai, R., Clegg, A.W., Hlavac, M., Min, S.Y., et al.: Habitat 3.0: A co-habitat for humans, avatars and robots. In: International Conference on Learning Represen-tations (ICLR) (2024) 24. Qi, Y., Wu, Q., Anderson, P., Wang, X., Wang, W.Y., Shen, C., van den Hengel, A.: Reverie: Remote embodied visual referring expression in real indoor environments. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR). pp. 9982–9991 (2020) 25. Ramakrishnan, S.K., Gokaslan, A., Wijmans, E., Maksymets, O., Clegg, A., Turner, J., Undersander, E., Galuba, W., Westbury, A., Chang, A., Savva, M., Zhao, Y., Batra, D.: Habitat-matterport 3d dataset (hm3d): 1000 large-scale 3d environments for embodied ai (2021), https://openreview.net/forum?id=-v4OuqNs5P , neurIPS Datasets and Benchmarks Track 26. Savva, M., Kadian, A., Maksymets, O., Zhao, Y., Wijmans, E., Jain, B., Straub, J., Liu, J., Koltun, V., Malik, J., Parikh, D., Batra, D.: Habitat: A platform for embodied ai research. In: Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV). pp. 9339–9347 (2019) 27. Shah, S., Dey, D., Lovett, C., Kapoor, A.: Airsim: High-fidelity visual and physical simulation for autonomous vehicles. In: Field and Service Robotics (2017) 28. Thomason, J., Murray, M., Cakmak, M., Zettlemoyer, L.: Vision-and-dialog navi-gation. In: Proceedings of the 37th International Conference on Machine Learning (ICML) (2020) HUGE-Bench 17 29. Vasu, P.K.A., Faghri, F., Li, C., Koc, C., True, N., Antony, A., Santhanam, G., Gabriel, J., Grasch, P., Tuzel, O., Pouransari, H.: Fastvlm: Efficient vision encod-ing for vision language models. In: Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR). pp. 19769–19780 (June 2025) 30. Wang, X., Yang, D., Liao, Y., Zheng, W., Wu, W., Dai, B., Li, H., Liu, S.: Uav-flow colosseo: A real-world benchmark for flying-on-a-word uav imitation learning (2025) 31. Wang, X., Yang, D., Wang, Z., Kwan, H., Chen, J., Wu, W., Li, H., Liao, Y., Liu, S.: Towards realistic uav vision-language navigation: Platform, benchmark, and methodology (2024) 32. Zhang, J., Wang, K., Wang, S., Li, M., Liu, H., Wei, S., Wang, Z., Zhang, Z., Wang, H.: Uni-navid: A video-based vision-language-action model for unifying embodied navigation tasks. In: Robotics: Science and Systems (RSS) (2025) 33. Zhang, J., Wang, K., Xu, R., Zhou, G., Hong, Y., Fang, X., Wu, Q., Zhang, Z., Wang, H.: Navid: Video-based vlm plans the next step for vision-and-language navigation. In: Robotics: Science and Systems (RSS) (2024) 18 J. Guo et al. 
+
+# Supplementary Material A Implementation Details 
+
+3DGS–Mesh Reconstruction from Real-World Data. We collect large-scale outdoor aerial data using a DJI M400 UAV equipped with a Zenmuse L2 sensor. The captured data include high-resolution RGB images, calibrated camera poses, and GNSS/RTK measurements. We first process the raw data with an industrial aerial mapping pipeline to recover georeferenced camera poses and a metrically consistent mesh reconstruction. Based on the recovered poses, we further train a 3DGS model for photorealistic view synthesis. The mesh preserves scene geometry, physical boundaries, and is therefore used for depth rendering, collision checking, and motion planning. In contrast, 3DGS provides high-fidelity visual observations from arbitrary viewpoints. Since both representations are built from the same georeferenced acquisition and share the same coordinate system, they are naturally aligned in space. This joint 3DGS–Mesh representation forms the digital twin used in HUGE-Bench, en-abling both realistic visual rendering and collision-aware physical simulation. 
+
+Obstacle-Aware Path Planner. For obstacle-avoidance tasks, we generate trajectories using an RRT-based planner [14] on the simplified mesh. To improve efficiency, we first remove floating artifacts and reduce mesh complexity, and then crop the planning mesh to a local region around the start–goal corridor. During planning, each candidate path segment is validated by collision and clearance checks against the mesh to ensure safe navigation. After a feasible path is found, we apply path simplification, smoothing, and fixed-interval resampling to obtain stable waypoints. For horizontal-view trajectories, we further decompose the motion into two stages: turn to face the target and fly to the target while avoiding obstacles. The turning stage is sampled at a fixed angular interval, while the flight stage uses smoothed headings along the planned path, resulting in visually consistent obstacle-avoidance trajectories. 
+
+Rendering Details for Horizontal-View Data. For horizontal-view trajec-tories, directly rendering 3DGS often produces unrealistic empty backgrounds in regions not covered by scene geometry. To improve visual realism, we composite the rendered foreground with a fixed sky background for each trajectory. Specif-ically, we render each frame twice using black and white backgrounds, estimate the per-pixel alpha from the two renderings, and then blend the foreground with a sky image in screen space. This strategy preserves the original 3DGS appear-ance while producing more natural aerial observations for horizontally oriented cameras. 
+
+Isaac Sim-Based Data Collection Platform. Figure 8 illustrates our Isaac Sim-based data collection platform [22]. Given a task specification, we first gen-erate a reference trajectory consisting of 3D waypoints and associated camera HUGE-Bench 19  
+
+> Fig. 8: Isaac Sim-based data collection platform. The platform generates tra-jectory data from a task specification and executes it in a 3DGS-Mesh digital twin environment in Isaac Sim. It collects synchronized multimodal data, including RGB observations, depth maps, flight states, poses, and collision signals.
+
+orientations using our task-specific trajectory rules or the obstacle-aware plan-ner described above. The aligned 3DGS–mesh digital twin is then imported into Isaac Sim, where the mesh serves as the collision-enabled physical scene and the 3DGS representation provides high-fidelity visual observations. During execu-tion, the UAV follows the generated reference trajectory inside the simulator, and the platform records synchronized multimodal data streams at each step, including RGB observations, depth maps, ego poses, flight states, and collision signals. This design offers three key advantages: 
+
+– It preserves metric consistency between real-world acquisition, planning, and simulation, allowing all logged data to remain in a unified coordinate frame. 
+
+– It enables collision-aware evaluation through the mesh-based physical scene, which is not available in purely appearance-driven renderers. 
+
+– It supports scalable and programmable data generation: once a trajectory rule is defined, the simulator can automatically instantiate diverse initial states, execute the trajectory, and export the full multimodal sequence. 
+
+Model and Training Details. We evaluate several representative VLA base-lines on HUGE-Bench, including OpenVLA [16], π0 [12], π0.5 [11], and FastVLM [29]. Following prior work [7, 30], we use both the first frame of the trajectory and the current observation as visual inputs, which help the model infer relative displacement and task progress in 3D space. For π0 and π0.5, we set the action horizon to 20. During inference, each model predicts a 20-step action chunk, and we execute the averaged actions over the first 10 predicted steps to improve temporal stability. We initialize both models from 20 J. Guo et al.   
+
+> Fig. 9: Overview and results of the real-to-sim and sim-to-sim comparison experiments. Top-left: the experimental pipeline. Models are trained using either real-world data (real2sim) or synthetic data (sim2sim), and then evaluated in a digital twin environment with multiple random initializations. Top-right: quantitative test results showing the trajectory coverage rate (TCR) across different models under both settings. Bottom: qualitative trajectory comparisons for several representative test cases, with all results obtained from models trained on π0. For each case, the predicted trajectory is compared with the ground truth in both real-to-sim and sim-to-sim evaluations.
+
+their corresponding base checkpoints and finetune them for 5 epochs with a per-GPU batch size of 64. Unless otherwise specified, all remaining hyperparameters follow the default settings of the original π0 implementation. For FastVLM, we construct a VLA baseline by combining Apple’s open-source FastVLM with the π0 action expert (Gemma 300M). Specifically, the first-frame image, the current-frame image, and the user instruction are encoded by FastVLM, and the hidden states from its final layer are used as the conditioning context for the π0 action expert, serving as the past keys and values in the KV cache. The robot state and noisy actions are concatenated and fed into the action expert as queries. We train the model with flow matching and perform 10 denoising steps at inference time to generate the final action sequence. The action horizon is set to 20. We finetune the model for 5 epochs with a per-GPU batch size of 32 and a learning rate of 2.5 × 10 −5. Optimization is performed with AdamW using betas (0 .9, 0.95) and weight decay 1 × 10 −10 , together with a cosine learning rate scheduler and 1,000 warmup steps. We do not use LoRA and instead finetune all parameters end-to-end. HUGE-Bench 21                
+
+> Instr. OpenVLA FastVLM π0π0.5
+> SUSUSUSUHigh-Level 0.11 0.10 0.23 0.21 0.24 0.18 0.24 0.18 Low-Level 0.05 0.04 0.27 0.18 0.24 0.23 0.25 0.21
+
+Table 4: Performance comparison be-tween high-level and low-level in-struction settings. TCRs are reported for Seen (S) and Unseen (U) splits across differ-ent models. Low-level instructions are ob-tained by concatenating multiple subtasks into explicit step-by-step commands, pro-viding detailed guidance for action execu-tion. OpenVLA FastVLM Pi0 Pi0.5          
+
+> SUSUSUSU
+> Test Split
+> 0.00
+> 0.05
+> 0.10
+> 0.15
+> 0.20
+> 0.25
+> 0.30
+> TCR
+> 0.05
+> 0.04
+> 0.13
+> 0.08
+> 0.11
+> 0.23
+> 0.24 0.24
+> 0.04
+> 0.03
+> 0.10
+> 0.06
+> 0.10
+> 0.21
+> 0.18 0.18
+> Scratch
+> Finetuning
+
+Fig. 10: Comparison across dif-ferent models on two test splits. 
+
+Blue bars denote training from scratch, while yellow bars denote finetuning. 
+
+For OpenVLA, we use a per-GPU batch size of 18 and a learning rate of 
+
+5 × 10 −4. We enable LoRA finetuning with rank 32, while keeping all other training configurations the same as in prior work [16, 30]. 
+
+# B Additional Analysis 
+
+Real-to-Sim Analysis. We further study the gap between real-world and syn-thetic training data. Specifically, we collect 500 real UAV trajectories in the physical world for Inspection-B task and render their synthetic counterparts in the aligned 3DGS environment using the same camera intrinsics and extrinsics. All models are then evaluated in the same simulation platform for a controlled comparison, as illustrated in Fig. 9. The quantitative results show two main ob-servations. First, the gap between models trained on real data and those trained on synthetic data is relatively small, while models trained on synthetic data often achieve slightly higher scores under simulation evaluation. We attribute this to the higher distribution consistency between the synthetic training data and the simulation-based test environment, as well as the absence of real-world sensor noise and appearance variations. Second, the performance trends are largely con-sistent between real-data training and synthetic-data training, suggesting that training on our synthetic data can reflect the relative effectiveness of models trained on real trajectories. This indicates that HUGE-Bench can serve as a practical and scalable proxy for studying model behavior before moving to more expensive real-world collection. 
+
+High-Level vs. Low-Level Instructions. Table 4 compares models trained with traditional low-level instructions and our proposed high-level instructions on Inspection-B task (see Fig. 3). We can see that low-level instructions gen-erally lead to better performance, since they provide more explicit step-by-step guidance and reduce the ambiguity of action execution. In contrast, high-level 22 J. Guo et al. 
+
+> Fig. 11: More visualizations of the 3D scenes in HUGE-Bench.
+
+instructions require the model to infer missing intermediate steps, maintain task progress over time, and decompose abstract goals into executable subtasks. The performance gap therefore highlights the additional difficulty introduced by high-level UAV VLA tasks, and further motivates future research on hierarchical rea-soning, subtask decomposition, and long-horizon planning under compact natu-ral language commands. 
+
+Finetuning vs. Training from Scratch. Figure 10 compares models initial-ized from pretrained checkpoints with those trained from scratch on Inspection-B task. We observe that finetuning consistently yields better performance across models and splits. This result suggests that the knowledge acquired from large-scale embodied and robotic data is transferable to aerial UAV scenarios, despite the domain gap in viewpoint, motion pattern, and task formulation. These re-sults indicate that leveraging pretrained VLA or robotic foundation models is a more effective strategy than training high-level UAV policies entirely from scratch. 
+
+# C More Visualizations 
+
+We provide additional visualizations of the reconstructed scenes in Fig. 11. These examples illustrate the diversity of environments included in HUGE-Bench. In Fig. 12, we present representative failure cases of π0 across different task cat-egories. These examples highlight the remaining challenges in language under-standing, spatial reasoning, and long-horizon execution. More visualizations of the trajectory data and the Isaac Sim platform are provided in the supplemen-tary video file in .mp4 format. 
+
+# D Scalability 
+
+HUGE-Bench is scalable in four aspects. First, it supports scene diversity, and users can also build the benchmark on their own scenes. Second, it supports task diversity, as new high-level UAV tasks can be introduced by defining new task rules. Third, it supports trajectory diversity by varying the initial position, HUGE-Bench 23   
+
+> Fig. 12: Visualization of failure results from π0across different tasks.
+
+relative target direction, altitude, path smoothness, flight speed, camera intrin-sics, and observation views. Finally, it supports data collection diversity, where trajectories can be obtained either from programmable rule-based generation or from human teleoperation.

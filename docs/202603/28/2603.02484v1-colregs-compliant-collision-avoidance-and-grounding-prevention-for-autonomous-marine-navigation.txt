@@ -1,0 +1,349 @@
+Title: COLREGs Compliant Collision Avoidance and Grounding Prevention for Autonomous Marine Navigation
+
+URL Source: https://arxiv.org/pdf/2603.02484v1
+
+Published Time: Wed, 04 Mar 2026 01:19:23 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+# COLREGs Compliant Collision Avoidance and Grounding Prevention for Autonomous Marine Navigation 
+
+Mayur S. Patil 1†, Nataraj Sudharsan 1†, Veneela Ammula 2, Jude Tomdio 2, Jin Wang 2, Michael Kei 2, Sivakumar Rathinam 1, Prabhakar R. Pagilla 1
+
+> 1
+
+Department of Mechanical Engineering, Texas A&M University, College Station, USA 
+
+> 2
+
+American Bureau of Shipping, Spring, TX, USA 
+
+> †
+
+Authors contributed equally E-mail: srathinam@tamu.edu 
+
+Abstract: 
+
+Maritime Autonomous Surface Ships (MASS) are increasingly regarded as a promising solution to address crew shortages, improve navigational safety, and improve operational efficiency in the maritime industry. Nevertheless, the reliable deployment of MASS in real-world environments remains a significant challenge, particularly in congested waters where the majority of maritime accidents occur. This emphasizes the need for safe and regulation-aware motion planning strate-gies for MASS that are capable of operating under dynamic maritime conditions. This paper presents a unified motion planning method for MASS that achieves real time collision avoidance, compliance with International Regulations for Pre-venting Collisions at Sea (COLREGs), and grounding prevention. The proposed work introduces a convex optimization method that integrates velocity obstacle-based (VO) collision constraints, COLREGs-based directional constraints, and bathymetry-based grounding constraints to generate computationally efficient, rule-compliant optimal velocity selection. To enhance robustness, the classical VO method is extended to consider uncertainty in the position and velocity es-timates of the target vessel. Unnavigable shallow water regions obtained from bathymetric data, which are inherently nonconvex, are approximated via convex geometries using a integer linear programming (ILP), allowing grounding con-straints to be incorporated into the motion planning. The resulting optimization generates optimal and dynamically feasible input velocities that meet collision avoidance, regulatory compliance, kinodynamic limits, and grounding preven-tion requirements. Simulation results involving multi-vessel encounters demon-strate the effectiveness of the proposed method in producing safe and regulation-compliant maneuvers, highlighting the suitability of the proposed approach for real time autonomous maritime navigation. 
+
+> arXiv:2603.02484v1 [cs.RO] 3 Mar 2026
+
+1 Introduction 
+
+The safe operation of MASS fundamentally depends on reliable navigation systems capable of operating effectively in complex maritime environments, including dense traffic scenarios, uncer-tain vessel dynamics, restricted waterways, and adverse weather conditions. Accident statistics show that collisions, groundings, loss of control, and contact events account for a large propor-tion of reported incidents in these dynamic situations [1]. Such operational risks emphasize the need for advanced motion planning methods that can proactively prevent collision and grounding while accounting for environmental uncertainty and navigational constraints. Safe autonomous navigation requires the generation of continuous and feasible waypoints that avoid collisions, comply with the COLREGs [2], and respect environmental limitations such as shallow water regions and restricted channels. Compared to ground and aerial vehicles, marine vessels exhibit large inertia, slow response dynamics, and limited maneuverability, resulting in long planning horizons and reduced capability for rapid corrective actions. Consequently, motion planning for autonomous ships must anticipate potential hazards in advance and integrate collision and grounding avoidance with operational and environmental context to ensure safe and reliable navigation. Numerous approaches have been proposed in the literature to address this problem. Op-timization based strategies, particularly those built upon Model Predictive Control (MPC), explicitly account for vessel dynamics and operational constraints within a receding-horizon framework. While such methods provide systematic handling of constraints and predictive ca-pability, their computational complexity can increase significantly with higher traffic density and longer prediction horizons [3, 4, 5]. Furthermore, data-driven techniques, including deep reinforcement learning, have recently gained attention due to their ability to learn complex collision avoidance behaviors. Nevertheless, their reliance on large-scale training data and the limited transparency of learned policies present challenges for deployment in safety-critical mar-itime operations [6, 7, 8]. Similarly, sampling-based planners such as A* and Rapidly-exploring Random Trees (RRT) enable trajectory generation in complex environments. However, these methods often require additional rule-based modules to ensure regulatory compliance, and their adaptability is limited under highly dynamic conditions [9]. These limitations have led to re-newed interest in reactive approaches, notably Artificial Potential Fields (APF) [10] and VO methods, which prioritize computational efficiency and real time feasibility while maintaining effective collision avoidance performance [11]. Although substantial research has focused on collision avoidance, grounding prevention re-mains relatively underexplored. In marine environment, bathymetric data provide areas of insufficient water depth where vessels are exposed to grounding hazards due to reduced under-keel clearance and shallow water effects such as squat. Effective motion planning must therefore extend beyond vessel-to-vessel interaction and explicitly account for grounding related hazards within the navigational environment. However, incorporating bathymetric constraints into real time planning presents significant challenges. Shallow water regions are typically characterized by irregular, nonconvex geometries, thus their direct integration in optimization-based planners is computationally demanding. This issue is particularly critical for approaches that depend on convex formulations to ensure computational efficiency, and real time feasibility. Therefore, developing a feasible real time methodology that accounts for both grounding prevention and dynamic obstacle collision avoidance while complying with COLREGs is essential for robust maritime motion planning. Motivated by these challenges, this work proposes a unified and regulation-aware motion planning framework that simultaneously addresses collision avoidance, automatic COLREGs compliance, and grounding prevention under state uncertainty. The core contribution lies in formulating the motion planning problem as a computationally efficient convex optimization pro-gram in velocity space by efficiently integrating collision avoidance constraints and COLREGs-based directional rules as linear half-planes. To enable grounding prevention, non-convex shallow water regions derived from bathymetric data are convexified through geometric approximations using an ILP set-coverage formulation, allowing direct incorporation of depth-related safety constraints into the same optimization formulation. Within this structure, a robust reformula-tion of the classical VO method is introduced to explicitly account for bounded uncertainties in neighboring vessel position and velocity estimates, enhancing safety under realistic sensing conditions. The proposed unified formulation preserves computational efficiency while ensuring dynamically feasible and regulation-compliant velocity selection. The effectiveness of the pro-posed method is validated through simulations based on IMAZU encounter scenarios [12]. The results demonstrate that the approach computes dynamically feasible velocities that optimally balance goal-directed motion and safety requirements while ensuring collision avoidance, com-pliance with COLREGs, and grounding protection. These results highlight the robustness and practical viability of the method for autonomous real time navigation in congested and shal-low water environments, where reliable and regulation-consistent navigation is critical. For a broader and more rigorous evaluation, the proposed method will be integrated into an advanced simulation framework currently under development through a collaborative initiative between Texas A&M University and the American Bureau of Shipping (ABS) [12, 13]. Such integration would enable evaluation across diverse environmental conditions and operational complexities, further strengthening the method’s applicability to real-world deployment. The remainder of the paper is organized as follows. Section 2 provides the essential back-ground and preliminaries needed for the development of the paper. The methodology of the proposed formulation and its development are described in Section 3. A representative sample of simulation results with discussions that highlight the key features of the proposed method is given in Section 4. Conclusions and future work are given in Section 5. 
+
+2 Background 
+
+This section provides the fundamental background and preliminaries necessary for the formula-tion and analysis of the proposed collision avoidance and grounding prevention methodology. 
+
+2.1 Classical Velocity Obstacle Algorithm 
+
+The classical VO approach, introduced in [11, 14], provides a geometric approach to real time collision avoidance by operating directly in velocity space over position space. The VO identifies a subset of the velocity space that could lead to future collisions and selects admissible velocities outside these sets. Consider two circular agents A and B with positions pA, p B ∈ R2, velocities vA, v B , and radii 
+
+rA, r B . The relative position and velocity are defined as 
+
+pAB = pB − pA, vAB = vA − vB . (1) To construct the collision cone, agent B is mapped into the configuration space of agent A
+
+by reducing A to a point ˆA and expanding the geometry of B by the radius of A, yielding the modified set ˆB. Based on this geometric construction, the collision cone CC AB is defined as: 
+
+CC AB = { vAB | λAB ∩ ˆB̸ = ∅ } . (2) where, λAB = {pA + tv AB | t ≥ 0} is a line of vAB . Then the corresponding VO for A induced by B, represented in terms of absolute velocity of A is 
+
+V O A|B = { vA | vA ∈ CC AB ⊕ vB }. (3) where, ⊕ represents the Minkowski sum. All velocities of the agent A inside V O A|B lead to collision under constant relative velocity assumptions, whereas velocities outside are guaranteed to be collision-free. This is generalized for multiple dynamic obstacles {Bi}ni=1 , as follows: 
+
+Vsafe  
+
+> A
+
+= R2 \
+
+> n
+
+[
+
+> i=1
+
+V O A|Bi . (4) The above formulation assumes instantaneous velocity changes. To incorporate dynamic con-straints, [11] introduced the concept of reachable velocities in VO. Let the feasible acceleration set be 
+
+F A (t) = {¨x | ¨x = f (x, ˙x, u ), u ∈ U} , (5) where f (·) represents the system dynamics and U the admissible control inputs. The reachable velocity set over a finite time interval ∆ t is 
+
+RV (t + ∆ t) = { vA(t) + ¨ x∆t | ¨x ∈ F A (t) }. (6) The reachable avoidance velocity (RAV) set is then defined as 
+
+RAV (t + ∆ t) = RV (t + ∆ t) \ V O (t), (7) which represents set of instantaneous dynamically feasible and collision-free velocities. 
+
+2.2 Collision Triggers: TCPA and DCPA 
+
+In maritime collision risk assessment, the potential for a hazardous encounter between two vessels is commonly evaluated using two predictive measures: the Time to Closest Point of Approach 
+
+(TCPA) and the Distance at Closest Point of Approach (DCPA). These measures describe the anticipated relative motion between the ego vessel and a target vessel, assuming steady-state kinematic conditions with constant velocities. By estimating both the temporal and spatial proximity at the closest approach, TCPA and DCPA provide a quantitative basis for evaluating collision risk. For a more detailed discussion including the formal mathematical derivation of these concepts, the readers are referred to [15, 16]. 
+
+3 Methodology 
+
+This section describes the proposed unified optimization-based motion planning approach for collision avoidance and grounding prevention in maritime navigation. The proposed approach computes a collision-free and COLREGs-compliant velocity using the Velocity Obstacle (VO) framework by solving a convex quadratic program (QP) in the velocity space that incorporates geometric collision-avoidance, regulatory requirements, and vessel maneuvering limits. In a deterministic formulation, the positions and velocities of the surrounding vessels are assumed to be accurately known, and environmental constraints are represented using hyperplanes. Under these assumptions, the admissible velocity region is convex, allowing the safe velocity to be efficiently computed through a convex QP. To address practical operating conditions, the approach is extended to account for both sensing uncertainty and complex environmental geometry. Uncertainty in the estimated position and velocity of surrounding vessels is incorporated to construct a robust VO cone. In addition, shallow water regions are included as environmental constraints; when such regions are highly nonconvex, they are approximated using convex primitives to enable seamless integration into the optimization framework as static obstacles. The deterministic QP formulation used to compute the safe velocity is described below. Within the VO framework (Fig. 1), each surrounding vessel defines a region in the velocity space that would result in a future collision if selected by the ego vessel. Velocity collision cones are constructed only for vessels whose predicted TCPA and DCPA fall below predefined safety thresholds. The safe velocity is then obtained by solving a constrained optimization prob-lem whose feasible set is defined by collision-avoidance, COLREGs, and physical maneuvering constraints, formulated as linear inequality constraints. 
+
+Figure 1: Geometric interpretation of QP-based safe velocity selection in velocity space. 
+
+Collision-avoidance and COLREGs constraints: For each interacting vessel i, the corresponding velocity obstacle V O i is constructed. The boundary ∂V O i yields two candidate supporting half-planes associated with the left and right tangents. Let ( nLi , v L
+
+> 0,i
+
+) and ( nRi , v R
+
+> 0,i
+
+), with vL
+
+> 0,i
+
+, v R 
+
+> 0,i
+
+∈
+
+∂V O i, denote the outward unit normals and boundary points defining these two supporting half-planes. The collision-avoidance constraint contributed by vessel i is expressed as the selected sup-porting half-space (nσi 
+
+> i
+
+)⊤(v − vσi
+
+> 0,i
+
+) ≥ 0, (8) which is written in standard linear form as 
+
+−(nσi 
+
+> i
+
+)⊤v ≤ − (nσi 
+
+> i
+
+)⊤vσi
+
+> 0,i
+
+. (9) The side index σi ∈ { L, R } is determined based on the encounter geometry and COLREGs requirements: 
+
+σi =
+
+
+
+R, if a starboard-side maneuver is required ,L, if a port-side maneuver is required ,
+
+arg max  
+
+> σ∈{ L,R }
+
+(nσi )⊤
+
+vcurr − vσ
+
+> 0,i
+
+
+
+, otherwise ,
+
+(10) where vcurr denotes the current velocity. 
+
+Speed constraints: The vessel speed is limited by |v| ≤ vmax . To retain a linear-constraint QP formulation, this circular bound is approximated by an inscribed polygon: ˜n⊤ 
+
+> k
+
+v ≤ ˜ck, k = 1 , . . . , N poly , (11) where Npoly determines the approximation accuracy. Stacking the VO-based constraints, COLREGs directional constraints, and polygonal speed limits yields a convex feasible set 
+
+Vfeasible = {v ∈ R2 | Av ≤ b}. (12) 
+
+Objective function: Among all feasible velocities in Vfeasible , the following quadratic optimiza-tion problem yields the velocity that is closest to a desired reference velocity vref :min  
+
+> v
+
+∥v − vref ∥2. (13) The reference velocity represents the nominal motion of the ego vessel in the absence of con-flicts and can correspond to a predefined velocity profile as well. The resulting QP with linear inequality constraints is solved using MATLAB’s quadprog , yielding the safe velocity v∗. If the environment becomes overly constrained such that no feasible solution exists, the optimal action is to reduce speed and bring the vessel to a stop, by setting v∗ = 0. 
+
+Acceleration-limited update: Since the vessel cannot instantly realize optimal safe velocity v∗,the commanded velocity is updated subject to a maximum allowable change per time step. Let vcurr denote the current velocity and dmax the increase in maximum velocity. The applied velocity is given by 
+
+vnext =
+
+
+
+vcurr + dmax 
+
+v∗ − vcurr 
+
+∥v∗ − vcurr ∥ , ∥v∗ − vcurr ∥ > d max ,v∗, ∥v∗ − vcurr ∥ ≤ dmax .
+
+(14) 
+
+3.1 Collision Cone under Uncertainty 
+
+The VO constructed using Eq. (2) and (3) assumes perfect knowledge of the obstacle’s state, i.e., the position and velocity of agent B are known precisely. However, in real-world scenarios, these states are obtained through radar and other onboard sensing modalities, which are inherently af-fected by estimation errors, environmental disturbances, and measurement noise. Consequently, the assumption of exact state information is unrealistic. To ensure reliable collision avoidance under such conditions, it is essential to formulate a robust VO that explicitly accounts for state uncertainties. Although [15] extends the VO method to incorporate the velocity uncertainty, the influence of position uncertainty has not been addressed in the literature. The approach in this paper fills this gap by extending the VO formulation to explicitly account for both position and velocity uncertainties. Position Uncertainty: Let ˆ pB ∈ R2 denote the estimated position of agent B, and let δp ∈ U p
+
+represent a bounded uncertainty in this estimate. The true position of agent B is therefore expressed as 
+
+pB = ˆ pB + δp.
+
+By incorporating this uncertainty directly into the geometric construction of the collision cone (Eq. (2)), we obtain the positional uncertainty-aware collision cone: 
+
+CC U 
+
+> AB
+
+=
+
+
+
+vAB λAB ∩
+
+ ˆB ⊕ U p
+
+̸
+
+= ∅
+
+
+
+. (15) Geometrically, this formulation corresponds to the representation of agent B in the configuration space of agent A after inflating its geometry by both the shape of A and the bounded uncertainty set Up. The effect of this inflation is an enlargement of the collision region, specifically through increased internal angle of the collision cone. Consequently, a broader set of relative velocities is classified as potentially collision prone, reflecting a conservative characterization of collision-inducing relative velocities. 
+
+Velocity Uncertainty: We also account for the uncertainty in the velocity estimate of agent B
+
+following the methodology proposed in [15]. Let ˆ vB ∈ R2 denote the estimated velocity and 
+
+δv ∈ U v a bounded velocity uncertainty of agent B, such that 
+
+vB = ˆ vB + δv.
+
+Substituting this representation into the VO definition (Eq. (3)) leads to the robust VO expressed in terms of the absolute velocity of agent A:
+
+V O U 
+
+> A|B
+
+=
+
+n
+
+vA vA ∈ CC U 
+
+> AB
+
+⊕ ˆvB ⊕ U v
+
+o
+
+. (16) This construction can be interpreted as a Minkowski expansion of the VO by the bounded set Uv, resulting in an enlarged VO region. The expansion directly reflects the worst-case posi-tion and velocity estimation error, thereby ensuring robustness against bounded disturbances. Figure 2 illustrates the geometric effect of incorporating both position and velocity uncertainties in the resulting VO cone. 
+
+3.2 Convexification of shallow water Regions 
+
+The proposed methodology approximates nonconvex shallow water regions using a set of convex geometric primitives, specifically circles. In VO-based collision avoidance methods, obstacles are commonly represented as circular discs. Therefore, modeling shallow water regions using circles enables direct integration into the existing VO formulation without requiring modifications to the underlying collision avoidance structure. The primary objective is to construct an approximation that completely covers each shallow water region while minimizing both the number of circles employed and the inclusion of extra-neous navigable space within the approximation. This requires optimizing both the placement and the radii of the circles such that their union approximates the target region with minimal over-approximation. This formulation corresponds to a variant of the classical set cover problem, which is known to be NP-hard, particularly when continuous circle placements are permitted. As a result, exact solutions are computationally intractable for large instances, necessitating the use of approximation methods, heuristics, or relaxation techniques. To this end, we formulate this problem as a discrete optimization problem by restricting the positions of the circle centers Figure 2: Geometric representation of collision cones. (a) Standard collision cone derived under perfect state information, (b) Expanded collision cone accounting for bounded position uncer-tainty of agent B, (c) Robust collision cone reflecting the combined effects of bounded position and velocity uncertainties. and their radii to finite candidate sets. This discretization allows the problem to be expressed as an integer linear program (ILP), which can be efficiently solved using standard solvers. 
+
+Problem Setup: Let P ⊂ R2 denote a nonconvex planar polygonal region representing the shallow water area to be approximated. Consider a finite set of candidate circle centers defined as 
+
+C = {ci ∈ R2 | i = 1 , . . . , M }, (17) and a discrete set of allowable radii specified as 
+
+R = {Rk | k = 1 , . . . , K }. (18) To evaluate coverage, a uniform grid of points is sampled over a tight rectangular bounding box of P, producing two point sets: 
+
+Xin = {pj : pj ∈ interior( P)},
+
+Xout = {ql : ql /∈ P} . (19) Here, the interior points are mandatory coverage locations, while the exterior points quantify the undesired spillover region. For each point on the interior grid pj , we precompute its coverage by each candidate circle: 
+
+Ain (j, (i, k )) = 
+
+
+
+1, ∥pj − ci∥ ≤ Rk,
+
+0, otherwise . (20) Similarly, for each exterior point ql,
+
+Aout (l, (i, k )) = 
+
+
+
+1, ∥ql − ci∥ ≤ Rk,
+
+0, otherwise . (21) These binary matrices encode the coverage relationship between candidate circles and spatial points, forming the foundation of the associated linear constraints and objective function. Fur-thermore, each candidate circle is assigned with a binary decision variable zik ∈ { 0, 1} indicating whether the circle centered at ci with radius Rk is selected in the final approximation. The dis-crete coverage problem is then formulated as follows: min  
+
+> z
+
+α
+
+> M
+
+X
+
+> i=1
+> K
+
+X
+
+> k=1
+
+zik + β
+
+> M
+
+X
+
+> i=1
+> K
+
+X
+
+> k=1
+> Nout
+
+X
+
+> l=1
+
+Aout (l, (i, k )) zik 
+
+s.t. 
+
+> M
+
+X
+
+> i=1
+> K
+
+X
+
+> k=1
+
+Ain (j, (i, k )) zik ≥ 1, ∀j = 1 , . . . , N in ,zik ∈ { 0, 1}, ∀i = 1 , . . . , M, ∀k = 1 , . . . , K. 
+
+(22) The coefficients α and β are tuning parameters for (i) the penalty associated with selecting additional circles and (ii) the penalty associated with over-approximating the shallow water region, respectively. Appropriate tuning of these parameters can ensure a balance between the number of circles and over-approximation error. Solving this optimization problem yields the optimal set of circles 
+
+C⋆ = {(ci, R k) | zik = 1 }, (23) which provides a multi-radius convex decomposition of the nonconvex shallow water region P.
+
+Figure 3: ILP results for convexification of nonconvex geometries Figure 3 illustrates the circle-cover approximations obtained for two representative non-convex shallow water regions. In both cases, a uniform sampling grid with a resolution of 25 m was applied to the domain to obtain the discrete interior and exterior point sets Xin 
+
+and Xout , respectively. The candidate circle centers C were defined on a coarser grid 100 m across the same domain, yielding M = 1681 potential center locations. A discrete radius set 
+
+R = {100 , 200 , . . . , 1200 } m (with K = 12 radii), and weighting coefficients α = 10 and β = 0 .1were employed to enable flexible multi-scale coverage. In Fig. 3 (a), the ILP solver returned a solution in 2.81 s, requiring 135 iterations. The resulting approximation consists of four circles with radii 300, 300, 700, and 200 m, respectively. The corresponding over approximation error, defined as the ratio of the difference of the circle cover area and the nonconvex shallow region area to the nonconvex shallow region area, was approximately 33%. In Fig. 3 (b), the solver obtained an optimal solution in 2.26 s with 87 iterations. Similar to case (a), four circles were selected, with radii 500, 400, 300, and 500 m. The associated over approximation error in this case was approximately 30% of the nonconvex shallow region area. This relatively high approximation errors are mainly due to the small size of the representative geometries and the coarse 100 m sampling resolution used for the candidate circle centers. In practical maritime settings, where shallow water regions are typically larger, a lower relative spillover error is expected with the same discrete set of radii. This trend is confirmed by refining the sampling resolution to 40 m, which reduced the approximation error to 23% and 25% for cases (a) and (b), respectively. Further improvements can be achieved using denser sampling and a larger set of allowable radii. Note that this convexification of nonconvex shallow water regions can be performed a priori to obtain an optimal set of circles, C⋆ for known bathymetric regions or implemented in real time within a dynamically defined region of interest. This region can be determined using the reachable set of the vessel over a finite prediction horizon or through the use of TCPA/DCPA-based spatial limits to restrict the approximation domain. 
+
+4 Simulation Results and Discussion 
+
+The performance of the proposed approach is assessed under representative maritime scenarios adapted from the IMAZU benchmark test cases [12]. Specifically, the evaluation considers (i) a single-vessel head-on encounter and (ii) a multi-vessel scenario combining head-on and crossing encounters, both conducted in the presence of bathymetric shallow water regions. Since COLREGs do not explicitly define the angular threshold for head-on encounters, prior studies have adopted values such as ±15 ◦ or ±5◦. Here, a ±5◦ criterion is employed. Furthermore, strictly nonconvex shallow water regions were procedurally generated using a randomized Fourier perturbed radial model and placed within the region of interest to construct the test scenarios. The complete configuration details for the evaluated scenarios are summarized in Table 1. Table 1: Initial conditions of target vessels for four encounter scenarios.            
+
+> Case Vessels Start (N,E) [m,m] Heading [ ◦] Speed [m/s]
+> (a) V1 (6000, 0) 180 10 (b) V1 (3500, 2500) 270 10 V2 (6000, 0) 180 10
+
+In all simulations, the ego vessel was initialized at (0 , 0) with a nominal cruising speed of 10 m /s. The control framework operated at 10 Hz (∆ t = 0 .1 s) over a fixed simulation horizon of 1000 s, resulting in 10 ,000 optimization iterations. The designated goal position was (7000 , 0). 
+
+(a) Single head-on encounter: Figure 4a illustrates the trajectory for the single-vessel head-on case where the ego vessel advances towards the goal while maintaining compliance with COLREG Rule 14. The bathymetric constraint consisted of a single nonconvex region, approximated using three circles via an ILP formulation, which was solved in 1.75 seconds requiring 81 iterations. The path length traversed was approximately 7840 m, and the vessel retained its cruise speed throughout. The algorithm maintained a minimum separation of about 552 m from the target vessel. The computational performance remained efficient, with an average QP solve time of 0.62 ms and a maximum of 4 .83 ms. 
+
+(b) Head-on and crossing encounter: Figure 4b shows the configuration involving simul-taneous head-on and starboard-side crossing vessels. In this case, the bathymetric constraint consisted of three nonconvex regions, which were approximated by a total of eight circles, and the ILP was solved in 5.48 seconds requiring 151 iterations. The ego vessel traveled approxi-mately 7818 m during the simulation and maintained safe behavior with a minimum separation of 597 m. Although this scenario triggered a higher number of avoidance constraints, the opti-mization remained computationally efficient, yielding an average QP solve time of 0 .65 ms and a maximum of approximately 5 .79 ms. (a) Head-on scenario (b) Head-on and crossing scenario 
+
+Figure 4: Simulation results for representative encounter scenarios. Overall, the proposed approach achieved robust and regulation compliant collision avoidance across both encounter scenarios, despite the presence of nonconvex shallow water constraints and dynamic multi-vessel interactions. The ego vessel consistently maintained separation dis-tances that exceeded 550 m while complying with the appropriate COLREG maneuvers. Im-portantly, the underlying QP remained lightweight and computationally efficient, consistently solving within the upper bound of 6 ms, confirming the real time feasibility of the proposed approach for reliable, efficient, and safe navigation in dynamic maritime environment. 
+
+5 Conclusion 
+
+This paper presented a unified and computationally efficient motion planning method for MASS that simultaneously addresses collision avoidance, COLREGs compliance, and grounding preven-tion under state uncertainty. The proposed method integrates COLREGs-informed directional constraints, collision constraints based on a robust VO formulation, and convexified bathymet-ric representations within a single convex programming framework, enabling consistently safe maneuvers under dynamic maritime scenarios. To incorporate bathymetry constraints, convex and tight over approximations of the highly nonconvex shallow water regions were obtained a priori using a discretized circle-cover for-mulation solved via ILP. This preprocessing step produces a compact convex map representa-tion suitable for real time motion planning. The simulation results in representative head-on and multi-encounter scenarios demonstrated minimum separation distances that exceeded 550 m while maintaining consistent regulatory compliance. Across 10 ,000 control cycles per scenario at a 10 Hz update rate, the optimization problems were solved within 0 .7 ms on average, with worst case times less than 6 ms, confirming real time feasibility and scalability. In the future, the work will focus on extending the method to large-scale multi-vessel coordination scenar-ios and incorporating cooperative decision-making strategies. In addition, adaptive refinement of convexified bathymetric representation and integration with higher-level route planning and perception modules will be investigated to enable deployment in complex operational waterways. Acknowledgment 
+
+The authors thank American Bureau of Shipping (ABS) for their support. This work was conceptualized as part of a collaborative project with ABS under the Laboratory of Ocean Innovation at Texas A&M University. 
+
+References 
+
+[1] E. Eliopoulou, A. Alissafaki, and A. Papanikolaou, “Statistical analysis of accidents and review of safety level of passenger ships,” Journal of Marine Science and Engineering ,vol. 11, no. 2, p. 410, 2023. [2] International Maritime Organization, Convention on the International Regulations for Preventing Collisions at Sea, 1972 (COLREG) , International Maritime Organization (IMO), London, UK, 1972, adopted 20 October 1972; entered into force 15 July 1977. [Online]. Available: https://www.imo.org/en/about/conventions/pages/colreg.aspx [3] T. A. Johansen, A. Cristofaro, and T. Perez, “Ship collision avoidance using scenario-based model predictive control,” IFAC-PapersOnLine , vol. 49, no. 23, pp. 14–21, 2016. [4] D. K. M. Kufoalor, T. A. Johansen, and E. F. Brekke, “Autonomous collision avoidance for surface vehicles using model predictive control,” IFAC-PapersOnLine , vol. 51, no. 29, pp. 239–246, 2018. [5] B.-O. H. Eriksen, M. Breivik, and E. F. Wilthil, “Model predictive control for autonomous ship collision avoidance: A systematic approach to colregs compliance,” IEEE Access , vol. 7, pp. 157 144–157 156, 2019. [6] S. Penttinen, “Colreg compliant collision avoidance using reinforcement learning,” 2020. [7] R. Sawada, K. Sato, and T. Majima, “Automatic ship collision avoidance using deep rein-forcement learning with lstm in continuous action spaces,” Journal of Marine Science and Technology , vol. 26, no. 2, pp. 509–524, 2021. [8] W. Guan, M.-y. Zhao, C.-b. Zhang, and Z.-y. Xi, “Generalized behavior decision-making model for ship collision avoidance via reinforcement learning method,” Journal of Marine Science and Engineering , vol. 11, no. 2, p. 273, 2023. [9] S. Campbell and W. Naeem, “A rule-based heuristic method for colregs-compliant collision avoidance for an unmanned surface vehicle,” IFAC proceedings volumes , vol. 45, no. 27, pp. 386–391, 2012. [10] O. Khatib, “Real-time obstacle avoidance for manipulators and mobile robots,” The inter-national journal of robotics research , vol. 5, no. 1, pp. 90–98, 1986. [11] P. Fiorini and Z. Shiller, “Motion planning in dynamic environments using velocity obsta-cles,” The international journal of robotics research , vol. 17, no. 7, pp. 760–772, 1998. [12] M. S. Patil, N. Sudharsan, A. Saaiby, J. Xing, J. Chan, V. Ammula, J. Tomdio, J. Wang, S. Rathinam, P. Pagilla et al. , “Virtual framework for verification and validation of ma-rine autonomous navigation,” in SNAME Maritime Convention . SNAME, 2025, p. D031S019R001. [13] M. S. Patil, N. Sudharsan, A. Saaiby et al. , “A robust simulation framework for verification and validation of autonomous maritime navigation in constrained environments,” 2026, manuscript submitted for publication. [14] P. Fiorini and Z. Shiller, “Motion planning in dynamic environments using the relative velocity paradigm,” in [1993] Proceedings IEEE International Conference on Robotics and Automation . IEEE, 1993, pp. 560–565. [15] Y. Kuwata, M. T. Wolf, D. Zarzhitsky, and T. L. Huntsberger, “Safe maritime naviga-tion with colregs using velocity obstacles,” in 2011 IEEE/RSJ international conference on intelligent robots and systems . IEEE, 2011, pp. 4728–4734. [16] X. Gai, Q. Zhang, Y. Hu, and G. Wang, “A fuzzy fusion method for multi-ship collision avoidance decision-making with merchant and fishing vessels,” Journal of Marine Science and Engineering , vol. 12, no. 10, p. 1822, 2024.

@@ -1,0 +1,473 @@
+Title: SWARM+: Scalable and Resilient Multi-Agent Consensus for Fully-Decentralized Data-Aware Workload Management
+
+URL Source: https://arxiv.org/pdf/2603.19431v1
+
+Published Time: Mon, 23 Mar 2026 00:09:23 GMT
+
+Number of Pages: 11
+
+Markdown Content:
+# SWARM+: Scalable and Resilient Multi-Agent Consensus for Fully-Decentralized Data-Aware Workload Management 
+
+Komal Thareja ∗, Krishnan Raghavan †, Anirban Mandal ∗, Ewa Deelman ‡∗Renaissance Computing Institute, University of North Carolina Chapel Hill, NC, USA 
+
+†Argonne National Laboratory, Lemont, IL, USA 
+
+‡Information Sciences Institute, University of Southern California, Marina del Rey, CA, USA 
+
+Abstract —Distributed scientific workflows increasingly span heterogeneous compute clusters, edge resources, and geo-distributed data repositories. In these environments, a centralized orchestrator is an architectural bottleneck—introducing a single point of failure, limiting scalability, and constraining adaptability to changing resource availability or failures. Decentralized multi-agent coordination offers a compelling alternative: autonomous agents representing distributed resources collaboratively negoti-ate workload assignment (e.g. job selection) through peer-to-peer consensus, making decisions based on local compute capacity, data locality, and network conditions. However, scaling such systems for production workloads requires addressing challenges in coordination, resilience, and data-aware optimization. This work presents SWARM+, which builds on our prior work that demonstrated the feasibility of multi-agent decentralized consensus for distributed job selection. SWARM+ addresses three main problems: scalability of consensus for large numbers of agents, resilience of workload management under agent failure, and efficiency of job scheduling for highly distributed resources and data-intensive workloads. For each problem, we propose novel algorithms and evaluate them in distributed FABRIC testbed. The results show that SWARM+ (a) scales to 1000 distributed agents with nearly equal workload distribution across the hierarchy levels and reduced coordination overhead due to hierarchical consensus, (b) is resilient to agent failures, maintaining >99% job completion rate under single agent failure, and demonstrating graceful system degradation, with at most 7.5% impact under 50% agent failures, and (c) achieves 97–98% improvement over baseline SWARM for both selection time and scheduling latency metrics. 
+
+Index Terms —multi-agent systems, distributed job selection, consensus, resilience, hierarchical coordination, data-aware 
+
+I. I NTRODUCTION 
+
+Modern scientific workflows process massive data from diverse instruments and sensors across geographically dis-tributed, heterogeneous compute and storage systems, from leadership-class supercomputers to edge devices, all linked by high-performance networks. This heterogeneity and dis-tribution create resilience challenges across the stack: from applications and workload management systems to filesystems, storage, networks, and hardware. While the complexity of the applications and of the exe-cution environment has grown significantly over time, work-load management has remained centralized. Most workflow management systems (WMSs) [1], [2] are vertically integrated and centralized, offering user-facing submission and orches-tration functions but introducing single points of failure and scalability bottlenecks. Centralized schedulers and resource managers like SLURM [3], PBS [4], and HTCondor [5] inherit similar vulnerabilities, where failures of the controller can halt workloads and degrade performance at scale. Resilience strategies for scientific workloads typically re-quire expert effort to characterize failures and design mecha-nisms, are often static, and rely on SLA management [6], [7]. Prior work on fault-tolerant workflows has largely focused on specific components—such as failure detectors, cross-facility MPI, or logging-based architectures [8]–[10] that assume a reliable central manager. Current, centralized solutions do not scale to the sizes of scientific infrastructures. With thousands of sensors and hundreds of computing and storage resources, they have trouble managing workloads under transient and hard cyberinfrastructure failures. The above challenges necessitate a radically different , fully decentralized approach to scalable and resilient scientific workload management. Our solution is to leverage the con-cepts of multi-agent systems (MAS) and adapt them to the workload management problem. Our prior work, SWARM [11], focused on a key subproblem in that vision: the distributed job selection problem , where globally distributed, heterogeneous resource agents must au-tonomously choose workloads from a dynamic distributed global workload/job pool—without any central orchestration. We demonstrated the feasibility of decentralized consensus by using a greedy method that leveraged Practical Byzantine Fault Tolerance (PBFT) [12]. Although the approach per-formed 63.5% better than the vanilla PBFT, the flat mesh topology in SWARM exhibited O(n2) communication com-plexity resulting in poor scalability. In addition, it provided no explicit failure recovery, lacked dynamic elastic agent scaling, and did not take into consideration data locality in its cost model. The latter is important when considering many of the current workloads, which are data intensive (instrument data, AI model training). To address these challenges, this paper presents the SWARM+ system that makes three novel contributions. First, SWARM+ introduces a hierarchical consensus ,which leverages multi-level hierarchical agent topologies that 
+
+> arXiv:2603.19431v1 [cs.DC] 19 Mar 2026
+
+dramatically improve scalability by decomposing consensus across tree-structured agent groups, reducing coordination complexity from O(n2) to O(log n). Figure 1 depicts a two-level hierarchical consensus process for hierarchical job selection. At the topmost level, Level 1: coordinator agents 
+
+(CoordinatorAgent) perform job selection to identify jobs from the dynamic global workload pool via a coordinator con-sensus. These jobs are then delegated to an appropriate group of agents at Level 0. At Level 0, groups of resource agents (ResourceAgent ) managing different kinds of resources (e.g. CPUs, GPUs, storage) perform local job selection via intra-group consensus, i.e. selecting jobs from their group’s local job pool and reaching agreement on resource allocation within the group topology. If n denotes the total number of agents and gsize the size of a Level 0 group, this hierarchical decom-position confines most coordination to local groups ( O(gsize )
+
+messages) reducing overall complexity to O(log n). We note that hierarchy can be expanded to additional levels as needed. Second, SWARM+ integrates comprehensive resilience 
+
+through (1) multi-signal failure detection, (2) automatic job reselection, and (3) adaptive quorum . It supports job selection under reduced capacity, meaning the system continues to make progress when some agents become unavailable or are overloaded. When fewer resources are available than expected, the agents dynamically reevaluate which jobs can still be placed onto resources and defer or reselect the remaining ones. To maintain forward progress despite churn and failures, agents employ an adaptive quorum mechanism: the required quorum size automatically adjusts to the number of currently responsive agents rather than requiring full membership recon-figuration. This enables consensus to proceed under degraded conditions and prevents system-wide stalls. At the same time, new agents can join elastically at any level in the hierarchy, enabling dynamic agent scaling .Third, SWARM+ includes data-aware cost modeling that integrates resource load (compute, memory, disk), data transfer node (DTN) connectivity, and data locality into a unified cost calculation framework that is used for candidate selection during the consensus process, thereby enabling efficient data-aware distributed job selection. We evaluate the SWARM+ system using the FABRIC testbed [13], a programmable network research infrastructure designed to enable researchers to provision and connect re-sources from more than 30 geographically distributed sites and facilitate advanced experimentation in networking and distributed computing. We evaluate the SWARM+ system on FABRIC with a variety of workloads, agent topologies and agent counts, across a range of failure scenarios. The rest of the paper is organized as follows. Section II presents the SWARM+ architecture and details our main con-tributions. Section III presents the experimental methodology. Section IV presents the performance evaluation and results of our work. Section V reviews existing literature relevant to the work. Section VI concludes the paper and suggests avenues for future research. Global Dynamic     
+
+> Workload Pool
+> A1
+> A2
+> A3AjA5
+> ANAi
+> Set of jobs
+> Local Job Pool
+> Set of jobs selected by
+> CoordinatorAgent A i
+> CoordinatorAgents’
+> decision: which jobs
+> to select for execution
+> a1
+> a2
+> an
+> ResourceAgents’
+> decision: which
+> jobs to select
+> for resources
+> Local Job Pool
+> b1
+> b2
+> bm
+> Set of jobs selected by
+> CoordinatorAgent A j
+> Hierarchical
+> Job Selection
+> Fig. 1. Hierarchical job selection (2-level scenario). Level 1 agents ( Ai)select jobs from dynamic global distributed pool via consensus and delegate to Level 0 groups; Level 0 agents ( a1..a n,b1..b m) perform local job selection via consensus within respective groups for resource allocation.
+
+II. S YSTEM ARCHITECTURE 
+
+SWARM+ includes three architectural layers (left half of Figure 2): (a) Hierarchical Multi-Agent Layer, (b) Consensus Layer, and (c) Selection Layer, as described below. 
+
+A. Multi-Agent Layer Enabling Hierarchical Topology 
+
+Hierarchical Topology: The SWARM+ agents are orga-nized into a configurable-depth tree structure with distinct roles, e.g. a ResourceAgent is responsible for a group of resources and a CoordinatorAgent is responsible for a group of ResourceAgents. Such a structure enables scalable co-ordination through group-wise aggregation and cross-layer delegation. This tree-like organization, as depicted in the right half of Figure 2 can be extended to arbitrary depths as the system scales to larger number of resources and agents. For a two-level organization, we have  
+
+> •
+
+Level 0 (ResourceAgents) : These agents maintain local resource state (CPU, RAM, GPU, disk, DTN connectiv-ity), select jobs from the local job pool and execute them. The ResourceAgents form groups aligned with physical sites or locations. Each group of ResourceAgents operates semi-autonomously with shared local job pools (which relies on a distributed database for resilience). Each Re-sourceAgent participates in the consensus process within its group for job selection from the local job pool.  
+
+> •
+
+Level 1 (CoordinatorAgents) : Each CoordinatorAgent is responsible for a group of ResourceAgents, aggre-gates their state, and handles job delegation decisions. CoordinatorAgents do not execute jobs but participate in consensus among peer CoordinatorAgents and route job selections to the local pools associated with appropriate ResourceAgent groups. 
+
+Hierarchical Feasibility and Delegation : Each agent in the hierarchy is assigned an identifier. Lower agents are children, higher ones are parents, and same-level agents are peers. In addition, agents maintain local topology metadata: hierarchy level, group identifier, parent reference (if child), child set (if parent), and peer set for consensus communication. This structure enables independent horizontal scaling by adding groups at the same level , and vertical scaling by adding hierarchy levels .Hierarchical       
+
+> Topology
+> Management
+> Hierarchical
+> Feasibility and
+> Delegation
+> State
+> Management and
+> Communications
+> Hierarchical Multi-Agent System Layer
+> Prepare
+> Propose
+> Commit
+> Optimizations:
+> batching;
+> pipelined
+> consensus;
+> early abort
+> Consensus Layer
+> Data-aware Cost Model
+> Selection Layer
+> Feasibility check and
+> candidate selection
+> LRU Caching Optimization
+> SWARM+ Agent (CoordinatorAgent and ResourceAgent)
+> Failure
+> Detection
+> Job
+> Reselection
+> Adaptive
+> Quorum
+> Dynamic
+> Membership
+> Resilience
+> Mechanisms
+> gRPC
+> Messaging
+> Redis
+> Key-Value
+> Store Fig. 2. SWARM+ architecture and hierarchical topology. (Left) Three architectural layers: Hierarchical Multi-Agent System Layer, Consensus Layer, and Selection Layer. (Right) Hierarchical-110 deployment: 10 Level 0 groups (orange, 10 agents each) coordinated by 10 Level 1 agents (blue), demonstrating site-aligned organization that confines intra-group consensus to local meshes.
+
+If all parent agents naively queried every peer’s children during consensus (§II-B), the incurred communication cost would be O(n·m), where n is the number of parent agents and 
+
+m is the maximum number of children per parent. To optimize communication , SWARM+ uses two aggregation functions:  
+
+> •
+
+Maximum Child Capacity : Each parent aggregates its children’s resource availability into a single capacity vector 
+
+Cmax = max  
+
+> c∈children
+
+c. capacity ,
+
+where c. capacity is the child’s current available capacity vector across the different resource dimensions (CPU, RAM, GPU, disk, etc.). This vector represents the largest job any single child can handle along each resource dimension.  
+
+> •
+
+Aggregated DTN Connectivity : Parents combine chil-dren’s DTN connectivity into a union of DTN endpoints reachable by at least one child. For each DTN d in this set, the parent stores an aggregated connectivity score (e.g., mean or maximum of children scores) summarizing quality of access (bandwidth, latency, reliability). Using this aggregation strategy, feasibility checks are per-formed by the parent: a feasibility check tests whether a job’s resource and data transfer requirements can be satisfied by at least one child given the aggregated capacity and connectivity summaries. These aggregation-based feasibility checks reduce communication complexity from O(m) to O(1) per check by the parent, at the cost of occasional optimism when a parent may deem a job feasible at the group level even when no single child simultaneously satisfies all requirements. To address such cases, SWARM+ employs delegation mon-itoring . Each parent associates a delegation timeout with jobs delegated to children. The delegation timeout is the maximum time a job is allowed to remain in a delegated-but-incomplete state (e.g., queued or executing at a child) before the parent treats the delegation as failed. Jobs that remain pending beyond delegation timeout are reassigned to the job pool associated with the parent with exclusion flags to prevent reassignment to the job pool for the same parent. This approach trades perfect accuracy requiring expensive child queries for scalable distributed decisions with monitoring-driven recovery. 
+
+State Management and Communication: Agents coor-dinate through distributed state management and inter-agent messaging. State about resources, job pools, and consensus metadata (e.g., proposal IDs, live-neighbor sets, job states) is shared through a distributed Redis [14] key–value store. This store is configured with replication for production re-silience and organized using structured namespaces that enable efficient filtering and scoped success: Level 0 agents query only their group’s job pool; Level 1 agents query only about groups they manage. Inter-agent messaging uses low-latency gRPC [15] communications with bidirectional streaming for consensus. A dedicated set of gRPC connections is maintained between agent pairs, allowing reuse of established channels and reducing connection overhead. If a channel becomes unhealthy or drops, the client automatically reconnects so agents experience largely continuous, reliable communication. 
+
+B. Consensus Layer 
+
+In hierarchical topologies (§II-A), consensus operates at two levels of granularity to achieve O(log n) message com-plexity. Each agent (CoordinatorAgent or the ResourceAgent) achieves consensus through a three-phase protocol: 
+
+(1) Proposal Phase : Agent ai wishing to execute job j
+
+broadcasts ⟨PROPOSAL , p, j, a i, c ⟩, where p is unique pro-posal ID and c is computed cost. Each proposal binds to a single job and includes proposer identity for conflict resolu-tion. 
+
+(2) Prepare Phase : Upon receiving a proposal, agent ak
+
+validates by checking feasibility and detecting conflicts. If no better proposal exists for j (lower cost, or equal cost with lex-icographically smaller agent ID), the agent accepts and broad-casts ⟨PREPARE , p, j, a i, a k⟩. Prepare messages accumulate at the agent until reaching quorum count, q = ⌈(nlive + 1) /2⌉,where nlive is current number of live agents. 
+
+(3) Commit Phase : After prepare quorum, agents broadcast 
+
+⟨COMMIT , p, j, a i, a k⟩ and wait for commit quorum. Upon q
+
+commit messages, job selection finalizes: proposer ai sched-ules j for execution; others record the decision. To perform this three phase protocol, each agent com-municates with their designated peer set for Intra-Group Consensus : ResourceAgents within group g reach consensus on jobs submitted to that group’s local queue. Messages route only among group members, reducing communication to O(gsize ) where typical gsize is between 5 and 10. Further-more, a parent or a child communicates across hierarchical level through Inter-Group Coordination : CoordinatorAgents handle cross-group jobs, aggregating state from child groups and making placement decisions considering group-level load. CoordinatorAgents form their own consensus group, reaching agreement on job-to-group selections before delegating to appropriate ResourceAgent groups. For N agents in G groups of size N/G , flat consensus (e.g. vanilla PBFT [12]) requires 
+
+O(N 2) messages per job, while hierarchical consensus re-quires O(( N/G )2 +G2). With G = √N , this becomes O(N ).
+
+SWARM+ also includes three architectural optimizations in the consensus layer : (1) Proposal Batching : Agents batch up to B jobs per consensus round, as in SWARM, amortizing message overhead. Cost matrix (§II-C) is computed once per batch, and selection returns up to B agent–job pairs entering consensus simultaneously; (2) Pipelined Consensus :Multiple consensus rounds proceed concurrently with unique proposal IDs. The consensus process distinguishes locally initiated proposals (outgoing) from peer proposals (incoming) for efficient conflict detection, keeping the consensus pipeline full; (3) Early Abort on Conflicts : When receiving a proposal for j, agents check whether better proposals exist using cost-based comparison. Better proposals (lower cost or same cost with smaller agent ID) cause immediate rejection, allowing proposers to abort and reselect without timeout. 
+
+C. Selection Layer 
+
+The selection layer operates beneath the consensus layer to enable distributed job selection. While the consensus layer coordinates agreement across agents (as described above), the selection layer provides the cost-based rankings that inform which jobs each agent proposes for consensus. The selection layer selects jobs based on a novel cost function equipped with data-awareness and caching capabilities. Job selection begins with (1) feasibility checking , followed by (2) cost computation 
+
+and (3) candidate selection .
+
+Feasibility Check: Before computing costs, agents evaluate whether they can execute a job. For agent–job pair (a, j ),feasibility is defined as: feasible (a, j ) = ^
+
+> r∈R
+
+(a.r available ≥ j.r req ) ∧ conn feasible (a, j ),
+
+(1) where R = {CPU , RAM , Disk , GPU }, j.r req denotes job j’s required amount of resource r, and a.r available denotes agent 
+
+a’s available capacity of resource r. Connectivity feasibility (conn feasible) ensures agent can satisfy DTN requirements via direct access or permissible cross-site transfer. Infeasible pairs receive infinite cost and are excluded from further con-sideration. This early filtering reduces computational overhead by computing costs only for viable agent–job pairs. 
+
+Cost Computation: For each feasible agent–job pair (a, j ),cost combines resource utilization and penalties: cost (a, j ) = X
+
+> r∈R
+
+wr · ur (a, j ) + X
+
+> p∈P
+
+penalty p(a, j ), (2) where wr is weight for resource of type r (summing to 1.0), ur (a, j ) = j.r req  
+
+> a.r available
+
+is utilization fraction, and P =
+
+{connectivity , long job } is a set of penalty types described below. Weights ( wr ) adapt to job type. Compute-intensive jobs increase CPU/GPU weights; memory-intensive jobs emphasize RAM; data-transfer jobs prioritize disk and connectivity. Coor-dinatorAgents use the same cost model, computing costs based on aggregated child resources and DTN connectivity (§II-A). 
+
+Connectivity Penalty : Jobs requiring DTN access incur additional penalty for agents lacking strong connectivity to required DTNs. Data-awareness integrates directly into cost computation through this penalty . Jobs specify data transfer requirements via input/output arrays identifying DTN end-points and files, from which the system extracts required DTN set Dj = {d | d ∈ j. data in ∪ j. data out }. Agents declare DTN connectivity profiles with quality-of-service metrics: each DTN connection includes connectivity score in [0 , 1] 
+
+representing connection quality (bandwidth, latency, reliability, historical performance). Higher scores imply better connectiv-ity. To calculate connectivity penalty, we  
+
+> •
+
+Extract required DTNs Dj and retrieve agent’s connectiv-ity scores Sa = {sd | d ∈ Dj }, where sd is connectivity score for DTN d (0 if lacking access).  
+
+> •
+
+Compute average connectivity: s = 1 
+
+> |Dj|
+
+P 
+
+> d∈Dj
+
+sd. 
+
+> •
+
+Determine connectivity penalty: Pconn = 1 + β · (1 − s),where β is the connectivity penalty factor , a tunable configuration parameter (default 1.0) that controls penalty severity for poor DTN connectivity. Higher β values increase the cost gap between agents with strong versus weak DTN access, effectively prioritizing data locality. Setting β = 0 disables connectivity penalties entirely, while β > 1 amplifies the preference for agents with direct DTN access. Connectivity penalty ranges from 1.0 (perfect connectivity, 
+
+s = 1 ) to 1 + β (no connectivity, s = 0 ). 
+
+Long-Job Penalty : Jobs exceeding duration thresholds in-cur penalty α · (j. walltime − τ ), discouraging selection of long jobs to heavily loaded agents, where α = 1 /τ is the normalization factor and τ seconds is the configurable duration threshold (default 20 seconds). 
+
+Candidate Selection: After computing costs for all feasible agent–job pairs, each agent constructs a cost matrix where rows represent agents and columns represent jobs. For each job, an agent identifies itself as a candidate if its cost is within threshold θ (e.g., 10%) above the minimum cost observed across all agents. This threshold-based selection creates a candidate pool for each job, allowing multiple agents to pro-pose jobs with near-optimal costs while avoiding suboptimal selections. The selection layer returns these candidate agent– job pairs to the consensus layer for distributed agreement. LRU Caching Optimization: To optimize selection perfor-mance, SWARM+ employs version-based caching that avoids redundant cost and feasibility computations. Agents and jobs have associated version numbers that are incremented during state changes. Cache keys are (a. id , j. id , a. version , j. version ).Caching follows Least Recently Used (LRU) eviction and short Time To Live (TTL) (default 60s) policies. In steady-state workloads, high cache hit rates contribute significantly to observed latency reduction. 
+
+D. Resilience and Elasticity 
+
+SWARM+ integrates comprehensive resilience without ex-plicit membership reconfiguration through (1) multi-signal failure detection , (2) automatic job reselection , and (3) adap-tive quorum .
+
+Failure Detection. Agents detect failures through multiple signals: gRPC health check failures (consecutive ping failures trigger on_peer_status callbacks that notify agents when communication channels go down), and Redis heartbeat expiry (agents not updating state within expiry window are marked stale). Using delegation monitoring employed in the agent layer, stale agents are removed from neighbor maps based on the delegation timeout. 
+
+Job Reselection. When agent af is detected as failed, sur-viving agents reassign its jobs: agents maintain job-selection mappings tracking which agent handles each job. Upon detect-ing failure, jobs mapped to af reset to pending and re-enter selection. To avoid deadlock from failed proposers, jobs in prepare/commit states exceeding timeout thresholds also reset to pending and reselect state. 
+
+Adaptive Quorum. Quorum is adapted dynamically with-out requiring a separate reconfiguration protocol. Each group computes quorum at time t as 
+
+q(t) = 
+
+ nlive (t) + 1 2
+
+
+
+, (3) where nlive (t) is the number of currently responsive agents in-ferred from Redis-backed heartbeats. As agents fail or become unreachable, quorum decreases proportionally, allowing con-sensus to continue under reduced membership. When agents join, their presence is reflected automatically in future rounds because nlive (t) increases. This adaptive quorum mechanism enables progress under failures and membership changes while preserving consensus correctness guarantees— safety (no con-flicting job assignments) and liveness (continued progress)— for nlive ≥ 2f + 1 where f is the number of failures. 
+
+Dynamic Membership. New agents can join elastically at any level in the hierarchy . Upon startup, they register in Redis and announce via gRPC. Existing agents discover during neighbor refresh and incorporate into future consensus rounds. Jobs already in consensus complete under old quorum; new jobs use updated quorum count. III. E XPERIMENTAL METHODOLOGY 
+
+We evaluate SWARM+ through real-world experimentation using the FABRIC testbed [16], a programmable network  
+
+> Fig. 3. Multi-site deployment across 10 FABRIC sites (110 agent scenario).
+
+research infrastructure designed to facilitate advanced experi-ments in networking and distributed computing. All SWARM+ source code is publicly available on GitHub [17], and all evaluation data and scripts are released for reproducibility [18]. 
+
+Infrastructure. Single-site experiments run on 30 VMs at the FABRIC rack at Texas Advanced computing Center (TACC) ( < 2 ms RTT). Multi-site experiments span VMs across 10 FABRIC sites (WAN RTT 2.36–68.33 ms) as shown in Figure 3. Each VM provides 8 vCPUs and 16 GB RAM. 
+
+Topologies. We experiment with different kinds of agent communication topologies - (a) Mesh : single-level fully con-nected; (b) Ring : 6 rings of 5 agents with sparse cross-links; and (c) Hierarchical : Level 0 groups with Level 1 coordinators (and Level 2 coordinators for larger scale), as described in §II-A. Level 0 agents form a mesh. When agent counts exceed available VMs, multiple agents run concurrently on a VM. 
+
+Agent Profiles. Agents have heterogeneous resource capac-ities: Small (40%; 2 cores, 8 GB RAM, 100 GB disk, 0 GPU), Medium (25%; 4 cores, 16 GB RAM, 250 GB disk, 0 GPU), and Large (35%; 8 cores, 32 GB RAM, 500 GB disk, 4 GPUs). Profiles are randomly assigned and proportionally distributed across sites. 
+
+DTN-Awareness. We use ten DTN endpoints with connec-tivity scores in [0 .6, 0.95] . Each agent is associated with 0–4 DTNs. Jobs inherit DTN dependencies from their originating agent profile, creating implicit data-locality preferences. 
+
+Workload profile. Synthetic workloads use feasibility-aware generation with a biased distribution (exponent 3) favoring small jobs. Resource requirements are sampled from 
+
+[0 .1, agent capacity ] per resource dimension (CPU, RAM, disk, GPU). Wall times range from 0.1 to 30 minutes (mean 
+
+≈3 minutes). Jobs fall into three classes: Lightweight (55– 60%; <1 core, <4 GB RAM, no GPU), Standard (25–30%; 1–2 cores, 4–8 GB RAM, occasional GPU), and Resource-Intensive (10–15%; 2–4 cores, 8–16 GB RAM, 4 GPUs). 
+
+Metrics. We use several metrics throughout the evaluation: 
+
+Latency : (1) Selection time , i.e.time between start of job selection and finalization of job assignment, (2) Scheduling latency , i.e. time between job submission and finalization of job assignment, (3) Wait time , i.e. time between job submission and start of job selection. These are reported as mean and 95th percentile (P95) across different workload sizes. 
+
+Resilience and Elasticity : Job completion percentage, Failure-detection latency, recovery time (failure → steady-state latency within 10% of baseline), agent participation rate. 
+
+Experiment Protocol. Each experiment run initializes agents, submits jobs at controlled rates, executes with continu-ous logging, and exports metrics to a CSV file. Configurations are repeated 10–50 times; statistical comparisons use two-tailed t-tests ( α = 0 .05 ) with Cohen’s d.IV. E VALUATION 
+
+A. Baseline Performance: SWARM+ vs. SWARM 
+
+We quantify the performance improvements from SWARM+’s architectural optimizations (e.g. selection-engine caching, gRPC communication) over the baseline SWARM [11] by reproducing the experimental configuration: 
+
+Mesh topology , 10 agents, 100 jobs, and multi-site (10 sites) deployments with no data-awareness. Table I presents the comparison across key metrics, averaged over 100 runs for SWARM and 50 runs for SWARM+. SWARM+ achieves dramatic reductions across all latency metrics.                                          
+
+> TABLE I SWARM+ VS . SWARM (M ESH -10, 100 JOBS ,MULTI -SITE )
+> Metric SWARM SWARM+ Improve.
+> Mean Selection 40.03 ±6.41 s 1.20 ±0.04 s 97.0% Median Selection 36.60 ±7.98 s 1.15 ±0.04 s 96.9% P95 Selection 85.47 ±14.18 s 1.54 ±0.10 s 98.2% P99 Selection 130.61 ±99.83 s 2.67 ±0.22 s 98.0% Mean Sched. Latency 325.22 ±27.70 s 5.41 ±0.44 s 98.3%
+
+The improvements are statistically significant across all metrics (50 independent repetitions per configuration; two-tailed t-test at α = 0 .05 , p < 10 −23 , Cohen’s d > 6.4). Mean selection time decreases from 40.03 s to 1.20 s. End-to-end scheduling latency improves from 325.22 s to 5.41 s (60 ×
+
+speedup). The P99 latency reduction demonstrates tail latency elimination: 130.61 s → 2.67 s (49 × speedup). Despite WAN RTTs ranging from 2.36 to 68.33 ms across sites, SWARM+ maintains 97–98% improvement over baseline SWARM . Apart from the LRU caching optimization introduced in §II-C, the performance gains stem from additional engineering optimiza-tions in SWARM+: 
+
+gRPC Communication Layer : SWARM+ replaces SWARM’s Kafka message broker with direct peer-to-peer gRPC channels for consensus messaging. This eliminates broker-induced latency (Kafka round-trip overhead of 10– 50 ms per message) and enables sub-millisecond inter-agent communication over FabNetv4 [19] (1.2–2.0 ms RTT). gRPC’s bidirectional streaming and connection multiplexing reduce handshake overhead compared to Kafka’s topic-based publish-subscribe model. 
+
+Optimized Data Structures : SWARM+ replaces linear searches with indexed lookups for proposal matching and uses protocol buffers for efficient serialization (integrated with gRPC), reducing per-message overhead by 60–70%.                                                                                
+
+> TABLE II TOPOLOGY SCALABILITY PERFORMANCE (M EAN ±STD )
+> Config NJobs Sel. (s) P95 (s)
+> Mesh Topology
+> Mesh-10 10 100 0.34 ±0.04 0.58 Mesh-30-300 30 300 0.85 ±0.05 1.20 Mesh-30-500 30 500 2.79 ±0.08 3.55 Mesh-90 90 450 5.95 ±0.86 8.67
+> Ring Topology
+> Ring-10 10 100 0.16 ±0.09 1.58 Ring-30-300 30 300 6.44 ±2.15 25.67 Ring-30-500 30 500 51.98 ±13.38 95.60 Ring-90 90 450 19.31 ±6.87 60.47
+> Hierarchical Topology
+> Hier-30 30 500 0.93 ±0.06 1.24 Hier-110 110 1000 1.01 ±0.02 1.34 Hier-250 250 1000 24.53 ±4.62 80.48 Hier-990 990 9000 46.12 ± 14.33 208.20
+
+The combination of gRPC’s low-latency communication and selection-engine caching accounts for the observed speedup for selection time. These optimizations are orthogonal to topology choice and apply across all subsequent experiments. B. Topology Scalability: Single-Site Deployments 
+
+We evaluate the scalability of our system by experimenting with three types of agent topologies (Mesh, Ring, Hierarchical) at increasing agent scales in single-site (TACC) deployment. All configurations use FabNetv4 connectivity with intra-site RTT 1.2–2.0 ms. Table II presents mean and P95 selection times with N agents across different topology configurations. 
+
+Mesh Topology Scaling : Mesh exhibits near-linear growth in selection time with increasing job load (Mesh-30-300: 0.85 s, Mesh-30-500: 2.79 s, Mesh-90: 5.95 s). At 90 agents, mean selection time reaches 5.95 s with high variance (±0.86 s), indicating increasing consensus conflicts as O(n2)
+
+connections create simultaneous proposals for the same jobs. The O(n2) message complexity and growing consensus con-flicts prevent mesh from scaling beyond 90 agents, making it unsuitable for large-scale federations. 
+
+Ring Topology Degradation : Ring shows severe perfor-mance degradation at scale. Ring-30-500 exhibits 51.98 s mean selection time–18.6 × slower than Mesh-30-500 (2.79 s). P95 latency reaches 95.60 s with high variance ( ±11.91 s). The cross linked ring structure (6 primary rings of 5 agents each with cross-ring overlay) introduces O(√n) hop count for inter-ring consensus propagation. Under high load, message queuing delays compound across hops, creating cascading latency. Interestingly, Ring-90 (19.31 s) performs better than Ring-30-500, likely due to lower per-agent job pressure (450 jobs / 90 agents = 5.0 jobs/agent vs. 500/30 = 16.7 jobs/agent). 
+
+Hierarchical Topology Scalability : In contrast, hierar-chical topology demonstrates excellent scalability . Hier-110 (110 agents, 1000 jobs) achieves 1.01 s mean selection time with minimal variance ( ±0.02 s)—comparable to Mesh-30-300 despite 3.7 × more agents and 3.3 × more jobs. The two-level structure (10 groups of 10 Level-0 agents + 10 Level-1 coordinators) confines most consensus to intra-group mesh (O(1) hops within 10-agent groups), with only coordinator-level inter-group coordination. Hier-30 (0.93 s) outperforms Mesh-30-500 (2.79 s) despite identical agent count, showing that hierarchical grouping reduces coordination overhead .
+
+Per-Level Latency Characteristics : Table III and Fig-ure 4 reveal balanced job distribution across hierarchy levels. Level 0 resource agents achieve 0.99 s mean selection time, processing 1001 jobs (50.1%) through localized intra-group consensus within their 10-agent meshes. Level 1 coordinators exhibit 1.10 s mean selection time—only 1.11 × higher than resource agents—while handling 994 jobs (49.8%) requiring inter-group coordination. This nearly equal distribution val-idates the hierarchical design’s load balancing : both levels maintain sub-second selection latency with minimal overhead difference between local and cross-group consensus . The over-all 1.05 s weighted mean (0 .501 ×0.99+0 .498 ×1.10 = 1 .05 s)
+
+demonstrates efficient coordination across both hierarchy tiers .Level 1 (Top)     
+
+> (n=994)
+> Level 0 (Bottom)
+> (n=1001)
+> 0.6
+> 0.8
+> 1.0
+> 1.2
+> 1.4
+> 1.6
+> Selection Time (s)
+> Selection Time by Hierarchy Level
+> 0.5 1.0 1.5 2.0 2.5
+> Selection Time (s)
+> 0
+> 25
+> 50
+> 75
+> 100
+> 125
+> 150
+> 175
+> Frequency
+> Histogram by Hierarchy Level
+> Level 1 (Top)
+> Level 0 (Bottom)
+
+Fig. 4. Mean selection time distribution for Hier-110 (110 agents, 1000 jobs). Level 0 agents achieve 0.99 s mean selection time handling 50.1% of jobs (1001); Level 1 agents achieve 1.10 s mean handling 49.8% of jobs (994). TABLE III SELECTION TIME BY HIERARCHY LEVEL (H IER -110) 
+
+Level Mean (s) Median (s) Std (s) Min (s) Jobs 
+
+1 (Top) 1.10 1.09 0.24 0.67 994 0 (Bottom) 0.99 0.97 0.26 0.56 1001 
+
+Large-Scale Topology Scalability : To demonstrate production-scale capabilities, Hier-990 (990 agents distributed evenly across 30 VMs, executing 9000 jobs) validates system scalability to near-1000 agents in a three-tier hierarchy (88 groups of 10 Level-0 agents plus 22 groups of 4 Level-1 coordinators plus 1 group of 22 Level-2 coordinators). Mean selection time of 46.12 s and P95 of 208.20 s reflect increased coordination complexity across three hierarchy levels. 
+
+These results show that SWARM+ successfully scales to 9000 jobs across 990 distributed agents with nearly equal workload distribution across the hierarchy levels and reduced coordination overhead due to hierarchical grouping, vali-dating hierarchical topology’s ability to scale to production federations with hundreds of resource sites .All topologies achieve balanced job distribution (leader entropy 2.75–4.45, approaching theoretical maximum log 2(n)
+
+for uniform distribution). This shows that cost-based selection effectively spreads load across heterogeneous agents, prevent-ing hot-spots even with Ring’s asymmetric connectivity. 
+
+C. Resilience Under Failures and Dynamic Scaling 
+
+We evaluate SWARM+’s autonomous resilience mecha-nisms under two operational scenarios: (1) agent failures requiring recovery and quorum recalculation, and (2) dynamic agent addition for elastic scaling. 
+
+1) Agent Failure Recovery: We evaluate SWARM+’s au-tonomous failure recovery mechanisms under three failure scenarios using Mesh-30 topology with 500-job workload deployed on FABRIC TACC site. Agents are terminated at staggered intervals to simulate realistic failure conditions, test-ing the system’s ability to detect failures, recalculate quorum, and maintain job completion despite reduced capacity. Figure 5 presents results for job completion percentages for three agent failure scenarios for the two kinds of failure detection methods (§II-D) – (a) Redis-based (timer-based) and (b) gRPC-based (immediate callback) with Redis enabled as fallback. Single Agent         
+
+> (1/30, 3.3%)
+> Multiple Agents
+> (8/30, 26.7%)
+> Catastrophic
+> (15/30, 50.0%)
+> Failure Scenario
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Jobs Completed (%)
+> 99.8% 94.9% 93.7%
+> 99.2% 98.2% 92.5%
+> System Degradation:
+> 3.3% agent loss gRPC:0.2%, Redis:0.8%
+> 26.7% agent loss gRPC:5.1%, Redis:1.8%
+> 50.0% agent loss gRPC:6.3%, Redis:7.5%
+> gRPC + Redis Failure Detection Redis Failure Detection
+
+Fig. 5. Agent failure recovery under three failure scenarios and using two kinds of failure detection methods – gRPC-based (with Redis enabled as fallback) and Redis-based. 
+
+Single Agent Failure : The system achieves 99.8 ± 0.2% job completion (avg. 499/500 jobs, range: 99.6–100.0%) with gRPC-based detection and 99.2 ± 0.7% (avg. 496/500 jobs, range: 98.2–100.0%) with Redis-based detection despite losing 1 agent (3.3% capacity reduction). Zero job reselections were required, indicating that the failed agent held no committed jobs at failure time or that job timeout mechanisms suc-cessfully reclaimed any assigned work. The 29 surviving agents automatically excluded the failed peer from quorum calculations and continued processing the workload without disruption. Jobs that were infeasible due to resource constraints were excluded and reported as incomplete. 
+
+Multiple Agent Failures : Loss of 8 agents (26.7% capacity reduction) at staggered intervals resulted in 94.9 ± 2.7% job completion (avg. 474/500 jobs, range: 90.2–98.0%) for gRPC-based detection and 98.2 ± 1.4% (avg. 491/500 jobs, range: 96.2–100.0%) for Redis-based detection. The incomplete jobs were infeasible on the 22 surviving agents due to resource con-straints. Zero explicit job reselections were required, indicating all jobs feasible on surviving agents completed successfully. 
+
+Catastrophic Failure : At 50% agent loss (15/30 agents), the system was still able to complete 93.7 ± 1.0% (avg. 469/500 jobs, range: 92.2–94.8%) with gRPC-based detection and 92.5 ± 3.3% (avg. 463/500 jobs, range: 87.2–97.4%) with Redis-based detection. Critically, the incomplete jobs were infeasible on the surviving agents due to resource constraints: these jobs required CPU, RAM, or GPU resources unavailable on the remaining 15 agents. Only 5.7 ± 4.1 jobs on an average required explicit reselection, and the system recovered within 20 seconds, showing that the reason for jobs remaining incomplete is due to resource unavailability in the surviving agents rather than the failure recovery mechanisms. 
+
+These results show that SWARM+ is resilient to agent failures, maintaining >99% job completion rate under single agent failures, and demonstrating graceful system degrada-tion: with at most 7.5% impact under 50% agent failures. 
+
+It should be noted that the job completion percentage is orthogonal to the type of detection method . Job completion rate completely depends on the number of surviving agents, and the state of job pool and agent resources during the experiment. 
+
+Failure Detection: gRPC-based vs. Redis-based. The gRPC-based failure detection mechanism leverages bidirectional streaming channels to detect peer failures via immediate con-nection state callbacks, achieving near-instantaneous detection (13.8ms ± 1.6ms) across all scenarios. In contrast, the Redis-based approach uses periodic heartbeat monitoring with a 45-second threshold ( ±10% jitter to prevent thundering herd), resulting in 54.2 ± 0.5s detection latency (range: 53.3–54.9s). These results show that the gRPC-based detection achieves significantly faster detection latency. However, this mechanism can detect some false positives due to momentary network con-nectivity issues. On the other hand, the Redis-based approach, even if slower, offers greater robustness against transient network issues. Hence, SWARM+ employs both mechanisms: gRPC-based for rapid detection and Redis-based as a reliable fallback. 
+
+2) Dynamic Agent Addition: We evaluate SWARM+’s elas-tic scaling capabilities by dynamically adding agents during active job selection. All experiments use single-site deploy-ment at TACC with mesh topology and 1000 jobs, starting with 20 agents and adding 10 agents dynamically. 10 20 30 40 50 60         
+
+> Addition Time (seconds)
+> 0
+> 20
+> 40
+> 60
+> 80
+> 100
+> Agent Participation (%)
+> 86.7%
+> 93.3%
+> 83.3% 80.0% 80.0%
+> 66.7%
+> Final Agent Participation Rate
+> 050 100 150 200 250
+> Time (seconds)
+> 0
+> 200
+> 400
+> 600
+> 800
+> 1000
+> Cumulative Jobs Completed
+> Agents added
+> (t=20s)
+> Job Completion Over Time
+> t=20s
+> Fig. 6. Dynamic agent addition (1000 jobs, 20 →30 agents)
+
+The top panel of Figure 6 shows the agent participation rate (the fraction of total agents participating in job selection) for different values of agent addition time, i.e. the time at which the 10 agents were added (at 10s, 20s, 30s, 40s, 50s, 60s). The bottom panel of Figure 6 shows the job completion timeline for the case where agents were added at ( t = 20 s). The results show that early addition ( t = 10 s, t = 20 s)achieves highest agent participation rate of 86.7–93.3%, as substantial workload remains available when new agents join. Late addition ( t = 60 s) shows reduced participation 66.7%, because initial agents have already claimed most jobs—new agents integrate successfully but find limited work remaining. 
+
+These results show that agents are able to autonomously join and participate in the job selection process with workload being distributed to the added agents. D. Impact of Geographic Distribution 
+
+We conduct multi-site experiments to evaluate the impact of geographic distribution (WAN latencies) on job selection performance across three configurations: (1) Mesh-30 (500 jobs): 30 agents on UCSD, LOSA, SALT sites (Figure 3) (10 agents/site), (2) Hier-30 (500 jobs): 30 agents on UCSD, LOSA, SALT sites (9 resource agents/site + 3 coordinator agents, hierarchical), and (3) Hier-110 (1000 jobs): 110 agents with hierarchical site-aligned groups (10 resource agents/site, 10 sites and 1 coordinator agent/site). Table IV compares mean selection times for the three multi-site configurations versus single-site (TACC) deployments.                                 
+
+> TABLE IV MULTI -S ITE VS . S INGLE -S ITE MEAN SELECTION TIME COMPARISON
+> Topology # Jobs Single-Site (s) Multi-Site (s) Slowdown
+> Mesh-30 500 2.79 ±0.60 5.77 ±3.24 2.07 ×
+> Hier-30 500 0.93 ±0.23 1.19 ±0.38 1.28 ×
+> Hier-110 1000 1.01 ±0.26 3.77 ±6.92 3.73 ×
+
+Mesh-30 : Mesh-30 (30 agents, 500 jobs) exhibits mean selection time increase from 2.79 s to 5.77 s—a 2.07 × slow-down. The slowdown is due to WAN latencies for inter-site messaging and remote database access latency for the agents. Despite the higher selection time overhead compared to hierarchical topologies, the fully-connected mesh topology distributes consensus load across 30 agents, enabling efficient agreement despite inter-site WAN latencies. The mesh topol-ogy’s direct peer-to-peer connections avoid multi-hop message relay, limiting WAN-induced overhead. 
+
+Hier-30 : Hier-30 (30 agents, 500 jobs) demonstrates the best WAN resilience with only 1.28 × mean selection time slowdown (0.93 s → 1.19 s) . This advantage stems from the hi-erarchical design confining most consensus to intra-site Level-0 meshes (9 agents per site), with only Level-1 coordinator communication crossing WAN links. The lower absolute la-tencies (1.19 s vs. 5.77 s for Mesh-30) combined with minimal WAN overhead validate hierarchical topology as the preferred choice for geographically distributed deployments. 
+
+Hier-110 : Hier-110 (110 agents, 1000 jobs) exhibits a3.73 × mean selection time slowdown (1.01 s → 3.77 s). This higher overhead compared to Hier-30’s 1.28 × slowdown re-flects the increased coordination complexity at larger scales with 10 geographically distributed sites. Each site’s 10 Level-0 agents form a local mesh, confining most consensus to intra-site communication, while Level-1 coordinators (one per site) handle inter-site coordination. The 3.73 × WAN overhead reflects challenges of inter-site consensus coordination across WAN links, database access latency from distant sites, and hi-erarchical message propagation delays. Despite the WAN over-head, the system maintains eventual consistency and successful job completion. It should be noted that the multi-site results represent an untuned baseline; network-optimized deployments and using optimized overlay communication networks [20] can reduce WAN overhead significantly. We leave this aspect of the problem for future investigations. 
+
+V. R ELATED WORK 
+
+Consensus Protocols. PBFT [12] provides Byzantine-tolerant agreement via a three-phase protocol; Raft [21] and Paxos [22] offer crash fault tolerance with simpler reasoning. In scheduling contexts, Omega [23] uses optimistic concur-rency on shared state, Firmament [24] centralizes placement via min-cost flow, and Medea [25] applies Paxos for dat-acenter coordination. SWARM+ differs by adapting PBFT for job-level distributed decision-making , introducing (1) dy-namic quorum for failure tolerance, (2) proposal batching, (3) pipelined consensus for throughput, and (4) hierarchical groups reducing message growth from O(n2) to O(log n).
+
+Hierarchical Coordination. Two-level resource managers such as Mesos [26] and YARN [27] provide hierarchical partitioning but retain centralized components (masters, re-source managers). Federation systems (e.g., Kubernetes Fed-eration [28]) aggregate multi-cluster deployments but depend on top-level controllers. Grid schedulers (GridWay [29], Grid-bus [30], KOALA [31]) use hierarchical brokers with global-state assumptions. Tree-based dissemination frameworks (e.g., SRM [32], hierarchical monitoring [33]) optimize information flow but not distributed agreement. SWARM+ instead per-forms distributed consensus at every hierarchy level .
+
+Distributed Scheduling Systems. Traditional HPC and HTC schedulers (Slurm [3], PBS [4], HTCondor [5]) rely on centralized control planes that scale well within single-site clusters and federations but become bottlenecks and single points of failure in federated environments. Auction-based systems (Bellagio [34], Tycoon [35]) reduce centralization but require complex bidding strategies unsuit-able for scientific workflows. Peer-to-peer schedulers (e.g. P2P-MPI [36]) improve decentralization but provide only best-effort execution. Unlike these systems, SWARM+ provides 
+
+strong, job-level consistency through PBFT-style consensus while remaining fully decentralized. 
+
+Data-Aware Scheduling. Systems such as Hadoop [37] and Spark [38] co-locate compute with data blocks to reduce transfers; Quincy [39] encodes locality as transfer costs in a centralized min-cost flow. Transfer systems (Globus [40]) and workflow engines (Pegasus [41], Makeflow [42]) manage data movement separately from computation. WAN-aware schedulers (e.g., DataMPI [43]) incorporate topology infor-mation but typically assume central controllers or a single administrative domain. SWARM+ differs by incorporating DTN connectivity as a first-class entity in its cost model. 
+
+Fault Tolerance. Failure detection frameworks (SWIM [44], Φ-Accrual [45]) use gossip and adaptive thresholds. Recovery approaches such as speculative execution (Hadoop [37]), checkpointing and workflow-level retries (HTCondor [5]) provide eventual progress but assume centralized control. Dynamic membership and quorum reconfiguration via Paxos/Raft variants [46]–[48] require dedicated coordination rounds. In contrast, SWARM+ integrates (1) multi-signal failure detection, (2) automatic reassignment, and (3) adaptive quorum for continued operation under agent loss— without explicit reconfiguration .VI. C ONCLUSIONS AND FUTURE WORK 
+
+In this paper, we presented the SWARM+ system that builds on our prior work on multi-agent decentralized consensus for distributed job selection to address scaling and resilience challenges. SWARM+ introduced three novel contributions to address decentralized coordination barriers: (1) Hierarchical topologies reduced complexity to O(log n), scaling to 990 agents with 46.12 s mean selection time for 9000 jobs; (2) Au-tonomous resilience maintained 92.5% availability under 50% agent loss via dynamic quorum recalculation without central-ized membership services; (3) Data-aware cost modeling 
+
+integrated compute load, DTN connectivity, and data locality for unified cost calculation used during candidate selection. The evaluation on the FABRIC testbed showed that SWARM+ improves selection time and scheduling latency by about 97–98% over baseline SWARM under identical configurations, largely due to engineering optimizations such as a gRPC communication layer and selection-engine caching. SWARM+ also scales to 9000 jobs across 990 distributed agents, achieving nearly even workload distribution across hierarchy levels and reduced coordination overhead via hierar-chical grouping and consensus, indicating suitability for large federations with hundreds of sites. SWARM+ demonstrates resilience to failures, tolerating single-agent failures ( >99%) and degrading gracefully, with only 5.1% and 7.5% perfor-mance impact under 26% and 50% agent failures, respectively. SWARM+’s elastic scaling allows agents to be added dynam-ically, maintaining stable behavior as the system grows. Future work includes network-optimized agent deployments and using optimized overlay communication networks [20] to mitigate WAN latencies and achieve further scaling, adaptive hierarchy construction, large-scale resilience and elasticity ex-perimentation, and integration with existing workflow systems (Pegasus [1], Nextflow [49]) through scheduler adapters. REFERENCES [1] E. Deelman, R. Ferreira da Silva, K. Vahi, M. Rynge, R. Mayani, R. Tanaka, W. Whitcup, and M. Livny, “The Pegasus workflow man-agement system: Translational computer science in practice,” Journal of Computational Science , 2020. [2] The Galaxy Community, “The Galaxy platform for accessible, repro-ducible and collaborative biomedical analyses: 2022 update,” Nucleic Acids Research , vol. 50, no. W1, pp. W345–W351, 2022. [3] “Slurm workload manager,” https://slurm.schedmd.com/, accessed: 2024. [4] “Portable batch system (pbs),” https://www.openpbs.org/, accessed: 2024. [5] D. Thain, T. Tannenbaum, and M. Livny, “Distributed computing in practice: the condor experience.” Concurrency - Practice and Experi-ence , vol. 17, no. 2-4, pp. 323–356, 2005. [6] A. C. S. Alvin AuYoung, Brent N. Chun and A. Vahdat, “Resource allocation in federated distributed computing infrastructures,” Proc. of the First Workshop on Operating System and Architectural Support for the on demand IT InfraStructure , 2004. [7] K. Chard and K. Bubendorfer, “Co-operative resource allocation: Build-ing an open cloud market using shared infrastructure,” IEEE Transac-tions on Cloud Computing , vol. 7, no. 1, pp. 183–195, 2019. [8] G. Bosilca, A. Bouteiller, F. Cappello, S. Djilali, G. Fedak, C. Germain, T. Herault, P. Lemarinier, O. Lodygensky, F. Magniette, V. Neri, and A. Selikhov, “MPICH-V: toward a scalable fault tolerant MPI for volatile nodes,” in SC ’02: Proceedings of the 2002 ACM/IEEE Conference on Supercomputing , 2002, pp. 29–29. [9] H. Jin, D. Zou, H. Chen, J. Sun, and S. Wu, “Fault-tolerant grid architecture and practice,” J. Comput. Sci. Technol. , vol. 18, no. 4, p. 423–433, jul 2003. [Online]. Available: https://doi.org/10.1007/ BF02948916 [10] M. Rebbah, Y. Slimani, A. Benyettou, and L. Brunie, “A decentralized fault tolerance model based on level of performance for grid environment,” Cluster Computing , vol. 19, no. 1, p. 13–27, mar 2016. [Online]. Available: https://doi.org/10.1007/s10586-015-0497-x [11] Anonymous, “Details omitted for double-blind review,” Details omitted for double-blind review , 2025, omitted for double-blind reviewing. [12] M. Castro and B. Liskov, “Practical byzantine fault tolerance,” in 3rd Symposium on Operating Systems Design and Implementation (OSDI) ,1999, pp. 173–186. [13] I. Baldin, A. Nikolich, J. Griffioen, I. I. S. Monga, K.-C. Wang, T. Lehman, and P. Ruth, “FABRIC: A national-scale programmable experimental network infrastructure,” IEEE Internet Computing , vol. 23, no. 6, pp. 38–47, 2019. [14] “Redis,” https://redis.io/docs/latest/, accessed: 2025-12-03. [15] “grpc: A high performance, open source universal rpc framework,” https: //grpc.io/, accessed: 2025-12-03. [16] I. Baldin, A. Nikolich, J. Griffioen, I. I. S. Monga, K.-C. Wang, T. Lehman, and P. Ruth, “FABRIC: A national-scale programmable experimental network infrastructure,” IEEE Internet Computing , vol. 23, no. 6, pp. 38–47, 2019. [17] Anonymous, “Details omitted for double-blind review,” Details omitted for double-blind review , 2025, omitted for double-blind reviewing. [18] ——, “Details omitted for double-blind review,” Details omitted for double-blind review , 2025, omitted for double-blind reviewing. [19] “Network services in fabric: Layer 3 services,” https://learn. fabric-testbed.net/knowledge-base/network-services-in-fabric/, FABRIC Testbed, accessed: 2025-12-01. [20] S. Wu, K. Raghavan, S. Di, Z. Chen, and F. Cappello, “DGRO: Diameter-Guided Ring Optimization for Integrated Research Infrastructure Membership,” arXiv preprint arXiv:2410.11142 , 2024. [Online]. Available: https://arxiv.org/abs/2410.11142 [21] D. Ongaro and J. Ousterhout, “In search of an understandable consensus algorithm,” in 2014 USENIX Annual Technical Conference (USENIX ATC) , 2014, pp. 305–319. [22] L. Lamport, “The part-time parliament,” ACM Transactions on Computer Systems , vol. 16, no. 2, pp. 133–169, 1998. [23] M. Schwarzkopf, A. Konwinski, M. Abd-El-Malek, and J. Wilkes, “Omega: Flexible, scalable schedulers for large compute clusters,” in 
+
+Proceedings of the 8th ACM European Conference on Computer Systems (EuroSys) , 2013, pp. 351–364. [24] I. Gog, M. Schwarzkopf, N. Gleave, M. Abd-El-Malek, and J. Wilkes, “Firmament: Fast, centralized cluster scheduling at scale,” in 12th USENIX Symposium on Operating Systems Design and Implementation (OSDI) , 2016, pp. 99–115. [25] C. Curino, E. Jones, S. Madden, and H. Balakrishnan, “Medea: Schedul-ing of long running applications in shared production clusters,” in 
+
+Proceedings of the 11th ACM European Conference on Computer Systems (EuroSys) , 2014, pp. 386–400. [26] B. Hindman, A. Konwinski, M. Zaharia, A. Ghodsi et al. , “Mesos: A platform for fine-grained resource sharing in the data center,” in 8th USENIX Symposium on Networked Systems Design and Implementation (NSDI) , 2011, pp. 295–308. [27] V. K. Vavilapalli, A. C. Murthy et al. , “Apache hadoop yarn: Yet another resource negotiator,” in Proceedings of the 4th ACM Symposium on Cloud Computing (SoCC) , 2013, pp. 5:1–5:16. [28] “Kubernetes federation,” https://kubernetes.io/docs/concepts/cluster-administration/federation/, accessed: 2024. [29] E. Huedo, R. S. Montero, and I. M. L´ opez, “Gridway: A grid metasched-uler,” Future Generation Computer Systems , vol. 18, no. 8, pp. 1061– 1075, 2002. [30] R. Buyya and S. Venugopal, “A grid service broker for resource man-agement in grid computing,” Proceedings of the 1st IEEE International Conference on e-Science and Grid Computing , pp. 427–434, 2005. [31] A. Iosup and D. H. J. Epema, “Koala: A co-allocating grid scheduler,” in 
+
+Proceedings of the 6th IEEE/ACM International Symposium on Cluster Computing and the Grid (CCGrid) , 2006, pp. 601–608. [32] S. Floyd, V. Jacobson, C.-G. Liu, S. McCanne, and L. Zhang, “A reliable multicast framework for light-weight sessions and application level framing,” in Proceedings of the ACM SIGCOMM Conference ,1995, pp. 342–356. [33] M. L. Massie, B. N. Chun, and D. E. Culler, “The ganglia distributed monitoring system: Design, implementation, and experience,” in Pro-ceedings of the IEEE International Conference on Cluster Computing ,2003, pp. 289–298. [34] A. AuYoung, B. Chun, A. Snoeren, and A. Vahdat, “Resource allocation in federated distributed computing infrastructures,” in Proceedings of the Bellagio Workshop on the Economics of Shared Infrastructures , 10 2004. [35] K. Lai, B. A. Huberman, and L. R. Fine, “Tycoon: A distributed, market-based resource allocation system,” CoRR , 2004. [Online]. Available: https://arxiv.org/abs/cs/0404013 [36] H. Casanova, H. Nakada, F. Berman et al. , “P2p-mpi: A fault-tolerant and scalable infrastructure for global computing,” in Proceedings of the 18th International Parallel and Distributed Processing Symposium (IPDPS) , 2004. [37] K. Shvachko, H. Kuang, S. Radia, and R. Chansler, “The hadoop distributed file system,” in IEEE 26th Symposium on Mass Storage Systems and Technologies (MSST) , 2010, pp. 1–10. [38] M. Zaharia, M. Chowdhury, M. J. Franklin, S. Shenker, and I. Stoica, “Spark: Cluster computing with working sets,” in 2nd USENIX Workshop on Hot Topics in Cloud Computing (HotCloud) , 2010. [39] M. Isard, V. Prabhakaran, J. Currey, U. Wieder, K. Talwar, and A. Gold-berg, “Quincy: Fair scheduling for distributed computing clusters,” in Proceedings of the ACM SIGOPS 22nd Symposium on Operating Systems Principles (SOSP) , 2009, pp. 261–276. [40] I. Foster, “Globus toolkit version 4: Software for service-oriented systems,” Journal of Computer Science and Technology , vol. 21, no. 4, pp. 513–520, 2006. [41] E. Deelman, G. Singh, M.-H. Su, J. Blythe et al. , “Pegasus: A framework for mapping complex scientific workflows onto distributed systems,” 
+
+Scientific Programming , vol. 13, no. 3, pp. 219–237, 2005. [42] M. Albrecht, P. Donnell, P. Bui, and D. Thain, “Makeflow: A portable abstraction for data intensive computing on clusters, clouds, and grids,” in Proceedings of the 1st ACM SIGMOD Workshop on Scalable Work-flow Execution Engines and Technologies (SWEET) , 2012. [43] X. Lu, F. Liang, B. Wang, L. Zha, and Z. Xu, “Datampi: Extending mpi to hadoop-like big data computing,” 2014 IEEE 28th International Parallel and Distributed Processing Symposium , pp. 829–838, 2014. [Online]. Available: https://api.semanticscholar.org/CorpusID:17568302 [44] A. Das, I. Gupta, and A. Motivala, “Swim: Scalable weakly-consistent infection-style process group membership protocol,” in Proceedings of the 2002 International Conference on Dependable Systems and Networks (DSN) , 2002, pp. 303–312. [45] N. Hayashibara, X. Defago, R. Yared, and T. Katayama, “The ϕ accrual failure detector,” in 23rd IEEE International Symposium on Reliable Distributed Systems (SRDS) , 2004, pp. 66–78. [46] L. Lamport, D. Malkhi, and L. Zhou, “Reconfiguring a state machine,” 
+
+SIGACT News , vol. 41, no. 1, p. 63–73, Mar. 2010. [Online]. Available: https://doi.org/10.1145/1753171.1753191 [47] H. Howard, D. Malkhi, and A. Spiegelman, “Flexible paxos: Quorum intersection revisited,” in International Conference on Principles of Distributed Systems (OPODIS) , 2016, pp. 25:1–25:14. [48] P. Hunt, M. Konar, F. P. Junqueira, and B. Reed, “Zookeeper: Wait-free coordination for internet-scale systems,” in 2010 USENIX Annual Technical Conference (USENIX ATC) , 2010, pp. 145–158. [49] “Nextflow,” https://www.nextflow.io/, accessed: 2025-12-03.

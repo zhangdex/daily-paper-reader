@@ -1,0 +1,370 @@
+Title: Optimizing Orbital Parameters of Satellites for a Global Quantum Network
+
+URL Source: https://arxiv.org/pdf/2603.02480v1
+
+Published Time: Wed, 04 Mar 2026 01:24:37 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Optimizing Orbital Parameters of Satellites for a Global Quantum Network 
+
+Athul Ashok ∗† , Owen DePoint ∗† , Jackson MacDonald ∗, Albert Williams ∗, and Don Towsley ∗∗University of Massachusetts, Amherst, MA, USA Email: ∗{aashok@, odepoint@, jrmacdonald@, abwillia@cs., towsley@cs. }umass.edu 
+
+> †
+
+Contributed equally to this work 
+
+Abstract —Due to fundamental limitations on terrestrial quantum links, satellites have received considerable atten-tion for their potential as entanglement generation sources in a global quantum internet. In this work, we focus on the problem of designing a constellation of satellites for such a quantum network. We find satellite inclination angles and satellite cluster allocations to achieve maximal entangle-ment generation rates to fixed sets of globally distributed ground stations. Exploring two black-box optimization frameworks: a Bayesian Optimization (BO) approach and a Genetic Algorithm (GA) approach, we find comparable results, indicating their effectiveness for this optimization task. While GA and BO often perform remarkably similar, BO often converges more efficiently, while later growth noted in GAs is indicative of less susceptibility towards local maxima. In either case, they offer substantial improvements over naive approaches that maximize coverage with respect to ground station placement. 
+
+I. I NTRODUCTION 
+
+Satellite-based quantum networks enable long-distance quantum communication by leveraging satellites and ground stations to distribute quantum entanglement over long distances. Unlike fiber optic cables or terrestrial free-space channels, satellite links offer significantly lower transmission losses over distances greater than 100 kilometers, making them favorable for large-scale quantum communication [1]. Optimizing orbital parameters, such as the inclination angle [2, p. 158] of the orbit above the equator and the number of satellites within a constellation, is crucial for maximizing the coverage of the network to ground stations. Maximal ground station coverage ensures consistency and reliability within the network when implemented on a large scale. In the dual downlink architecture, satellites generate entangled qubit pairs and transmit them simultaneously to two ground stations via free-space links. This setup requires that both ground stations be simultaneously within the same satellite’s line of sight, limiting con-nections to geographically proximate stations. Although this architecture imposes constraints on network con-nectivity and necessitates efficient scheduling to opti-mize entanglement distribution rates, it eliminates the need for quantum memories onboard satellites [3]. We simulate a Spontaneous Parametric Down-Conversion (SPDC) entanglement generation source because it is an experimentally validated and compact method for quantum satellite missions. SPDC has been successfully implemented in orbit, i.e. on the SpooQy-1 CubeSat [4]. Williams et al. [3] and Karavias et al. [5] both examine the problem of optimizing the allocation of satellites to ground stations in a quantum network, the former maximizes the performance of an existing constellation, and the latter attempting to minimize the number of satellites needed in a constellation. Our work instead optimizes the placement of satellites by altering orbital elements of satellites, in this case, the satellite inclina-tions, within a constellation to maximize performance. We show that black-box optimization tools can be used to define satellite constellations that outperform naive, regular approaches which attempt to maximize coverage without respect to ground station placement. We select two well-established lightweight black-box optimization methods: Bayesian Optimization (BO) and Genetic Algorithms (GA), each implemented with hyperparameters aligned with prior work on similarly high-dimensional, computationally expensive problems. Specifically, we use a BO implementation that employs Gaussian process surrogate modeling and standard ac-quisition functions (expected improvement and lower confidence bound) [6], [7] and a GA implementation that makes use of hyperparameters such as exponentially decaying mutation rate and multi-parent crossover [8], [9]. Both methods were carefully tuned to effectively navigate the complex search space, while also efficiently addressing computational constraints when interacting with a quantum network simulation. In the classical navigational satellite constellation set-ting, Jiang et al. [10] demonstrates BO to be a highly effective tool for optimizing orbital parameters, with computational advantages over traditional methods, such as GA. However, our quantum networking setting in-troduces additional structural constraints stemming from quantum hardware cost, dual downlink architecture, and qubit fragility during transmission. Our results demonstrate that both BO and GA are 
+
+> arXiv:2603.02480v1 [quant-ph] 3 Mar 2026
+
+2reliable and scalable frameworks for optimizing satellite constellations for quantum networks. Across all tested scenarios, the optimized constellations consistently out-perform regular designs by significant margins, achiev-ing upwards of 2.09 × 10 6 EPR pairs per second under a population-based ground station placement. In contrast, naive strategies, including uniformly equispaced con-stellations, consistently performed 28-57% lower. Our results demonstrate that known optimization algorithms can serve as an effective methodology for constellation design in quantum satellite networks. In Section II we begin by addressing preliminary physical problem constraints and constellation design choices. Section III then details the general optimization problem that we attempt to solve, while Section IV defines and connects our optimization frameworks to the given problem. Section V details how we assess the effectiveness of these frameworks, and Section VI ana-lyzes the resulting numerical performance in relation to baselines and each other. Finally, Section VII concludes the paper with a summary and direction for future work. II. P RELIMINARIES 
+
+Our objective is to compare the efficacy of BO and GA against more naive approaches when designing a satellite constellation. We specifically focus on optimizing both inclination angles and number of satellites assigned to each inclination to maximize the average entanglement distribution rate per second. We simulate a 100 satellite constellation with orbits at an altitude of 550 kilometers and 100 ground stations, either placed over the most 100 populous cities (see Figure 2(a)) or randomly on land (see Figure 2(b)). We use the expected number of EPR pairs distributed to a given set of ground stations per second over the course of a day, with samples taken every 30 seconds, as the metric for evaluating a constellation. We evaluate constellations with 1, 2, 3, and 5 sep-arate orbits with variable inclination angles and vari-able numbers of satellites assigned to each orbit. We assume each satellite has one pair of transmitters and each ground station has one receiver, and we use the GREEDY_BACKOFF algorithm described in [3] to choose which pairs of ground stations communicate with which satellites. In this work, we consider a dual downlink architecture for entanglement distribution (see Section I). We use the SPDC source and atmospheric channel model defined in [11], with the noise and loss model based on two pair photon emissions and background photon flux described in [3]. As in [3], we require that satellites be at a minimum elevation angle of 20 ◦ above the horizon of a ground station to be visible. III. O PTIMIZATION PRELIMINARIES 
+
+Before describing our BO and GA optimization frame-works, we outline the general parameterization and transformations that enable effective search over the space of possible satellite orbits. We focus on handling both continuous inclination angles and the constrained allocation of satellites into multiple orbits. We constrain the number of separate orbits that can be explored, requiring at each iteration all N = 100 satellites be placed within one of our D ∈ { 1, 2, 3, 5} specified orbits. 
+
+A. Parametrization of satellite constellations 
+
+We vary our satellite constellations according to the following parameters:  
+
+> •
+
+Inclination Angle: Each orbit has an inclination 
+
+θi ∈ [0 ◦, 180 ◦], where an inclination angle θ yields the same orbit as that of 180 ◦ − θ, except reflected over the equator.  
+
+> •
+
+Satellite Allocation: We distribute N satellites across 
+
+D orbits, while ensuring our constraints are main-tained. Namely, the assignment of satellites to orbits must respect the overall satellite count and must be constrained to a state space over ZD . To do this, let 
+
+x = [ x1, x 2, . . . , x D ] where xi ∈ R represents the fraction of satellites allocated to the i-th orbit. We require xi ≥ 0 and PDi=1 xi = 1 .
+
+Taking any value xi ∈ [0 , 1] , we map these to proportional amounts of satellites: s i = xi · N, which are then mapped to integers (see Section C). If nec-essary, additional constraints (e.g., a minimum number of satellites per orbit) can be enforced by adjusting or penalizing invalid allocations. See Figure 1 for an example visualization of this parameterization. 
+
+B. The Additive Log-Ratio (ALR) Transformation 
+
+Enforcing the constraints ∀xi ≥ 0 and Σxi = 1 is not straightforward, as the number of satellites allocated to each orbit is specified independently (so we cannot optimize directly over the D-dimensional simplex). In-stead, we proceed by inverting the Additive Log-Ratio (ALR) transformation. The ALR transformation maps the D-dimension simplex into an unconstrained (D −1) -dimensional real space, using one of the D variables as a reference ,
+
+yi = log e
+
+ xi
+
+xD
+
+
+
+for i = 1 , . . . , D − 1,
+
+where xD plays the role of the reference component. We can, given a vector y ∈ RD−1, retrieve our desired fractions x via the inverse transformation: 
+
+xi = eyi
+
+1 + PD−1 
+
+> j=1
+
+eyj
+
+for i = 1 , . . . , D − 1,3
+
+Fig. 1: Example of a constellation with the hyperparameter D = 3 and the following parameters: 
+
+θ1 = 25 ◦, θ 2 = 75 ◦, θ 3 = 150 ◦, x 1 = 2 , x 2 = 3 , x 3 = 5 
+
+xD = 11 + PD−1 
+
+> j=1
+
+eyj
+
+.
+
+This guarantees that any real vector y corresponds to a unique, valid point x in the simplex. We then pro-ceed with standard unconstrained optimization methods, mapping these fractions as follows. 
+
+C. From fractions to integer allocations 
+
+Once we have the fractions x = ( x1, . . . , x D ), we compute the integer satellite counts: 
+
+sats per config i = round(max( xi · N, min sats )) 
+
+where round( k) returns the integer nearest to k for any k ∈ R. Here, min sats is an optional minimum number of satellites required per orbit. If the integer allocations do not sum to N due to rounding, we penalize the resulting orbit (mapping to a negative entanglement generation rate), ensuring that the optimization process naturally avoids infeasible solutions without losing the invertibility afforded to us by the ALR transformation. 
+
+D. Complete parameter space 
+
+The result is a parameter space that includes both inclination angles and satellite allocations:  
+
+> •
+
+Inclinations θi ∈ [0 ◦, 180 ◦] are directly optimized as continuous variables.  
+
+> •
+
+Satellite allocations are represented via unconstrained real parameters (y1, . . . , y D−1) through the ALR transformation, ensuring feasibility and smoothness. Our BO and GA optimization approaches each oper-ate on this search space, while respecting the required constraints. 
+
+E. Bayesian optimization 
+
+Bayesian optimization is particularly suitable for prob-lems where the objective function is difficult to compute [6] and the goal is to minimize the number of evaluations (a) (b) 
+
+Fig. 2: (a) 100 ground stations placed at high-density population centers (b) 100 ground stations placed ran-domly with a fixed seed exclusively on land while effectively exploring the parameter space. Due to the black box nature and expensive evaluation time, BO provides a promising approach to iteratively refine parameters. Our approach relies on the parameterization described above, objective evaluation, and iterative op-timization using a Gaussian process model described in Section IV-A. 
+
+F. Genetic optimization 
+
+Genetic algorithms are well-suited for optimization in large non-convex search spaces [12]. Our GA frame-work begins with a diverse population of candidate satellite orbits utilizing the parametrization detailed in Sections III-B–III-D. Guided by tuned hyperparameters across successive generations, GA offers a viable ap-proach to exploring the search space and uncovering diverse, high-performing configurations. IV. O PTIMIZATION METHODOLOGY 
+
+A. Bayesian optimization 
+
+We implement Bayesian optimization [6] as a prob-abilistic model to optimize our entanglement distribu-tion rate, which is expensive to calculate. At its core, a given BO implementation uses a Gaussian Process 4
+
+Fig. 3: An example of a Gaussian Process 
+
+Algorithm 1 Bayesian Optimization Framework  
+
+> 1:
+
+procedure BO (x, rate) # x = ( θ1, . . . , θ D , y 1, . . . , y D−1) 
+
+> 2:
+
+Add (x, rate ) to dataset D
+
+# Store latest evaluated configuration  
+
+> 3:
+
+Fit a Gaussian Process model on D
+
+# Using Mat´ ern kernel [13]  
+
+> 4:
+
+Optimize GP hyperparameters 
+
+# Maximizes log marginal likelihood # (i.e., L-BFGS-B)  
+
+> 5:
+
+Compute posterior mean μ(x) 
+
+> 6:
+
+Compute posterior variance σ2(x) 
+
+> 7:
+
+Define (LCB) acquisition function:  
+
+> 8:
+
+α(x) = μ(x) − κ · σ(x) 
+
+> 9:
+
+Select the next configuration to evaluate  
+
+> 10:
+
+x∗ ← arg max α(x)
+
+# Return next ALR-transformed candidate  
+
+> 11:
+
+return x∗
+
+(GP) (see Figure 3) and an Acquisition Function (AF). After observing simulation results for a set of satellite parameters, the GP [6] is used as a surrogate model to approximate our objective, providing a predictive distribution. An acquisition function α(x) then proposes its next ideal constellation. We evaluate its constrained form, repeating this process in full until we reach our defined number of iterations. For our satellite optimization task, we first sample 
+
+x = ( θ1, . . . , θ D , y 1, . . . , y D−1) at random for the first 
+
+n iterations. Then, given the AF-proposed constellation and corresponding rate, we fit a Gaussian Process model to our dataset using a Mat´ ern kernel [13]. See algo-rithm 1 for pseudocode detailing this process. We compare between two of the most common ac-quisition functions, Lower Confidence Bound (LCB) and Expected Improvement (EI) [7]. Due to our search space’s high dimensionality and nonuniformity (from re-gions such that we experience either a rounding error or 
+
+Fig. 4: Map visualizations of the optimal satellite con-figurations yielded by GA (red) and BO (purple) for 2 orbits over population clusters. miss all ground stations) we expect (see [7]) and observe LCB to behave more reliably than EI (see Figure 5(c), which shows the quality of the best constellation found by each optimization technique up to a given number of simulation calls for population ground stations). 
+
+B. Genetic algorithm 
+
+We implement a traditional genetic algorithm that involves fitness evaluation, selection, crossover, and mu-tation. The population comprises individuals that en-code satellite proportion parameters and orbital incli-nation angles in tuples, initialized and constrained to the parametrization detailed in Section III-A. Fitness is defined on the basis of maximizing an individual’s EPR generation rate. To minimize premature convergence, we incorporate three primary mechanisms. First, the mutation rate fol-lows an exponential decay schedule as a function of generation index [8]. Second, we maintain a parent pool of the top five individuals and randomly sample from this pool during crossover [9]. Third, 10% of each generation is filled with randomly generated individuals to enforce population diversity. Within each generation, the population update pro-ceeds as follows. Offspring are generated through re-peated parent sampling, crossover, and mutation until 90% of the next population is filled. The remaining 10% consists of newly sampled random individuals. All individuals are evaluated and ranked. The ordered list of best-performing individuals is retained and propagates through the next generations until termination. See Al-gorithm 2 for pseudocode detailing this process. V. A SSESSMENT OF OPTIMIZATION FRAMEWORKS 
+
+To assess the effectiveness of the proposed optimiza-tion frameworks, we evaluate them for:  
+
+> •
+
+2, 3, and 5 different inclination angles (orbits)  
+
+> •
+
+100 total satellites  
+
+> •
+
+100 ground stations  
+
+> •
+
+1200 simulator calls – each call comprises 2880 samples collected over a simulated day We evaluate the frameworks under two ground station distributions: one based on population density and one random distribution, as shown in Figures 2(a) and 2(b). 5(a) (b) 
+
+(c) (d) 
+
+(e) (f) 
+
+Fig. 5: Performance comparison of optimization methods and baselines across different orbit counts and ground station distributions. (a)–(b): Average entanglement distribution rate (EPR pairs/second) across 1, 2, 3, and 5 orbits using population-based (a) and random (b) land-based ground station placements. The single orbit case benchmarks against a brute-force baseline, while multi-orbit results are compared against equispaced inclination angles. (c)–(d): Optimization progress over simulation calls for population-based (c) and random (d) ground stations, showing the maximum rate by the time of a call. (e): Comparative performance across methods (BO, GA, equispaced) under different ground station distributions for 5 orbits. (f): Simulation call at which each optimization method first achieved its final best solution, compared across orbit counts (2, 3, and 5) and ground station distribution types (random and population-based). We evaluated several naive constellation designs to establish a baseline comparison. Specifically, we tested three trials of 100 satellites at equispaced angles over 0◦
+
+to 180 ◦ across 2, 3, and 5 distinct inclinations. These reflect the parameter settings we trained for comparison and are inspired by Walker constellations [14], which have shown to provide the foundation for achieving continuous global coverage with a minimal number of satellites. Last, we conducted a brute-force trial for comparison, testing all 100 satellites in a single orbit and systemati-cally evaluating their performance at 180 different incli-nation angles, increasing from 0◦ to 179 ◦ in increments of 1◦.VI. N UMERICAL RESULTS AND ANALYSIS 
+
+We evaluate the performance of BO and GA across several optimization trials, focusing on their respective entanglement generation rates (EPR pairs/second). 
+
+A. Effect of orbit count 
+
+Increasing the number of orbits enhances perfor-mance. For population-based ground station layouts:  
+
+> •
+
+The best single orbit configuration achieves approxi-mately 1.57 × 10 6 EPR/s 6
+
+Algorithm 2 Genetic Algorithm Framework # Initialize population and store to dataset |D| = 25 
+
+# ALR transformation applied within init pop() method # Track gen num to decay mutation rate  
+
+> 1:
+
+procedure GA (x, rate) # Procedure only uses D and gen num. # x = ( θ1, . . . , θ D , y 1, . . . , y D−1) 
+
+> 2:
+
+for xi ← D do  
+
+> 3:
+
+fitnesses[i] ← evalute individual (xi) 
+
+> 4:
+
+parents ← select parents (fitnesses , D, 5)  
+
+> 5:
+
+update mutation rate (gen num ) 
+
+> 6:
+
+while |new pop | < 0.90 × pop size do  
+
+> 7:
+
+(par1 , par2 ) ← random .sample (parents , 2)  
+
+> 8:
+
+x ← crossover (par1 , par2 ) 
+
+> 9:
+
+x ← mutate (child ) 
+
+> 10:
+
+Append x to new pop  
+
+> 11:
+
+num random ← pop size − | new pop | 
+
+> 12:
+
+rand individuals ← init pop ()[: num random ] 
+
+> 13:
+
+new pop ← new pop ∪ rand individuals  
+
+> 14:
+
+x∗ ← D [argmax (fitnesses )]  
+
+> 15:
+
+D ← new pop  
+
+> 16:
+
+return x∗• Transitioning to 2 orbits yields a 30 % increase, sur-passing 2.06 × 10 6 EPR/s  
+
+> •
+
+3-orbit and 5-orbit configurations deliver at best marginally higher rates (up to 2.09 × 10 6), though returns diminish. Notably, over random ground stations, 5-orbit GA fails to replicate the strong clustering observed in 3-orbit so-lutions, and 3-orbit BO fails to even reach the optimal 2-orbit split, prematurely converging. We hypothesize two well-distributed constellations are sufficient to realize most entanglement benefits, with further orbits offering limited improvements given the constellation size. 
+
+B. Comparison to baseline approaches 
+
+We benchmark our methods against two baselines: a brute-force search for single orbit configurations and uniformly equispaced inclinations for multi-orbit setups.  
+
+> •
+
+Brute-force and BO (LCB) both achieve rates of 
+
+1.57 × 10 6 (population) and 5.22 × 10 5 (random) EPR/s for single orbit cases, suggesting that BO is capable of locating global optima in a simple scenario. We excluded GA from the brute-force evaluation because a single orbit prevents it from meaningfully applying crossover, causing the algorithm to reduce to a randomized hill-climbing search.  
+
+> •
+
+Equispaced inclinations across 5 orbits yield 1.50 ×
+
+10 6 EPR/s for population layouts — well below the 
+
+2.09 × 10 6 EPR/s achieved by optimized methods. These comparisons, as visualized in the histograms of network EPR rate by number of orbits and method in Figures 5(a) and 5(b), highlight the clear advantage of ground-station aware optimization over naive strategies, particularly in complex multi-orbit setups. 
+
+C. Bayesian optimization vs. genetic algorithm 
+
+On an M1 Pro 10-core CPU, a simulated day for an equispaced orbit runs in roughly 180 seconds. As a general estimate, we can then expect 1200 simulation calls to take around 60 hours. Figures 5(c) and 5(d) illustrate the timeline of convergence for each method by showing the entanglement rate of the best constellation found by each optimization technique in up to a given number of simulation calls for population ground stations and random ground stations respectively. We analyze convergence behavior and performance of BO and GA across simulation calls:  
+
+> •
+
+BO rapidly approaches optimal configurations: 2.09 ×
+
+10 6 EPR/s (population) by simulation call 404 and 
+
+8.26 × 10 5 (random) by iteration 301. For the latter, by iteration 678, it exceeds 8.58 × 10 5, but there is no improvement with additional runs.  
+
+> •
+
+GA similarly converges to nearly the same value, requiring approximately 200 simulation calls for the 5-orbit random case, but occasionally surpassing BO as runtimes increase. For instance, its 3-orbit result of 8.60 × 10 5 is reached at simulator call 1050, while BO’s maximum remains at 7.86 × 10 5 from as early as call 427. Similar behavior can be seen for population ground stations in Figure 5(c), which shows an increase beyond 800 iterations. Figure 5(e) presents a bar chart that compares the best entanglement distribution rate found by each method for each ground station distribution for 5 orbit constel-lations. For both ground station layouts, both BO and GA significantly outperform the equispaced baseline, while achieving nearly identical optimal entanglement distribution rates. This highlights the importance and reliability of ground-station aware optimization when working with multi-orbit constellation designs. Figure 5(f) shows the simulation call at which the best performing constellation was found for each method as a function of number of orbits and ground station dis-tribution. It illustrates BO’s tendency to identify strong candidates early. This is markedly demonstrated by all but the 5-orbit random case — due to the especially early convergence of GA, we speculate that this case is simply an outlier. We note that in our experience, BO always converges within 1000 simulation calls. As such, we hypothesize that BO’s exploration-driven sampling often identifies strong candidates early, though its re-liance on Gaussian process assumptions may contribute to premature convergence. GA, by contrast, continues 7improving gradually, though it sees few substantial gains over this period. 
+
+D. Impact of ground station layout 
+
+Ground station placement significantly affects perfor-mance.  
+
+> •
+
+Constellations over population-based ground stations consistently outperform random ones  
+
+> •
+
+The best result over population ground stations ex-ceeds 2.09 × 10 6 EPR/s, while random layouts peak at 8.58 × 10 5, reflecting a 2.52 × disparity We attribute this to the clustered nature of population centers, which allows more frequent dual-downlink op-portunities and reduced idle satellite coverage. 
+
+E. Constellation shape characteristics 
+
+Figure 4 compares the final optimized orbital config-urations for BO and GA.  
+
+> •
+
+Both methods converge to structurally similar constel-lations, typically involving two dominant orbits and one or two auxiliary ones  
+
+> •
+
+BO’s best configuration over population based ground stations uses 45, 37, 15, 1, and 2 satellites with incli-nations of 153.21, 24.72, 143.04, 69.94, and 149.05 degrees  
+
+> •
+
+GA’s top configuration over population based ground stations consists of 54, 33, and 13 satellites with inclinations of 150.53, 24.39, and 40.32 degrees The consistency across methods suggests the existence of stable optima in the configuration space – which both methods can reliably approach, given sufficient time. 
+
+F. Summary 
+
+We conclude that both BO and GA are highly effective tools for this optimization task. We further speculate, having observed that BO rarely improves after 800 iteration calls, that BO is highly effective for rapid opti-mization, especially when iteration budgets are limited, but is more susceptible to local optima. GA, while slower to converge (often requiring over 1000 iterations to find maximum values), continues to improve and can match or exceed BO when allowed to run longer. Population-based station placements dramatically outperform ran-dom layouts, and most performance benefits arise with just two well-chosen orbits for constellations of this size. VII. C ONCLUSION & F UTURE DIRECTIONS 
+
+In this work, we explored how existing black-box optimization frameworks can be adapted to optimize satellite placement in constellations for entanglement distribution. Specifically, we use bayesian optimization and genetic algorithms to tune orbital inclinations and satellite cluster allocations to distribute entanglements to a known set of ground stations. By carefully eval-uating these approaches through extensive simulations on two different ground station placements and a mul-titude of satellite configuration settings, we show that these methods can be highly efficient for searching this high-dimensional design space. From our findings, we observe that careful selection of orbital parameters can substantially improve entanglement distribution rates when informed by the ground station infrastructure. We demonstrate that optimizing even a small number of inclination angles, while balancing satellites across those orbits, is an effective way to boost the overall performance of the constellation. A natural next step involves generalizing the optimiza-tion approaches examined here to diverse operational contexts and mission-specific goals, such as maximiz-ing quantum key distribution rates or some metrics of fairness rather than solely maximizing entanglement distribution rates. We also would like to explore the con-stellation design problem with more degrees of freedom, such as allowing variations in satellite altitude, includ-ing unmanned aerial vehicle and high altitude platform entanglement sources and relays, or simulating satellites with onboard quantum memories for inter-satellite links. REFERENCES [1] A. Conti, R. Malaney, and M. Z. Win, “Satellite-terrestrial quantum networks and the global quantum internet,” IEEE Com-munications Magazine , vol. 62, no. 10, pp. 34–39, 2024. [2] H. Curtis, Orbital Mechanics: For Engi-neering Students , ser. Aerospace Engineering. Butterworth-Heinemann, 2015. [Online]. Available: https://books.google.com/books?id=6aO9aGNBAgIC [3] A. Williams, N. K. Panigrahy, A. McGregor, and D. Towsley, “Scalable scheduling policies for quantum satellite networks,” 2024. [Online]. Available: https://arxiv.org/abs/2405.09464 [4] S. Sivasankaran, C. Liu, M. Mihm, and A. Ling, “A cubesat platform for space based quantum key distribution,” in 2022 IEEE International Conference on Space Optical Systems and Applications (ICSOS) . IEEE, Mar. 2022, p. 51–56. [Online]. Available: http://dx.doi.org/10.1109/ICSOS53063.2022.9749724 [5] V. Karavias, C. White, A. Lord, and M. C. Payne, “Optimizing satellite and core networks for a global quantum network,” J. Opt. Commun. Netw. , vol. 16, no. 4, pp. 504–515, Apr 2024. [Online]. Available: https://opg.optica.org/jocn/abstract.cfm?URI=jocn-16-4-504 [6] P. I. Frazier, “A tutorial on bayesian optimization,” 2018. [Online]. Available: https://arxiv.org/abs/1807.02811 [7] W. Gan, Z. Ji, and Y. Liang, “Acquisition functions in bayesian optimization,” in 2021 2nd International Conference on Big Data & Artificial Intelligence & Software Engineering (ICBASE) ,2021, pp. 129–135. [8] Proceedings of the third international conference on Genetic algorithms . San Francisco, CA, USA: Morgan Kaufmann Publishers Inc., 1989. [9] A. E. Eiben, P. E. Rau´ e, and Z. Ruttkay, “Genetic algorithms with multi-parent recombination,” in Parallel Problem Solving from Nature — PPSN III , Y. Davidor, H.-P. Schwefel, and R. M¨ anner, Eds. Berlin, Heidelberg: Springer Berlin Heidelberg, 1994, pp. 78–87. [10] C. Jiang, Z. Luo, M. Guan, and H. Zhu, “Low orbit regional enhanced navigation constellation for bds3 design based on bayesian optimization algorithm,” 8
+
+Geodesy and Geodynamics , 2024. [Online]. Available: https://www.sciencedirect.com/science/article/pii/S1674984724000016 [11] N. K. Panigrahy, P. Dhara, D. Towsley, S. Guha, and L. Tassiulas, “Optimal entanglement distribution using satellite based quantum networks,” 2022. [Online]. Available: https://arxiv.org/abs/2205.12354 [12] P. Hajela, “Genetic search - an approach to the nonconvex optimization problem,” AIAA Journal , vol. 28, no. 7, pp. 1205– 1210, 1990. [Online]. Available: https://doi.org/10.2514/3.25195 [13] M. Dowling, P. Sok´ oł, and I. M. Park, “Hida-mat´ ern kernel,” 2021. [Online]. Available: https://arxiv.org/abs/2107.07098 [14] S. Huang, C. Colombo, and F. Bernelli-Zazzera, “Multi-criteria design of continuous global coverage walker and street-of-coverage constellations through property assessment,” Acta Astronautica , vol. 188, pp. 151–170, 2021. [Online]. Available: https://www.sciencedirect.com/science/article/pii/S0094576521003490

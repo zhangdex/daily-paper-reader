@@ -1,0 +1,690 @@
+Title: Variational Encrypted Model Predictive Control
+
+URL Source: https://arxiv.org/pdf/2603.19450v1
+
+Published Time: Mon, 23 Mar 2026 00:10:52 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Variational Encrypted Model Predictive Control 
+
+Jihoon Suh, Yeongjun Jang, Junsoo Kim, and Takashi Tanaka 
+
+Abstract — We develop a variational encrypted model predic-tive control (VEMPC) protocol whose online execution relies only on encrypted polynomial operations. The proposed ap-proach reformulates the MPC problem into a sampling-based estimator, in which the computation of the quadratic cost is naturally handled by tilting the sampling distribution, thus reducing online encrypted computation. The resulting protocol requires no additional communication rounds or intermediate decryption, and scales efficiently through two complementary levels of parallelism. We analyze the effect of encryption-induced errors on optimality, and simulation results demon-strate the practical applicability of the proposed method. 
+
+I. INTRODUCTION Model Predictive Control (MPC) is widely adopted in industrial control systems as it enables explicit constraint handling while providing theoretical guarantees [1]. Since MPC requires solving an optimization problem at every time step, outsourcing this computation to a cloud server is attractive. However, transmitting system states, model parameters, or trajectory data to an external server raises privacy concerns. These data are vulnerable to eavesdropping in transit and to inference by a semi-honest server that executes the prescribed protocol while attempting to learn private information. Homomorphic encryption (HE) is considered as a potential solution to mitigate these concerns by enabling computation directly on encrypted data, thereby protecting both transmis-sion and computation. However, HE only supports addition and multiplication, whereas solving the underlying MPC typ-ically requires non-polynomial operations (e.g., projection or comparison) to enforce constraints. For this reason, projected gradient based results have either required intermediate de-cryption and projection by the client at each iteration [2], or performed only a single gradient step to avoid additional communication rounds, leading to suboptimal control per-formance [3]. Another line of work precomputes explicit feedback laws offline and evaluates them using HE [4]–[6]. However, this requires identifying the operating region of the current state online through comparison operations, which is                  
+
+> *This work was supported in part by DARPA COMPASS (HR0011-25-3-0210; in part by AFOSR DSCT (FA9550-25-1-0347); and in part by the National Research Foundation of Korea(NRF) grant funded by the Korea government (MSIT) (No. RS-2024-00353032) J. Suh, and T. Tanaka are with the School of Aeronautics and Astronau-tics, Purdue University, West Lafayette, IN 47907, USA (e-mail: {suh95, tanaka16 }@purdue.edu). Y. Jang is with ASRI, Department of Electrical and Computer Engineering, Seoul National University, Seoul, 08826, Korea (email: jangyj0512@snu.ac.kr). J. Kim is with the Department of Electrical and Information Engineering, Seoul National University of Science and Technology, Seoul, 01811, Korea (email: junsookim@seoultech.ac.kr).
+
+delegated to the sensor [4], [6] or implemented via a two-party protocol [5] involving additional communication. More recently, [7] reformulated MPC as a sequence of penalized unconstrained problems that can be solved using polyno-mial operations; while it removes excessive communication rounds, its real-time control suitability remains uncertain. In this paper, we propose a variational approach to en-crypted MPC that converts the constrained MPC optimization into a sampling-based estimation problem. To circumvent the high computational cost of evaluating the quadratic cost term over encrypted data, we tilt the reference sampling distribu-tion, allowing it to naturally absorb this cost. Consequently, the proposed protocol requires only a single polynomial eval-uation per control execution step in the encrypted domain. The resulting encrypted MPC architecture requires a one-time offline exchange and a single round of communication between the client and cloud at each online execution step, without any intermediate decryption. Moreover, the cloud side computation can leverage two different levels of paral-lelism, enabling efficient encrypted MPC execution. While the variational approach has been applied, for example, in probabilistic inference [8], [9] and stochastic optimal control [10], [11], to the best of our knowledge, this is the first work to integrate it with encrypted MPC. 
+
+A. Main Contributions  
+
+> •
+
+We propose variational encrypted MPC (VEMPC), in which the quadratic cost term is absorbed into a closed-form tilted Gaussian distribution, enabling efficient online execution without projection or iterative optimization.  
+
+> •
+
+We show that both the sampled control trajectory and its constraint residual are affine functions of the sampling noise, enabling an HE-compatible protocol based on en-crypted addition and low-degree polynomial evaluation.  
+
+> •
+
+We utilize two complementary levels of parallelism in the VEMPC protocol, one at the plaintext sample-level and the other at the ciphertext-level. Together, these enable efficient online execution within tens of milliseconds (see Table I), closing the gap towards real-time implementation.  
+
+> •
+
+We provide open-source implementations in Python and Go using OpenFHE-Python [12] and Lattigo [13], two widely adopted and efficient HE libraries. 
+
+B. Notation 
+
+The sets of real, natural, integers and complex numbers are denoted by R, N, Z and C, respectively. For a vector x ∈
+
+Cn, ∥x∥ denotes the infinity norm. The Hadamard product (element-wise multiplication) is denoted by ⊙. We denote by 
+
+RotVec ρ(x) the cyclic upward shift of x by ρ positions (e.g., 
+
+> arXiv:2603.19450v1 [eess.SY] 19 Mar 2026
+
+RotVec 1([1 , 2, 3, 4] ⊤) = [2 , 3, 4, 1] ⊤). For scalars or vectors 
+
+v1, . . . , v n , [v1; · · · ; vn] := [ v⊤ 
+
+> 1
+
+, . . . , v ⊤ 
+
+> n
+
+]⊤. Boldface sym-bols denote encrypted quantities. Lastly, [ · ]+ := max { · , 0}.II. P RELIMINARIES : CKKS C RYPTOSYSTEM 
+
+We briefly review the Cheon-Kim-Kim-Song (CKKS) cryptosystem [14], a fully HE scheme that enables approxi-mate arithmetic directly on encrypted data. The CKKS scheme includes algorithms KeyGen , Enc ,and Dec . Given a security parameter λsec ∈ N, the key generation algorithm KeyGen outputs a secret key sk . For a plaintext pt ∈ CNct /2, where Nct ∈ N is a power-of-two, the encryption algorithm takes sk and outputs a ciphertext Enc (pt ) ∈ C with C denoting the ciphertext space. The decryption algorithm uses sk to approximately recover the underlying plaintext, as Dec (Enc (pt )) ≈ pt . The approximation error arises from scaling and rounding during encoding and depends primarily on the scaling factor ∆ > 0
+
+and the security parameter Nct (ring dimension). The primitive homomorphic operations like addition, mul-tiplication, and rotation are represented respectively by 
+
+⊕ : C × C → C , ⊗ : C × C → C , RotCt ρ : C → C .
+
+The following lemma summarizes the growth of errors induced by the approximate homomorphic operations. For conciseness, the bounds are stated using O-notation and concrete derivations can be found in [14], [15]. 
+
+Lemma 1: There exist BEnc , BMult , BRot ∈ O (Nct /∆) for any pt ∈ CNct /2, c, c′ ∈ C and ρ ∈ Z, such that 
+
+∥Dec (Enc (pt )) − pt ∥ ≤ BEnc ,
+
+∥Dec (c ⊕ c′) − (Dec (c) + Dec (c′)) ∥ = 0 ,
+
+∥Dec (Enc (pt ) ⊗ Enc (pt ′)) − pt ⊙ pt ′∥≤ (∥pt ∥+∥pt ′∥)BEnc +( BEnc )2 +BMult =: B⊗(∥pt ∥, ∥pt ′∥),
+
+∥Dec (RotCt ρ(c)) − RotVec ρ(Dec (c)) ∥ ≤ BRot .
+
+By sequentially composing the operations from Lemma 1, one can homomorphically evaluate an arbitrary polynomial [14], [15]. With a slight abuse of notation, let hℓ(c) ∈ C 
+
+denote the homomorphic evaluation of a polynomial hℓ on a ciphertext c ∈ C . The following corollary provides a bound on the resulting error growth. 
+
+Corollary 1: Consider a polynomial 1 hℓ(γ) =Pℓk=0 ckγk of order ℓ ∈ N, where ck ∈ C for k = 0 , . . . , ℓ .For any c ∈ C ,
+
+∥Dec (hℓ(c)) − hℓ(Dec (c)) ∥≤ ℓ·BMult max(1 , ∥Dec (c)∥)ℓ−1 Pℓk=0 |ck| =: Bpoly (hℓ, c).
+
+The parameters Nct and ∆ affect not only the error growths in Lemma 1 and Corollary 1 but also the security level of the scheme. Typically, increasing Nct or decreasing 
+
+∆ strengthens security, potentially at the cost of higher com-putational cost. In this letter, we assume that these parameters are given based on standard security requirements, and focus on integrating the CKKS scheme into our control framework. For detailed parameter selection methods, see [14].   
+
+> 1When applied to a vector, hℓacts in a componentwise manner.
+
+III. P ROBLEM FORMULATION 
+
+We consider solving a finite-horizon linear–quadratic model predictive control (LQ-MPC) problem in aclient–cloud architecture. The objective is to utilize the cloud’s computational resources to synthesize the control input, while ensuring that the client’s sensitive information such as current state or model parameters remains private to the cloud via encryption. Consider the discrete-time linear time-invariant system 
+
+x(t + 1) = Ax (t) + Bu (t), (1) where x(t) ∈ Rn and u(t) ∈ Rm denote the system state and control input at time step t ∈ Z, respectively. At each MPC update step t, the measured state x(t) serves as the initial state of the prediction horizon, denoted by 
+
+x0 := x(t). The controller plans a sequence of control inputs 
+
+U := [ u0; u1; · · · ; uN −1] ∈ RN m over a prediction horizon of length N ∈ N by solving the following optimization: 
+
+min  
+
+> U
+
+J0(U ; x0) := x⊤ 
+
+> N
+
+Qf xN + PN −1
+
+> k=0
+
+ x⊤ 
+
+> k
+
+Qx k + u⊤ 
+
+> k
+
+Ru k
+
+,
+
+s.t. GU ≤ h(x0), (2) where xk is the predicted state corresponding to U driven by (1), and Qf , Q ⪰ 0 and R ≻ 0 are the weight matrices. The inequality GU ≤ h(x0), with G ∈ Rp×N m and h(x0) ∈ Rp,compactly represents state and input constraints, where p ∈
+
+N denotes the total number of inequalities. From the optimizer, only the first optimal input u0 is applied to the system, and the process repeats at the next time step with the updated state. We can rewrite the standard LQ-MPC problem (2) in a compact quadratic program (QP) form [16, Ch. 8]. The dynamics (1) induces the following prediction model 
+
+X = Λ x0 + Ψ U, (3) where X = [ x1; · · · ; xN ] ∈ RN n and the matrices Λ ∈
+
+RN n ×n and Ψ ∈ RN n ×N m are determined by the system parameters (A, B ). Substituting this model into the cost function yields the compact quadratic cost 
+
+J0(U ; x0) = 12 U ⊤HU + x⊤ 
+
+> 0
+
+SU + x⊤ 
+
+> 0
+
+P x 0, (4) where the matrices H ∈ RN m ×N m , S ∈ Rn×N m , and P ∈
+
+Rn×n are determined by (A, B, Q, R, Q f ).By defining the constraint residual g(U ; x0) := GU −
+
+h(x0), the feasible set can be characterized as 
+
+F(x0) = {U ∈ RN m : g(U ; x0) ≤ 0}. (5) Dropping the constant term x⊤ 
+
+> 0
+
+P x 0 yields the equivalent QP: 
+
+min   
+
+> U∈F (x0)
+
+JQ(U ; x0) := 12 U ⊤HU + x⊤ 
+
+> 0
+
+SU. (6) IV. A V ARIATIONAL APPROACH TO ENCRYPTED MPC Directly adopting standard methods for solving QP can be difficult because iterative and branching-based algorithms are not well suited for HE arithmetic. Instead, we employ a vari-ational approach that leads to a HE-compatible, sampling-based algorithm to estimate the solution of the QP (6). A. Variational Reformulation 
+
+Define the extended-value penalty on the feasible set (5): 
+
+ϕ(U ; x0) := 
+
+(
+
+0, U ∈ F (x0),
+
++∞, otherwise . (7) Using this penalty, the compact QP (6) can be expressed as an unconstrained problem via the extended value functional 
+
+min  
+
+> U∈RN m
+
+J (U ; x0) := JQ(U ; x0) + ϕ(U ; x0). (8) To obtain a sampling-based representation of (8), we em-ploy a variational formulation over the space of probability distributions. Let κ and κ0 be probability distributions over 
+
+RN m , where κ0 serves as a reference distribution. Provided that κ is absolutely continuous with respect to κ0, the Kullback-Leibler (KL) divergence of κ from κ0 is defined as 
+
+D(κ∥κ0) := 
+
+Z
+
+log 
+
+ dκ dκ 0
+
+(U )
+
+
+
+κ(dU ). (9) 
+
+Lemma 2 (Variational formula [17]): For any λ > 0,
+
+min  
+
+> κ
+
+{EU ∼κ[J (U ; x0)] + λD (κ∥κ0)} = −λ log Z, (10) where Z := EU ∼κ0 [exp( −J (U ; x0)/λ )] and the minimizer is 
+
+κ∗(U ) = κ0(U ) exp( −J (U ; x0)/λ )
+
+Z .
+
+Moreover, the corresponding point estimate is given by 
+
+ˆU (x0) := EU ∼κ∗ [U ] = EU ∼κ0[U exp( −J (U ; x0)/λ )] 
+
+EU ∼κ0[exp( −J (U ; x0)/λ )] .
+
+(11) By drawing K ∈ N i.i.d. samples U (i) ∼ κ0 for i =1, . . . , K , we can approximate (11) via Monte Carlo: 
+
+ˆUK (x0) = 
+
+PKi=1 U (i) exp( −J (U (i); x0)/λ )
+
+PKi=1 exp( −J (U (i); x0)/λ ) . (12) By the law of large numbers, ˆUK (x0) → ˆU (x0) as K → ∞ ,and κ∗ clearly concentrates on arg min J (U ; x0) as λ → 0.
+
+B. Exponential Tilting and Efficient Encrypted Sampling 
+
+The estimator (12) involves evaluating the extended-value cost J (U ; x0) for K trajectory samples. Homomorphically computing this trajectory cost online is expensive because evaluating the quadratic term U ⊤HU , for example, requires at least N m calls of ⊗ for encrypted matrix-vector multipli-cation with the diagonal-based method of [18, Section 4.3]. In what follows, we propose a method to circumvent the computation of this expensive quadratic term. This is achieved by applying a closed-form transformation to the reference sampling distribution, allowing it to naturally ab-sorb the quadratic term. Consequently, the resulting estimator can be evaluated without costly encrypted matrix-vector multiplications, leading to a highly efficient online protocol. To facilitate the closed-form transformation, we set the reference distribution κ0 to be a zero-mean Gaussian with covariance Σ0 ≻ 0
+
+κ0 = N (0 , Σ0). (13) The zero-mean assumption is adopted on κ0 for simplic-ity but the same derivation extends to a general Gaussian 
+
+N (m0, Σ0).
+
+Theorem 1: The exponentially tilted distribution defined by ˜κ(dU ) ∝ exp( −JQ(U ; x0)/λ )κ0(dU ) is a Gaussian distribution ˜κ = N (mU (x0), ΣU ) with 
+
+mU (x0) := − 1
+
+λ ΣU S⊤x0, (14a) 
+
+ΣU := 
+
+
+
+Σ−10 + 1
+
+λ H
+
+−1
+
+. (14b) 
+
+Proof: Multiplying exp( −JQ(U ; x0)/λ ) with the Gaus-sian density κ0 = N (0 , Σ0) yields an exponent of the form 
+
+− JQ(U ; x0)
+
+λ − 12 U ⊤Σ−10 U
+
+= − 12 U ⊤
+
+
+
+Σ−10 + 1
+
+λ H
+
+
+
+U − 1
+
+λ (S⊤x0)⊤U. 
+
+Completing the square for U reveals that this exponent cor-responds to N (mU (x0), ΣU ), with all terms independent of 
+
+U absorbed into the normalization constant. This concludes the proof. Note that the exponential weight appearing in (11) can be decomposed as 
+
+exp 
+
+
+
+− J (U ;x0)
+
+> λ
+
+
+
+= exp 
+
+
+
+− JQ(U ;x0)
+
+> λ
+
+
+
+r(U ; x0), (15) where the feasibility weight r(U ; x0) := exp( −ϕ(U ; x0)/λ )
+
+equals one when U ∈ F (x0) and zero otherwise. By applying the change of measure from κ0 to ˜κ, it follows from Theorem 1 that the quadratic cost term can be naturally absorbed into the tilted distribution, thus simplifying (11) as 
+
+ˆU (x0) = EU ∼˜κ[U r (U ; x0)] 
+
+EU ∼˜κ[r(U ; x0)] .
+
+As a result, the estimator (12) can be rewritten as 
+
+ˆUK (x0) = 
+
+PKi=1 U (i)r(U (i); x0)
+
+PKi=1 r(U (i); x0) , (16) where U (i) ∼ ˜κ for i = 1 , . . . , K . Since H and S are known, (14) can be computed explicitly and sampling from ˜κ is easy. 
+
+C. Polynomial Surrogate of Feasibility 
+
+The feasibility weight r(U ; x0) in (16) is a hard indicator of constraint satisfaction. Therefore, r(U ; x0) cannot be directly evaluated under HE because it requires comparison and branching, i.e., determining the sign of the constraint residual. Moreover, it is discontinuous and can not be repre-sented by a finite degree polynomial. For these reasons, we replace this hard indicator with a polynomial surrogate that can be evaluated using encrypted arithmetic. 
+
+1) Aggregate violation score: Recall that an input tra-jectory U ∈ RN m is feasible if and only if the constraint residual g(U ; x0) satisfies gj (U ; x0) ≤ 0 for all components 
+
+j = 1 , . . . , p . Motivated by this characterization, we quantify the constraint violation via the following aggregate score 
+
+s(U ; x0) := Ppj=1 
+
+gj (U ; x0)
+
+> +
+
+. (17) Feasible samples yield s(U ; x0) = 0 , while infeasible sam-ples incur a positive score proportional to the total violation. 2) Chebyshev polynomial approximation of [ · ]+: Let hℓ :
+
+R → R denote a degree-ℓ polynomial of the form hℓ(γ) := Pℓk=0 ck γk obtained via Chebyshev approximation [19] of 
+
+[·]+ on the interval [−Bℓ, B ℓ] for some Bℓ > 0. Then, there exists a uniform bound δℓ > 0 such that 
+
+|[γ]+ − hℓ(γ)| ≤ δℓ, ∀γ ∈ [−Bℓ, B ℓ]. (18) With the polynomial hℓ, we have the surrogate score 
+
+sℓ(U ; x0) := Ppj=1 hℓ(gj (U ; x0)) . (19) Let DBℓ (x0) := {U : ∥g(U ; x0)∥∞ ≤ Bℓ} be the approxi-mation domain. Since ˜κ(· | x0) is Gaussian, the bound Bℓ
+
+can be chosen such that ∥g(U (i); x0)∥∞ ≤ Bℓ with high probability. The following lemma is immediate from (18). 
+
+Lemma 3: For all U ∈ D Bℓ (x0),
+
+|s(U ; x0) − sℓ(U ; x0)| ≤ p δ ℓ.
+
+3) Threshold correction and final estimator: Small ap-proximation errors in sℓ can accidentally penalize feasible samples. To correct this, we introduce the thresholded score 
+
+¯sℓ(U ; x0) := max sℓ(U ; x0) − τs, 0 , (20) where τs ≥ 0 is a tunable parameter. The corresponding feasibility weight is defined as 
+
+¯rℓ(U ; x0) := exp  −η ¯sℓ(U ; x0), (21) where η > 0 is chosen to be sufficiently large, so that 
+
+¯rℓ(U ; x0) closely approximates r(U ; x0).The following corollary states that an appropriate choice of τs guarantees that feasible samples are not penalized. 
+
+Corollary 2: If τs ≥ p δ ℓ then ¯rℓ(U ; x0) = 1 for every feasible U ∈ D Bℓ (x0).Replacing r(U (i); x0) in (16) with ¯r(i) 
+
+> ℓ
+
+:= ¯ rℓ(U (i); x0)
+
+gives the final estimator 
+
+ˆUK,ℓ (x0) := 
+
+PKi=1 U (i) ¯r(i)
+
+> ℓ
+
+PKi=1 ¯r(i)
+
+> ℓ
+
+, (22) whose numerator and denominator consists of polynomial operations, aside from thresholding and exponentiation. 
+
+D. Variational Encrypted MPC Protocol 
+
+Algorithms 1 and 2 summarize the client–cloud protocol realizing the proposed VEMPC. The protocol separates com-putation into an offline and an online phase. 
+
+1) Offline preprocessing: The offline phase precomputes quantities that depend only on the MPC parameters and the reference sampling distribution. Let LU ∈ RN m ×N m denote the Cholesky factor of ΣU in (14b), i.e., ΣU = LU L⊤ 
+
+> U
+
+. Then, for some ξ(i) ∼ N (0 , I ), any sample U (i) ∼ ˜κ admits the following affine representation 
+
+U (i) = mU (x0) + LU ξ(i) (23) Similarly, the constraint residual can be written as 
+
+g(U (i); x0) = b(x0) + Γ ξ(i), (24) where b(x0) := Gm U (x0) − h(x0) ∈ Rp and Γ := GL U ∈
+
+Rp×N m .
+
+Algorithm 1 Offline Protocol 
+
+Input: MPC parameters (H, G ), reference covariance Σ0 ≻
+
+0, temperature λ > 0, number of samples K
+
+Output: Cached ciphertexts {c(i) 
+
+> LU
+
+, c(i)Γ }Ki=1 stored at cloud # Client (trusted)  
+
+> 1:
+
+Compute ΣU := (Σ −10 + 1 
+
+> λ
+
+H)−1 
+
+> 2:
+
+Factorize ΣU = LU L⊤ 
+
+> U
+
+and compute Γ := GL U 
+
+> 3:
+
+Transmit {Enc (LU ), Enc (Γ) } to the cloud # Cloud (untrusted)  
+
+> 4:
+
+for i = 1 , . . . , K do  
+
+> 5:
+
+Sample ξ(i) ∼ N (0 , I ) 
+
+> 6:
+
+c(i) 
+
+> LU
+
+← Enc (LU ) ⊗ Enc (ξ(i)) 
+
+> 7:
+
+c(i)Γ ← Enc (Γ) ⊗ Enc (ξ(i))
+
+Since both LU and Γ are independent of the state x0,the client encrypts and transmits Enc (LU ) and Enc (Γ) to the cloud during the offline phase. The cloud then generates Gaussian noise samples ξ(i) ∼ N (0 , I ), for i = 1 , . . . , K ,and precomputes the following encrypted quantities 2
+
+c(i) 
+
+> LU
+
+:= Enc (LU ) ⊗ Enc (ξ(i)), (25) 
+
+c(i)Γ := Enc (Γ) ⊗ Enc (ξ(i)).
+
+Since these quantities depend only on the system model and not on the current state, this preprocessing is performed once. Moreover, these precomputed values can be cached for use during the online phase. 
+
+2) Online execution: At each MPC update step t, with 
+
+x0 := x(t), the client encrypts and transmits Enc (mU (x0)) 
+
+and Enc (b(x0)) to the cloud. Then, for each i = 1 , . . . , K ,the cloud retrieves the cached quantities c(i) 
+
+> LU
+
+and c(i)Γ to form the encrypted trajectory samples 
+
+U(i) = Enc (mU (x0)) ⊕ c(i) 
+
+> LU
+
+, (26) together with the encrypted constraint residuals 
+
+g(U (i); x0) = Enc (b(x0)) ⊕ c(i)Γ . (27) To evaluate sℓ(U (i); x0) homomorphically, the cloud first applies the polynomial surrogate hℓ to g(U (i); x0), followed by a standard sum-reduction procedure [18, Section 4.1] that iteratively rotates and adds the ciphertext to compute the aggregated score, which we denote by sℓ(U (i); x0).The cloud returns {U(i), sℓ(U (i); x0)}Ki=1 back to the client. After decryption, the client computes the thresholded scores and corresponding desirability weights to construct the estimator ˜UK,ℓ (x0), as in Lines 9–14 of Algorithm 2. Finally, the first control input is applied to the system. 
+
+3) Encryption Error: Since CKKS supports approximate arithmetic, the proposed protocol computes noisy versions of the trajectory samples and feasibility weights. The following result shows that encrypted computation within the protocol produces bounded errors propagated by homomorphic com-putations of the plaintext algorithm.     
+
+> 2With slight abuse of notation, Enc and ⊗denote matrix encryption and homomorphic matrix-vector multiplication, respectively. Both can be imple-mented via the vector-level operations in Section II; see [18, Section 4.3].
+
+Algorithm 2 Online Protocol 
+
+Input: Current state x(t), threshold τs > 0, and η > 0
+
+Output: Control input u(t)
+
+# Client (trusted)  
+
+> 1:
+
+x0 ← x(t) 
+
+> 2:
+
+Compute mU (x0) = − 1 
+
+> λ
+
+ΣU S⊤x0
+
+and b(x0) = Gm U (x0) − h(x0) 
+
+> 3:
+
+Transmit {Enc (mU (x0)) , Enc (b(x0)) } to the cloud # Cloud (untrusted)  
+
+> 4:
+
+for i = 1 , . . . , K do  
+
+> 5:
+
+U(i) ← Enc (mU (x0)) ⊕ c(i) 
+
+> LU
+> 6:
+
+g(U (i); x0) ← Enc (b(x0)) ⊕ c(i)Γ 
+
+> 7:
+
+sℓ(U (i); x0) ← Ppj=1 RotCt j−1(hℓ(g(U (i); x0)))  
+
+> 8:
+
+Return {U(i), sℓ(U (i); x0)}Ki=1 to the client # Client (trusted)  
+
+> 9:
+
+for i = 1 , . . . , K do  
+
+> 10:
+
+˜U (i) ← Dec (U(i)) 
+
+> 11:
+
+ˇs(i) 
+
+> ℓ
+
+← [Dec (sℓ(U (i); x0))] 1 ([·]1, first element)  
+
+> 12:
+
+˜sℓ(U (i); x0) ← max  ˇsℓ(U (i); x0) − τs, 0 
+
+> 13:
+
+Compute weight ˜r(i) 
+
+> ℓ
+
+= exp( −η ˜sℓ(U (i); x0))  
+
+> 14:
+
+Compute ˜UK,ℓ (x0) := 
+
+PKi=1 ˜U (i) ˜r(i)
+
+> ℓ
+
+PKi=1 ˜r(i) 
+
+> ℓ
+> 15:
+
+u(t) ← [Im, 0] ˜UK,ℓ (x0)
+
+Theorem 2: For any fixed x0 ∈ Rn and U (i) ∈ RN m 
+
+defined as in (23), there exist BU , Bs ∈ O (Nct /∆) such that 
+
+˜U (i) − U (i) ≤ BU (28) 
+
+˜sℓ(U (i); x0) − ¯sℓ(U (i); x0) ≤ Bs. (29) 
+
+Proof: First, we establish the bound in (28). Using the method in [18, Sec. 4.3], evaluating c(i) 
+
+> LU
+
+requires per-forming N m homomorphic multiplications followed by N m 
+
+homomorphic rotations. Consequently, the decryption error is bounded as 
+
+Dec (c(i)
+
+> LU
+
+)−LU ξ(i) = Dec (Enc (LU )⊗Enc (ξ(i))) −LU ξ(i)
+
+≤ N m 
+
+
+
+B⊗(∥LU ∥, ∥ξ(i)∥) + BRot 
+
+(30) by Lemma 1. Further applying Lemma 1 and (30) yields 
+
+˜U (i) −U (i) = (Dec (Enc (mU (x0))) + Dec (c(i) 
+
+> LU
+
+)) −U (i)
+
+≤ BEnc + N m ·
+
+
+
+B⊗(∥LU ∥, ∥ξ(i)∥) + BRot 
+
+=: BU .
+
+Since (N, m, L U , ξ (i)) are fixed, we have BU ∈ O (N/ ∆) .For (29), we omit dependence on U (i) and x0 for brevity. Using a similar argument to (30), ∥Dec (g) − g∥ ≤ BU .Combining this with Corollary 1 results in 
+
+∥Dec (hl(g)) − hl(g)∥≤ ∥ Dec (hl(g)) − hl(Dec (g)) ∥ + ∥hl(Dec (g)) − hl(g)∥≤ Bpoly (hl, g) + LhBU ,
+
+where Lh > 0 denotes the Lipschitz constant of hl on 
+
+[∥g∥∞ − BU , ∥g∥∞ + BU ]. Because the sum-reduction proto-col iteratively applies homomorphic addition and rotation, it accumulates at most pBRot error. Therefore, defining Bs := 
+
+pBRot + Bpoly (hl, g) + LhBU satisfies the condition in (29), and this concludes the proof. In particular, the error magnitude scales with the security parameter and the CKKS precision parameter, by O(Nct /∆) ,implying the trade-off. 
+
+E. Performance of the VEMPC Protocol 
+
+The proposed protocol admits two complementary levels of parallelism: plaintext-level parallelism across trajectory samples (from sampling-based algorithm) and ciphertext-level parallelism enabled by Single-Instruction-Multiple-Data (SIMD) packing (from CKKS scheme). 
+
+1) Plaintext-level: The trajectory samples U (i) are inde-pendent and can be evaluated concurrently. If nworkers ∈ N
+
+number of processing units are available, the samples can be partitioned into batches so that each worker processes approximately Kworker = K/n workers samples. 
+
+2) Ciphertext-level: The SIMD packing allows multiple plaintext values to be embedded into the slots of a single ciphertext, and processed simultaneously. In the proposed protocol, a worker may process one ciphertext containing Kworker trajectory samples packed as 
+
+[U (1) ; · · · ; U (Kworker )], U (i) ∈ RN m , i = 1 , . . . , K worker ,
+
+where each U (i) denotes the i-th control trajectory sample. The corresponding residual vectors can also be packed sim-ilarly, allowing each worker to process them simultaneously with a similar computation time needed for a single sample. The VEMPC protocol exploits these two levels of paral-lelism simultaneously. SIMD-packing enables multiple sam-ples in a single ciphertext, while ciphertext batches can be processed concurrently by multiple workers. If nworkers 
+
+workers process ciphertexts, each containing Kworker sam-ples, the total number of trajectory samples evaluated at each MPC step is K = nworkers Kworker .V. N UMERICAL EXAMPLE 
+
+We applied the proposed VEMPC protocol to an inverted pendulum system [20]. By linearizing and discretizing the system with the sampling period of 50 ms , the model of the form (1) is obtained as 
+
+A =
+
+1.0246 0.0504 0.9890 1.0246 
+
+
+
+, B =
+
+0.0251 1.0082 
+
+
+
+,
+
+where the parameters are set as m = 0 .2 kg (mass), l =0.5 m (length), and g = 9 .81 m /s2 (gravitational accelera-tion). The state x(t) =: [ θ(t); ˙θ(t)] consists of the angular position θ(t) and angular velocity ˙θ(t) of the pendulum, and the input u(t) represents the applied torque force. The initial state was set to x(0) = [0 .3; 0 .1] .For the MPC formulation, we set the prediction horizon as N = 10 and the cost matrices as 
+
+Q =
+
+50 , 00, 5
+
+
+
+, Qf = 2 Q, R = 0 .1.
+
+The state and input constraints were defined as ∥θ(t)∥ ≤ 0.5,
+
+∥ ˙θ(t)∥ ≤ 0.8, and ∥u(t)∥ ≤ 1, resulting in a total of p = 60 Fig. 1. Comparison of unencrypted variational MPC (orange dashed) and VEMPC (blue solid) subject to constraints (red dotted). TABLE I ONLINE TIME (MEAN ± STD , ms ) FOR VARYING ℓ, Nct , OR K.
+
+log Nct = 13 log Nct = 14 
+
+ℓ K = 136 K = 272 K = 272 K = 544 
+
+3 28 .47 ± 1.76 30 .65 ± 2.31 60 .39 ± 1.92 62 .66 ± 4.50 
+
+4 33 .61 ± 1.25 32 .73 ± 3.34 69 .47 ± 4.07 71 .91 ± 5.99 
+
+5 37 .59 ± 5.55 35 .09 ± 1.36 75 .27 ± 4.18 76 .82 ± 2.59 
+
+constraints. For reference distribution and sampling, we set 
+
+Σ0 = 0 .25 2I, λ = 0 .1, and K = 240 .Encryption parameters were set to {Nct , ∆} = {213 , 230 },with the remaining parameters 3 chosen to satisfy 128 -bit security [21]. The Chebyshev polynomial order was set to 
+
+ℓ = 3. Implementing the parallelism from Section IV-E with nworkers = 4 , the average online computation time for generating the actuator input at each time step was 28 .662 ms 
+
+(mean over T = 40 steps; 2-second simulation shown in Fig. 1), which falls within the sampling time. All simulation presented in this section was run on an Apple M5 laptop (4 Performance cores, 24 GB unified memory). The VEMPC protocol (Algorithms 1–2) exhibits similar performance to the unencrypted variational MPC (16), ef-fectively driving the state to the origin while satisfying the constraints, as shown in Fig. 1. The dependence of the online computation time on proto-col parameters such as polynomial degree ℓ, ring dimension 
+
+Nckks , and sample size K is examined in Table I. The computation time grows with ℓ because a higher degree requires more ciphertext multiplications, and with Nckks 
+
+because a larger ring dimension increases the size of each ciphertext. Ciphertext-level parallelism (Section IV-E.2) is confirmed by the observation that computation times remain nearly constant for K = 136 and K = 272 under the same 
+
+ℓ and Nckks , since the number of ciphertext multiplications and the ciphertext size are unchanged. VI. C ONCLUSION 
+
+The difficulty of encrypted optimization (and hence en-crypted MPC) stems from forcing solvers designed for cheap branching and iteration into an encrypted arithmetic where both are expensive. A variational approach overcomes this incompatibility, since the resulting sample-based algorithm reduces encrypted computation to polynomial evaluations 
+
+> 3
+
+Omitted here for brevity; refer to our implementations fully available at https://github.com/jsuh9/Variational-Encrypted-Model-Predictive-Control. 
+
+native to HE. Exponential tilting eliminates the expensive quadratic cost from online computation, and together with two-level parallelism, the VEMPC protocol brings the con-trol execution time to tens of milliseconds at 128 -bit security. REFERENCES [1] K. R. Muske and J. B. Rawlings, “Model predictive control with linear models,” AIChE J. , vol. 39, no. 2, pp. 262–287, 1993. [2] A. B. Alexandru, M. Morari, and G. J. Pappas, “Cloud-based MPC with encrypted data,” in Proc. 57th IEEE Conf. Decision Control ,2018, pp. 5014–5019. [3] G. Franz` e, V. Puig, and F. Tedesco, “An encrypted model predictive control strategy for resilience operations,” in Proc. 2024 Amer. Control Conf. , 2024, pp. 3196–3201. [4] M. S. Darup, A. Redder, I. Shames, F. Farokhi, and D. Quevedo, “To-wards encrypted MPC for linear constrained systems,” IEEE Control Syst. Lett. , vol. 2, no. 2, pp. 195–200, 2018. [5] N. Schl¨ uter and M. S. Darup, “Encrypted explicit MPC based on two-party computation and convex controller decomposition,” in Proc. 59th IEEE Conf. Decision Control , 2020, pp. 5469–5476. [6] K.-Y. Peng, W. Xie, L. Zhang, and W.-j. Mo, “Homomorphically encrypted robust MPC for privacy-preserving control under system uncertainties,” IEEE Trans. Control Netw. Syst. , 2026. [7] S. Schlor, A. Iannelli, J. Kim, H. Shim, and F. Allg¨ ower, “A polynomial-based QCQP solver for encrypted optimization,” in Proc. 64th IEEE Conf. Decision Control , 2025, pp. 7885–7891. [8] M. D. Hoffman, D. M. Blei, C. Wang, and J. Paisley, “Stochastic variational inference,” J. Mach. Learn. Res. , vol. 14, 2013. [9] M. J. Wainwright and M. I. Jordan, “Graphical models, exponential families, and variational inference,” Found. Trends Mach. Learn. ,vol. 1, no. 1-2, pp. 1–305, 2008. [10] H. J. Kappen, “Path integrals and symmetry breaking for optimal con-trol theory,” Journal of statistical mechanics: theory and experiment ,vol. 2005, no. 11, 2005, Art. no. P11011. [11] E. Todorov, “Linearly-solvable Markov decision problems,” in Proc. Adv. Neural Inf. Process. Syst. , vol. 19, 2006, pp. 1369–1376. [12] A. Al Badawi et al. , “OpenFHE: Open-source fully homomorphic encryption library,” Cryptology ePrint Archive, Paper 2022/915, 2022. [13] “Lattigo v6,” Online: https://github.com/tuneinsight/lattigo, Aug. 2024, ePFL-LDS, Tune Insight SA. [14] J. H. Cheon, A. Kim, M. Kim, and Y. Song, “Homomorphic encryption for arithmetic of approximate numbers,” in Proc. Int. Conf. Theory Appl. Cryptol. Inf. Secur. , 2017, pp. 409–437. [15] J. H. Cheon, K. Han, A. Kim, M. Kim, and Y. Song, “Bootstrapping for approximate homomorphic encryption,” in Proc. Annu. Int. Conf. Theory Appl. Cryptograph. Techn. , 2018, pp. 360–384. [16] F. Borrelli, A. Bemporad, and M. Morari, Predictive control for linear and hybrid systems . Cambridge Univ. Press, 2017. [17] M. Bou´ e and P. Dupuis, “A variational representation for certain functionals of Brownian motion,” Ann. Probab. , vol. 26, 1998. [18] S. Halevi and V. Shoup, “Algorithms in HElib,” in Proc. Annu. Cryptol. Conf. , 2014, pp. 554–571. [19] T. Khan and A. Michalas, “Learning in the dark: Privacy-preserving machine learning using function approximation,” in Proc. IEEE 22nd Int. Conf. Trust, Secur. Privacy Comput. Commun. , 2023, pp. 62–71. [20] G. F. Franklin, J. D. Powell, and A. Emami-Naeini, Feedback Control of Dynamic Systems , 7th ed. Prentice-Hall, 2014. [21] M. R. Albrecht, M. Chase, H. Chen, J. Ding, S. Goldwasser, S. Gor-bunov et al. , “Homomorphic encryption standard,” in Protecting Privacy through Homomorphic Encryption , K. Lauter, W. Dai, and K. Laine, Eds. Cham, Switzerland: Springer, 2021, pp. 31–62.
