@@ -1,0 +1,974 @@
+{
+  "mode": "standard",
+  "generated_at": "2026-03-29T19:40:27.308690+00:00",
+  "stats": {
+    "mode": "standard",
+    "tag_count": 3,
+    "deep_divecandidates": 145,
+    "deep_cap": 8,
+    "deep_selected": 11,
+    "quick_candidates": 218,
+    "quick_skim_target": 13,
+    "quick_selected": 13
+  },
+  "deep_dive": [
+    {
+      "id": "2603.21880v1",
+      "title": "Optimal Solutions for the Moving Target Vehicle Routing Problem with Obstacles via Lazy Branch and Price",
+      "abstract": "The Moving Target Vehicle Routing Problem with Obstacles (MT-VRP-O) seeks trajectories for several agents that collectively intercept a set of moving targets. Each target has one or more time windows where it must be visited, and the agents must avoid static obstacles and satisfy speed and capacity constraints. We introduce Lazy Branch-and-Price with Relaxed Continuity (Lazy BPRC), which finds optimal solutions for the MT-VRP-O. Lazy BPRC applies the branch-and-price framework for VRPs, which alternates between a restricted master problem (RMP) and a pricing problem. The RMP aims to select a sequence of target-time window pairings (called a tour) for each agent to follow, from a limited subset of tours. The pricing problem adds tours to the limited subset. Conventionally, solving the RMP requires computing the cost for an agent to follow each tour in the limited subset. Computing these costs in the MT-VRP-O is computationally intensive, since it requires collision-free motion planning between moving targets. Lazy BPRC defers cost computations by solving the RMP using lower bounds on the costs of each tour, computed via motion planning with relaxed continuity constraints. We lazily evaluate the true costs of tours as-needed. We compute a tour's cost by searching for a shortest path on a Graph of Convex Sets (GCS), and we accelerate this search using our continuity relaxation method. We demonstrate that Lazy BPRC runs up to an order of magnitude faster than two ablations.",
+      "authors": [
+        "Anoop Bhat",
+        "Geordan Gutow",
+        "Surya Singh",
+        "Zhongqiang Ren",
+        "Sivakumar Rathinam",
+        "Howie Choset"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-23T12:10:12+00:00",
+      "link": "https://arxiv.org/pdf/2603.21880v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "multi-agent trajectory optimization for intercepting moving targets",
+      "llm_evidence_cn": "拦截运动目标的多智能体轨迹优化",
+      "llm_evidence": "拦截运动目标的多智能体轨迹优化",
+      "canonical_evidence": "拦截运动目标的多智能体轨迹优化",
+      "llm_tldr_en": "Develops an optimal branch-and-price algorithm for multi-agent vehicle routing to intercept moving targets.",
+      "llm_tldr_cn": "开发了一种用于多智能体车辆路径规划的最优分支定价算法，以拦截运动目标。",
+      "llm_tldr": "开发了一种用于多智能体车辆路径规划的最优分支定价算法，以拦截运动目标。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "multi-robot planning",
+      "matched_requirement_id": "req-17",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.22507v1",
+      "title": "Energy-Aware Collaborative Exploration for a UAV-UGV Team",
+      "abstract": "We present an energy-aware collaborative exploration framework for a UAV-UGV team operating in unknown environments, where the UAV's energy constraint is modeled as a maximum flight-time limit. The UAV executes a sequence of energy-bounded exploration tours, while the UGV simultaneously explores on the ground and serves as a mobile charging station. Rendezvous is enforced under a shared time budget so that the vehicles meet at the end of each tour before the UAV reaches its flight-time limit. We construct a sparsely coupled air-ground roadmap using a density-aware layered probabilistic roadmap (PRM) and formulate tour selection over the roadmap as coupled orienteering problems (OPs) to maximize information gain subject to the rendezvous constraint. The resulting tours are constructed over collision-validated roadmap edges. We validate our method through simulation studies, benchmark comparisons, and real-world experiments.",
+      "authors": [
+        "Cahit Ikbal Er",
+        "Saikiran Juttu",
+        "Yasin Yazicioglu"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO",
+        "cs.MA"
+      ],
+      "published": "2026-03-23T19:14:01+00:00",
+      "link": "https://arxiv.org/pdf/2603.22507v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "collaborative exploration for a UAV-UGV team with rendezvous constraints",
+      "llm_evidence_cn": "具有交会约束的无人机-无人车团队协同探索",
+      "llm_evidence": "具有交会约束的无人机-无人车团队协同探索",
+      "canonical_evidence": "具有交会约束的无人机-无人车团队协同探索",
+      "llm_tldr_en": "Proposes an energy-aware collaborative exploration framework for multi-robot air-ground teams.",
+      "llm_tldr_cn": "提出了一种针对空地多机器人团队的能量感知协同探索框架。",
+      "llm_tldr": "提出了一种针对空地多机器人团队的能量感知协同探索框架。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "multi-robot planning",
+      "matched_requirement_id": "req-17",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.22604v1",
+      "title": "Trajectory Generation for Underactuated Soft Robot Manipulators using Discrete Elastic Rod Dynamics",
+      "abstract": "Soft robots are well suited for contact-rich tasks due to their compliance, yet this property makes accurate and tractable modeling challenging. Planning motions with dynamically-feasible trajectories requires models that capture arbitrary deformations, remain computationally efficient, and are compatible with underactuation. However, existing approaches balance these properties unevenly: continuum rod models provide physical accuracy but are computationally demanding, while reduced-order approximations improve efficiency at the cost of modeling fidelity. To address this, our work introduces a control-oriented reformulation of Discrete Elastic Rod (DER) dynamics for soft robots, and a method to generate trajectories with these dynamics. The proposed formulation yields a control-affine representation while preserving certain first-principles force-deformation relationships. As a result, the generated trajectories are both dynamically feasible and consistent with the underlying actuation assumptions. We present our trajectory generation framework and validate it experimentally on a pneumatic soft robotic limb. Hardware results demonstrate consistently improved trajectory tracking performance over a constant-curvature-based baseline, particularly under complex actuation conditions.",
+      "authors": [
+        "Beibei Liu",
+        "Akua K. Dickson",
+        "Ran Jing",
+        "Andrew P. Sabelhaus"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-23T22:01:14+00:00",
+      "link": "https://arxiv.org/pdf/2603.22604v1",
+      "tags": [
+        "keyword:Robot-Planning",
+        "query:Robot-Planning"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Trajectory generation and motion planning for soft robot manipulators",
+      "llm_evidence_cn": "软体机器人机械臂的轨迹生成与运动规划",
+      "llm_evidence": "软体机器人机械臂的轨迹生成与运动规划",
+      "canonical_evidence": "软体机器人机械臂的轨迹生成与运动规划",
+      "llm_tldr_en": "Presents a control-oriented DER dynamics model for efficient trajectory generation in soft robotics.",
+      "llm_tldr_cn": "提出一种面向控制的离散弹性杆动力学模型，用于软体机器人的高效轨迹生成。",
+      "llm_tldr": "提出一种面向控制的离散弹性杆动力学模型，用于软体机器人的高效轨迹生成。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "trajectory optimization",
+      "matched_requirement_id": "req-19",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.22760v1",
+      "title": "SG-VLA: Learning Spatially-Grounded Vision-Language-Action Models for Mobile Manipulation",
+      "abstract": "Vision-Language-Action (VLA) models show promise for robotic control, yet performance in complex household environments remains sub-optimal. Mobile manipulation requires reasoning about global scene layout, fine-grained geometry, and high-dimensional continuous actions, making standard imitation learning insufficient. We introduce a framework for learning spatially-grounded VLA models that strengthens perception and representation through auxiliary task co-training and multi-modal input enhancement. Our method addresses the challenge of controlling a 13-dimensional action space involving coordinated base motion, arm articulation, and gripper actuation. To enrich spatial understanding, the model incorporates multi-view RGB observations, depth cues, and short temporal history, providing perspectives of both global scene structure and local manipulation context. To improve representation quality, we co-train auxiliary decoders that reconstruct interpretable intermediate signals - including global robot position, joint configurations, grasp affordances, target-object relative pose, and segmentation masks - from shared visual-language features. These objectives provide dense supervision that encourages the backbone to develop spatially grounded, manipulation-aware latent representations. Through extensive evaluation on home rearrangement tasks, our approach achieves consistent improvements across picking, placing, opening, and closing operations, substantially outperforming direct imitation learning. Our findings suggest that spatial grounding through auxiliary and multi-modal learning provides a strong direction for scaling VLA models toward general-purpose domestic robots.",
+      "authors": [
+        "Ruisen Tu",
+        "Arth Shukla",
+        "Sohyun Yoo",
+        "Xuanlin Li",
+        "Junxi Li",
+        "Jianwen Xie",
+        "Hao Su",
+        "Zhuowen Tu"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-24T03:44:25+00:00",
+      "link": "https://arxiv.org/pdf/2603.22760v1",
+      "tags": [
+        "keyword:Robot-Planning",
+        "query:RA-RL-PE",
+        "query:Robot-Planning"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "embodied intelligence and planning for mobile manipulation",
+      "llm_evidence_cn": "用于移动操作的具身智能与规划",
+      "llm_evidence": "用于移动操作的具身智能与规划",
+      "canonical_evidence": "用于移动操作的具身智能与规划",
+      "llm_tldr_en": "SG-VLA learns spatially-grounded models for complex robotic mobile manipulation and coordinated motion.",
+      "llm_tldr_cn": "SG-VLA 为复杂的机器人移动操作和协调运动学习空间定位模型。",
+      "llm_tldr": "SG-VLA 为复杂的机器人移动操作和协调运动学习空间定位模型。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "embodied intelligence and planning for robots",
+      "matched_requirement_id": "req-23",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.22899v1",
+      "title": "Agile-VLA: Few-Shot Industrial Pose Rectification via Implicit Affordance Anchoring",
+      "abstract": "Deploying Vision-Language-Action (VLA) models on resource-constrained edge platforms encounters a fundamental conflict between high-latency semantic inference and the high-frequency control required for dynamic manipulation. To address the challenge, this paper presents Agile-VLA, a hierarchical framework designed for industrial pose reorientation tasks on edge devices such as the NVIDIA Jetson Orin Nano. The core innovation is an Implicit Affordance Anchoring mechanism that directly maps geometric visual cues, specifically centroid and rim keypoint anchors, into structured parametric action primitives, thereby substantially reducing reliance on high-latency semantic inference during closed-loop control. By decoupling perception (10 Hz) from control (50 Hz) via an asynchronous dual-stream architecture, the system effectively mitigates the frequency mismatch inherent in edge-based robot learning. Experimental results on a standard 6-DoF manipulator demonstrate that Agile-VLA achieves robust rectification of complex, irregular workpieces using only 5-shot demonstrations through extrinsic dexterity.",
+      "authors": [
+        "Teng Yan",
+        "Zhengyang Pei",
+        "Chengyu Shi",
+        "Yue Yu",
+        "Yikun Chen",
+        "Zilong Zhu",
+        "Zelin Fang",
+        "Kaile Guo",
+        "Zihang Wang",
+        "Peigen Tian",
+        "Bingzhuo Zhong"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-24T07:48:08+00:00",
+      "link": "https://arxiv.org/pdf/2603.22899v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "query:RA-RL-PE",
+        "query:Robot-Planning"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "embodied intelligence and VLA for industrial robot manipulation",
+      "llm_evidence_cn": "用于工业机器人操作的具身智能与VLA",
+      "llm_evidence": "用于工业机器人操作的具身智能与VLA",
+      "canonical_evidence": "用于工业机器人操作的具身智能与VLA",
+      "llm_tldr_en": "A hierarchical VLA framework for low-latency industrial robot control using implicit affordance anchoring.",
+      "llm_tldr_cn": "一种利用隐式可操作性锚点实现低延迟工业机器人控制的分层VLA框架。",
+      "llm_tldr": "一种利用隐式可操作性锚点实现低延迟工业机器人控制的分层VLA框架。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "embodied intelligence and planning for robots",
+      "matched_requirement_id": "req-23",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.23278v1",
+      "title": "Learning Multi-Agent Local Collision-Avoidance for Collaborative Carrying tasks with Coupled Quadrupedal Robots",
+      "abstract": "Robotic collaborative carrying could greatly benefit human activities like warehouse and construction site management. However, coordinating the simultaneous motion of multiple robots represents a significant challenge. Existing works primarily focus on obstacle-free environments, making them unsuitable for most real-world applications. Works that account for obstacles, either overfit to a specific terrain configuration or rely on pre-recorded maps combined with path planners to compute collision-free trajectories. This work focuses on two quadrupedal robots mechanically connected to a carried object. We propose a Reinforcement Learning (RL)-based policy that enables tracking a commanded velocity direction while avoiding collisions with nearby obstacles using only onboard sensing, eliminating the need for precomputed trajectories and complete map knowledge. Our work presents a hierarchical architecture, where a perceptive high-level object-centric policy commands two pretrained locomotion policies. Additionally, we employ a game-inspired curriculum to increase the complexity of obstacles in the terrain progressively. We validate our approach on two quadrupedal robots connected to a bar via spherical joints, benchmarking it against optimization-based and decentralized RL baselines. Our hardware experiments demonstrate the ability of our system to locomote in unknown environments without the need for a map or a path planner. The video of our work is available in the multimedia material.",
+      "authors": [
+        "Francesca Bray",
+        "Simone Tolomei",
+        "Andrei Cramariuc",
+        "Cesar Cadena",
+        "Marco Hutter"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-24T14:42:20+00:00",
+      "link": "https://arxiv.org/pdf/2603.23278v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "multi-agent local collision-avoidance for collaborative carrying tasks",
+      "llm_evidence_cn": "协作搬运任务中的多智能体局部避障",
+      "llm_evidence": "协作搬运任务中的多智能体局部避障",
+      "canonical_evidence": "协作搬运任务中的多智能体局部避障",
+      "llm_tldr_en": "Proposes an RL-based policy for multi-robot collaborative carrying and collision avoidance in complex terrains.",
+      "llm_tldr_cn": "提出了一种基于强化学习的策略，用于复杂地形下的多机器人协作搬运和避障。",
+      "llm_tldr": "提出了一种基于强化学习的策略，用于复杂地形下的多机器人协作搬运和避障。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "multi-robot planning",
+      "matched_requirement_id": "req-17",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.23676v1",
+      "title": "Grounding Vision and Language to 3D Masks for Long-Horizon Box Rearrangement",
+      "abstract": "We study long-horizon planning in 3D environments from under-specified natural-language goals using only visual observations, focusing on multi-step 3D box rearrangement tasks. Existing approaches typically rely on symbolic planners with brittle relational grounding of states and goals, or on direct action-sequence generation from 2D vision-language models (VLMs). Both approaches struggle with reasoning over many objects, rich 3D geometry, and implicit semantic constraints. Recent advances in 3D VLMs demonstrate strong grounding of natural-language referents to 3D segmentation masks, suggesting the potential for more general planning capabilities. We extend existing 3D grounding models and propose Reactive Action Mask Planner (RAMP-3D), which formulates long-horizon planning as sequential reactive prediction of paired 3D masks: a \"which-object\" mask indicating what to pick and a \"which-target-region\" mask specifying where to place it. The resulting system processes RGB-D observations and natural-language task specifications to reactively generate multi-step pick-and-place actions for 3D box rearrangement. We conduct experiments across 11 task variants in warehouse-style environments with 1-30 boxes and diverse natural-language constraints. RAMP-3D achieves 79.5% success rate on long-horizon rearrangement tasks and significantly outperforms 2D VLM-based baselines, establishing mask-based reactive policies as a promising alternative to symbolic pipelines for long-horizon planning.",
+      "authors": [
+        "Ashish Malik",
+        "Caleb Lowe",
+        "Aayam Shrestha",
+        "Stefan Lee",
+        "Fuxin Li",
+        "Alan Fern"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.RO"
+      ],
+      "published": "2026-03-24T19:31:13+00:00",
+      "link": "https://arxiv.org/pdf/2603.23676v1",
+      "tags": [
+        "keyword:Robot-Planning",
+        "query:RA-RL-PE",
+        "query:Robot-Planning"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "long-horizon planning and box rearrangement tasks",
+      "llm_evidence_cn": "长时程规划与箱体重新排列任务",
+      "llm_evidence": "长时程规划与箱体重新排列任务",
+      "canonical_evidence": "长时程规划与箱体重新排列任务",
+      "llm_tldr_en": "Introduces RAMP-3D for long-horizon box rearrangement using 3D masks and reactive action planning.",
+      "llm_tldr_cn": "提出RAMP-3D，利用3D掩码和反应式动作规划解决长时程物体搬运任务。",
+      "llm_tldr": "提出RAMP-3D，利用3D掩码和反应式动作规划解决长时程物体搬运任务。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "task and motion planning",
+      "matched_requirement_id": "req-20",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.24018v1",
+      "title": "ELITE: Experiential Learning and Intent-Aware Transfer for Self-improving Embodied Agents",
+      "abstract": "Vision-language models (VLMs) have shown remarkable general capabilities, yet embodied agents built on them fail at complex tasks, often skipping critical steps, proposing invalid actions, and repeating mistakes. These failures arise from a fundamental gap between the static training data of VLMs and the physical interaction for embodied tasks. VLMs can learn rich semantic knowledge from static data but lack the ability to interact with the world. To address this issue, we introduce ELITE, an embodied agent framework with {E}xperiential {L}earning and {I}ntent-aware {T}ransfer that enables agents to continuously learn from their own environment interaction experiences, and transfer acquired knowledge to procedurally similar tasks. ELITE operates through two synergistic mechanisms, \\textit{i.e.,} self-reflective knowledge construction and intent-aware retrieval. Specifically, self-reflective knowledge construction extracts reusable strategies from execution trajectories and maintains an evolving strategy pool through structured refinement operations. Then, intent-aware retrieval identifies relevant strategies from the pool and applies them to current tasks. Experiments on the EB-ALFRED and EB-Habitat benchmarks show that ELITE achieves 9\\% and 5\\% performance improvement over base VLMs in the online setting without any supervision. In the supervised setting, ELITE generalizes effectively to unseen task categories, achieving better performance compared to state-of-the-art training-based methods. These results demonstrate the effectiveness of ELITE for bridging the gap between semantic understanding and reliable action execution.",
+      "authors": [
+        "Bingqing Wei",
+        "Zhongyu Xia",
+        "Dingai Liu",
+        "Xiaoyu Zhou",
+        "Zhiwei Lin",
+        "Yongtao Wang"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI"
+      ],
+      "published": "2026-03-25T07:25:51+00:00",
+      "link": "https://arxiv.org/pdf/2603.24018v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "embodied agent framework for continuous learning and transfer",
+      "llm_evidence_cn": "具身智能体框架，支持持续学习与任务迁移",
+      "llm_evidence": "具身智能体框架，支持持续学习与任务迁移",
+      "canonical_evidence": "具身智能体框架，支持持续学习与任务迁移",
+      "llm_tldr_en": "Introduces ELITE, a framework for embodied agents to learn from interaction and transfer knowledge to new tasks.",
+      "llm_tldr_cn": "提出 ELITE 框架，使具身智能体能从交互中学习并向新任务迁移知识。",
+      "llm_tldr": "提出 ELITE 框架，使具身智能体能从交互中学习并向新任务迁移知识。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "embodied intelligence and planning for robots",
+      "matched_requirement_id": "req-23",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.24083v1",
+      "title": "Knowledge-Guided Manipulation Using Multi-Task Reinforcement Learning",
+      "abstract": "This paper introduces Knowledge Graph based Massively Multi-task Model-based Policy Optimization (KG-M3PO), a framework for multi-task robotic manipulation in partially observable settings that unifies Perception, Knowledge, and Policy. The method augments egocentric vision with an online 3D scene graph that grounds open-vocabulary detections into a metric, relational representation. A dynamic-relation mechanism updates spatial, containment, and affordance edges at every step, and a graph neural encoder is trained end-to-end through the RL objective so that relational features are shaped directly by control performance. Multiple observation modalities (visual, proprioceptive, linguistic, and graph-based) are encoded into a shared latent space, upon which the RL agent operates to drive the control loop. The policy conditions on lightweight graph queries alongside visual and proprioceptive inputs, yielding a compact, semantically informed state for decision making.   Experiments on a suite of manipulation tasks with occlusions, distractors, and layout shifts demonstrate consistent gains over strong baselines: the knowledge-conditioned agent achieves higher success rates, improved sample efficiency, and stronger generalization to novel objects and unseen scene configurations. These results support the premise that structured, continuously maintained world knowledge is a powerful inductive bias for scalable, generalizable manipulation: when the knowledge module participates in the RL computation graph, relational representations align with control, enabling robust long-horizon behavior under partial observability.",
+      "authors": [
+        "Aditya Narendra",
+        "Mukhammadrizo Maribjonov",
+        "Dmitry Makarov",
+        "Dmitry Yudin",
+        "Aleksandr Panov"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO",
+        "cs.AI",
+        "cs.LG"
+      ],
+      "published": "2026-03-25T08:41:32+00:00",
+      "link": "https://arxiv.org/pdf/2603.24083v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "multi-task reinforcement learning for robotic manipulation",
+      "llm_evidence_cn": "机器人操作的多任务强化学习",
+      "llm_evidence": "机器人操作的多任务强化学习",
+      "canonical_evidence": "机器人操作的多任务强化学习",
+      "llm_tldr_en": "Integrates knowledge graphs with multi-task RL to improve robotic manipulation in partially observable scenes.",
+      "llm_tldr_cn": "将知识图谱与多任务强化学习相结合，提升了部分可观测场景下的机器人操作能力。",
+      "llm_tldr": "将知识图谱与多任务强化学习相结合，提升了部分可观测场景下的机器人操作能力。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "embodied intelligence and planning for robots",
+      "matched_requirement_id": "req-23",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.24894v1",
+      "title": "Active Calibration of Reachable Sets Using Approximate Pick-to-Learn",
+      "abstract": "Reachability computations that rely on learned or estimated models require calibration in order to uphold confidence about their guarantees. Calibration generally involves sampling scenarios inside the reachable set. However, producing reasonable probabilistic guarantees may require many samples, which can be costly. To remedy this, we propose that calibration of reachable sets be performed using active learning strategies. In order to produce a probabilistic guarantee on the active learning, we adapt the Pick-to-Learn algorithm, which produces generalization bounds for standard supervised learning, to the active learning setting. Our method, Approximate Pick-to-Learn, treats the process of choosing data samples as maximizing an approximate error function. We can then use conformal prediction to ensure that the approximate error is close to the true model error. We demonstrate our technique for a simulated drone racing example in which learning is used to provide an initial guess of the reachable tube. Our method requires fewer samples to calibrate the model and provides more accurate sets than the baselines. We simultaneously provide tight generalization bounds.",
+      "authors": [
+        "Sampada Deglurkar",
+        "Ebonye Smith",
+        "Jingqi Li",
+        "Claire J. Tomlin"
+      ],
+      "primary_category": "eess.SY",
+      "categories": [
+        "eess.SY"
+      ],
+      "published": "2026-03-26T00:20:30+00:00",
+      "link": "https://arxiv.org/pdf/2603.24894v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "Active calibration of reachable sets for safety guarantees",
+      "llm_evidence_cn": "用于安全保证的可达集主动校准",
+      "llm_evidence": "用于安全保证的可达集主动校准",
+      "canonical_evidence": "用于安全保证的可达集主动校准",
+      "llm_tldr_en": "Proposes active learning strategies to calibrate reachable sets with probabilistic guarantees.",
+      "llm_tldr_cn": "提出主动学习策略，以具有概率保证的方式校准可达集。",
+      "llm_tldr": "提出主动学习策略，以具有概率保证的方式校准可达集。",
+      "llm_tags": [
+        "query:ra-rl-pe"
+      ],
+      "matched_query_tag": "query:ra-rl-pe",
+      "matched_query_text": "reach-avoid",
+      "matched_requirement_id": "req-13",
+      "selection_source": "fresh_fetch"
+    },
+    {
+      "id": "2603.25481v1",
+      "title": "LILAC: Language-Conditioned Object-Centric Optical Flow for Open-Loop Trajectory Generation",
+      "abstract": "We address language-conditioned robotic manipulation using flow-based trajectory generation, which enables training on human and web videos of object manipulation and requires only minimal embodiment-specific data. This task is challenging, as object trajectory generation from pre-manipulation images and natural language instructions requires appropriate instruction-flow alignment. To tackle this challenge, we propose the flow-based Language Instruction-guided open-Loop ACtion generator (LILAC). This flow-based Vision-Language-Action model (VLA) generates object-centric 2D optical flow from an RGB image and a natural language instruction, and converts the flow into a 6-DoF manipulator trajectory. LILAC incorporates two key components: Semantic Alignment Loss, which strengthens language conditioning to generate instruction-aligned optical flow, and Prompt-Conditioned Cross-Modal Adapter, which aligns learned visual prompts with image and text features to provide rich cues for flow generation. Experimentally, our method outperformed existing approaches in generated flow quality across multiple benchmarks. Furthermore, in physical object manipulation experiments using free-form instructions, LILAC demonstrated a superior task success rate compared to existing methods. The project page is available at https://lilac-75srg.kinsta.page/.",
+      "authors": [
+        "Motonari Kambara",
+        "Koki Seno",
+        "Tomoya Kaichi",
+        "Yanan Wang",
+        "Komei Sugiura"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-26T14:21:22+00:00",
+      "link": "https://arxiv.org/pdf/2603.25481v1",
+      "tags": [
+        "keyword:Robot-Planning",
+        "query:Robot-Planning"
+      ],
+      "llm_score": 9.0,
+      "llm_evidence_en": "language-conditioned trajectory generation for robotic manipulation",
+      "llm_evidence_cn": "语言调节的机器人操作轨迹生成",
+      "llm_evidence": "语言调节的机器人操作轨迹生成",
+      "canonical_evidence": "语言调节的机器人操作轨迹生成",
+      "llm_tldr_en": "Proposes LILAC, a flow-based VLA model for generating 6-DoF manipulator trajectories from language instructions.",
+      "llm_tldr_cn": "提出了LILAC，一种基于流的VLA模型，可根据语言指令生成6自由度机械臂轨迹。",
+      "llm_tldr": "提出了LILAC，一种基于流的VLA模型，可根据语言指令生成6自由度机械臂轨迹。",
+      "llm_tags": [
+        "query:robot-planning:composite"
+      ],
+      "matched_query_tag": "query:robot-planning:composite",
+      "matched_query_text": "Papers central to 机器人规划方向最新研究热点追踪, especially work that connects or combines: multi-robot planning; embodied planning; trajectory optimization; task and motion planning; motion planning; robot planning; embodied intelligence and planning for robots; recent papers on task and motion planning in robotics; latest advances in robot motion planning.",
+      "matched_requirement_id": "req-composite-robot-planning",
+      "selection_source": "fresh_fetch"
+    }
+  ],
+  "quick_skim": [
+    {
+      "id": "2603.02657v1",
+      "title": "Watch Your Step: Learning Semantically-Guided Locomotion in Cluttered Environment",
+      "abstract": "Although legged robots demonstrate impressive mobility on rough terrain, using them safely in cluttered environments remains a challenge. A key issue is their inability to avoid stepping on low-lying objects, such as high-cost small devices or cables on flat ground. This limitation arises from a disconnection between high-level semantic understanding and low-level control, combined with errors in elevation maps during real-world operation. To address this, we introduce SemLoco, a Reinforcement Learning (RL) framework designed to avoid obstacles precisely in densely cluttered environments. SemLoco uses a two-stage RL approach that combines both soft and hard constraints and performs pixel-wise foothold safety inference, enabling more accurate foot placement. Additionally, SemLoco integrates a semantic map to assign traversability costs rather than relying solely on geometric data. SemLoco significantly reduces collisions and improves safety around sensitive objects, enabling reliable navigation in situations where traditional controllers would likely cause damage. Experimental results further demonstrate that SemLoco can be effectively applied to more complex, unstructured real-world environments.",
+      "authors": [
+        "Denan Liang",
+        "Yuan Zhu",
+        "Ruimeng Liu",
+        "Thien-Minh Nguyen",
+        "Shenghai Yuan",
+        "Lihua Xie"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-03T06:47:46+00:00",
+      "link": "https://arxiv.org/pdf/2603.02657v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "reinforcement learning with soft and hard constraints for safe locomotion",
+      "llm_evidence_cn": "结合软硬约束的强化学习用于安全足式运动",
+      "llm_evidence": "结合软硬约束的强化学习用于安全足式运动",
+      "canonical_evidence": "结合软硬约束的强化学习用于安全足式运动",
+      "llm_tldr_en": "A two-stage RL framework for legged robots to avoid small obstacles using semantic and safety constraints.",
+      "llm_tldr_cn": "一种两阶段强化学习框架，通过语义引导和安全约束使足式机器人能够精准避开障碍物。",
+      "llm_tldr": "一种两阶段强化学习框架，通过语义引导和安全约束使足式机器人能够精准避开障碍物。",
+      "llm_tags": [
+        "query:ra-rl-pe"
+      ],
+      "matched_query_tag": "query:ra-rl-pe",
+      "matched_query_text": "safe reinforcement learning",
+      "matched_requirement_id": "req-11",
+      "selection_source": "carryover_cache",
+      "paper_id": "2603.02657v1",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2603.20659v1",
+      "title": "StageCraft: Execution Aware Mitigation of Distractor and Obstruction Failures in VLA Models",
+      "abstract": "Large scale pre-training on text and image data along with diverse robot demonstrations has helped Vision Language Action models (VLAs) to generalize to novel tasks, objects and scenes. However, these models are still susceptible to failure in the presence of execution-time impediments such as distractors and physical obstructions in the robot's workspace. Existing policy improvement methods finetune base VLAs to improve generalization, yet they still struggle in unseen distractor settings. To address this problem, we investigate whether internet-scale pretraining of large vision-language models (VLMs) can be leveraged to reason about these impediments and mitigate policy failures. To this end, we propose StageCraft, a training-free approach to improve pretrained VLA policy performance by manipulating the environment's initial state using VLM-based in-context reasoning. StageCraft takes policy rollout videos and success labels as input and leverages VLM's reasoning ability to infer which objects in the initial state need to be manipulated to avoid anticipated execution failures. StageCraft is an extensible plug-and-play module that does not introduce additional constraints on the underlying policy, and only requires a few policy rollouts to work. We evaluate performance of state-of-the-art VLA models with StageCraft and show an absolute 40% performance improvement across three real world task domains involving diverse distractors and obstructions. Our simulation experiments in RLBench empirically show that StageCraft tailors its extent of intervention based on the strength of the underlying policy and improves its performance with more in-context samples. Videos of StageCraft in effect can be found at https://stagecraft-decorator.github.io/stagecraft/ .",
+      "authors": [
+        "Kartikay Milind Pangaonkar",
+        "Prabin Rath",
+        "Omkar Patil",
+        "Nakul Gopalan"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-21T05:30:15+00:00",
+      "link": "https://arxiv.org/pdf/2603.20659v1",
+      "tags": [
+        "keyword:Robot-Planning",
+        "query:Robot-Planning"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "mitigation of failures in VLA models for robot task execution",
+      "llm_evidence_cn": "减轻机器人任务执行中 VLA 模型的故障",
+      "llm_evidence": "减轻机器人任务执行中 VLA 模型的故障",
+      "canonical_evidence": "减轻机器人任务执行中 VLA 模型的故障",
+      "llm_tldr_en": "StageCraft leverages VLMs to reason about impediments and mitigate policy failures in robot task execution.",
+      "llm_tldr_cn": "StageCraft 利用 VLM 对障碍物进行推理，并减轻机器人任务执行中的策略失效。",
+      "llm_tldr": "StageCraft 利用 VLM 对障碍物进行推理，并减轻机器人任务执行中的策略失效。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "task and motion planning",
+      "matched_requirement_id": "req-20",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.20766v1",
+      "title": "A reliability-aware randomized simheuristic for the team orienteering problem with stochastic travel times",
+      "abstract": "We study a stochastic variant of the Team Orienteering Problem (TOP) with uncertain travel times and an all-or-nothing reward policy, under which the reward of a route is lost if its travel time exceeds the available budget. This setting makes the trade-off between expected reward and route reliability a central issue in solution design.   To address this problem, we propose a reliability-aware simheuristic that combines a savings-based constructive heuristic, controlled randomization, local search, and Monte Carlo simulation. The method evaluates candidate solutions directly under uncertainty and selects them using both estimated expected reward and a reliability criterion, rather than relying on deterministic optimization followed by ex-post stochastic evaluation.   Computational experiments on benchmark instances adapted from the TOP literature show that the proposed approach substantially improves stochastic performance with respect to a deterministic baseline evaluated under uncertainty. In most instances, the simheuristic increases both expected reward and reliability, and in the loosest regimes reliability can approach 0.99 while keeping computation times moderate.",
+      "authors": [
+        "Michele Circelli"
+      ],
+      "primary_category": "math.OC",
+      "categories": [
+        "math.OC"
+      ],
+      "published": "2026-03-21T11:30:57+00:00",
+      "link": "https://arxiv.org/pdf/2603.20766v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "team orienteering problem with stochastic constraints",
+      "llm_evidence_cn": "随机约束下的团队定向问题",
+      "llm_evidence": "随机约束下的团队定向问题",
+      "canonical_evidence": "随机约束下的团队定向问题",
+      "llm_tldr_en": "Develops a reliability-aware simheuristic for solving stochastic team orienteering and task routing.",
+      "llm_tldr_cn": "开发了一种可靠性感知模拟启发式算法，用于解决随机团队定向和任务路径规划。",
+      "llm_tldr": "开发了一种可靠性感知模拟启发式算法，用于解决随机团队定向和任务路径规划。",
+      "llm_tags": [
+        "query:space-defense"
+      ],
+      "matched_query_tag": "query:space-defense",
+      "matched_query_text": "task allocation",
+      "matched_requirement_id": "req-1",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2603.02989v1",
+      "title": "CASSR: Continuous A-Star Search through Reachability for real time footstep planning",
+      "abstract": "Footstep planning involves a challenging combinatorial search. Traditional A* approaches require discretising reachability constraints, while Mixed-Integer Programming (MIP) supports continuous formulations but quickly becomes intractable, especially when rotations are included. We present CASSR, a novel framework that recursively propagates convex, continuous formulations of a robot's kinematic constraints within an A* search. Combined with a new cost-to-go heuristic based on the EPA algorithm, CASSR efficiently plans contact sequences of up to 30 footsteps in under 125 ms. Experiments on biped locomotion tasks demonstrate that CASSR outperforms traditional discretised A* by up to a factor of 100, while also surpassing a commercial MIP solver. These results show that CASSR enables fast, reliable, and real-time footstep planning for biped robots.",
+      "authors": [
+        "Jiayi Wang",
+        "Steve Tonneau"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-03T13:41:49+00:00",
+      "link": "https://arxiv.org/pdf/2603.02989v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "query:RA-RL-PE",
+        "query:Robot-Planning"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "real time footstep planning through reachability",
+      "llm_evidence_cn": "通过可达性进行实时足迹规划",
+      "llm_evidence": "通过可达性进行实时足迹规划",
+      "canonical_evidence": "通过可达性进行实时足迹规划",
+      "llm_tldr_en": "Introduces CASSR for efficient continuous footstep planning using reachability and A* search.",
+      "llm_tldr_cn": "引入CASSR框架，利用可达性分析和A*搜索实现高效的连续足迹规划。",
+      "llm_tldr": "引入CASSR框架，利用可达性分析和A*搜索实现高效的连续足迹规划。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "motion planning",
+      "matched_requirement_id": "req-21",
+      "selection_source": "carryover_cache",
+      "paper_id": "2603.02989v1",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2603.20804v1",
+      "title": "Does Peer Observation Help? Vision-Sharing Collaboration for Vision-Language Navigation",
+      "abstract": "Vision-Language Navigation (VLN) systems are fundamentally constrained by partial observability, as an agent can only accumulate knowledge from locations it has personally visited. As multiple robots increasingly coexist in shared environments, a natural question arises: can agents navigating the same space benefit from each other's observations? In this work, we introduce Co-VLN, a minimalist, model-agnostic framework for systematically investigating whether and how peer observations from concurrently navigating agents can benefit VLN. When independently navigating agents identify common traversed locations, they exchange structured perceptual memory, effectively expanding each agent's receptive field at no additional exploration cost. We validate our framework on the R2R benchmark under two representative paradigms (the learning-based DUET and the zero-shot MapGPT), and conduct extensive analytical experiments to systematically reveal the underlying dynamics of peer observation sharing in VLN. Results demonstrate that vision-sharing enabled model yields substantial performance improvements across both paradigms, establishing a strong foundation for future research in collaborative embodied navigation.",
+      "authors": [
+        "Qunchao Jin",
+        "Yiliao Song",
+        "Qi Wu"
+      ],
+      "primary_category": "cs.CV",
+      "categories": [
+        "cs.CV",
+        "cs.RO"
+      ],
+      "published": "2026-03-21T12:59:31+00:00",
+      "link": "https://arxiv.org/pdf/2603.20804v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "vision-sharing collaboration for multi-robot navigation",
+      "llm_evidence_cn": "多机器人导航的视觉共享协作",
+      "llm_evidence": "多机器人导航的视觉共享协作",
+      "canonical_evidence": "多机器人导航的视觉共享协作",
+      "llm_tldr_en": "Proposes a framework for multi-agent vision-language navigation through shared perceptual memory.",
+      "llm_tldr_cn": "提出一种通过共享感知记忆实现多智能体视觉语言导航的框架。",
+      "llm_tldr": "提出一种通过共享感知记忆实现多智能体视觉语言导航的框架。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "multi-robot planning",
+      "matched_requirement_id": "req-17",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.20862v1",
+      "title": "Deep Learning-Based Multi-Satellite Massive MIMO Transmission: Centralized or Decentralized?",
+      "abstract": "This paper investigates new efficient transmission architectures for multi-satellite massive multiple-input multiple-output (MIMO). We study the weighted sum-rate maximization problem in a multi-satellite system where multiple satellites transmit independent data streams to multi-antenna user terminals, thereby achieving higher throughput. We first adopt a multi-satellite weighted minimum mean square error (WMMSE) formulation under statistical channel state information (CSI), which yields closed-form updates for the precoding and receive vectors. To overcome the high complexity of optimization, we propose a learning-based WMMSE design that integrates tensor equivariance with closed-form recovery, enabling inference with near-optimal performance without iterative updates. Moreover, to reduce inter-satellite signaling overhead incurred by exchanging CSI and precoding vectors in centralized coordination, we develop a decentralized multi-satellite transmission scheme in which each satellite locally infers its precoders rather than receiving from the central satellite. The proposed decentralized scheme leverages periodically available satellite state information, such as orbital positions and satellite attitude, which is inherently accessible in satellite networks, and employs a dual-branch tensor-equivariant network to predict the precoders at each satellite locally. Numerical results demonstrate that the proposed multi-satellite transmission significantly outperforms single-satellite systems in sum rate; the decentralized scheme achieves sum-rate performance close to the centralized schemes while substantially reducing computational complexity and inter-satellite overhead; and the learning-based schemes exhibit strong robustness and scalability across different scenarios.",
+      "authors": [
+        "Wenjing Cao",
+        "Yafei Wang",
+        "Jinshuo Zhang",
+        "Xiaofan Xu",
+        "Wenjin Wang",
+        "Symeon Chatzinotas",
+        "Björn Ottersten"
+      ],
+      "primary_category": "eess.SP",
+      "categories": [
+        "eess.SP"
+      ],
+      "published": "2026-03-21T15:48:14+00:00",
+      "link": "https://arxiv.org/pdf/2603.20862v1",
+      "tags": [
+        "keyword:Space-Defense",
+        "query:Space-Defense"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "multi-satellite transmission and massive MIMO architectures",
+      "llm_evidence_cn": "多卫星传输与大规模MIMO架构",
+      "llm_evidence": "多卫星传输与大规模MIMO架构",
+      "canonical_evidence": "多卫星传输与大规模MIMO架构",
+      "llm_tldr_en": "Investigates centralized and decentralized architectures for multi-satellite massive MIMO transmission.",
+      "llm_tldr_cn": "研究了多卫星大规模MIMO传输的中心化与去中心化架构及优化算法。",
+      "llm_tldr": "研究了多卫星大规模MIMO传输的中心化与去中心化架构及优化算法。",
+      "llm_tags": [
+        "query:space-defense"
+      ],
+      "matched_query_tag": "query:space-defense",
+      "matched_query_text": "small satellite cluster defense for space station protection",
+      "matched_requirement_id": "req-9",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2603.02989v2",
+      "title": "CASSR: Continuous A-Star Search through Reachability for real time footstep planning",
+      "abstract": "Footstep planning involves a challenging combinatorial search. Traditional A* approaches require discretising reachability constraints, while Mixed-Integer Programming (MIP) supports continuous formulations but quickly becomes intractable, especially when rotations are included. We present CASSR, a novel framework that recursively propagates convex, continuous formulations of a robot's kinematic constraints within an A* search. Combined with a new cost-to-go heuristic based on the EPA algorithm, CASSR efficiently plans contact sequences of up to 30 footsteps in under 125 ms. Experiments on biped locomotion tasks demonstrate that CASSR outperforms traditional discretised A* by up to a factor of 100, while also surpassing a commercial MIP solver. These results show that CASSR enables fast, reliable, and real-time footstep planning for biped robots.",
+      "authors": [
+        "Jiayi Wang",
+        "Steve Tonneau"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO"
+      ],
+      "published": "2026-03-03T13:41:49+00:00",
+      "link": "https://arxiv.org/pdf/2603.02989v2",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "query:RA-RL-PE",
+        "query:Robot-Planning"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "Continuous A-Star search through reachability for robot planning",
+      "llm_evidence_cn": "基于可达性的连续A*搜索机器人规划",
+      "llm_evidence": "基于可达性的连续A*搜索机器人规划",
+      "canonical_evidence": "基于可达性的连续A*搜索机器人规划",
+      "llm_tldr_en": "Presents CASSR, a framework using reachability analysis for efficient real-time footstep planning.",
+      "llm_tldr_cn": "提出CASSR框架，利用可达性分析实现高效的实时足迹规划。",
+      "llm_tldr": "提出CASSR框架，利用可达性分析实现高效的实时足迹规划。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "motion planning",
+      "matched_requirement_id": "req-21",
+      "selection_source": "carryover_cache",
+      "paper_id": "2603.02989v2",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2603.20927v1",
+      "title": "Active Inference for Physical AI Agents -- An Engineering Perspective",
+      "abstract": "Physical AI agents, such as robots and other embodied systems operating under tight and fluctuating resource constraints, remain far less capable than biological agents in open-ended real-world environments. This paper argues that Active Inference (AIF), grounded in the Free Energy Principle, offers a principled foundation for closing that gap. We develop this argument from first principles, following a chain from probability theory through Bayesian machine learning and variational inference to active inference and reactive message passing. From the FEP perspective, systems that maintain their structural and functional integrity over time can, under suitable assumptions, be described as minimizing variational free energy (VFE), and AIF operationalizes this by unifying perception, learning, planning, and control within a single computational objective. We show that VFE minimization is naturally realized by reactive message passing on factor graphs, where inference emerges from local, parallel computations. This realization is well matched to the constraints of physical operation, including hard deadlines, asynchronous data, fluctuating power budgets, and changing environments. Because reactive message passing is event-driven, interruptible, and locally adaptable, performance degrades gracefully under reduced resources while model structure can adjust online. We further show that, under suitable coupling and coarse-graining conditions, coupled AIF agents can be described as higher-level AIF agents, yielding a homogeneous architecture based on the same message-passing primitive across scales. Our contribution is not empirical benchmarking, but a clear theoretical and architectural case for the engineering community.",
+      "authors": [
+        "Bert de Vries"
+      ],
+      "primary_category": "stat.ML",
+      "categories": [
+        "stat.ML",
+        "cs.LG"
+      ],
+      "published": "2026-03-21T20:06:30+00:00",
+      "link": "https://arxiv.org/pdf/2603.20927v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "Active Inference for physical AI and embodied systems",
+      "llm_evidence_cn": "针对物理AI与具身系统的主动推理框架",
+      "llm_evidence": "针对物理AI与具身系统的主动推理框架",
+      "canonical_evidence": "针对物理AI与具身系统的主动推理框架",
+      "llm_tldr_en": "Proposes Active Inference as a foundation for physical AI agents to operate in real-world environments.",
+      "llm_tldr_cn": "提出主动推理作为物理AI代理在现实环境中运行的基础框架。",
+      "llm_tldr": "提出主动推理作为物理AI代理在现实环境中运行的基础框架。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "embodied intelligence and planning for robots",
+      "matched_requirement_id": "req-23",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.20935v1",
+      "title": "Periodic solutions of nonlinear control systems with switching: a Lie-algebraic and contraction approach",
+      "abstract": "This paper is devoted to the analysis of periodic solutions of nonlinear control-affine systems with bang-bang controls. Such problems naturally arise in periodic optimal control with constrained inputs, which have, in particular, important applications in the performance optimization of chemical reactions. We reduce the problem of constructing a periodic solution to that of finding a fixed point of a composition of exponential maps. The latter problem is then addressed using the Baker-Campbell-Hausdorff-Dynkin (BCHD) formula. We establish the equivalence between periodic solutions of the original control system and those of an associated autonomous system involving iterated Lie brackets. In the planar case, applying the Bendixson-Dulac theorem allows us to further simplify the problem to finding the equilibria of this autonomous system. The developed theory is then applied to nonlinear chemical reaction models with constrained controls.",
+      "authors": [
+        "Alexander Zuyev",
+        "Peter Benner"
+      ],
+      "primary_category": "math.OC",
+      "categories": [
+        "math.OC"
+      ],
+      "published": "2026-03-21T20:30:32+00:00",
+      "link": "https://arxiv.org/pdf/2603.20935v1",
+      "tags": [
+        "keyword:RA-RL-PE"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "nonlinear control systems with constrained inputs",
+      "llm_evidence_cn": "具有约束输入的非线性控制系统",
+      "llm_evidence": "具有约束输入的非线性控制系统",
+      "canonical_evidence": "具有约束输入的非线性控制系统",
+      "llm_tldr_en": "Analyzes periodic solutions for nonlinear control-affine systems with bang-bang controls and input constraints.",
+      "llm_tldr_cn": "分析了具有砰砰控制和输入约束的非线性控制仿射系统的周期解。",
+      "llm_tldr": "分析了具有砰砰控制和输入约束的非线性控制仿射系统的周期解。",
+      "llm_tags": [
+        "query:ra-rl-pe"
+      ],
+      "matched_query_tag": "query:ra-rl-pe",
+      "matched_query_text": "constrained control",
+      "matched_requirement_id": "req-10",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2603.03024v1",
+      "title": "MA-CoNav: A Master-Slave Multi-Agent Framework with Hierarchical Collaboration and Dual-Level Reflection for Long-Horizon Embodied VLN",
+      "abstract": "Vision-Language Navigation (VLN) aims to empower robots with the ability to perform long-horizon navigation in unfamiliar environments based on complex linguistic instructions. Its success critically hinges on establishing an efficient ``language-understanding -- visual-perception -- embodied-execution'' closed loop. Existing methods often suffer from perceptual distortion and decision drift in complex, long-distance tasks due to the cognitive overload of a single agent. Inspired by distributed cognition theory, this paper proposes MA-CoNav, a Multi-Agent Collaborative Navigation framework. This framework adopts a ``Master-Slave'' hierarchical agent collaboration architecture, decoupling and distributing the perception, planning, execution, and memory functions required for navigation tasks to specialized agents. Specifically, the Master Agent is responsible for global orchestration, while the Subordinate Agent group collaborates through a clear division of labor: an Observation Agent generates environment descriptions, a Planning Agent performs task decomposition and dynamic verification, an Execution Agent handles simultaneous mapping and action, and a Memory Agent manages structured experiences. Furthermore, the framework introduces a ``Local-Global'' dual-stage reflection mechanism to dynamically optimize the entire navigation pipeline. Empirical experiments were conducted using a real-world indoor dataset collected by a Limo Pro robot, with no scene-specific fine-tuning performed on the models throughout the process. The results demonstrate that MA-CoNav comprehensively outperforms existing mainstream VLN methods across multiple metrics.",
+      "authors": [
+        "Ling Luo",
+        "Qianqian Bai"
+      ],
+      "primary_category": "cs.RO",
+      "categories": [
+        "cs.RO",
+        "cs.AI"
+      ],
+      "published": "2026-03-03T14:16:02+00:00",
+      "link": "https://arxiv.org/pdf/2603.03024v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "embodied vision-language navigation",
+      "llm_evidence_cn": "具身视觉语言导航",
+      "llm_evidence": "具身视觉语言导航",
+      "canonical_evidence": "具身视觉语言导航",
+      "llm_tldr_en": "A master-slave multi-agent framework for long-horizon embodied vision-language navigation.",
+      "llm_tldr_cn": "一种用于长程具身视觉语言导航的主从式多智能体协作框架。",
+      "llm_tldr": "一种用于长程具身视觉语言导航的主从式多智能体协作框架。",
+      "llm_tags": [
+        "query:robot-planning"
+      ],
+      "matched_query_tag": "query:robot-planning",
+      "matched_query_text": "embodied planning",
+      "matched_requirement_id": "req-18",
+      "selection_source": "carryover_cache",
+      "paper_id": "2603.03024v1",
+      "quick_tier": "8plus"
+    },
+    {
+      "id": "2603.20981v1",
+      "title": "Cyber Deception for Mission Surveillance via Hypergame-Theoretic Deep Reinforcement Learning",
+      "abstract": "Unmanned Aerial Vehicles (UAVs) are valuable for mission-critical systems like surveillance, rescue, or delivery. Not surprisingly, such systems attract cyberattacks, including Denial-of-Service (DoS) attacks to overwhelm the resources of mission drones (MDs). How can we defend UAV mission systems against DoS attacks? We adopt cyber deception as a defense strategy, in which honey drones (HDs) are proposed to bait and divert attacks. The attack and deceptive defense hinge upon radio signal strength: The attacker selects victim MDs based on their signals, and HDs attract the attacker from afar by emitting stronger signals, despite this reducing battery life. We formulate an optimization problem for the attacker and defender to identify their respective strategies for maximizing mission performance while minimizing energy consumption. To address this problem, we propose a novel approach, called HT-DRL. HT-DRL identifies optimal solutions without a long learning convergence time by taking the solutions of hypergame theory into the neural network of deep reinforcement learning. This achieves a systematic way to intelligently deceive attackers. We analyze the performance of diverse defense mechanisms under different attack strategies. Further, the HT-DRL-based HD approach outperforms existing non-HD counterparts up to two times better in mission performance while incurring low energy consumption.",
+      "authors": [
+        "Zelin Wan",
+        "Jin-Hee Cho",
+        "Mu Zhu",
+        "Ahmed H. Anwar",
+        "Charles Kamhoua",
+        "Munindar P. Singh"
+      ],
+      "primary_category": "cs.CR",
+      "categories": [
+        "cs.CR",
+        "cs.AI",
+        "cs.GT",
+        "cs.MA"
+      ],
+      "published": "2026-03-21T23:57:33+00:00",
+      "link": "https://arxiv.org/pdf/2603.20981v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Space-Defense"
+      ],
+      "llm_score": 7.0,
+      "llm_evidence_en": "hypergame-theoretic deep reinforcement learning for defense",
+      "llm_evidence_cn": "基于超博弈理论的深度强化学习防御",
+      "llm_evidence": "基于超博弈理论的深度强化学习防御",
+      "canonical_evidence": "基于超博弈理论的深度强化学习防御",
+      "llm_tldr_en": "Uses hypergame-theoretic RL to defend UAV missions against DoS attacks via cyber deception.",
+      "llm_tldr_cn": "利用超博弈强化学习，通过网络欺骗手段防御无人机任务免受拒绝服务攻击。",
+      "llm_tldr": "利用超博弈强化学习，通过网络欺骗手段防御无人机任务免受拒绝服务攻击。",
+      "llm_tags": [
+        "query:ra-rl-pe:composite"
+      ],
+      "matched_query_tag": "query:ra-rl-pe:composite",
+      "matched_query_text": "Papers central to 可达集、Reach-Avoid 与强化学习追逃博弈相关论文追踪, especially work that connects or combines: differential game; constrained control; safe reinforcement learning; pursuit-evasion; reach-avoid; Hamilton Jacobi reachability and RL for pursuit evasion; safe RL for constrained pursuit evasion games; reinforcement learning for reach avoid pursuit evasion.",
+      "matched_requirement_id": "req-composite-ra-rl-pe",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "7"
+    },
+    {
+      "id": "2603.20994v1",
+      "title": "The Intelligent Disobedience Game: Formulating Disobedience in Stackelberg Games and Markov Decision Processes",
+      "abstract": "In shared autonomy, a critical tension arises when an automated assistant must choose between obeying a human's instruction and deliberately overriding it to prevent harm. This safety-critical behavior is known as intelligent disobedience. To formalize this dynamic, this paper introduces the Intelligent Disobedience Game (IDG), a sequential game-theoretic framework based on Stackelberg games that models the interaction between a human leader and an assistive follower operating under asymmetric information. It characterizes optimal strategies for both agents across multi-step scenarios, identifying strategic phenomena such as ``safety traps,'' where the system indefinitely avoids harm but fails to achieve the human's goal. The IDG provides a needed mathematical foundation that enables both the algorithmic development of agents that can learn safe non-compliance and the empirical study of how humans perceive and trust disobedient AI. The paper further translates the IDG into a shared control Multi-Agent Markov Decision Process representation, forming a compact computational testbed for training reinforcement learning agents.",
+      "authors": [
+        "Benedikt Hornig",
+        "Reuth Mirsky"
+      ],
+      "primary_category": "cs.AI",
+      "categories": [
+        "cs.AI",
+        "cs.GT",
+        "cs.LG"
+      ],
+      "published": "2026-03-22T00:50:32+00:00",
+      "link": "https://arxiv.org/pdf/2603.20994v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Robot-Planning",
+        "keyword:Space-Defense",
+        "query:RA-RL-PE",
+        "query:Robot-Planning",
+        "query:Space-Defense"
+      ],
+      "llm_score": 6.0,
+      "llm_evidence_en": "Stackelberg games for safety-critical intelligent disobedience",
+      "llm_evidence_cn": "用于安全关键智能抗命的Stackelberg博弈",
+      "llm_evidence": "用于安全关键智能抗命的Stackelberg博弈",
+      "canonical_evidence": "用于安全关键智能抗命的Stackelberg博弈",
+      "llm_tldr_en": "Models human-agent interaction as a Stackelberg game to handle safety-critical disobedience.",
+      "llm_tldr_cn": "将人机交互建模为Stackelberg博弈，以处理安全关键的抗命行为。",
+      "llm_tldr": "将人机交互建模为Stackelberg博弈，以处理安全关键的抗命行为。",
+      "llm_tags": [
+        "query:ra-rl-pe:composite"
+      ],
+      "matched_query_tag": "query:ra-rl-pe:composite",
+      "matched_query_text": "Papers central to 可达集、Reach-Avoid 与强化学习追逃博弈相关论文追踪, especially work that connects or combines: differential game; constrained control; safe reinforcement learning; pursuit-evasion; reach-avoid; Hamilton Jacobi reachability and RL for pursuit evasion; safe RL for constrained pursuit evasion games; reinforcement learning for reach avoid pursuit evasion.",
+      "matched_requirement_id": "req-composite-ra-rl-pe",
+      "selection_source": "fresh_fetch",
+      "quick_tier": "6"
+    },
+    {
+      "id": "2603.03632v1",
+      "title": "Local Safety Filters for Networked Systems via Two-Time-Scale Design",
+      "abstract": "Safety filters based on Control Barrier Functions (CBFs) provide formal guarantees of forward invariance, but are often difficult to implement in networked dynamical systems. This is due to global coupling and communication requirements. This paper develops locally implementable approximations of networked CBF safety filters that require no coordination across subsystems. The proposed approach is based on a two-time-scale dynamic implementation inspired by singular perturbation theory, where a small parameter $ε$ separates fast filter dynamics from the plant dynamics; then, a local implementation is enabled via derivative estimation. Explicit bounds are derived to quantify the mismatch between trajectories of the systems with dynamic filter and with the ideal centralized safety filter. These results characterize how safety degradation depends on the time-scale parameter $ε$, estimation errors, and filter activation time, thereby quantifying trade-offs between safety guarantees and local implementability.",
+      "authors": [
+        "Emiliano Dall'Anese"
+      ],
+      "primary_category": "eess.SY",
+      "categories": [
+        "eess.SY",
+        "math.OC"
+      ],
+      "published": "2026-03-04T01:44:11+00:00",
+      "link": "https://arxiv.org/pdf/2603.03632v1",
+      "tags": [
+        "keyword:RA-RL-PE",
+        "keyword:Space-Defense",
+        "query:Space-Defense"
+      ],
+      "llm_score": 8.0,
+      "llm_evidence_en": "safety filters based on Control Barrier Functions (CBFs)",
+      "llm_evidence_cn": "基于控制屏障函数 (CBF) 的安全过滤器",
+      "llm_evidence": "基于控制屏障函数 (CBF) 的安全过滤器",
+      "canonical_evidence": "基于控制屏障函数 (CBF) 的安全过滤器",
+      "llm_tldr_en": "Develops locally implementable CBF safety filters for networked systems using a two-time-scale design.",
+      "llm_tldr_cn": "采用双时间尺度设计，为网络化系统开发了可局部实现的CBF安全过滤器。",
+      "llm_tldr": "采用双时间尺度设计，为网络化系统开发了可局部实现的CBF安全过滤器。",
+      "llm_tags": [
+        "query:space-defense"
+      ],
+      "matched_query_tag": "query:space-defense",
+      "matched_query_text": "distributed MPC and CBF for multi spacecraft safety and defense",
+      "matched_requirement_id": "req-7",
+      "selection_source": "carryover_cache",
+      "paper_id": "2603.03632v1",
+      "quick_tier": "8plus"
+    }
+  ]
+}

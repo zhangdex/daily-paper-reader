@@ -1,0 +1,2407 @@
+Title: Deep Learning-Based Multi-Satellite Massive MIMO Transmission: Centralized or Decentralized?
+
+URL Source: https://arxiv.org/pdf/2603.20862v1
+
+Published Time: Tue, 24 Mar 2026 00:51:29 GMT
+
+Number of Pages: 14
+
+Markdown Content:
+> 1
+
+# Deep Learning-Based Multi-Satellite Massive MIMO Transmission: Centralized or Decentralized? 
+
+Wenjing Cao, Graduate Student Member , IEEE , Yafei Wang, Graduate Student Member , IEEE ,Jinshuo Zhang, Graduate Student Member , IEEE , Xiaofan Xu, Wenjin Wang, Member , IEEE ,Symeon Chatzinotas, Fellow , IEEE , Bj¨ orn Ottersten, Fellow , IEEE 
+
+Abstract —This paper investigates new efficient transmission architectures for multi-satellite massive multiple-input multiple-output (MIMO). We study the weighted sum-rate maximization problem in a multi-satellite system where multiple satellites transmit independent data streams to multi-antenna user ter-minals, thereby achieving higher throughput. We first adopt a multi-satellite weighted minimum mean square error (WMMSE) formulation under statistical channel state information (CSI), which yields closed-form updates for the precoding and receive vectors. To overcome the high complexity of optimization, we propose a learning-based WMMSE design that integrates tensor equivariance with closed-form recovery, enabling inference with near-optimal performance without iterative updates. Moreover, to reduce inter-satellite signaling overhead incurred by exchang-ing CSI and precoding vectors in centralized coordination, we develop a decentralized multi-satellite transmission scheme in which each satellite locally infers its precoders rather than receiving from the central satellite. The proposed decentralized scheme leverages periodically available satellite state informa-tion, such as orbital positions and satellite attitude, which is inherently accessible in satellite networks, and employs a dual-branch tensor-equivariant network to predict the precoders at each satellite locally. Numerical results demonstrate that the proposed multi-satellite transmission significantly outperforms single-satellite systems in sum rate; the decentralized scheme achieves sum-rate performance close to the centralized schemes while substantially reducing computational complexity and inter-satellite overhead; and the learning-based schemes exhibit strong robustness and scalability across different scenarios. 
+
+Index Terms —Satellite communication, massive MIMO, decen-tralized transmission, tensor equivariance. 
+
+I. I NTRODUCTION 
+
+# SATELLITE communications are widely regarded as a key enabling technology for future sixth-generation (6G) wireless networks [1]. By complementing terrestrial infrastruc-tures, satellite systems can provide seamless global coverage, extend network coverage to remote, oceanic, and underserved areas where terrestrial deployments are costly [2]. Therefore, satellite communication plays an important role in achieving 
+
+Manuscript received xxx; revised xxx. Wenjing Cao, Yafei Wang, Jinshuo Zhang, and Wenjin Wang are with the National Mobile Communications Research Laboratory, Southeast Uni-versity, Nanjing 210096, China, and also with Purple Mountain Laborato-ries, Nanjing 211100, China (e-mail: caowj@seu.edu.cn; wangyf@seu.edu.cn; zhangjs@seu.edu.cn; wangwj@seu.edu.cn). Xiaofan Xu is with the Shanghai Satellite Network Research Institute Co., Ltd., Shanghai 200120, China; Shanghai Key Laboratory of Satellite Network, Shanghai 200120, China; State Key Laboratory of Satellite Network, Shanghai 200120, China (e-mail: xiaofanxu@sina.com). Symeon Chatzinotas and Bj¨ orn Ottersten are with the Interdisciplinary Centre for Security, Reliability and Trust (SnT), University of Luxembourg, Luxembourg (e-mail: symeon.chatzinotas@uni.lu; bjorn.ottersten@uni.lu). 
+
+ubiquitous connectivity, which is one of the central visions of IMT-2030 [3]–[5]. The demand for global coverage and high aggregate capac-ity has led to the emergence of unprecedentedly large low-earth orbit (LEO) mega-constellations, facilitated by satellite miniaturization and reusable launch vehicles that substantially reduce deployment costs [6]–[8]. Meanwhile, satellite net-works are evolving not only toward denser constellations, but also toward larger antenna apertures and more capable user terminals (UTs). Recent platforms such as BlueWalker-3 and Starlink’s V2 Mini indicate a trend toward satellites equipped with large-scale antenna arrays for high-gain beamforming [9], while UTs are increasingly adopting steerable multi-antenna architectures with high spatial directivity and gain [1], [10]. Together, these trends pave the way for multi-satellite massive multiple-input multiple-output (MIMO), where large-scale antenna arrays at satellites and multiple antennas at UTs jointly enhance spatial multiplexing capabilities, improve satellite link budget, and manage interference. Precoding has emerged as one of the most effective tech-niques for such massive MIMO satellite communication sys-tems, particularly for improving spectral efficiency, mitigating interference, and enhancing the overall user experience [11]. By leveraging advanced satellite payloads and large-scale antenna arrays, precoding in orthogonal frequency-division multiplexing (OFDM) satellite systems is applied on a per-subcarrier basis to fully exploit spatial multiplexing gains, enabling the reuse of the same time-frequency resources while efficiently serving many users. Nevertheless, single-satellite transmission in LEO constellations is fundamentally constrained by limited payload and severe inter-satellite inter-ference arising from dense deployment and aggressive spec-trum reuse. These challenges motivate the adoption of multi-satellite cooperative transmission to manage joint user service and interference [12], [13]. Moreover, the present deployment of multi-satellite precoding often relies on centralized coor-dination, which requires extensive inter-satellite information exchange through inter-satellite links (ISLs). However, estab-lishing and maintaining reliable ISLs can be challenging in large LEO constellations. In particular, satellites in extreme scenarios, such as those located in counter-rotating orbital seams or different orbital planes, may experience large relative motion, making ISL establishment challenging and causing link instability [14], [15]. Consequently, developing highly ef-ficient and scalable precoding schemes for decentralized multi-satellite transmission that reduce reliance on ISLs becomes 
+
+> arXiv:2603.20862v1 [eess.SP] 21 Mar 2026 2
+
+increasingly important for practical multi-satellite massive MIMO systems. 
+
+A. Related Works 
+
+Extensive studies have investigated precoding for single-satellite systems. Conventional schemes, including MMSE [16], WMMSE [17], and energy-efficient designs [18], gener-ally require perfect instantaneous CSI (iCSI), which is difficult to obtain in satellite systems due to long propagation delays and high mobility. This has motivated the development of statistical CSI (sCSI)-based precoding methods. For instance, [19] exploited angular and power statistics, [20] addressed angular uncertainty with per-antenna power constraints, and [18] proposed a low-complexity precoding-update algorithm to combat temporal channel dynamics. Learning-based precoding has also emerged as a promising direction for improving performance, efficiency, and adaptability [21]. Representative works include learning simplified scalar parameters for low-complexity precoding [22] and hybrid CNN-LSTM architec-tures for improved robustness to Doppler shifts and delay dis-tortions [23]. [24] mapped implicit CSI to precoding, avoiding explicit channel reconstruction and reducing pilot overhead. As satellite communication systems evolve toward dense LEO networks with increasing ISL deployment, cooperative multi-satellite transmission is becoming essential [12], [13], [25], [26]. By allowing multiple satellites to jointly serve users, such architectures can enhance link performance, sup-press inter-satellite interference, and improve spatial resource utilization [27], [28]. Existing studies have mainly focused on centralized architectures [29], [30], where a central satellite aggregates multi-satellite CSI and jointly optimizes precoding vectors. [26] investigated cooperative downlink transmission via distributed beamforming among multiple LEO satellites, analyzing the impact of inevitable delay and Doppler com-pensation errors on coherent processing. Building on this line of research, [30] proposed a scalable transformer-based precoding scheme for coherent transmission that learns from sCSI and can adapt to varying numbers of users and satel-lites. More recently, [31] extended multi-satellite coherent transmission to the multi-antenna UT setting with multi-stream transmission. In contrast, multi-satellite non-coherent (NCT) transmission was only preliminarily studied in [29]. Owing to its much lower synchronization requirements, NCT transmission constitutes a potentially more practical and de-ployable solution for dynamic LEO networks [13]. However, existing designs still mainly rely on centralized optimization and high-dimensional CSI exchange, which incur substantial computational complexity and inter-satellite overhead, thereby limiting their practical applicability. To overcome the limitations of centralized architectures, de-centralized multi-satellite transmission has attracted increasing attention. In such architectures, each satellite performs local precoding while exchanging only limited state information, thus substantially reducing inter-satellite communication over-head [32]. Although this decentralized operation may incur some performance loss relative to fully centralized optimiza-tion, it is often more practical in satellite networks due to inter-satellite and satelliteterrestrial delays, as well as limited onboard resources [33]. Recent progress includes privacy-preserving split learning [34], multi-agent reinforcement learn-ing for cooperative scheduling [35], and decentralized feder-ated learning for adaptive model exchange and local training [36]. Nevertheless, existing studies mainly address distributed learning and resource management, with limited attention to physical-layer design for multi-satellite massive MIMO systems. In particular, decentralized transmission strategies built on consensus mechanisms within a unified operational framework remain largely unexplored. 
+
+B. Contributions 
+
+Despite the promise of multi-satellite massive MIMO trans-mission in improving link performance and suppressing inter-satellite interference [25], [27], several important gaps remain. Existing learning-based designs have been limited to systems with single-antenna UTs [30], while the distinctive properties of multi-antenna UT scenarios have not been fully exploited [29], [37]. Meanwhile, multi-satellite NCT transmission, in which multiple satellites transmit independent data streams to the same multi-antenna UT, offers greater practical potential owing to its lower synchronization requirements [13], [30], [31], yet still suffers from the high computational complexity of conventional iterative schemes [29]. Furthermore, central-ized multi-satellite transmission is fundamentally constrained by limited ISL communication, including stringent require-ments on information timeliness and restricted exchange ca-pacity. These constraints are further aggravated by the dif-ficulty of acquiring CSI and the overhead associated with precoder dissemination [13], [14]. As a result, decentralized learning-based NCT transmission for multi-satellite systems remains largely unexplored. These observations motivate the following fundamental research question: How to design cen-tralized or decentralized NCT transmission schemes for co-operative multi-satellite systems by leveraging deep learning techniques? Addressing this question constitutes the central focus of this paper. In summary, the main contributions of this work are as follows:  
+
+> •
+
+To mitigate the high complexity of iterative optimization, we extract physically interpretable low-dimensional vari-ables from the closed-form WMMSE solutions. Lever-aging this structure, we propose a centralized learning-based WMMSE framework that incorporates a tensor equivariant network designed to capture and preserve the permutation-equivariant structure across both satellite and UT dimensions. The low-dimensional variables are predicted and then mapped back to the precoders through a closed-form recovery. As a result, the proposed scheme achieves near-WMMSE performance with substantially lower online inference complexity while naturally adapt-ing to different numbers of satellites and UTs.  
+
+> •
+
+To address the excessive inter-satellite overhead and latency of centralized coordination, we first establish the feasibility of decentralized multi-satellite transmission from the structure of the closed-form WMMSE solution. Specifically, we show that each satellite can predict its local precoding vectors primarily from local CSI, while the cross-satellite coupling can be captured through pe-3
+
+riodically exchanged low-rate satellite state information (SSI), including orbital positions and satellite attitude. Motivated by this observation, we further propose adecentralized multi-satellite transmission architecture that eliminates the need for centralized CSI aggregation and precoder dissemination, thereby significantly reducing inter-satellite communication overhead.  
+
+> •
+
+Building on the proposed decentralized architecture, we further develop a learning-based decentralized WMMSE scheme. Specifically, a dual-branch tensor equivari-ant network is designed to process local-satellite and other-satellite features separately, while preserving the permutation-equivariant and permutation-invariant struc-tures inherent in the satellite and UT dimensions of the decentralized inference problem. The network predicts low-dimensional variables in the closed-form WMMSE expressions, which are then recovered into the corre-sponding precoding and receive vectors. As a result, the proposed decentralized scheme enables low-complexity online inference, parallel execution across satellites, and scalability to varying numbers of satellites and UTs, mak-ing it more suitable for practical LEO satellite networks. This paper is structured as follows: Section II presents the multi-satellite system model and problem formulation. Section III introduces the centralized learning-based WMMSE trans-mission design. Section IV presents the decentralized multi-satellite transmission architecture. Section V develops the corresponding learning-based decentralized WMMSE network design. Section VI provides the simulation results. Finally, Section VII concludes this article. 
+
+Notation : x, x, X represent scalar, column vector, matrix. 
+
+(·)T , (·)∗, (·)H , and (·)−1 respectively denote the transpose, conjugate, transpose-conjugate, and inverse operations. ∥·∥ 2
+
+denotes l2-norm. ⊗ and ⊙ are the Kronecker product and Hardmard product operations. The operator Tr {·} represents the matrix trace. E {·} denotes the expectation. The expression 
+
+CN (μ, σ 2) denotes circularly symmetric Gaussian distribution with expectation μ and variance σ2. RM ×N and CM ×N
+
+represent the set of M × N dimension real- and complex-valued matrixes. ∇f denotes gradient of function f (·). k ∈ K 
+
+means element k belongs to set K. Re( ·) and Im( ·) denote the real and imaginary parts of a complex scalar, vector, or matrix. We use X[m1,...,m N ] to denote the indexing of elements in tensor X ∈ RM1×···× MN .[A1, . . . , AK ]S denotes the tensor formed by stacking A1, . . . , AK along the S-th dimension. [·]0
+
+denotes the concatenation of tensors along a new dimension, i.e., A[n, :,··· ] = Bn, ∀n when A = [ B1, . . . , BN ]0. We define the product of tensor X ∈ RM1×···× MN ×DX and matrix 
+
+Y ∈ RDX ×DY as (X × Y)[m1,...,m N ,:] = X[m1,...,m N ,:] Y.II. M ULTI -S ATELLITE NCT T RANSMISSION SYSTEM 
+
+MODEL AND PROBLEM FORMULATION 
+
+We consider a downlink (DL) multi-satellite cooperative transmission system, as shown in Fig. 1, comprising S LEO satellites, performing transmission to K mobile UTs within the same time-frequency resources. For clarity, we define the satel-lite set as S = {1, . . . , S } and the UT set as K = {1, . . . , K }. 
+
+> Fig. 1. The system architecture of the multi-satellite transmission.
+
+Each satellite is equipped with a large-scale uniform planar array (UPA) consisting of M = Mx × My antenna elements, where Mx and My represent the number of antennas along the x-axis and y-axis, respectively. Similarly, the UTs are equipped with a UPA composed of N = Nx′ ×Ny′ antenna elements. In this cooperative transmission framework, NCT transmission is enabled by multi-antenna UT reception, allowing distributed precoding across satellites to deliver independent data streams to the UTs. Compared with schemes where multiple satellites serve the same UTs over orthogonal time-frequency resources, cooperative precoding on shared resources can better exploit spatial division multiplexing gains, leading to enhanced spec-tral efficiency and improved resource utilization. 
+
+A. Channel and Signal Models 
+
+To support broadband communication in the multi-satellite system, the entire system bandwidth is employed for OFDM transmission. Let the number of subcarriers be denoted by Nsc ,the cyclic prefix (CP) length by Ncp , and the system sampling period by Tsam . Accordingly, the CP duration is given by 
+
+Tcp = Ncp Tsam . The OFDM symbol duration without CP is 
+
+Tsc = Nsc Tsam , while the total symbol duration including CP is Tsym = Tsc + Tcp . The time-domain transmit signal vector of the s-th satellite in the m-th OFDM symbol, denoted as 
+
+xs,m (t) ∈ CM ×1, can be expressed as: 
+
+xs,m (t) = 
+
+> Nsc −1
+
+X
+
+> r=0
+
+xs,m,r ej2πr ∆f t , −Tcp ≤ t−mT sym < T sc , (1) herein, xs,m,r denotes the frequency-domain transmit signal vector over the r-th subcarrier in the m-th OFDM symbol and 
+
+∆f = 1 /T sc . The DL time-domain received signal vector of the k-th UT from the s-th satellite in the m-th OFDM symbol at the t-th time instant can be written as: 
+
+ys,k,m (t) = 
+
+Z ∞−∞ 
+
+˜Hs,k (t, τ )xs,m (t − τ )d τ + zs,k,m (t), (2) where we denote τ as the delay variable, zs,k,m (t) =P
+
+> t∈S\ s
+
+R ∞−∞ ˜Ht,k (t, τ )xt,m (t−τ )+˜ nk(t), and ˜nk(t) ∈ CN ×1
+
+denotes the additive white Gaussian noise vector with distri-bution CN (0, σ 2
+
+> k
+
+IN ). Herein, the time-varying spatial domain MIMO channel ˜Hs,k (t, τ ) ∈ CN ×M from the s-th satellite to the k-th UT can be expressed as [22]: 
+
+˜Hs,k (t, τ ) =  
+
+> Ls,k −1
+
+X
+
+> ℓ=0
+
+as,k,ℓ ej2πν s,k,ℓ tδ(τ −τs,k,ℓ )ds,k,ℓ gHs,k,ℓ , (3) where Ls,k is the multipath number of the channel from the 
+
+s-th satellite to the k-th UT, as,k,ℓ , νs,k,ℓ , τs,k,ℓ , ds,k,ℓ and 4
+
+gs,k,ℓ are the complex channel gain, Doppler shift, propaga-tion delay, receive array response vector and transmit array response vector associated with the ℓ-th path. The satellite position, attitude information, and the global navigation satellite system (GNSS) of the UTs can be jointly exploited to estimate the angular parameters associated with the LoS path. Specifically, the angle-of-departure (AoD) at the satellite side is denoted by (θsat 
+
+> s,k,ℓ
+
+, ϕ sat 
+
+> s,k,ℓ
+
+), while the angle-of-arrival (AoA) at the UT side is denoted by (θut 
+
+> s,k,ℓ
+
+, ϕ ut 
+
+> s,k,ℓ
+
+).In LEO satellite channels, owing to the large satellite-to-ground distance and the fact that scattering occurs within a few kilometers around the UT, the AoD pairs corresponding to different multipath components of the same link are nearly identical. Therefore, we have (θsat 
+
+> s,k,ℓ
+
+, ϕ sat 
+
+> s,k,ℓ
+
+) = ( θsat 
+
+> s,k
+
+, ϕ sat 
+
+> s,k
+
+), ∀ℓ.Accordingly, the transmit array response vectors at the satellite side can be expressed as [19], [20]: 
+
+gs,k,ℓ = gs,k = aNx
+
+ sin θsat  
+
+> s,k
+
+cos ϕsat 
+
+> s,k
+
+⊗aNy
+
+ cos θsat 
+
+> s,k
+
+ . (4) The receive array response vectors are given by: 
+
+ds,k,ℓ = aNx′
+
+ sin θut  
+
+> s,k,ℓ
+
+cos ϕut 
+
+> s,k,ℓ
+
+ ⊗ aNy′
+
+ cos θut 
+
+> s,k,ℓ
+
+ . (5) We define anv (x) = 1√nv [1 , e− j2πλ dv x, . . . , e− j2πλ dv (nv −1) x]T .
+
+dv = λ 
+
+> 2
+
+represents the distance between adjacent antenna elements along the v-axis and v ∈ { x, y, x′, y′}. Since the signals from different satellites arrive asynchronously at the UT, joint processing is challenging. Thus, spatial linear receive processing is adopted to separate the signals, the resulting received signal rs,k,m (t) is given by: 
+
+rs,k,m (t) = bHs,k ys,k,m (t)= bHs,k 
+
+Z ∞−∞ 
+
+˜Hs,k (t, τ )xs,m (t − τ )d τ + zs,k,m (t)
+
+
+
+, (6) 
+
+bs,k ∈ CN ×1 denotes the receive vector at the k-th UT for extracting the signal from the s-th satellite. The k-th UT estimates the Doppler shift and propagation delay associated with the signal from the s-th satellite using the satellite and UT positions obtained from ephemeris and GNSS [29]. After UT performing Doppler and delay compensation, the compensated signal at the k-th UT from the s-th satellite is: 
+
+rcps 
+
+> s,k,m
+
+(t) = rs,k,m (t + τ cps  
+
+> s,k
+
+)e −j2πν cps    
+
+> s,k (t+τcps
+> s,k )
+
+= bHs,k 
+
+Z ∞−∞ 
+
+ˆHcps  
+
+> s,k
+
+(t, τ )xs,m (t − τ )d τ + zcps 
+
+> s,k,m
+
+(t)
+
+
+
+, (7) where νcps  
+
+> s,k
+
+and τ cps  
+
+> s,k
+
+are compensated Doppler and delay, respectively. The compensated equivalent channel is: 
+
+ˆHcps  
+
+> s,k
+
+(t, τ ) =  
+
+> Ls,k −1
+
+X
+
+> ℓ=0
+
+ˆas,k,ℓ ej2πν ut 
+
+> s,k,ℓ t
+
+δ τ − τ ut 
+
+> s,k,ℓ
+
+ ds,k,ℓ gHs,k . (8) Herein, ˆas,k,ℓ ≜ as,k,ℓ ej2πν ut   
+
+> s,k,ℓ τcps
+> s,k
+
+. The residual Doppler shift and propagation delay are defined as νut  
+
+> s,k,ℓ
+
+≜ νs,k,ℓ −νcps  
+
+> s,k
+
+and 
+
+τ ut  
+
+> s,k,ℓ
+
+≜ τs,k,ℓ − τ cps  
+
+> s,k
+
+, respectively. The compensated zcps 
+
+> s,k,m
+
+(t)
+
+is given by zcps 
+
+> s,k,m
+
+(t) ≜ zs,k,m (t + τ cps  
+
+> s,k
+
+)e −j2πν cps    
+
+> s,k (t+τcps
+> s,k )
+
+.Since the Doppler and delay effects caused by satellite mobil-ity and long propagation distances are properly compensated, the residual Doppler and delay are sufficiently small to support reliable OFDM transmission [29]. Consequently, time and fre-quency synchronization can be assumed for the link between the s-th satellite and the k-th UT after compensation, whereas the signals from other satellites remain asynchronous at the k-th UT. After the above processing, we assume that the channel is invariant within one OFDM symbol, and the channel may change from symbol to symbol. After OFDM demodulation, the received signal over the r-th subcarrier in the m-th OFDM symbol is given by [22], [29]: 
+
+rs,k,m,r = bHs,k Heff  
+
+> s,k,m,r
+
+xs,m + zs,k,m,r , (9) Without ambiguity, we omit the subscripts of OFDM symbol 
+
+m and subcarrier r. The effective time-frequency domain channel matrix between the s-th satellite and the k-th UT 
+
+Heff  
+
+> s,k
+
+= deff 
+
+> s,k
+
+gHs,k ∈ CN ×M . The transmit signal xs,m = xs is: 
+
+xs = X
+
+> k∈K
+
+ps,k xs,k ∈ CM ×1, (10) herein, ps,k ∈ CM ×1 denotes the precoding vector of the s-th satellite. Then, we have the received signal: 
+
+rs,k = bHs,k Hs,k 
+
+X
+
+> m∈K
+
+ps,m xs,m + zs,k , (11) where zs,k denotes the aggregate interference-plus-noise term, including both inter-satellite and intra-satellite interference, at the k-th UT for the s-th satellite, whose variance is given by 
+
+E{zs,k z∗
+
+> s,k
+
+} = bHs,k Rs,k bs,k , and the covariance matrix is: 
+
+Rs,k = X
+
+> t∈S\ s
+
+X
+
+> m∈K
+
+gHt,k pt,m pHt,m gt,k Rut  
+
+> t,k
+
++ σ2
+
+> k
+
+IN , (12) where Rut  
+
+> t,k
+
+denotes the channel correlation matrix at UT side. Note that we consider multi-satellite NCT transmission, where multiple satellites transmit independent data streams to the multi-antenna UT, which differs from coherent multi-satellite transmission, where identical data streams are transmitted and coherently combined at the UT [30], [31]. 
+
+B. Statistical Characteristics of Satellite Channel 
+
+The channel between the s-th satellite and the k-th UT can be further modeled as a Rician fading channel [22], [29], [31]: 
+
+Hs,k =
+
+s
+
+κs,k βs,k 
+
+κs,k + 1 ds,k, 0gHs,k +
+
+s
+
+βs,k 
+
+κs,k + 1 ˜ds,k gHs,k , (13) herein, the LoS component satisfies ∥ds,k, 0∥2 = ∥gs,k ∥2 = 1 ,while the NLoS component follows a complex Gaussian distri-bution ˜ds,k ∼ CN (0, Σs,k ) with Tr( Σs,k ) = 1 . The receiver steering vector ds,k =
+
+q κs,k βs,k   
+
+> κs,k +1
+
+ds,k, 0 +
+
+q βs,k   
+
+> κs,k +1
+
+˜ds,k , and 
+
+βs,k = Ed{Tr( Hs,k HHs,k )} = Ed{∥ ds,k ∥2} denotes the average channel power. The channel correlation matrices at the UT side can be calculated as: 
+
+Rut 
+
+> s,k
+
+=Ed
+
+Hs,k HHs,k =κs,k βs,k 
+
+κs,k +1 ds,k, 0dHs,k, 0+ βs,k 
+
+κs,k +1 Σs,k , (14) 
+
+Rsat  
+
+> s,k
+
+= Ed
+
+HHs,k Hs,k = βs,k gs,k gHs,k . (15) Based on the satellite channel characteristics described above, we summarize the sCSI available at the satellite side: 5
+
+Algorithm 1 Centralized Optimization-Based WMMSE  
+
+> 1:
+
+Input: {gs,k ,ds,k, 0,β s,k ,κ s,k ,Σs,k }∀s,k ,{σ2
+
+> k
+
+}∀k, {P sat  
+
+> s
+
+}∀s. 
+
+> 2:
+
+Initialize {ps,k (0) , bs,k (0) }∀s,k , ϵ(0) and n = 1 . 
+
+> 3:
+
+repeat  
+
+> 4:
+
+Calculate {u⋆s,k 
+
+> (n)
+
+, w ⋆s,k 
+
+> (n)
+
+}∀s,k from (20) and (21).  
+
+> 5:
+
+Solve vector λ⋆(n) from problem (25).  
+
+> 6:
+
+Obtain {p⋆s,k 
+
+> (n)
+
+}∀s,k and {b⋆s,k 
+
+> (n)
+
+}∀s,k from (24)(23).  
+
+> 7:
+
+Calculate ϵ(n) in (25).  
+
+> 8:
+
+Set n = n + 1 . 
+
+> 9:
+
+until n ≥ Iout max or ϵ convergence.  
+
+> 10:
+
+Output: {p⋆s,k , b⋆s,k }∀s,k .
+
+{ϕsat 
+
+> s,k
+
+, θ sat 
+
+> s,k
+
+, ϕ ut 
+
+> s,k, 0
+
+, θ ut 
+
+> s,k, 0
+
+, Σs,k , β s,k , κ s,k }∀s, ∀k. The DL er-godic rate from the s-th satellite to the k-th UT is: 
+
+Rs,k = EH
+
+n
+
+log 2
+
+
+
+1 + α−1
+
+> s,k
+
+bHs,k Hs,k ps,k pHs,k HHs,k bs,k 
+
+o 
+
+= Ed
+
+n
+
+log 2
+
+
+
+1 + α−1
+
+> s,k
+
+|pHs,k gs,k |2|bHs,k ds,k |2o 
+
+, (16) herein, αs,k ≜ P 
+
+> m∈K\ k
+
+|pHs,m gs,k |2|bHs,k ds,k |2+ zs,k z∗
+
+> s,k
+
+.
+
+C. Multi-Satellite WSR Maximization Problem Formulation 
+
+Assuming the sCSI available at satellites, the WSR maxi-mization problem for multi-satellite transmission can be for-mulated as [29]: 
+
+max   
+
+> {bs,k ,ps,k }∀s,k
+
+X
+
+> s∈S
+
+X
+
+> k∈K
+
+as,k Rs,k ,
+
+s.t. X
+
+> k∈K
+
+∥ps,k ∥22 ≤ P sat  
+
+> s
+
+, ∀s ∈ S , (17) 
+
+as,k denotes the user rate weight, and P sat  
+
+> s
+
+is the satellite transmit power budget. To facilitate the optimization, we opti-mize the WSR maximization problem by solving the following WMMSE problem: 
+
+min     
+
+> {us,k ,w s,k ,ps,k ,bs,k }∀s,k
+
+X
+
+> s∈S
+
+X
+
+> k∈K
+
+(ws,k es,k − log ws,k ) ,
+
+s.t. X
+
+> k∈K
+
+∥ps,k ∥22 ≤ P sat  
+
+> s
+
+, ∀s ∈ S , (18) where ws,k represents the error weight, and the MSE es,k can be expressed as: 
+
+es,k = EH,x,z 
+
+|us,k rs,k − xs,k |2
+
+= |us,k |2 (ηs,k + ζs,k ) − u∗
+
+> s,k
+
+ξ∗ 
+
+> s,k
+
+− us,k ξs,k + 1 , (19) where the desired signal level ξs,k = EH{bHs,k Hs,k ps,k } =q κs,k βs,k   
+
+> κs,k +1
+
+bHs,k ds,k, 0gHs,k ps,k , and the desired signal power 
+
+ζs,k = EH{| bHs,k Hs,k ps,k |2} = |pHs,k gs,k |2bHs,k Rut 
+
+> s,k
+
+bs,k .Moreover, the aggregate interference-plus-noise signal power 
+
+ηs,k = EH,z {P 
+
+> m∈K\ k
+
+|bHs,k Hs,k ps,m |2 + zs,k z∗
+
+> s,k
+
+} =
+
+P 
+
+> m∈K\ k
+
+|pHs,m gs,k |2bHs,k Rut 
+
+> s,k
+
+bs,k + bHs,k Rs,k bs,k .With {bs,k , ps,k }∀s,k and {ws,k }∀s,k fixed, the optimal value of u⋆s,k can be determined by setting the derivative of 
+
+es,k (us,k ) with respect to u∗ 
+
+> s,k
+
+equal to zero, which yields: 
+
+u⋆s,k = ξ∗
+
+> s,k
+
+ζs,k + ηs,k 
+
+, e⋆s,k = 1 − |ξs,k |2
+
+ζs,k + ηs,k 
+
+. (20) By equating the gradients of their respective Lagrangian functions, the optimal MSE-weights {ws,k }∀s, ∀k can be de-rived for given {bs,k , ps,k }∀s, ∀k and {u⋆s,k }∀s, ∀k as [38]: 
+
+w⋆s,k = as,k 
+
+es,k 
+
+. (21) Then we fix vectors {w⋆s }∀s and {u⋆s }∀s, the optimization problem is reduced to: 
+
+min   
+
+> {bs,k ,ps,k }∀s,k
+
+X
+
+> s∈S
+
+X
+
+> k∈K
+
+ws,k es,k ({bs,k , ps,k }∀s,k ),
+
+s.t. X
+
+> k∈K
+
+∥ps,k ∥22 ≤ P sat  
+
+> s
+
+, ∀s ∈ S . (22) The Lagrange function is L({{ bs,k , ps,k }∀k, λ s}∀s) =P 
+
+> ∀s, ∀k
+
+ws,k es,k ({bs,k , ps,k }∀s,k )+ P 
+
+> ∀s
+
+λs(P 
+
+> k∈K
+
+∥ps,k ∥22−
+
+P sat  
+
+> s
+
+). By setting ∇b∗ 
+
+> s,k
+
+L = 0 and ∇p∗ 
+
+> s,k
+
+L = 0, respectively, we formulate the closed-form iterative expression for b⋆s,k as (23) and p⋆s,k as (24). By substituting this expression into problem (22), it can be reduced to the following optimization problem in terms of Lagrange multipliers λ = [ λ1, . . . , λ S ]:
+
+min  
+
+> λ
+
+ϵ = X
+
+> s∈S
+
+X
+
+> k∈K
+
+ws,k es,k (λ),
+
+s.t. X
+
+> k∈K
+
+∥ps,k (λs)∥22 ≤ P sat  
+
+> s
+
+, ∀s ∈ S , (25) which transforms solving such a problem into finding the optimal {λ⋆s }∀s with conventional optimization toolboxes. By substituting the obtained {λ⋆s }∀s into (24), the optimal precoding vectors and receive vectors {p⋆s,k , b⋆s,k }∀s,k can be derived without any performance loss. In conclusion, we optimize the Lagrange multipliers {λ⋆s }∀s in each iteration, and update {u⋆s,k }∀s,k , {w⋆s,k }∀s,k , {p⋆s,k }∀s,k and {b⋆s,k }∀s,k 
+
+alternately until convergence, summarized in Algorithm 1 .III. L EARNING -B ASED CENTRALIZED MULTI -S ATELLITE 
+
+WMMSE T RANSMISSION DESIGN 
+
+In multi-satellite massive MIMO systems, large antenna arrays and a high user load make the iterative multi-satellite scheme computationally expensive. To reduce complexity, we propose a learning-based centralized WMMSE that uses a lightweight neural network to directly infer the key variables of the precoding vectors from slowly varying sCSI: angles, channel power, Rician factor, satellite power budget, and noise power, thereby avoiding iterative updates. Exploiting the inherent mapping structure of the WMMSE formulation, the network can be trained in a specific scenario and then applied to dynamic settings with varying numbers of satellites and UTs, enabling scalable deployment while maintaining excellent performance. 
+
+A. Model Knowledge Discovery 
+
+It can be observed that the core of Algorithm 1 lies in obtaining the optimal parameters {u⋆s,k }∀s,k , {w⋆s,k }∀s,k ,and {λ⋆s }∀s through iterative computation, which are then employed to derive the corresponding precoding vectors and 6
+
+b⋆s,k =
+
+q κs,k βs,k   
+
+> κs,k +1
+
+ws,k us,k ws,k |us,k |2 P
+
+> t∈S
+
+P 
+
+> m∈K
+
+|pHt,m gt,k |2Rut  
+
+> t,k
+
++ ws,k |us,k |2σ2
+
+> k
+
+IN
+
+!−1
+
+ds,k, 0gHs,k ps,k , (23) 
+
+p⋆s,k =
+
+q κs,k βs,k   
+
+> κs,k +1
+
+ws,k u∗
+
+> s,k
+
+P
+
+> t∈S
+
+P 
+
+> m∈K
+
+wt,m |ut,m |2bHt,m Rut 
+
+> s,m
+
+bt,m gs,m gHs,m + λsIM
+
+!−1
+
+gs,k dHs,k, 0bs,k . (24) receive vectors. To simplify the prediction, we reformulate the closed-form expression: 
+
+ps,k =ws,k u∗
+
+> s,k
+
+ X 
+
+> m∈K
+
+gs,m gHs,m ϱs,m +λsIM
+
+−1
+
+gs,k ¯dHs,k bs,k . (26) Herein, we define the low-dimensional variables ϱs,m ≜P 
+
+> t∈S
+
+wt,m |μt,m |2bHt,m Rut 
+
+> s,m
+
+bt,m , ∀s, m , and denote ¯ds,k ≜
+
+E{ds,k } =
+
+q κs,k βs,k   
+
+> κs,k +1
+
+, ds,k, 0. From the closed-form ex-pression in (26), we observe that {ws,k , u s,k }∀s,k , {λs}∀s,
+
+{ϱs,m }∀s,m , and {bs,k }∀s,k are all low-dimensional variables. Rather than directly training a neural network to approximate the mapping to the high-dimensional precoding vectors, we instead learn the mapping to these low-dimensional variables, which significantly reduces the learning complexity and re-laxes the representational requirements of the neural network. 
+
+B. Centralized Multi-Satellite Transmission Mapping 
+
+According to (14), (20), (21), (25), and (26), we define the input set, which serves as the foundation for the subsequent learning process. In the centralized satellite network architec-ture, the central satellite combines the local features with the transmitted features from all cooperative satellites, forming the following centralized network input set Hcen ≜ {H s}∀s∈S :
+
+Hcen ≜
+
+nΦs,k ,Θs,k ,β s,k ,κ s,k ,Σs,k ,σ 2  
+
+> k∀k∈K
+
+∪P sat 
+
+> s
+
+o
+
+> ∀s∈S
+
+, (27) herein, we simplify the angular information as Φs,k =
+
+{ϕsat 
+
+> s,k
+
+, ϕ ut 
+
+> s,k, 0
+
+} and Θs,k = {θsat 
+
+> s,k
+
+, θ ut 
+
+> s,k, 0
+
+}, both of which can be derived from the satellite position, satellite attitude, and UT GNSS information. The central satellite feature set Hcen 
+
+comprises the angular information of the satellite and UTs, the average channel power βs,k , the Rician factor κs,k , the spatial covariance matrix Σs,k of the NLoS component, and the receiver noise power σ2
+
+> k
+
+. Based on Hcen , we construct the centralized network input tensors, namely the third-order ten-sors A ∈ RS×K×6, R ∈ RS×K×2( M 2+N 2), and B ∈ RS×K×2:
+
+A[s,k, :] = ϕsat 
+
+> s,k
+
+, θ sat 
+
+> s,k
+
+, ϕ ut 
+
+> s,k, 0
+
+, θ ut 
+
+> s,k, 0
+
+, σ 2
+
+> s,k
+
+, P sat 
+
+> s,k
+
+, (28a) 
+
+R[s,k, :] =  vec(Re( Rut 
+
+> s,k
+
+)) , vec(Im( Rut 
+
+> s,k
+
+)) ,
+
+vec(Re( Rsat 
+
+> s,k
+
+)) , vec(Im( Rsat 
+
+> s,k
+
+)) , (28b) 
+
+B[s,k, :] = βs,k , κ s,k 
+
+, (28c) where σ2 
+
+> s,k
+
+≜ σ2
+
+> k
+
+, ∀s ∈ S and P sat  
+
+> s,k
+
+≜ P sat  
+
+> s
+
+, ∀k ∈ K . We collect the low-dimensional variables from Algorithm 1 into the following predicted tuple: 
+
+Ocen ≜
+
+
+
+{ws,k , u s,k }∀s,k , {λs}∀s, {ϱs,k }∀s,k , {bs,k }∀s,k 
+
+
+
+=
+
+
+
+w, μ, λ, ϱ, b
+
+
+
+. (29) 
+
+λ ∈ RS , w ∈ RS×K and μ, ϱ ∈ CS×K , and b ∈ RS×K×N .Since problem (25) is non-convex, Algorithm 1 can be viewed as a mapping from the CSI tensors  A, R, B to an optimal output tuple Ocen , i.e., 
+
+Gcen (A, R, B) = Ocen . (30) In the offline learning stage, we aim to design Gcen with a consistent structure that preserves the inherent equivariance of the problem. We denote πS ∈ SS and πK ∈ SK as arbitrary permutations of satellite and UT indices, respectively. Let ◦n
+
+denote the permutation action on the n-th dimension. For X ∈{A, R, B}, we write πS ◦1 X and πK ◦2 X for permuting the satellite dimension and UT dimension, respectively. 
+
+Proposition 1. For any πS ∈ SS and πK ∈ SK , the achieved objective value of problem (25) is equivariance under consistent permutations, i.e., 
+
+R⟨Ocen ; A, R, B⟩
+
+= R⟨πS ◦1 w, π S ◦1 μ, π S ◦1 λ, π S ◦1 ϱ, π S ◦1 b;
+
+πS ◦1 A, π S ◦1 R, π S ◦1 B⟩, (31) 
+
+R⟨Ocen ; A, R, B⟩
+
+= R⟨πK ◦2 w, π K ◦2 μ, λ, π K ◦2 ϱ, π K ◦2 b;
+
+πK ◦2 A, π K ◦2 R, π K ◦2 B⟩. (32) 
+
+Proof. The proof is omitted for clarity [30], [39]. 
+
+Based on (31) and (32), the mapping Gcen satisfies the following tensor equivariance (TE) properties: 
+
+Gcen (πS ◦1 A, π S ◦1 R, π S ◦1 B) = πS ◦1 Gcen (A, R, B), (33) 
+
+Gcen (πK ◦2 A, π K ◦2 R, π K ◦2 B) = πK ◦2 Gcen (A, R, B), (34) which indicates that Gcen is permutation-equivariant with respect to both satellite and UT index reorderings. Moreover, although (25) is non-convex and multiple optimal tuples may exist, (33) and (34) still hold since the set of optimal solutions is closed under the above permutation actions. 
+
+C. Centralized Multi-Satellite Network Design 
+
+As specifically shown in Fig. 2, the proposed central-ized network adopts a three-stage architecture, namely the tensor-equivariant neural (TEN) network, the centralized fea-ture dimension adapter (FDA), and the centralized closed-form recovery (CFR). Specifically, TEN extracts permutation-equivariant latent features from the input tensors, FDA projects these features to the low-dimensional variables to be predicted, and CFR substitutes the predicted variables into the analytical expressions to recover the precoding and receive vectors. 
+
+1) TEN Network: In the preprocessing stage, we employ a TEN network to transform the concatenated input tensor into a latent representation while preserving permutation equivari-ance with respect to both the satellite and UT dimensions: 
+
+Tcen = N cen TEN (A, R, B) ∈ RS×K×F . (35) 7 
+
+> Fig. 2. Satellite network architectures: centralized and decentralized.
+
+We first define a multi-dimensional linear layer that applies an affine mapping along the last dimension: Linear( X; W, b) ≜
+
+X × W + 1M1,...,M N ,1 ⊙ bT , where X ∈ RM1×···× MN ×DI ,
+
+W ∈ RDI×DO , and b ∈ RDO . We construct the centralized input tensor Xcen ∈ RS×K×D, where D = 8 + 2 M 2 + 2 N 2.The TEN consists of an input linear layer followed by L
+
+stacked blocks, each comprising a multi-dimensional equiv-ariant (MDE) module, a rectified linear unit (ReLU) [40], a layer normalization (LN), and an output linear layer: 
+
+Xcen = [ A, R, B]3 ∈ RS×K×D, (36a) 
+
+H(0) TEN = Linear( Xcen ; Wcen 1 , bcen 1 ) ∈ RS×K×dh , (36b) 
+
+H(ℓ)TEN = LN 
+
+
+
+ReLU   MDE ℓ(H(ℓ−1) TEN )
+
+, ℓ = 1 , . . . , L, (36c) 
+
+Tcen = Linear 
+
+
+
+H(L)TEN ; Wcen 2 , bcen 2
+
+
+
+, (36d) where dh denotes the hidden dimension, Wcen 1 ∈ RD×dh ,
+
+Wcen 2 ∈ Rdh×F , and bcen 1 ∈ Rdh , bcen 2 ∈ RF . In each layer, 
+
+MDE ℓ(·) is implemented as a linear combination of mean-and-repeat patterns defined on subsets of the two equivariant dimensions {S, K } [39]. Consequently, the overall mapping 
+
+N cen TEN is permutation-equivariant: any permutation applied to the satellite and UT indices of Xcen induces the same permutation on Tcen , which is consistent with the intrinsic symmetry of the considered multi-satellite multi-user system. 
+
+2) Centralized FDA Module: After obtaining Tcen ∈
+
+RS×K×F from the TEN network, we apply a lightweight FDA to project the features to Ccen ∈ RS×K×G with G = 6 + 2 N :
+
+Ccen = N cen FDA (Tcen ) ∈ RS×K×G. (37) Specifically, the centralized FDA is implemented as one LN and two linear layers with a Gaussian error linear unit (GELU) activation [41] and a dropout layer: 
+
+ˆTcen 
+
+= LN( Tcen ) , (38a) 
+
+Hcen FDA = GELU 
+
+
+
+Linear 
+
+ˆTcen 
+
+; Wcen 3 , bcen 3
+
+  
+
+, (38b) 
+
+˜Hcen FDA = Dropout( Hcen FDA ) , (38c) 
+
+Ccen = Linear 
+
+ ˜Hcen FDA ; Wcen 4 , bcen 4
+
+
+
+, (38d) where Wcen 3 ∈ RF ×G, Wcen 4 ∈ RG×G, and bcen 3 , bcen 4 ∈ RG.
+
+3) Centralized CFR Module: Given the tensor Ccen pro-duced by the FDA module, the predicted tuple Ocen is obtained 
+
+Algorithm 2 Centralized TFC-Net-Based WMMSE  
+
+> 1:
+
+Input: {Φs,k ,Θs,k ,β s,k ,κ s,k ,Σs,k }∀s,k ,{σ2
+
+> k
+
+}∀k,{P sat  
+
+> s
+
+}∀s. 
+
+> 2:
+
+Construct the centralized input tensors A, R, B. 
+
+> 3:
+
+Training:  
+
+> 4:
+
+Initialize N (0) cen = {N cen TEN , N cen FDA , N cen CFR }(0) , n = 0 . 
+
+> 5:
+
+for n < N ep do  
+
+> 6:
+
+forward:  
+
+> 7:
+
+Apply the TEN network: Tcen = N cen TEN 
+
+ A, R, B. 
+
+> 8:
+
+Apply the FDA module: Ccen = N cen FDA 
+
+ Tcen . 
+
+> 9:
+
+Recover variables: Ocen = N cen CFR 
+
+ Ccen . 
+
+> 10:
+
+Obtain {ps,k ,bs,k }∀s,k from Ocen with (26).  
+
+> 11:
+
+backward:  
+
+> 12:
+
+Update N (n)cen via gradient descent on Lwsr . 
+
+> 13:
+
+Update n = n + 1 . 
+
+> 14:
+
+end for  
+
+> 15:
+
+Store the learned variables of Ncen . 
+
+> 16:
+
+Inference: Use Ncen to obtain {ps,k , bs,k }∀s,k .via the closed-form recovery mapping, i.e., 
+
+Ocen = N cen CFR 
+
+ Ccen . (39) The recovered variables are then substituted into the analyti-cal expressions to compute the centralized precoding vectors 
+
+{ps,k }∀s,k in (26). Notably, the receive vectors {bs,k }∀s,k are predicted directly, since they are low-dimensional. The whole centralized network design establishes an end-to-end prediction, ensuring both physical interpretability and learning flexibility. The network components are collectively referred to as TEN-FDA-CFR (TFC) network, and the overall process is summarized in Algorithm 2. For the central-ized network, the TEN network comprises L MDE layers, each incorporating ρ2 patterns, resulting in a complexity of 
+
+CTEN = O(SK (Dd h + Lρ 2d2h + dhF )) . The FDA incurs 
+
+CFDA = O(SK (F G + G2)) . Finally, the CFR involves 
+
+CCFR = O(SKM 3), which typically dominates the overall inference complexity. IV. D ECENTRALIZED MULTI -S ATELLITE TRANSMISSION 
+
+ARCHITECTURE 
+
+In multi-satellite cooperative transmission scenarios, con-ventional coordination typically relies on a central satellite acting as the controller. In this architecture, each satellite 8
+
+uploads its locally measured CSI to the central satellite, which jointly computes the precoders and then broadcasts {ps,k }∀s,k 
+
+back to the cooperating satellites for execution, as in Section II-C and Section III. However, centralized coordination can incur substantial ISL overhead and processing latency, which is particularly problematic in LEO systems where ISL resources are limited. In large LEO constellations, satellites located in counter-rotating orbital seams or across different orbital planes may experience large relative motion, making ISL establishment difficult and leading to link instability [14], [15]. To address this issue, we develop a decentralized transmission architecture that removes the reliance on a central satellite, as illustrated in Fig. 3. Specifically, satellites periodically exchange only SSI, including satellite position and attitude, which is low-rate and delay-tolerant. With SSI and UT GNSS, each satellite can locally anticipate the transmission behavior of neighboring satellites, thereby designing its own precoder without exchanging high-dimensional CSI. 
+
+A. Feasibility of Decentralized Multi-Satellite Architecture 
+
+The feasibility of decentralized multi-satellite precoding can be revealed from the closed-form expression of the WMMSE precoder in (26). 
+
+Remark 1. The cross-satellite coupling in (26) is mainly embodied in a set of low-dimensional variables, including the aggregated interference terms {ϱs,m }∀m, the scalar coef-ficients {ws,k , u s,k }, the per-satellite Lagrange multiplier λs,and the receive vector bs,k . According to (20) , (21) , (25) , and 
+
+(23) , these variables are determined by the satellite steering vectors gs,k and ds,k, 0, the channel correlation matrices Rsat 
+
+> s,k
+
+and Rut 
+
+> s,k
+
+, the channel power βs,k , the Rician factor κs,k , the noise power σ2
+
+> k
+
+, and the satellite power budget P sat  
+
+> s
+
+.
+
+Importantly, the high-dimensional steering vectors can be constructed from low-dimensional angular parameters, which can in turn be estimated from the positions of satellites and UTs. Moreover, the high-dimensional correlation matrices of other satellites can be further approximated from these steering vectors. Therefore, instead of relying on high-dimensional CSI, the cross-satellite coupling variables can be predicted from local satellite CSI, together with the angular information and approximate correlation matrices of other satellites, as well as the noise power and satellite power budgets. From an ISL communication perspective, centralized archi-tectures incur substantial overhead due to high-dimensional CSI exchange and frequent precoder dissemination. In con-trast, the above dependency analysis suggests that lightweight SSI, such as satellite position, attitude, and power budgets, may already provide sufficient information for each satellite to anticipate the influence of neighboring transmissions and enable a feasible local precoding design with lightweight inter-satellite interaction. Motivated by this observation, we propose a decentralized architecture in which each satellite performs local inference based on its local CSI and the SSI of other satellites. This significantly reduces inter-satellite over-head while preserving the essential coupling among satellites through the prediction of low-dimensional variables. 
+
+> Fig. 3. Multi-satellite cooperative architectures: centralized and decentralized.
+
+B. Decentralized Multi-Satellite Transmission Mapping 
+
+Assuming that only SSI is periodically exchanged among decentral satellites, the decentralized feature set is recon-structed with two components: the local-satellite features Hloc 
+
+> s
+
+and the other-satellite features Hoth  
+
+> s
+
+:
+
+Hloc  
+
+> s
+
+≜ Φs,k , Θs,k , β s,k , κ s,k , Σs,k , σ 2  
+
+> k∀k∈K
+
+∪P sat  
+
+> s
+
+, (40) 
+
+Hoth  
+
+> s
+
+≜ {Φt,m , Θt,m }∀t∈S\ s, ∀m∈K ∪{ σ2
+
+> m
+
+}∀m∈K ∪{ P sat  
+
+> t
+
+}∀t∈S\ s.
+
+(41) The decentralized input set for the s-th satellite is: 
+
+Hdec  
+
+> s
+
+≜ Hloc  
+
+> s
+
+, Hoth  
+
+> s
+
+, ∀s ∈ S . (42) Based on Hloc  
+
+> s
+
+, we construct the local-satellite input second-order tensors Aloc  
+
+> s
+
+∈ RK×6, Rloc  
+
+> s
+
+∈ RK×2( M 2+N 2), and 
+
+Bloc  
+
+> s
+
+∈ RK×2 as follows: 
+
+Aloc   
+
+> s[m, :]
+
+= ϕsat 
+
+> s,m
+
+, θ sat 
+
+> s,m
+
+, ϕ ut 
+
+> s,m, 0
+
+, θ ut 
+
+> s,m, 0
+
+, σ 2
+
+> s,m
+
+, P sat 
+
+> s,m
+
+ , (43a) 
+
+Rloc   
+
+> s[m, :]
+
+=  vec(Re( Rut 
+
+> s,m
+
+)) , vec(Im( Rut 
+
+> s,m
+
+)) ,
+
+vec(Re( Rsat 
+
+> s,m
+
+)) , vec(Im( Rsat 
+
+> s,m
+
+)) , (43b) 
+
+Bloc   
+
+> s[m, :]
+
+= [ βs,m , κ s,m ] , (43c) where σ2 
+
+> s,m
+
+≜ σ2 
+
+> m
+
+and P sat  
+
+> s,m
+
+≜ P sat  
+
+> s
+
+, ∀m ∈ K . Based on 
+
+Hoth  
+
+> s
+
+, we construct the other-satellite input third-order tensors 
+
+Aoth  
+
+> s
+
+∈ R(S−1) ×K×6 and Uoth  
+
+> s
+
+∈ R(S−1) ×K×2( M 2+N 2) as: 
+
+Aoth  
+
+> s[t,m, :]
+
+=ϕsat 
+
+> t,m
+
+, θ sat 
+
+> t,m
+
+, ϕ ut 
+
+> t,m, 0
+
+, θ ut 
+
+> t,m, 0
+
+, σ 2
+
+> t,m
+
+, P sat 
+
+> t,m
+
+ , ∀t ∈ S \ s, 
+
+(44a) 
+
+Uoth  
+
+> s[t,m, :]
+
+= vec   Re  dt,m, 0dHt,m, 0
+
+ , vec   Im  dt,m, 0dHt,m, 0
+
+ ,
+
+vec   Re  gt,m gHt,m 
+
+ , vec   Im  gt,m gHt,m 
+
+ , ∀t ∈ S \ s, 
+
+(44b) where σ2 
+
+> t,m
+
+≜ σ2
+
+> m
+
+, ∀t ∈ S \ s and P sat  
+
+> t,m
+
+≜ P sat  
+
+> t
+
+, ∀m ∈ K .For the s-th satellite, we collect the low-dimensional variables associated with its local transmission into the predicted tuple: 
+
+Odec  
+
+> s
+
+≜
+
+
+
+{ws,k , u s,k }∀k, λ s, {ϱs,k }∀k, {bs,k }∀k
+
+
+
+=
+
+
+
+ws, μs, λ s, ϱs, bs
+
+
+
+. (45) 9
+
+The decentralized inference at the s-th satellite can be viewed as a mapping from the local and other-satellite CSI tensors  Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+, Aoth  
+
+> s
+
+, Uoth 
+
+> s
+
+ to an optimal output tuple: 
+
+Gdec (Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+, Aoth  
+
+> s
+
+, Uoth  
+
+> s
+
+) = Odec  
+
+> s
+
+. (46) Here, we aim to design Gdec to preserve the permutation-induced invariance and equivariance inherent in the problem. Let πS−1 ∈ SS−1 be arbitrary permutations the “other-satellite” indices (i.e., the first dimension of Aoth  
+
+> s
+
+and Uoth  
+
+> s
+
+). 
+
+Proposition 2. For any πK ∈ SK and πS−1 ∈ SS−1, the s-th satellite inference ( ∀s) satisfies: 
+
+R⟨Odec  
+
+> s
+
+; Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+, Aoth  
+
+> s
+
+, Uoth  
+
+> s
+
+⟩
+
+= R⟨Odec  
+
+> s
+
+; Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+, π S−1 ◦1 Aoth  
+
+> s
+
+, π S−1 ◦1 Uoth  
+
+> s
+
+⟩, (47) 
+
+R⟨Odec  
+
+> s
+
+; Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+, Aoth  
+
+> s
+
+, Uoth  
+
+> s
+
+⟩
+
+=R⟨πK ◦1 ws, π K ◦1 μs, λ s, π K ◦1 ϱs, π K ◦1 bs;
+
+πK ◦1 Aloc  
+
+> s
+
+, π K ◦1 Rloc  
+
+> s
+
+, π K ◦1 Bloc  
+
+> s
+
+, π K ◦2 Aoth  
+
+> s
+
+, π K ◦2 Uoth  
+
+> s
+
+⟩. (48) 
+
+Proof. The proof is omitted for clarity [30], [39]. 
+
+Based on (47) and (48), the mapping Gdec satisfies: 
+
+Gdec (Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+, π S−1 ◦1 Aoth  
+
+> s
+
+, π S−1 ◦1 Uoth  
+
+> s
+
+)= Gdec (Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+, Aoth  
+
+> s
+
+, Uoth  
+
+> s
+
+), (49) 
+
+Gdec (πK ◦1 Aloc  
+
+> s
+
+, π K ◦1 Rloc  
+
+> s
+
+, π K ◦1 Bloc  
+
+> s
+
+, π K ◦2 Aoth  
+
+> s
+
+, π K ◦2 Uoth  
+
+> s
+
+)= πK ◦1 Gdec (Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+, Aoth  
+
+> s
+
+, Uoth  
+
+> s
+
+), (50) 
+
+Remark 2. Note that the permutation equivariance of Gdec 
+
+in (49) is defined with respect to the other (S − 1) satellites, rather than the full set of S satellites considered in the centralized inference setting (33) .
+
+According to (47), permuting the order of the other-satellite set does not affect the inference result, and the output does not include an other-satellite dimension. Denote the pooling-by-multihead-attention (PMA) operator PMA( ·) and the multi-dimensional invariance (MDI) module MDI {1}(·) [39]. Con-sidering X a tensor with first dimension of S − 1, we model an invariant mapping f : R(S−1) ×K×Dx → RK×Dx , and its expression is given by: X = MDI {1}(X) = [PMA ◦1
+
+X] ∈ RK×Dx . ◦1 denotes the computation of PMA along the first dimension, and [·] removes empty dimensions of size 1 generated during this process. V. L EARNING -B ASED DECENTRALIZED WMMSE NETWORK DESIGN 
+
+As shown in Fig. 2, by leveraging the per-satellite WMMSE mapping structure, the proposed decentralized network is deployed locally at each satellite with shared decentralized net-work parameters, enabling parallel inference across satellites without centralized coordination while naturally generalizing to different scenarios. 
+
+A. Decentralized Multi-Satellite Network Design 
+
+For the s-th satellite, the network adopts a three-stage pipeline consisting of a dual-branch TEN (DB-TEN) net-work, a decentralized FDA module, and a decentralized CFR module, as in Fig. 2. Specifically, the DB-TEN processes the local-satellite and other-satellite features in parallel; the other-satellite branch further incorporates an MDI module to aggregate information along the other-satellite dimension. The resulting fused features are then mapped by the decentralized FDA to the low-dimensional variables, which are finally recovered by the decentralized CFR. 
+
+1) DB-TEN Network: To accommodate the heterogeneous feature structures in the decentralized architecture, we employ two TEN branches with different tensor orders to process the local-satellite and other-satellite inputs, respectively. We first apply a 1D-equivariant TEN (with respect to the UT dimension) to the local-satellite input tensors: 
+
+Tloc  
+
+> s
+
+= N loc TEN 
+
+ Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc 
+
+> s
+
+ ∈ RK×F loc 
+
+, (51) The local TEN adopts an architecture with an initial linear layer, followed by L stacked MDE-ReLU-LN blocks, and a final linear layer, given by: 
+
+Xloc  
+
+> s
+
+= [ Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+]2 ∈ RK×Dloc 
+
+, (52a) 
+
+H(0)  
+
+> s, loc
+
+= Linear  Xloc  
+
+> s
+
+; Wloc 1 , bloc 1
+
+ ∈ RK×dloc h , (52b) 
+
+H(ℓ) 
+
+> s, loc
+
+= LN 
+
+
+
+ReLU  MDE loc  
+
+> ℓ
+
+(H(ℓ−1)  
+
+> s, loc
+
+)
+
+, ℓ = 1 , . . . , L, (52c) 
+
+Tloc  
+
+> s
+
+= Linear 
+
+
+
+H(L)
+
+> s, loc
+
+; Wloc 2 , bloc 2
+
+
+
+, (52d) where Dloc = 8 + 2 M 2 + 2 N 2, and dloc h denotes the hidden dimension of the local TEN network. Wloc 1 ∈ RDloc ×dloc h ,
+
+Wloc 2 ∈ Rdloc h ×F loc 
+
+, and bloc 1 ∈ Rdloc h , bloc 2 ∈ RF loc 
+
+. For the other-satellite input tensors, we apply a 2D-equivariant TEN (with respect to both the other-satellite and UT dimensions): 
+
+Toth  
+
+> s
+
+= N oth TEN 
+
+ Aoth  
+
+> s
+
+, Uoth 
+
+> s
+
+ ∈ R(S−1) ×K×F oth 
+
+, (53) The network N oth TEN shares the same building blocks as N loc TEN :
+
+Xoth  
+
+> s
+
+= [ Aoth  
+
+> s
+
+, Uoth  
+
+> s
+
+]3 ∈ R(S−1) ×K×Doth 
+
+, (54a) 
+
+H(0)  
+
+> s, oth
+
+= Linear 
+
+
+
+Xoth  
+
+> s
+
+; Woth 1 , both 1
+
+
+
+∈ R(S−1) ×K×doth h , (54b) 
+
+H(ℓ) 
+
+> s, oth
+
+= LN 
+
+
+
+ReLU  MDE oth  
+
+> ℓ
+
+(H(ℓ−1)  
+
+> s, oth
+
+)
+
+, ℓ = 1 , . . . , L, (54c) 
+
+Toth  
+
+> s
+
+= Linear 
+
+
+
+H(L)
+
+> s, oth
+
+; Woth 2 , both 2
+
+
+
+. (54d) 
+
+Doth = 6 + 2 M 2 + 2 N 2, and doth h denotes the hidden dimen-sion of the other-satellite TEN network. Woth 1 ∈ RDoth ×doth h ,
+
+Woth 2 ∈ Rdoth h ×F oth 
+
+, and both 1 ∈ Rdoth h , both 2 ∈ RF oth 
+
+. To remove the dependence on the ordering of the other-satellite set, we apply an MDI module N oth MDI (·) = MDI {1}(·) that performs permutation-invariant attention pooling along the other-satellite dimension: 
+
+Toth  
+
+> s
+
+= N oth MDI (Toth  
+
+> s
+
+) ∈ RK×F oth 
+
+. (55) Finally, we fuse the two branches by concatenation along the feature dimension: 
+
+Tdec  
+
+> s
+
+= [ Tloc  
+
+> s
+
+, Toth  
+
+> s
+
+]2 ∈ RK×(F loc +F oth ). (56) The local branch is permutation-equivariant over the UT dimension, while the other branch is permutation-equivariant over both the other-satellite and UT dimensions and becomes 10 
+
+permutation-invariant over the other-satellite dimension after MDI aggregation. 
+
+2) Decentralized FDA Module: Given the fused features 
+
+Tdec  
+
+> s
+
+, we apply a decentralized FDA to obtain Cdec  
+
+> s
+
+∈ RK×G:
+
+Cdec  
+
+> s
+
+= N dec FDA (Tdec  
+
+> s
+
+) ∈ RK×G. (57) The decentralized FDA module also comprises an LN layer, two linear layers, a GELU activation, and dropout: 
+
+ˆTdec  
+
+> s, FDA
+
+= LN( Tdec  
+
+> s
+
+), (58a) 
+
+Hdec  
+
+> s, FDA
+
+= GELU 
+
+
+
+Linear 
+
+ ˆTdec 
+
+> s, FDA
+
+; Wdec 1 , bdec 1
+
+  
+
+, (58b) 
+
+˜Hdec  
+
+> s, FDA
+
+= Dropout  Hdec 
+
+> s, FDA
+
+ , (58c) 
+
+Cdec  
+
+> s
+
+= Linear 
+
+ ˜Hdec 
+
+> s, FDA
+
+; Wdec 2 , bdec 2
+
+
+
+, (58d) we have Wdec 1 ∈ R(F loc +F oth )×G, Wdec 2 ∈ RG×G, and 
+
+bdec 1 , bdec 2 ∈ RG. The FDA performs dimension mapping, transforming the fused features into the desired dimension. 
+
+3) Decentralized CFR Module: The predicted tuple for the 
+
+s-th satellite is obtained via the closed-form recovery mapping: 
+
+Odec  
+
+> s
+
+= N dec CFR 
+
+ Cdec 
+
+> s
+
+. (59) The recovered variables are then substituted into (26) to reconstruct the decentralized precoders {ps,k }∀k and receive vectors {bs,k }∀k. In this way, each satellite performs local inference independently, eliminating the need for centralized CSI collection and precoder dissemination, thereby enabling fully decentralized operation. Overall, the decentralized network establishes an end-to-end prediction framework that preserves physical consistency and interpretability while enabling coordinated precoding across the multi-satellite massive MIMO system, as summarized in 
+
+Algorithm 3 . Its per-satellite inference complexity consists of four components: the local-satellite TEN branch, with complexity Cloc TEN = O(K(Dloc dloc h +Lρ 1(dloc h )2 +dloc h F loc )) ;the other-satellite TEN branch, with Coth TEN = O(( S −
+
+1) K(Doth doth h + Lρ 2(doth h )2 + doth h F oth )) ; the MDI aggre-gation and FDA head, with Coth MDI = O(K(S − 1)( F oth )2)
+
+and CFDA = O(K(( F loc + F oth )G + G2)) , respectively; and the CFR module, with CCFR = O(KM 3), which typically dominates the per-satellite inference cost. Since all satellites perform inference locally, the overall computation can be exe-cuted in parallel across satellites, and the practical complexity is therefore determined by the per-satellite cost. 
+
+B. Loss Function for Unsupervised Learning 
+
+In the unsupervised learning paradigm, the network is opti-mized directly toward the physical objective of maximizing the system sum rate, rather than relying on pre-computed closed-form labels. At each training iteration, the model predicts the precoding vectors {ps,k }∀s,k and receive vectors {bs,k }∀s,k 
+
+for all satellite-UT pairs. The achievable rate is evaluated based on the iCSI. The unsupervised objective is formulated as the negative sample-averaged WSR: 
+
+Lwsr = − 1
+
+Nsam 
+
+> Nsam
+
+X
+
+> n=1
+> S
+
+X
+
+> s=1
+> K
+
+X
+
+> k=1
+
+as,k R(n) 
+
+> s,k
+
+, (60) 
+
+Algorithm 3 Decentralized TFC-Net-Based WMMSE  
+
+> 1:
+
+Input: {{ Φs,k , Θs,k , β s,k , κ s,k , Σs,k , σ 2
+
+> k
+
+}∀k ∪ P sat  
+
+> s
+
+}∀s,
+
+{{{ Φt,m , Θt,m , σ 2
+
+> m
+
+}∀m ∪ P sat  
+
+> t
+
+}∀t∈S\ s}∀s. 
+
+> 2:
+
+Construct {Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc  
+
+> s
+
+, Aoth  
+
+> s
+
+, Uoth  
+
+> s
+
+}∀s. 
+
+> 3:
+
+Training:  
+
+> 4:
+
+N (0) dec ={N loc TEN , N oth TEN , N oth MDI , N dec FDA , N dec CFR }(0) and n = 0 . 
+
+> 5:
+
+for n < N ep do  
+
+> 6:
+
+forward:  
+
+> 7:
+
+for each satellite s ∈ S do  
+
+> 8:
+
+Apply DB-TEN: Tloc  
+
+> s
+
+= N loc TEN 
+
+ Aloc  
+
+> s
+
+, Rloc  
+
+> s
+
+, Bloc 
+
+> s
+
+,
+
+Toth  
+
+> s
+
+= N oth TEN 
+
+ Aoth  
+
+> s
+
+, Uoth 
+
+> s
+
+,
+
+Toth  
+
+> s
+
+= N oth MDI 
+
+ Toth 
+
+> s
+
+. 
+
+> 9:
+
+Apply FDA mudule: Cdec  
+
+> s
+
+= N dec FDA 
+
+ Tdec 
+
+> s
+
+. 
+
+> 10:
+
+Recover variables: Odec  
+
+> s
+
+= N dec CFR 
+
+ Cdec 
+
+> s
+
+. 
+
+> 11:
+
+Get {ps,k , bs,k }∀k from Odec  
+
+> s
+
+with (26).  
+
+> 12:
+
+end for  
+
+> 13:
+
+backward:  
+
+> 14:
+
+Update N (n)dec via gradient descent on Lwsr . 
+
+> 15:
+
+Update n = n + 1 . 
+
+> 16:
+
+end for  
+
+> 17:
+
+Store the learned variables of Ndec . 
+
+> 18:
+
+Inference: Use Ndec to obtain {ps,k , bs,k }∀s,k .where Nsam represents the sample number. This loss function is fully differentiable with respect to all network outputs, allowing end-to-end optimization through standard backprop-agation. During training, the optimizer minimizes Lwsr , which is equivalent to maximizing the achievable system sum rate of the multi-satellite system. 
+
+C. Dataset and Training Details 
+
+The dataset comprises 10,000 samples, with 7,000 used for training, 2,000 for validation, and an additional 1,000 for testing. Each sample randomly selects the center of the coop-erative transmission region within the global coverage of the constellation, generates UTs, and determines the cooperating satellites. It further includes data corresponding to five transmit power levels, namely P sat  
+
+> s
+
+∈ [−10 , −5, 0, 5, 10] dBW, which are randomly selected during training to enable the network to operate under various link budgets resulting from various transceiver configurations [29], [31], [42]. VI. N UMERICAL RESULTS 
+
+We employ the QuaDRiGa channel simulator to gener-ate the propagation scenarios and radio channel parameters. Specifically, the channel parameters are obtained using the QuaDRiGa NTN Urban LOS scenario [43]. This simulator, with appropriate parameter calibration, is consistent with the channel model considered in this work as well as the Third Generation Partnership Project specifications. Monte Carlo simulations are conducted by randomly selecting a point within the constellation coverage as the center, defining a circular region with the specified radius, and choosing the S
+
+nearest satellites to that center for multi-satellite cooperative transmission. In addition, all satellites are assumed to have identical power constraints, i.e., P sat  
+
+> s
+
+= P sat , ∀s. The remain-ing simulation parameters are summarized in Table I .11                              
+
+> TABLE I MULTI -S ATELLITE SYSTEM PARAMETERS [29], [30], [42], [44]
+> Parameter Value
+> Constellation Type Walker-Delta Satellite Orbit Altitude 600 km
+> Orbital Planes 28 Satellites Per Plane 60 Inclination 53 ◦
+> Multi-Satellite Coverage Radius 800 km
+> Number of Cooperating Satellites 2,3,4 Number of UTs 6,12,18,24,30 Distribution of UTs Uniform Velocity of UTs 5 km /h
+> Carrier Frequency 2 GHz
+> Subcarrier Spacing 30 kHz
+> System Bandwidth (DL) 20 MHz
+> Tranmit Antenna Number M64
+> Receive Antenna Number N4
+> Per-Antenna Gain GT,GR6 dBi ,0 dBi
+> Noise Figure F7 dB
+> Noise Temperature T290 K
+
+A. Performance Comparison 
+
+This subsection compares the following schemes:  
+
+> •
+
+Sep-MRT and Sep-MMSE : Conventional MRT and MMSE are applied independently at each satellite without multi-satellite cooperation, following [16]. The receive vectors are set to the receive steering vectors.  
+
+> •
+
+Sep-Opt-WM : Separate WMMSE carried in each satel-lite without cooperation among multi-satellites, which ignores inter-satellite interference [17], [38].  
+
+> •
+
+Cen-Opt-WM : A centralized WMMSE scheme that computes the precoders through alternating optimization based on sCSI, as in Section II-C, similar to [29].  
+
+> •
+
+Cen-TFC-WM : A centralized TFC-Net-based WMMSE scheme, where all satellites upload their local sCSI to a central satellite, which jointly infers the precoding vectors using the centralized network described in Section III.  
+
+> •
+
+Dec-TFC-WM : A decentralized TFC-Net-based WMMSE scheme, where each satellite performs local learning and inference, enabling coordinated precoding without central satellite CSI collection or precoder dissemination, as in Section V. Fig. 4 compares the sum-rate performance of different schemes versus the transmit power with S = 3 and K =12 . The multi-satellite cooperative transmission schemes that explicitly account for inter-satellite interference, i.e., Cen-Opt-WM, Cen-TFC-WM, and Dec-TFC-WM, significantly outperform the separate-satellite baselines, including Sep-Opt-WM, Sep-MMSE, and Sep-MRT. In particular, the proposed Cen-TFC-WM achieves a sum rate close to the optimal Cen-Opt-WM with substantially lower online inference complexity than iterative optimization. Moreover, Dec-TFC-WM provides substantial gains, and its advantage over Sep-Opt-WM be-comes more pronounced as P sat increases. Notably, Dec-TFC-WM can achieve most of the sum-rate performance of Cen-TFC-WM, demonstrating the effectiveness of the proposed decentralized scheme. -10 -5 0 5 10 020 40 60 80 100 120 140           
+
+> Fig. 4. Multi-satellite sum rate vs Psat .0.01 0.1 110 100 Running Time (s)  2.442493 83.037339 0.008605 0.00444
+> Sep-Opt-WM Cen-Opt-WM Cen-TFC-WM Dec-TFC-WM
+> Fig. 5. Running time comparison. TABLE II COMPUTATIONAL COMPLEXITY ORDER COMPARISON .
+
+Schemes Complexity 
+
+Sep-Opt-WM O Iout max Iin max KM 3 in parallel Cen-Opt-WM O Iout max Iin max SKM 3
+
+Cen-TFC-WM O SKM 3
+
+Dec-TFC-WM O KM 3 in parallel 
+
+In Table II , we summarize the computational complexity of the four WMMSE-based schemes. The complexities of Sep-MRT and Sep-MMSE are omitted since they are significantly lower than those of the WMMSE variants. The optimization-based baselines require iterative updates with both outer Iout max 
+
+and inner Iin max loops, leading to O  Iout max Iin max KM 3 for Sep-Opt-WM and O  Iout max Iin max SKM 3 for Cen-Opt-WM, where the cubic term stems from solving M × M linear systems. In contrast, the proposed learning-based schemes only re-quire low-complexity inference to avoid iterative optimization, resulting in O(SKM 3) for Cen-TFC-WM. For Dec-TFC-WM, each satellite performs inference locally with O(KM 3)
+
+complexity, and the overall complexity can be further reduced through parallel execution across satellites. Fig. 5 compares the running time of several methods, where the time cost of Sep-MRT and Sep-MMSE is relatively small and thus omitted. The running time experiments are conducted on a CPU platform (Intel(R) Xeon(R) Platinum 8336C CPU @ 2.30GHz). As observed, Cen-TFC-WM and Dec-TFC-WM achieve signifi-cantly lower running time due to their non-iterative nature, even outperforming the single-satellite baseline Sep-Opt-WM. Note that running time is influenced by various factors such as low-level implementation efficiency and hardware conditions, and should therefore be seen as indicative rather than absolute. 12 6 12 18 24 30 025 50 75 100 125 150 
+
+Fig. 6. Multi-satellite sum rate vs UT number with S = 3 and P sat =5 dBW , where Cen-TFC-WM and Dec-TFC-WM are trained at K = 12 .Sep-MRT Sep-MMSE Sep-Opt-WM Dec-TFC-WM Cen-TFC-WM Cen-Opt-WM 010 20 30 40 
+
+> Sep-MRT Sep-MMSE Sep-Opt-WM Dec-TFC-WM Cen-TFC-WM Cen-Opt-WM 020 40 60
+> Sep-MRT Sep-MMSE Sep-Opt-WM Dec-TFC-WM Cen-TFC-WM Cen-Opt-WM 020 40 60 80
+
+Fig. 7. Multi-satellite sum rate versus satellite number with K = 12 and 
+
+P sat = 5 dBW , where Cen-TFC-WM and Dec-TFC-WM are trained at S = 3 .
+
+B. Scenario Scalability 
+
+This subsection evaluates the scenario scalability of the pro-posed learning-based networks under varying network scales. Specifically, Fig. 6 investigates the impact of increasing the number of UTs with a fixed number of satellites, showing that the proposed schemes maintain stable performance gains as the user load grows, while Cen-TFC-WM exhibits a small degradation relative to Cen-Opt-WM under heavier loads. Moreover, Fig. 7 examines the effect of increasing the number of cooperative satellites with a fixed number of UTs, where Cen-TFC-WM and Dec-TFC-WM consistently improve the sum rate as more satellites participate in cooperation. Notably, although the networks are trained only under the specific setting (S = 3 , K = 12) , they generalize well across a broad range of scenario configurations without retraining. 
+
+C. Inter-Satellite Overhead 
+
+We summarize the inter-satellite information required by different schemes in Table III . For Cen-Opt-WM and Cen-TFC-WM, each satellite needs to report sCSI to the central satellite, which then computes and feeds back the precoding vectors to all cooperating satellites. The exchanged informa-tion is reduced to slowly varying sCSI together with satellite position, attitude, and power constraints. By contrast, Dec-TFC-WM only requires the exchange of satellite position, attitude, and power information among satellites, since the precoders are generated locally via decentralized inference, eliminating both CSI reporting and centralized precoder dis-semination. Fig. 8 further quantifies the inter-satellite over-head per update. Compared with Cen-Opt-WM and Cen-TFC-WM, the proposed Dec-TFC-WM achieves much lower overhead. The reduction stems from removing the need for CSI upload and centralized precoder delivery in Dec-TFC-WM. Beyond the per-update cost, the average inter-satellite overhead is determined by both the overhead per update and the update frequency: compared to frequent updates due to iCSI, our proposed schemes can update less often with slowly 
+
+TABLE III COMPARISON OF INTER -S ATELLITE OVERHEAD 
+
+Schemes Inter-satellite exchanged information 
+
+Cen-Opt-WM Cen-TFC-WM 
+
+To central satellite : satellite position, and attitude; 
+
+{βs,k , κ s,k , Σs,k }∀s∈S\ s,k , and {P sat  
+
+> s
+
+}∀s∈S\ s.
+
+From central satellite : precoding vectors {ps,k }∀s, ∀k .Dec-TFC-WM Between satellites : satellite position, attitude, and P sat  
+
+> s
+
+.0.124928 0.124928 0.001536 00.02 0.04 0.06 0.08 0.1 0.12 0.14 Inter-Satellite Overhead (Mbits/update)   
+
+> Cen-Opt-WM Cen-TFC-WM Dec-TFC-WM
+
+Fig. 8. Per-update inter-satellite overhead comparison. 
+
+varying parameters. Specifically, Cen-Opt-WM and Cen-TFC-WM are based on sCSI, and Dec-TFC-WM permits the longest update period since it relies mainly on ephemeris and attitude information. Consequently, the proposed schemes greatly im-prove inter-satellite communication efficiency and are more practical for multi-satellite massive MIMO transmission. VII. C ONCLUSION 
+
+This paper investigated efficient architectures for multi-satellite massive MIMO transmission. We study the WSR maximization in a multi-satellite system where multiple satel-lites transmit independent data streams to multi-antenna UTs, thereby enhancing system throughput. By reformulating the WSR maximization problem as a multi-satellite WMMSE problem, closed-form updates for the precoders and receivers were derived. To reduce the complexity of iterative opti-mization, a centralized learning-based design based on TFC-Net was proposed, achieving strong performance with low-complexity online inference. To further reduce inter-satellite overhead, a decentralized learning-based WMMSE scheme was developed, where each satellite locally infers its precoders using only periodically exchanged SSI and UT GNSS. Nu-merical results demonstrated that the proposed multi-satellite schemes significantly outperform the single-satellite scheme, while the decentralized scheme achieves near-centralized per-formance with much lower ISL overhead, and the learning-based schemes exhibit strong robustness and scalability. REFERENCES [1] W. Wang, Y. Zhu, Y. Wang, R. Ding, and S. Chatzinotas, “Toward mobile satellite internet: The fundamental limitation of wireless transmission and enabling technologies,” Engineering , vol. 54, pp. 42–51, 2025. [2] A. I. Perez-Neira, M. A. Vazquez, M. B. Shankar, S. Maleki, and S. Chatzinotas, “Signal processing for high-throughput satellites: Chal-lenges in new interference-limited scenarios,” IEEE Signal Process. Mag. , vol. 36, no. 4, pp. 112–131, Jul. 2019. [3] W. Cao, Y. Wang, T. Ji, T. Cao, W. Wang, S. Chatzinotas, and B. Ottersten, “Interference in spectrum-sharing integrated terrestrial and satellite networks: Modeling, approximation, and robust transmit beamforming,” arXiv preprint arXiv:2506.11851 , 2025. [Online]. Available: https://arxiv.org/abs/2506.11851 13 
+
+[4] W. Cao, Y. Wang, W. Wang, S. Chatzinotas, and B. Ottersten, “Robust beamforming avoiding satellite interference in integrated terrestrial and satellite networks,” in Proc. IEEE Veh. Technol. Conf. (VTC2025-Fall) ,2025, pp. 1–6. [5] K. Ntontin, E. Lagunas, J. Querol, J. u. Rehman, J. Grotz, S. Chatzinotas, and B. Ottersten, “A vision, survey, and roadmap toward space commu-nications in the 6G and beyond era,” Proc. IEEE , pp. 1–37, 2025. [6] C. A. Maddock, L. Ricciardi, M. West, J. West, K. Kontis, S. Rengarajan, D. Evans, A. Milne, and S. McIntyre, “Conceptual design analysis for a two-stage-to-orbit semi-reusable launch system for small satellites,” 
+
+Acta Astronautica , vol. 152, pp. 782–792, 2018. [7] E. Gill, J. Morton, P. Axelrad, D. M. Akos, M. Centrella, and S. Speretta, “Overview of space-capable global navigation satellite systems re-ceivers: Heritage, status and the trend towards miniaturization,” Sensors ,vol. 23, no. 17, 2023. [8] X. Liu, T. Ma, Z. Tang, X. Qin, H. Zhou, and X. S. Shen, “Ultrastar: A lightweight simulator of ultra-dense LEO satellite constellation net-working for 6G,” IEEE CAA J. Autom. Sin. , vol. 10, no. 3, pp. 632–645, 2023. [9] K. Ntontin, E. Lagunas, J. Querol, J. u. Rehman, J. Grotz, S. Chatzinotas, and B. Ottersten, “A vision, survey, and roadmap toward space commu-nications in the 6G and beyond era,” Proc. IEEE , pp. 1–37, 2025. [10] G. Amendola, D. Cavallo, T. Chaloun, N. Defrance, G. Goussetis, M. Margalef-Rovira, E. Martini, O. Quevedo-Teruel, V. Valenta, N. J. Fonseca, and M. Ettorre, “Low-earth orbit user segment in the Ku and Ka-band: An overview of antennas and RF front-end technologies,” 
+
+IEEE Microwave Mag. , vol. 24, no. 2, pp. 32–48, 2023. [11] M. Khammassi, A. Kammoun, and M.-S. Alouini, “Precoding for high-throughput satellite communication systems: A survey,” IEEE Commun. Surv. Tutor. , vol. 26, no. 1, pp. 80–118, 2024. [12] Y. Wang, X. Xu, Y. Zhu, W. Wang, R. Ding, S. Chatzinotas, and B. Ottersten, “Multi-LEO satellite cooperative transmission: A spatial-temporal-frequency perspective,” IEEE Wireless Commun. , Feb. 2026, Early Access. [13] B. Shang, X. Huang, H. Wang, X. Li, M. Tao, H. Zhang, and P. Fan, “Multi-satellite cooperative communications for 6G: Fundamentals, sys-tem design, and applications,” IEEE Commun. Surv. Tutor. , vol. 28, pp. 4690–4730, 2026. [14] H.-W. Chu, T.-H. Moon, W.-J. Lee, and J.-H. Kim, “A network path method for connecting cross-seam using ground relay in LEO satellite network,” in Proc. IEEE Consum. Commun. Netw. Conf. (CCNC) , 2025, pp. 1–4. [15] B. Soret, I. Leyva-Mayorga, and P. Popovski, “Inter-plane satellite matching in dense LEO constellations,” 
+
+arXiv preprint arXiv:1905.08410 , 2019. [Online]. Available: https://arxiv.org/abs/1905.08410 [16] C. Peel, B. Hochwald, and A. Swindlehurst, “A vector-perturbation technique for near-capacity multiantenna multiuser communication-part I: Channel inversion and regularization,” IEEE Trans. Commun. , vol. 53, no. 1, pp. 195–202, Jan. 2005. [17] S. S. Christensen, R. Agarwal, E. De Carvalho, and J. M. Cioffi, “Weighted sum-rate maximization using weighted MMSE for MIMO-BC beamforming design,” IEEE Trans. Wireless Commun. , vol. 7, no. 12, pp. 4792–4799, Dec. 2008. [18] S. Wu, Y. Wang, G. Sun, L. You, W. Wang, and R. Ding, “Energy and computational efficient precoding for LEO satellite communications,” in 
+
+Proc. IEEE Glob. Commun. Conf (GLOBECOM) , Dec. 2023, pp. 1872– 1877. [19] L. You, K.-X. Li, J. Wang, X. Gao, X.-G. Xia, and B. Ottersten, “Massive MIMO transmission for LEO satellite communications,” IEEE J. Sel. Areas Commun. , vol. 38, no. 8, pp. 1851–1865, Aug. 2020. [20] Y. Liu, Y. Wang, J. Wang, L. You, W. Wang, and X. Gao, “Robust downlink precoding for LEO satellite systems with per-antenna power constraints,” IEEE Trans. Veh. Technol. , vol. 71, no. 10, pp. 10 694– 10 711, Oct. 2022. [21] G. Fontanesi, F. Ortz, E. Lagunas, L. Manuel Garcs-Socarr´ as, V. Mon-zon Baeza, M. ´ Angel V´ azquez, J. Andrs Vsquez-Peralvo, M. Minardi, H. Nguyen Vu, P. Jubba Honnaiah, C. Lacoste, Y. Drif, L. Martinez Mar-rero, S. Daoud, T. Salih Abdu, G. Eappen, J. Ur Rehman, W. Alves Mar-tins, P. Henarejos, H. Al-Hraishawi, J. Carlos Merlano Duncan, T. X. Vu, and S. Chatzinotas, “Artificial intelligence for satellite communication: A survey,” IEEE Commun. Surv. Tutor. , vol. 28, pp. 1381–1435, 2026. [22] K.-X. Li, L. You, J. Wang, X. Gao, C. G. Tsinos, S. Chatzinotas, and B. Ottersten, “Downlink transmit design for massive MIMO LEO satellite communications,” IEEE Trans. Commun. , vol. 70, no. 2, pp. 1014–1028, 2022. [23] M. Ying, X. Chen, Q. Qi, and W. Gerstacker, “Deep learning-based joint channel prediction and multibeam precoding for LEO satellite internet of things,” IEEE Trans. Wireless Commun. , vol. 23, no. 10, pp. 13 946– 13 960, 2024. [24] Z. Gao, M. Wu, C. Hu, F. Gao, G. Wen, D. Zheng, and J. Zhang, “Data-driven deep learning based hybrid beamforming for aerial massive MIMO-OFDM systems with implicit CSI,” IEEE J. Sel. Areas Commun. ,vol. 40, no. 10, pp. 2894–2913, 2022. [25] M. Y. Abdelsadek, G. K. Kurt, and H. Yanikomeroglu, “Distributed massive MIMO for LEO satellite networks,” IEEE open J. Commun. Soc. , vol. 3, pp. 2162–2177, 2022. [26] S. Wu, Y. Wang, G. Sun, W. Wang, J. Wang, and B. Ottersten, “Distributed beamforming for multiple LEO satellites with imperfect delay and doppler compensations: Modeling and rate analysis,” IEEE Trans. Veh. Technol. , vol. 74, no. 9, pp. 14 978–14 984, 2025. [27] Z. M. Bakhsh, Y. Omid, G. Chen, F. Kayhan, Y. Ma, and R. Tafazolli, “Multi-satellite MIMO systems for direct satellite-to-device communi-cations: A survey,” IEEE Commun. Surv. Tutor. , vol. 27, no. 3, pp. 1536– 1564, 2025. [28] X. Chen and Z. Luo, “Asynchronous interference mitigation for LEO multi-satellite cooperative systems,” IEEE Trans. Wireless Commun. ,vol. 23, no. 10, pp. 14 956–14 971, 2024. [29] Z. Xiang, X. Gao, K.-X. Li, and X.-G. Xia, “Massive MIMO downlink transmission for multiple LEO satellite communication,” IEEE Trans. Commun. , vol. 72, no. 6, pp. 3352–3364, Jun. 2024. [30] Y. Wang, V. Nguyen Ha, K. Ntontin, H. Yan, W. Wang, S. Chatzinotas, and B. Ottersten, “Statistical CSI-based distributed precoding design for OFDM-cooperative multi-satellite systems,” IEEE J. Sel. Areas Commun. , vol. 44, pp. 3219–3236, 2026. [31] Y. Wang, Y. Zhu, V. N. Ha, W. Wang, R. Ding, S. Chatzinotas, and B. Ottersten, “Multi-satellite multi-stream beamspace massive MIMO transmission,” arXiv preprint arXiv:2512.21998 , 2025. [Online]. Available: https://arxiv.org/abs/2512.21998 [32] Q. Zhang, L. Xu, J. Huang, T. Yang, J. Jiao, Y. Wang, Y. Shi, C. Zhang, X. Zhang, K. Zhang, Y. Gong, N. Deng, N. Zhao, Z. Gao, S. Wang, S. Han, X. Xu, L. You, D. Wang, S. Jiang, D. Zhao, N. Zhang, L. Hu, X. He, Y. Li, X. Gao, and X. You, “Distributed satellite information networks: Architecture, enabling technologies, and trends,” Science China Information Sciences , vol. 68, 2024. [33] T. K. Rodrigues and N. Kato, “Hybrid centralized and distributed learning for MEC-equipped satellite 6G networks,” IEEE J. Sel. Areas Commun. , vol. 41, no. 4, pp. 1201–1211, 2023. [34] J. Sun, C. Wu, S. Mumtaz, J. Tao, M. Cao, M. Wang, and V. Fras-colla, “An efficient privacy-aware split learning framework for satellite communications,” IEEE J. Sel. Areas Commun. , vol. 42, no. 12, pp. 3355–3365, 2024. [35] M. Martinez-Gost and A. Prez-Neira, “Orbit-aware split learning: Opti-mizing LEO satellite networks for distributed online learning,” in IEEE Int. Conf. Mach. Learn. Commun. Netw. (ICMLCN) , 2025, pp. 1–6. [36] L. Cheng, G. Feng, S. Qin, Y. Sun, J. Wang, F. Wang, and T. Q. S. Quek, “Scheduling model transmission and training for contact-based decentralized satellite federated learning,” IEEE Trans. Cogn. Commun. Netw. , pp. 1–1, 2025. [37] Y. Zhang and T. Y. Al-Naffouri, “Enabling scalable distributed beam-forming via networked LEO satellites toward 6G,” IEEE Trans. Wireless Commun. , vol. 25, pp. 6666–6680, 2026. [38] Q. Shi, M. Razaviyayn, Z.-Q. Luo, and C. He, “An iteratively weighted MMSE approach to distributed sum-utility maximization for a MIMO interfering broadcast channel,” IEEE Trans. Signal Process. , vol. 59, no. 9, pp. 4331–4340, Sep. 2011. [39] Y. Wang, H. Hou, X. Yi, W. Wang, and S. Jin, “Toward unified AI models for MU-MIMO communications: A tensor equivariance framework,” IEEE Trans. Wireless Commun. , vol. 24, pp. 10 517–10 533, 2024. [40] V. Nair and G. E. Hinton, “Rectified linear units improve restricted boltz-mann machines,” in Proc., Int. Conf. Mach. Learn. (ICML) , Madison, WI, USA, 2010, pp. 807–814. [41] D. Hendrycks and K. Gimpel, “Gaussian error linear units (GELUs),” 
+
+arXiv: preprint arXiv:1606.08415 , 2016. [Online]. Available: https: //arxiv.org/abs/1606.08415 [42] 3GPP, “Solutions for NR to support non-terrestrial networks (NTN),” 3rd Generation Partnership Project, Tech. Rep. TR 38.821, Mar. 2023. [43] F. Burkhardt, S. Jaeckel, E. Eberlein, and R. Prieto-Cerdeira, “QuaDRiGa: A MIMO channel model for land mobile satellite,” in 8th European Conf. Antennas Propag. (EuCAP 2014) , 2014, pp. 1274–1278. [44] “Federal communications commission; amendment to pending application for the SpaceX Gen2 NGSO satellite system,” 14 
+
+FCC, Washington, DC, USA, Tech. Rep. File No. SAT-AMD-20210818-00105, Aug. 2021, tech. Rep. [Online]. Available: https://fcc.report/IBFS/SAT-AMD-20210818-00105/12943361.pdf

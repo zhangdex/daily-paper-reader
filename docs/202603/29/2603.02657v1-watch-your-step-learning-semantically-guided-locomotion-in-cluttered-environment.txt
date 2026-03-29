@@ -1,0 +1,519 @@
+Title: Watch Your Step: Learning Semantically-Guided Locomotion in Cluttered Environment
+
+URL Source: https://arxiv.org/pdf/2603.02657v1
+
+Published Time: Wed, 04 Mar 2026 02:13:57 GMT
+
+Number of Pages: 8
+
+Markdown Content:
+# Watch Your Step: Learning Semantically-Guided Locomotion in Cluttered Environment 
+
+Denan Liang 1, Yuan Zhu 1, Ruimeng Liu 1, Thien-Minh Nguyen 1,2, Member, IEEE 
+
+Shenghai Yuan 1, Member, IEEE Lihua Xie 1, Fellow, IEEE 
+
+Fig. 1: SemLoco Overview for semantic-aware prediction in cluttered environments. This figure demonstrates a quadruped robot performing obstacle avoidance in a real-world scene filled with small sensitive objects. Compared to the traditional pure elevation map, SemLoco integrates semantic map to low-level control, enabling the controller to perform pixel-wise foothold safety inference. This allows for precise gait planning in both simulation and real-world experiments, preventing damage to valuable items. 
+
+Abstract —Although legged robots demonstrate impressive mobility on rough terrain, using them safely in cluttered environments remains a challenge. A key issue is their inability to avoid stepping on low-lying objects, such as high-cost small devices or cables on flat ground. This limitation arises from a disconnection between high-level semantic understanding and low-level control, combined with errors in elevation maps during real-world operation. To address this, we introduce SemLoco, a Reinforcement Learning (RL) framework designed to avoid obstacles precisely in densely cluttered environments. SemLoco uses a two-stage RL approach that combines both soft and hard constraints. It performs pixel-wise foothold safety inference, which enables more accurate foot placement. Addi-tionally, SemLoco integrates semantic map, allowing it to assign traversability costs instead of relying only on geometric data. SemLoco greatly reduces collisions and improves safety around sensitive objects, enabling reliable navigation in situations where traditional controllers would likely cause damage. Experimental results further show that SemLoco can be e ff ectively applied to  
+
+> 1
+
+School of Electrical and Electronic Engineering, Nanyang Technological University, 50 Nanyang Avenue, Singapore 639798.  
+
+> 2
+
+School of Mechanical and Mining Engineering, The University of Queensland, St Lucia QLD 4072. 
+
+more complex, unstructured real-world environments. 
+
+I. I ntroduction 
+
+While quadruped robots have achieved exceptional success in robust locomotion and agile tracking across complex outdoor terrains [1]–[3], their performance often degrades in densely cluttered indoor environments that demand slow, deliberate navigation. As their deployment transitions to indoor, human-centric spaces, a new critical requirement emerges. In these environments, the primary objective shifts from merely maintaining the robot’s dynamic balance to ensuring the safety of the surrounding environment. The core problem is that robots must execute high-precision foothold selection to avoid stepping on small, low-lying, or fragile objects (e.g., cables, small devices) scattered on the ground. It must proactively protect the human-centric environment through fine-grained contact point control. 
+
+Existing locomotion and navigation frameworks have made significant progress but fall short in this precise in-teraction. Current vision-based reinforcement learning (RL) policies and geometric planners e ff ectively utilize extero-ceptive perception to build elevation or occupancy maps 
+
+> arXiv:2603.02657v1 [cs.RO] 3 Mar 2026
+
+for obstacle avoidance [2], [4], [5]. However, they lack explicit semantic prediction. Because they rely heavily on geometric representations, small objects (often only a few centimeters high) are frequently smoothed out as sensor noise or misclassified as traversable ground. Furthermore, while recent studies incorporate semantic data to enrich perception [6]–[8], they predominantly apply semantic constraints at the macro-level path or trajectory planning stage. They rarely pass these semantic preferences down to the joint-level control or explicit foothold selection. The core challenge in cluttered, human-centric environ-ments lies in bridging the gap between high-level semantic perception and high-frequency, low-level locomotion control. In dense scenarios, simply altering the global path is insu ffi -cient. Instead, the system must directly translate semantic properties into explicit foothold constraints, enabling the robot to precisely step over or around low-lying obstacles without compromising its dynamic stability. To address this challenge, we propose the SemLoco framework, which directly embeds semantic information into low-level locomotion controller to achieve explicit semantic foothold prediction. Unlike traditional pipelines that decouple semantic navigation from geometric locomotion, our ap-proach translates visual semantics into dynamic traversability costs that directly penalize unsafe foot placements. Powered by a two-stage RL training strategy—progressing from soft constraints with virtual objects to hard constraints with real rigid obstacles—SemLoco bypasses the ambiguities of geo-metric maps, ensuring precise and safe navigation in highly cluttered environments. In summary, the main contributions of this work are as follows:  
+
+> •
+
+SemLoco Framework: We propose the SemLoco framework, which solves the exploration trap in the navigation of dense obstacles. By decoupling spatial exploration (via virtual obstacles) from strict kinematic tracking (via rigid physical interactions), our curriculum enables the policy to establish robust perception-motor mappings, thereby significantly enhancing foothold pre-cision in highly cluttered spaces.  
+
+> •
+
+Semantic-Geometry Decoupling: We introduce asemantic-aware control pipeline that explicitly disentan-gles environmental semantics from geometric heights. This paradigm overcomes the inherent limitations of tra-ditional elevation-only proxies while remaining highly robust against the inherent noise of physical depth sensors.  
+
+> •
+
+Sim-to-Real Deployment and Validation: We rigor-ously validate the proposed method across both simu-lations and real-world scenarios featuring fragile equip-ment. Extensive experiments demonstrate that SemLoco drastically reduces the step collision rate, proving its robust autonomy and adaptability in unstructured, real-world environments. II. R elated Works 
+
+Locomotion Control: Deep RL has become the mainstream paradigm for motion control of legged robots [9]. In recent years, researchers have no longer focused solely on walk-ing stability but have gradually taken obstacle avoidance capability in environmental interaction as a core objective. In precise obstacle avoidance, foothold planning is a key component. Early optimization-based methods (e.g., model predictive control) were limited by computational e ffi ciency and map accuracy, making it di ffi cult to handle environments with dense obstacles [10], [11]. Recently, Rudin et al. pro-posed using RL to learn various gaits in simulation and demonstrated obstacle avoidance capabilities in environments with scattered obstacles [12], but their strategy still relies on elevation maps and has limited recognition ability for low-lying objects. To address this issue, Miki et al. proposed mapping perceptual information directly to foot trajectories through end-to-end learning, achieving real-time obstacle avoidance in complex terrains [13], but this method still lacks semantic understanding of obstacles. For the accuracy of footholds, Jenelten et al. further proposed combining RL with whole-body control and in-troducing a di ff erentiable cost function to achieve high-precision avoidance [14]. However, this method decouples foothold search from gait phase and the robot’s current motion, making it prone to generating incoherent footholds in dense obstacle environments and falling into local op-tima. SemLoco redesigns the foothold calculation method by combining the Raibert heuristic with dynamic grid search, directly integrating gait phase and motion commands. This tightly couples foothold adjustment with the robot’s dynamic behavior, significantly improving precise avoidance perfor-mance in scenarios with dense low-lying obstacles. 
+
+Semantic Perception in Robot Navigation: Beyond purely geometry-based navigation, recent works leverage seman-tic information to enhance planning. Several modular ap-proaches employ semantic segmentation models to obtain object masks and assign heuristic costs to construct dense semantic maps [15], [16] or semantic graphs [17]. [18] learns a semantic traversability estimator through an automated annotation pipeline on egocentric videos, simplifying the derivation of traversal cost maps. Furthermore, semantic-aware planners are built upon these representations to incor-porate object-level risk into navigation decisions [19], [20]. More recently, [21] proposes an end-to-end path planning framework that encodes semantic information in the latent space, improving planning e ffi ciency. [22] integrates semantic semantics into quadrupedal navigation, yet its impact is confined to the tuning of gait parameters, and velocity levels. These semantic-aware methods primarily operate at the high-level path planning stage and do not explicitly reason about foothold selection for legged robots. In cluttered and narrow environments, even if fragile or undesirable objects are recognized by the high-level planner, the absence of foothold-level constraints may still cause the robot to step on them, Fig. 2: Framework of SemLoco . Sub-modules have di ff erent styles based on their functions. Among them, the red trapezoid represents the neural network, the blue rectangle represents unprocessed raw data, and the green rectangle represents processed ready-to-use data. (a) Training in the simulator: In stage 1, we use virtual obstacles (Highly yellow spheres). Although the robot walks on flat ground, it receives a virtual perception map containing height and semantic information to simulate scenarios with real obstacles. In stage 2, we use rigid obstacles. The robot receives corresponding real perception information, and fine-tunes the policy to improve task performance. (b) Deployment in the real world: The semantic algorithm uses Odin1 to process exteroception. Combined with proprioception, this information is fed into the trained policy to generate low-level control commands. 
+
+limiting the e ff ectiveness of semantic awareness in contact-rich locomotion. To address the above issues, SemLoco for the first time, combines semantic information with foothold planning for legged robots, using it to assign traversability costs to di ff erent types of obstacles, thereby establishing an eff ective connection between high-level semantic understand-ing and low-level motion control. III. M ethodology 
+
+A. Reinforcement Learning 1) Observation Space : The Symmetric Actor-Critic (A2C) algorithm is adopted as the RL framework. The policy observations, Ot ∈ R1513 , are defined as: 
+
+Ot = hCcmd  
+
+> t
+
+, Bt, Oproprio  
+
+> t
+
+, Oextero 
+
+> t
+
+i , (1) where Ccmd  
+
+> t
+
+∈ R1 are the desired velocity commands, in-cluding the base linear velocities vcmd  
+
+> x
+
+∈ R1 in the x-axes, 
+
+vcmd  
+
+> y
+
+∈ R1 in the y-axes and the base angular velocity 
+
+ωcmd  
+
+> z
+
+∈ R1 in the yaw axis. The Bt ∈ R13 specify the behavior parameters used for gen-erating stable four-beat quadrupedal contact pattern(walking), which is inspired by [23], [24]. They are defined as: 
+
+Bt = hbase , sfeet , θ1−3, tfeet , f , d, w, l , (2) where hbase ∈ R1, sfeet ∈ R1, f ∈ R1 represent the height of robot’s base, the footswing height and the frequency of contact. θ1−3 ∈ R3, tfeet ∈ R4, d ∈ R1, w ∈ R1, l ∈ R1 denote the timing o ff sets for three pairs of feet, the contact state timer for each foot, the duty, the stance width and length. The Oproprio  
+
+> t
+
+∈ R57 denote proprioception measured from IMU, joint encoders and velocity estimator: 
+
+Oproprio  
+
+> t
+
+= ˆvt, ωt, gt, qt, ˙qt, at−1, at−2
+
+ , (3) where, ˆvt ∈ R3 denote the real base linear velocity, which is estimated by the velocity estimator. The ωt ∈ R3, gt ∈ R3,
+
+qt ∈ R12 and ˙qt ∈ R12 denote the real base angular velocity, gravity vector, joint angle and joint angular velocity, which are measured from the joint encoder and IMU. The at−1 ∈ R12 
+
+and at−2 ∈ R12 are the previous actions of the first two steps. The Oextero  
+
+> t
+
+∈ R1440 are defined as information about exte-roception. Environmental information includes the elevation map Helev  
+
+> t
+
+∈ R720 and the semantic map Hsem  
+
+> t
+
+∈ R720 , both of which are centered at the center of gravity of the robot. Both maps are defined over a region that spans 1.5 m in the x-direction and 1.2 m in the direction . With a spatial resolution of 0.05 m, this results in a 30 × 24 grid of sampled cells. 
+
+2) Action Space : The action at ∈ R12 , are defined as the di ff erences between the nominal position and the target position for each of the twelve joints of the robot, which are outputted by the actor network. A proportional derivative (PD) controller is used to track desired joint positions by converting positions to torques. The proportional gain kp and the derivative gain kd are 20 and 0.5 respectively. 
+
+3) Network Architecture : The framework is illustrated as Fig. 2. Our policy consists of two Multilayer Percep-trons (MLPs) for the actor network and the critic network respectively, a base velocity estimator and a Convolutional Neural Network (CNN) encoder. The CNN encoder extracts height features from elevation map and semantic features from semantic map. The feature vector extracted by the CNN module is concatenated with all other proprioceptive observations, and the concatenated vector is then fed into an MLP with hidden layer sizes of [512, 256, 128] and ELU activation function. The base velocity estimator is a neural network that is used to achieve end-to-end mapping from sensor data to state quantities for speed estimation. The network for estimation, which is a MLP with hidden layer sizes [256, 128] and ELU activations, is trained in a supervised manner using ground-truth base velocity from simulator as labels. 
+
+B. Semantic-Aware Adaptive Foothold Planning 
+
+We proposed a semantic-aware Raibert Heuristic to over-come the vulnerability of traditional controllers in cluttered environments. Rather than relying solely on the neural net-work for implicit obstacle avoidance, our approach explicitly integrates local obstacle constraints into the kinematic plan-ning loop. By dynamically evaluating semantic collision costs over a localized search grid, this method refines the nominal, blind footholds into intrinsically safe targets before they are tracked by the RL policy. The standard Raibert Heuristic calculates the ideal foothold for leg i based on the robot’s base coordinate system to maintain velocity tracking and o ff set the e ff ects of inertia and angular velocity. [11], [25] The nominal stance position is defined as Pinom = [xi
+
+> nom
+
+, yi
+
+> nom
+
+]T based on the desired stance width w and length l. Let Tstance be the stance duration, which is derived from the desired gait frequency f and duty factor 
+
+d as Tstance = df . The nominal Raibert position Pi 
+
+> raibert
+
+in the body frame is calculated by incorporating the desired linear velocity vcmd  
+
+> x
+
+, vcmd  
+
+> y
+
+and the yaw angular velocity ωcmd  
+
+> z
+
+:
+
+Pi 
+
+> raibert
+
+= Pi 
+
+> nom
+
++ ∆ Pi 
+
+> lin
+
++ ∆ Pi
+
+> yaw
+
+, (4) where the translational o ff set ∆Pi 
+
+> lin
+
+and the rotational o ff set 
+
+∆Pi 
+
+> yaw
+
+are defined as: 
+
+∆Pi 
+
+> lin
+
+=
+
+" Tstance  
+
+> 2
+
+vcmd 
+
+> x
+
+0
+
+#
+
+, (5) 
+
+∆Pi 
+
+> yaw
+
+=
+
+" 0 
+
+> Tstance
+> 2
+
+ωcmd  
+
+> z
+
+· xi
+
+> nom
+
+#
+
+, (6) where the xi 
+
+> nom
+
+encodes the longitudinal position of the leg (positive for front legs, negative for rear legs), thereby automatically assigning the correct lateral stepping direction induced by the body’s yaw rotation. Building upon this kinematic prior, our proposed method performs a localized optimal search around the nominal Raibert position Pi 
+
+> raibert
+
+leveraging the semantic grid map 
+
+Hsem  
+
+> t
+
+. We construct a localized M × M search grid Gi with resolution ∆grid centered around Piraibert . For each candidate point pk ∈ Gi, we transform it to the world frame and check for virtual collisions against known obstacles from the semantic module. To determine the safest and most balanced foothold, we design a cost function J(pk) composed of two terms: deviation cost and collision penalty. 
+
+J(Pk) = wdev || pk − Pi
+
+> raibert
+
+|| 2 + wcol · 1col (pk), (7) where || pk − Pi
+
+> raibert
+
+|| 2 is the deviation cost, which encourages the robot to select a foothold as close to the theoretically optimal Raibert point as possible to maintain stability. The collision penalty, 1col (pk), is an indicator function that eval-uates to 1 if the candidate point pk triggers an Axis-Aligned Bounding Box (AABB) collision with any semantic obstacle, whose boundaries are uniformly dilated by the foot radius 
+
+rfoot to ensure a strict safety margin, and 0 otherwise. We assign a highly punitive weight wcol ≫ wdev to ensure that unsafe locations are strictly avoided. The final optimized target foothold Pi 
+
+> target
+
+is derived by minimizing the cost function in all candidates: 
+
+Pi 
+
+> target
+
+= arg min   
+
+> pk∈G i
+
+J(pk). (8) 
+
+C. Reward Functions 
+
+To facilitate the learning of highly dynamic yet safe locomotion, we adopt a multiplicative reward structure from [26]. The total reward Rtotal is defined as the product of primary task rewards and an exponential auxiliary penalty multiplier: 
+
+Rtotal = rprimary · exp cpenalty rpenalty 
+
+ , (9) where rtask ≥ 0 encourages the completion of primary objectives, raux ≤ 0 penalizes undesirable behaviors, and caux 
+
+is a positive scaling factor. This form largely resolves the trade-o ff issue between di ff erent rewards. All reward terms are listed in Supplymentary Material A. 
+
+1) Primary Objective Rewards ( rprimary ): In highly clut-tered environments, tracking the user’s velocity command is insu ffi cient for survival; precise foot placement is equally paramount. Therefore, our primary reward integrates both kinematic velocity tracking and semantic-aware foothold tracking: 
+
+rprimary = wvel · rvel + wsem · rsemantic , (10) where the velocity tracking term rvel and the semantic-aware foothold tracking term are defined as: 
+
+rvel = exp 
+
+− ∥vxy − vcmd  
+
+> xy
+
+∥22
+
+σv
+
+ + exp − (ωz − ωcmd  
+
+> z
+
+)2
+
+σω
+
+!
+
+, (11) 
+
+rsem =
+
+> 4
+
+X
+
+> i=1
+
+1i 
+
+> swing
+
+· exp 
+
+− ∥pi 
+
+> foot
+
+− Pi
+
+> target
+
+∥22
+
+σfoot 
+
+ , (12) where 1i 
+
+> swing
+
+∈ {0, 1} is the swing phase indicator. The semantic tracking term rsem enforces the policy to accurately step on the optimal, collision-free targets Pi 
+
+> target
+
+generated by our explicit spatial planner. By formulating this as a dense positive tracking reward during the swing phase, we provide a continuous gradient for the policy. 2) State and Dynamic Constraint Penalties ( rpenalty ): The penalty term, rpenalty = P wkck, aggregates various negative constraints to bridge the reality gap, maintain body balance, and optimize energy e ffi ciency. To ensure robust obstacle traversal, we design a minimum foot clearance penalty rather than a strict trajectory tracking constraint. This encourages the policy to lift its feet su ffi ciently high to avoid toe-stubbing, without penalizing it for stepping higher than the reference when navigating severe cluttered obstacles. During the swing phase, the normalized swing progress 
+
+ϕi 
+
+> swing
+
+∈ [0 , 1] for leg i is calculated based on the stance duty factor. To synthesize an asymmetric safety-first swing profile characterized by rapid lifto ff and a prolonged airborne plateau, we formulate the time-varying reference height zi
+
+> ref
+
+using a square-root sine function: 
+
+zi 
+
+> ref
+
+= sfeet ·
+
+q
+
+sin πϕ i
+
+> swing
+
+ + δz, (13) where sfeet is the footswing height and δz is a fixed safety margin ( δz = 0.02 m). To enforce this as a lower-bound safety threshold, we uti-lize a ReLU function, mathematically expressed as max(0 , x), to selectively penalize the foot only when its actual vertical position zi 
+
+> footswing
+
+falls below the reference curve. The clear-ance penalty is defined as: 
+
+cclearance =
+
+> 4
+
+X
+
+> i=1
+
+1i 
+
+> swing
+
+· max(0 , zi 
+
+> ref
+
+− zi
+
+> footswing
+
+)2, (14) where the indicator function 1i 
+
+> swing
+
+∈ {0, 1} ensures the penalty is solely evaluated during the swing phase. Furthermore, dynamic constraints are applied to strictly restrict large joint torques and velocities. Finally, severe collision penalties are imposed on non-foot rigid bodies (e.g., thighs and base) to guarantee physical safety. 
+
+D. Learning Semantic-Aware Locomotion via Two-Stage RL 
+
+Learning semantic-aware locomotion from scratch in a highly cluttered environment poses a significant exploration challenge. Direct training with rigid physical obstacles fre-quently causes premature episode terminations (e.g., the robot tripping and falling), severely restricting the agent’s ability to collect meaningful reward signals and leading to overly con-servative policies. Consequently, the policy often converges to suboptimal local minima, failing to master either stable locomotion or reliable obstacle avoidance simultaneously. To address this, we design a two-stage RL approach. 
+
+1) Virtual Obstacle Stage : In the first stage, we create a virtual training environment where obstacles are visually and semantically represented in Helev  
+
+> t
+
+and Hsem  
+
+> t
+
+, but physical collisions are disabled, as shown in Fig. 3. The robot’s limbs can pass through obstacles without triggering physical reaction forces or ending the episode. This means the robot will neither trip over obstacles nor push them away. During this stage, the policy relies solely on the Semantic-Aware Raibert Heuristic Reward ( rsem ) to adjust its foot placement. Working together with the curriculum, this safe stage allows the policy to gradually progress from basic stable locomotion to semantic-aware foot placement. This helps the robot build a robust mapping from visual inputs to spatial leg-swing coordination, without the severe penalties of physical collisions.  
+
+> Fig. 3: Virtual semantic elevation map. Traversability are color-coded (red and yellow, respectively), with obstacle elevations rep-resented by the vertical positions of the yellow spheres.
+
+2) Rigid Obstacle Stage : After the policy converges in the soft dynamic stage, we transfer it to the second stage, where full physical interactions are enabled. Obstacles are created as rigid bodies, and their density and variety are increased compared to the first stage, further improving the robot’s obstacle avoidance ability. In this stage, the policy adjusts the previously learned motion patterns to handle complex physical interactions, such as friction changes and minor accidental collisions. This results in robust and collision-free locomotion that is suitable for real-world deployment. 
+
+E. Curriculum Learning for Generalization and Robustness 
+
+We design two types of curriculum:Velocity Curriculum and Obstacle Density Curriculum. 
+
+1) Velocity Curriculum : We use a grid-based adaptive curriculum form [27]. The linear velocities and angular veloc-ities are uniformly discretized into a multi-dimensional grid of di ffi culty bins. During training, the sampling probabilities of these bins are dynamically updated based on the agent’s historical tracking rewards. In addition to velocity com-mands, training can be conditioned on behavior parameters. While this approach did not significantly benefit our primary obstacle-avoidance task, expanding the instruction space re-mains an e ff ective strategy for versatile terrain adaptation. 
+
+2) Obstacle Density Curriculum : If the robot starts train-ing in an environment with too many obstacles, it may often fail and receive high penalties, leading to a conservative strategy where it just stays in place. To avoid this, we use an obstacle density curriculum to control the di ffi culty of the training environment. We use ρobst to represent the density of obstacles. As the robot gets better at tracking velocity commands, we gradually increase ρobst until it reaches the maximum level. Fig. 4 provides examples. 
+
+F. Training Setup in Simulator and Real-world Deployment 
+
+Training: We conduct two-stage training environments in the IsaacLab framework [28] and use Proximal Policy Fig. 4: Example of obstacle curricula. 
+
+Optimization [29] to train policies. Each stage is trained with 4096 parallel environments of Unitree Go2 robot; the domain randomization ranges and the PPO hyperparameters. We train on a single NVIDIA RTX 5090 GPU, with the soft constraint stage taking approximately 1.5 hours and the hard constraint stage 3.5 hours. 
+
+Real-World Deployment: We deploy SemLoco on aUnitree Go2 equipped with a head-mounted spatial memory module Odin1 and an onboard computer. To preserve the robot’s nominal dynamics, all computations—including se-mantic segmentation, map fusion, and policy inference—are executed locally. The control policy runs at 50 Hz, while the asynchronous perception front-end updates at 8–10 Hz. Specifically, a semantic map, which is converted into atraversability cost map via class-specific weights and syn-chronized with a depth-derived elevation map. This dual-map representation ensures low-latency, foot-level percep-tion. During testing, the robot navigates straight trajectories through indoor clutter (e.g., cables, scattered debris). For safety, forward speed is capped up to 0.7 m /s with automatic stopping under low map confidence, and all states are logged for post-run analysis. IV. E xperiments 
+
+A. Experimental Setup 
+
+We compare SemLoco with baselines and ablations:  
+
+> •
+
+Blind: A blind policy with standard walking gait.  
+
+> •
+
+Ours w /o Virtual Obstacle Stage: An ablation of our policy that removes the first stage.  
+
+> •
+
+Ours w/o ReLU Clearance Penalty: This policy uses a strict trajectory tracking constraint −(z − sfeet ·
+
+sin πϕ i
+
+> swing
+
+)2 to replace the ReLU Clearance Penalty.  
+
+> •
+
+Ours w /o Semantic Map: Our policy without semantic map by setting the semantic map to zero.  
+
+> •
+
+Ours (full): Our policy trained via a two-stage RL ap-proach with semantic input and ReLU clearance penalty. Experiments are conducted in Isaac Sim [30]. For the simulation evaluation, we benchmark each policy on a 10m ×
+
+2m straight-line track populated with varying densities of obstacle. In contrast to the obstacle placement strategy used during training, obstacles in the physical experiments may be stacked on top of each other, as shown in Supp.. The robot is commanded to traverse the track with a target forward velocity of 0 .7 m /s. We evaluate the performance using three primary metrics:  
+
+> •
+
+Success Rate ( S , %) : The percentage of trials in which the robot successfully completes the obstacle course.  
+
+> •
+
+Average Distance to Failure (D, m) : The average distance traveled by the robot before encountering a failure. (This metric is selected to mitigate evaluation biases caused by bimodal performance distributions.)  
+
+> •
+
+Step Collision Rate ( C, %) : The percentage of footsteps that collide with obstacles relative to the total number of steps taken during traversal. 
+
+B. Simulation Evaluation 1) Quantitative Analyses: The quantitative results of our experiments are summarized in Table I. To ensure a fair and statistically robust comparison, all policies are evaluated across an identical set of 500 randomly generated environ-ments for each density configuration. The reported quantita-tive metrics are averaged over these 500 independent trials. In general, SemLoco consistently outperforms all baseline methods across di ff erent obstacle densities, particularly in highly dense environments. 
+
+Traversal Capability and Survival: As expected, the Blind policy finds it almost impossible to navigate entire obstructed terrains, resulting in the lowest average distance to failure ( D) and the lowest success rate ( S ). In contrast, Ours (full) maintains a near-perfect D of approximately 9 m, demonstrating robust locomotion and sustained survival even when faced with heavily cluttered obstacles. Obstacle Avoid-ance Performance: The e ff ectiveness of our two-stage RL approach is most evident in the step collision rate ( C). Ours (full) achieves the lowest C among all methods, e ff ectively reducing unintended foot-obstacle collisions by 74% to 95% (depending on obstacle density) relative to the blind baseline. Conversely, the Blind policy possesses almost no capability for obstacle avoidance; as environmental density increases, almost every footstep inevitably results in a collision with the terrain debris. 
+
+2) Detailed Ablation Analysis: We perform a detailed ablation analysis focusing on the two-stage RL curriculum, the reward formulation, and the exteroceptive modalities, as detailed in the lower section of Table I. 
+
+Eff ectiveness of the Two-Stage Curriculum: Removing the initial virtual obstacle stage (Ours w /o Virtual Obstacle Stage) leads to catastrophic performance degradation. For in-stance, at a moderate density of 15 obstacles /m2, the success rate ( S ) plummets from 92.60% to 45.80%, and the mean distance to failure ( D) drops to 5.88 m. Without the relaxed dynamic constraints provided in the first stage, the agent is immediately penalized for any temporal gait violations during its early exploration phase. This highlights that our two-stage curriculum is indispensable for resolving the fundamental conflict between spatial exploration and strict temporal gait adherence. 
+
+Flexible Foot Clearance vs. Strict Tracking: When sub-stituting our unilateral ReLU-based clearance penalty with a strict bilateral trajectory tracking constraint (Ours w /o ReLU Clearance Penalty), we observe a significant deterioration in obstacle avoidance. At 15 obstacles /m2, the step collision rate (C) increases by a factor of 2.6, rising from 8.78% to 23.07%. Fig. 5: Performance contrast among di ff erent policies in real world.                                                                                                        
+
+> TABLE I: Performance comparison under di ff erent obstacle densities.
+> Policy 10 obstacles m−215 obstacles m−220 obstacles m−225 obstacles m−2
+> D↑S↑C↓D↑S↑C↓D↑S↑C↓D↑S↑C↓
+> (m) (%) (%) (m) (%) (%) (m) (%) (%) (m) (%) (%) Ours 9.67 97.00 2.37 9.51 92.60 8.78 9.29 87.40 13.45 8.94 82.20 24.33
+> Blind 5.53 28.40 51.11 5.38 23.20 75.56 5.08 15.60 86.67 4.62 9.40 93.33 Ours w /o Virtual Obstacle Stage 6.19 51.60 13.18 5.88 45.80 20.88 5.42 39.40 29.67 5.06 30.08 36.15 Ours w /o ReLU Clearance Penalty 8.22 75.60 16.48 7.71 62.80 23.07 7.25 53.60 31.87 6.97 46.20 39.56 Ours w /o Semantic Map 9.55 97.00 7.46 9.36 92.20 11.28 8.92 84.20 17.33 8.59 77.80 26.22
+
+A strict trajectory constraint forces the foot to rigidly adhere to a predefined mathematical curve, depriving the agent of the spatial freedom required to dynamically elevate its feet higher than the nominal trajectory when negotiating unpredictable debris. The ReLU-based penalty, on the contrary, enforces only a minimum safe clearance, granting the policy the nec-essary flexibility to execute collision-free swing trajectories in dense clutter. 
+
+Semantic Awareness vs. Geometric Proxy: Interestingly, the policy stripped of semantic inputs (Ours w /o Semantic Map) maintains a Success Rate highly comparable to our full pipeline across the physical clutter track (e.g., both achieve 97.00% at 10 obstacles /m2). However, it exhibits a noticeably higher Step Collision Rate (e.g., 7.46% vs. 2.37% at 10 obstacles /m²). This behavior is fundamentally expected in such physical clutter scenarios. Since the scattered ob-stacles inherently possess prominent physical heights, the neural network e ffi ciently learns to exploit extreme elevation gradients from the geometric map as a proxy for unsafe footholds. However, we explicitly retain this baseline to emphasize the conceptual ceiling of elevation-only methods. While elevation serves as an e ff ective obstacle proxy on flat training terrains, it fails under real-world complexities. First, on uneven topographies like stairs, pure geometry becomes ambiguous, as height variation may indicate a safe foothold rather than a hazard. Second, small obstacles are easily obscured by real sensor noise, underscoring the necessity of explicit semantic information. 
+
+C. Sim-to-Real Experiments 
+
+To validate the practical viability of SemLoco, we conduct qualitative real-world tests in an unstructured indoor environ-ment. The test track is deliberately populated with fragile and low-profile everyday clutter, including power cables, smartphones, boxes, and small stationery. 
+
+Sensor Noise and Map Modality Comparison: These low-profile objects represent the exact edge cases where tradi-tional geometric proxies fail. In our real-world visualization, the physical depth sensor’s inherent noise floor completely obscures the millimeter-level height variations of these items, rendering the elevation map virtually indistinguishable from the flat ground. In stark contrast, the semantic map distinctly highlights these objects as high-cost hazards. This visual val-idation confirms the absolute necessity of semantic-geometry disentanglement for reliable real-world perception. 
+
+Semantic Avoidance: The core intelligence of SemLoco lies not merely in elevating the swing leg, but in its proactive foothold judgment. During experiment, if our policy predicts a foothold landing directly on a semantically hazardous ob-ject (e.g., a smartphone), the policy dynamically intervenes. It actively shortens the stride to secure a safe foothold immediately before the object. Subsequently, on the next gait cycle, it commands a high-clearance swing trajectory to cleanly step over the hazard. While a traditional blind controller might occasionally step over an object by pure luck if its foot happens to land perfectly in front of it, it fundamentally lacks this spatial judgment and proactive stride modulation. 
+
+Baseline Comparison: We qualitatively compare Sem-Loco against a blind baseline. The baseline policy exhibits a severe ”bulldozer” behavior: entirely oblivious to the sur-rounding fragility, it marches forward rigidly. Consequently, it collides with, kicks away, and aggressively tramples the scattered debris, posing a critical danger to both the robot and the objects. Conversely, SemLoco demonstrates signifi-cantly more deliberate navigation, e ff ectively mitigating the majority of severe collisions with fragile debris. This high-lights the potential of semantic-aware locomotion to improve operational safety in unstructured, real-world environments. V. C onclusion 
+
+In this work, we introduced SemLoco, a semantic-aware locomotion framework that achieves precise foothold selec-tion in dense, unstructured environments. By explicitly disen-tangling environmental semantics from geometric heights and employing a two-stage reinforcement learning curriculum, SemLoco successfully overcomes the geometric ambiguities and perceptual failure modes inherent to traditional eleva-tion proxies. Extensive evaluations across both simulation and real-world indoor scenarios confirm that our approach significantly mitigates step collision rates, ensuring safe and deliberate foot placements without compromising overall locomotion e ffi ciency. 
+
+Limitation and Future Work: While the proposed Sem-Loco framework significantly enhances semantic-aware nav-igation, simulation and deployment reveal limitations in both rigid-body dynamics and semantic representation. First, in terms of dynamics and hardware, extreme asymmetric footholds induce uncompensated angular momentum, occa-sionally resulting in observable yaw drift or pushing the joints near kinematic singularities. Additionally, aggressive clearance trajectories often exceed the physical bandwidth of the actuators, occasionally causing toe-stubbing due to tracking lag. Second, a noticeable sim-to-real gap stems from the semantic simulation environment. To manage compu-tational overhead during RL training, complex real-world debris is approximated using simplified geometric primitives (e.g., rectangular grids). This approximation limits the pol-icy’s exposure to realistic, high-fidelity object boundaries. Furthermore, our current pipeline compresses environmental semantics into a singular ”fragility” cost. Real-world appli-cations, however, encompass open-vocabulary semantics that dictate diverse interactive behaviors. Future work will explore integrating high-fidelity semantic simulators and Vision-Language-Action (VLA) models to achieve comprehensive open-vocabulary semantic comprehension and generalized locomotion. References 
+
+[1] J. Hwangbo, J. Lee, A. Dosovitskiy, D. Bellicoso, V. Tsounis, V. Koltun, and M. Hutter, “Learning agile and dynamic motor skills for legged robots,” Science Robotics , vol. 4, no. 26, p. eaau5872, 2019. [2] T. Miki, J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter, “Learning robust perceptive locomotion for quadrupedal robots in the wild,” Science Robotics , vol. 7, no. 62, p. eabk2822, 2022. [3] A. Kumar, Z. Fu, D. Pathak, and J. Malik, “Rma: Rapid motor adaptation for legged robots,” in Robotics: Science and Systems (RSS) ,2021. [4] N. Rudin, D. Hoeller, M. Bjelonic, and M. Hutter, “Advanced skills by learning locomotion and local navigation end-to-end,” in Proc. IEEE /RSJ Int. Conf. Intell. Robots Syst. (IROS) , 2022. [5] P. Fankhauser, M. Bloesch, and M. Hutter, “Probabilistic terrain mapping for mobile robots with uncertain localization,” IEEE Robot. Autom. Lett. , 2018. [6] D. D. Fan, S. Dey, A.-a. Agha-mohammadi, and E. A. Theodorou, “Learning risk-aware costmaps for traversability in challenging envi-ronments,” IEEE Robot. Autom. Lett. , 2022. [7] M. J. Miles, H. Biggie, and C. Heckman, “Terrain-aware semantic map-ping for cooperative subterranean exploration,” Frontiers in Robotics and AI , vol. 10, p. 1249586, 2023. [8] R. Yue, L. Feng, L. Ma, M. Zhang, K. Shen, and Y. Sun, “Safety path planning for quadruped robots optimized by multi-sensor fusion,” 
+
+IFAC-PapersOnLine , vol. 59, no. 27, pp. 55–60, 2025. [9] S. Ha, J. Lee, M. van de Panne, Z. Xie, W. Yu, and M. Khadiv, “Learning-based legged locomotion: State of the art and future per-spectives,” The International Journal of Robotics Research , vol. 44, no. 8, pp. 1396–1427, 2025. [10] R. Grandia, F. Jenelten, S. Yang, F. Farshidian, and M. Hutter, “Perceptive locomotion through nonlinear model-predictive control,” 
+
+IEEE Transactions on Robotics , vol. 39, no. 5, pp. 3402–3421, 2023. [11] D. Kim, J. Di Carlo, B. Katz, G. Bledt, and S. Kim, “Highly dynamic quadruped locomotion via whole-body impulse control and model predictive control,” arXiv preprint arXiv:1909.06586 , 2019. [12] N. Rudin, D. Hoeller, M. Bjelonic, and M. Hutter, “Advanced skills by learning locomotion and local navigation end-to-end,” in Proc. IEEE /RSJ Int. Conf. Intell. Robots Syst. (IROS) , 2022. [13] T. Miki, J. Lee, J. Hwangbo, L. Wellhausen, V. Koltun, and M. Hutter, “Learning robust perceptive locomotion for quadrupedal robots in the wild,” Science robotics , vol. 7, no. 62, p. eabk2822, 2022. [14] F. Jenelten, T. Miki, A. E. Vijayan, M. Bjelonic, and M. Hutter, “Perceptive locomotion in rough terrain–online foothold optimization,” 
+
+IEEE Robot. Autom. Lett. , 2020. [15] G. Erni, J. Frey, T. Miki, M. Mattamala, and M. Hutter, “Mem: Multi-modal elevation mapping for robotics and learning,” in Proc. IEEE /RSJ Int. Conf. Intell. Robots Syst. (IROS) , 2023. [16] D. Maturana, P.-W. Chou, M. Uenoyama, and S. Scherer, “Real-time semantic mapping for autonomous o ff -road navigation,” in Field and Service Robotics: Results of the 11th International Conference .Springer, 2017, pp. 335–350. [17] P. Kremer, H. Bavle, J. L. Sanchez-Lopez, and H. Voos, “S-nav: Semantic-geometric planning for mobile robots,” arXiv preprint arXiv:2307.01613 , 2023. [18] Y. Kim, J. H. Lee, C. Lee, J. Mun, D. Youm, J. Park, and J. Hwangbo, “Learning semantic traversability with egocentric video and automated annotation strategy,” IEEE Robot. Autom. Lett. , 2024. [19] X. Cai, M. Everett, J. Fink, and J. P. How, “Risk-aware o ff -road navigation via a learned speed distribution map,” in Proc. IEEE /RSJ Int. Conf. Intell. Robots Syst. (IROS) , 2022. [20] S. Achat, J. Marzat, and J. Moras, “Path planning incorporating semantic information for autonomous robot navigation,” in 19th In-ternational Conference on Informatics in Control, Automation and Robotics (ICINCO) 2022 . SCITEPRESS-Science and Technology Publications, 2022, pp. 285–295. [21] P. Roth, J. Nubert, F. Yang, M. Mittal, and M. Hutter, “Viplanner: Visual semantic imperative learning for local navigation,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA) , 2024. [22] Y. Yang, X. Meng, W. Yu, T. Zhang, J. Tan, and B. Boots, “Learning semantics-aware locomotion skills from human demonstration,” in 
+
+Proceedings of The 6th Conference on Robot Learning (CoRL) , ser. Proceedings of Machine Learning Research, vol. 205, 2023, pp. 2205–2214. [Online]. Available: https: // proceedings.mlr.press /v205 /
+
+[23] G. B. Margolis and P. Agrawal, “Walk these ways: Tuning robot control for generalization with multiplicity of behavior,” in Conf. Robot Learn. (CoRL) , 2023. [24] J. Siekmann, Y. Godse, A. Fern, and J. Hurst, “Sim-to-real learning of all common bipedal gaits via periodic reward composition,” in Proc. IEEE Int. Conf. Robot. Autom. (ICRA) , 2021. [25] M. H. Raibert, Legged robots that balance . MIT press, 1986. [26] G. Ji, J. Mun, H. Kim, and J. Hwangbo, “Concurrent training of a control policy and a state estimator for dynamic and robust legged locomotion,” IEEE Robot. Autom. Lett. , 2022. [27] G. B. Margolis, G. Yang, K. Paigwar, T. Chen, and P. Agrawal, “Rapid locomotion via reinforcement learning,” Int. J. Robot. Res. , 2024. [28] M. Mittal, P. Roth, J. Tigue, A. Richard, O. Zhang, P. Du, A. Serrano-Munoz, X. Yao, R. Zurbr¨ ugg, N. Rudin et al. , “Isaac lab: A gpu-accelerated simulation framework for multi-modal robot learning,” 
+
+arXiv preprint arXiv:2511.04831 , 2025. [29] J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov, “Proximal policy optimization algorithms,” arXiv preprint arXiv:1707.06347 , 2017. [30] NVIDIA, “Isaac sim,” https: // github.com /isaac-sim /IsaacSim, 2025, version 5.1.0. Software. Accessed: 2026-02-25.

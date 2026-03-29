@@ -1,0 +1,501 @@
+Title: Local Safety Filters for Networked Systems via Two-Time-Scale Design
+
+URL Source: https://arxiv.org/pdf/2603.03632v1
+
+Published Time: Thu, 05 Mar 2026 01:29:07 GMT
+
+Number of Pages: 6
+
+Markdown Content:
+# Local Safety Filters for Networked Systems via Two-Time-Scale Design 
+
+Emiliano Dall’Anese 
+
+Abstract — Safety filters based on Control Barrier Func-tions (CBFs) provide formal guarantees of forward invariance, but are often difficult to implement in networked dynamical systems. This is due to global coupling and communication requirements. This paper develops locally implementable ap-proximations of networked CBF safety filters that require no coordination across subsystems. The proposed approach is based on a two-time-scale dynamic implementation inspired by singular perturbation theory, where a small parameter ϵ
+
+separates fast filter dynamics from the plant dynamics; then, a local implementation is enabled via derivative estimation. Explicit bounds are derived to quantify the mismatch between trajectories of the systems with dynamic filter and with the ideal centralized safety filter. These results characterize how safety degradation depends on the time-scale parameter ϵ, estimation errors, and filter activation time, thereby quantifying trade-offs between safety guarantees and local implementability. 
+
+I. I NTRODUCTION 
+
+Control Barrier Functions (CBFs) provide a systematic framework for enforcing forward invariance of prescribed safe sets [1]. In this context, CBFs are commonly used to construct safety filters that minimally modify the input of a nominal controller, which are typically designed for stability or robustness, to enforce safety. In networked dynamical systems, such as transportation networks [2], power grids [3], and robotic networks [4], safety poses additional challenges: constraints are often defined locally, while the underlying dynamics are globally coupled. In these settings, enforcing safety via CBF-based filters generally requires solving a network-level optimization problem that captures interconnection effects. Such imple-mentations can be difficult to realize in practice due to communication requirements and stringent control update rates. This gap between theoretical safety guarantees and im-plementable architectures motivates the study of distributed and locally implementable safety filters and the characteri-zation of trade-offs between safety, communication, and the availability of model information. 
+
+Prior works . Distributed implementations of CBF-based safety filters have been studied by decomposing centralized CBF quadratic programs across agents [5], [6]. Related ap-proaches have developed distributed CBF-based controllers for safe navigation and formation control [7], where coupling is through the safety constraints. Alternative constructions of CBFs have been proposed to improve implementability by reducing computational complexity [8]. Scalable formu-lations based on Banach CBFs for continuum swarm models 
+
+> E. Dall’Anese is with the Department of Electrical and Compute En-gineering and the Division of Systems Engineering, Boston University, Boston, MA 02215, USA (email: edallane@bu.edu)
+
+have also been explored [9]. Collaborative approaches have been proposed for dynamically coupled networks, where neighboring agents coordinate safety actions through com-munication [10]. Collectively, these works primarily focus on distributed implementations (with different degrees of communication overhead) of safety filters. Open questions remain on how to realize fully local safety filters with minimal communication and limited model information. 
+
+Contributions . This paper studies safety filters that can be implemented locally at each subsystem. The main contribu-tions are as follows. 
+
+(c1) We consider a class of CBF-QPs with separable structure that admit closed-form safety filters. Since these filters still require global state information and system dynamics, we de-velop locally implementable approximations using a two-step design. First, inspired by singular perturbation theory [11], we introduce a dynamical approximation in which a small parameter ϵ induces a separation between fast filter dynamics and plant dynamics. Second, we leverage local derivative estimates (e.g., dirty derivatives [12], [13]) to obtain dynamic safety filters that rely only on local information. 
+
+(c2) We derive explicit trajectory deviation bounds between the systems equipped with dynamic filters and centralized safety filters with network and disturbance information. The bounds characterize how safety degradation depends on the time-scale parameter ϵ, estimation errors of the derivative, and the availability of state and network model, thereby quantifying trade-offs between safety guarantees and imple-mentability. To the best of our knowledge, this work provides a first trajectory-level characterization of safety degradation in locally implementable CBF filters in network systems. 
+
+(c3) We evaluate the proposed dynamic filters on frequency control in power transmission systems with grid-following inverters [3]. We impose constraints on the frequency nadir following generation losses or load increases. The results illustrate how safety degradation scales with ϵ while demon-strating the feasibility of fully local implementations. Lastly, note that two-time-scale proximal primal–dual flows for tracking centralized CBF-QP solutions were pro-posed in [14]. In contrast, we develop locally implementable approximations of centralized CBF filters with explicit trajectory-level guarantees. II. P RELIMINARIES AND SYSTEM MODEL 
+
+Notation . We denote by R the set of real numbers. Given vectors x ∈ Rn and y ∈ Rm, we let (x, y ) ∈ Rn+m denote their concatenation; given matrices A ∈ Rn×n, B ∈ Rm×m,
+
+blkdiag( A, B ) forms a block-diagonal matrix. Given a norm 
+
+> arXiv:2603.03632v1 [eess.SY] 4 Mar 2026
+
+∥ · ∥ x on Rn, ∥x∥x denotes the norm of x ∈ Rn, and ∥A∥x
+
+denotes the induced matrix norm of A ∈ Rn×n. The induced logarithmic norm (log-norm) associated with ∥·∥ x is defined as μ∥·∥ x (M ) := lim h→0+ ∥In+hM ∥x−1 
+
+> h
+
+. Given norms ∥ · ∥ x
+
+on Rn and ∥ · ∥ z on Rm, and a matrix M ∈ Rm×n,the induced cross-norm is ∥M ∥x→z := max ∥v∥x=1 ∥M v ∥z .Finally, J· ; ·Kx denotes a compatible weak pairing associated with the selected norm ∥·∥ x [15, Ch. 2]. To simplify notation, we drop subscripts; the underlying norms will be understood from context. A continuous function α : R → R is an extended class 
+
+K∞ if α(0) = 0 , α is strictly increasing and lim  
+
+> s→±∞
+
+α(s) = 
+
+±∞ ; a natural example is the function α(x) = α0x, with 
+
+α0 ∈ R>0. For a real-valued function f : R → R, the upper right-hand Dini derivative is defined as D+f (t) := lim sup h→0+   
+
+> f(t+h)−f(t)
+> h
+
+. Given a function f : Rn → Rm,we say that f is Lipschitz on a set X ⊆ Rn with constant ℓf,x 
+
+(with respect to ∥·∥ x and ∥·∥ z ) if ∥f (x)−f (y)∥z ≤ ℓf,x ∥x−
+
+y∥x, ∀x, y ∈ X . All functions are assumed measurable where needed, and locally integrable. 
+
+A. Network model and safety objectives 
+
+Consider a network of N subsystems. For each subsystem 
+
+i ∈ N := {1, . . . , N }, let xi ∈ Rni denote the local state, 
+
+ui ∈ Rmi the local input, and wi ∈ Rni an unknown exoge-nous input or disturbance. Let x := ( x1, . . . , x N ) ∈ Rn with 
+
+n := PNi=1 ni, u := ( u1, . . . , u N ), and w := ( w1, . . . , w N ).We consider networked dynamics of the form 
+
+˙xi = fi(x) + Biui + wi, i = 1 , . . . , N, (1) where the map x 7 → fi(x) is locally Lipschitz on an open convex domain D ⊂ Rn (for a given norm ∥ · ∥ on Rn), 
+
+Bi ∈ Rni×mi , and t 7 → w(t) is measurable and essentially bounded. The local states {xi}i∈N are coupled through the vector fields {fi(x)}i∈N , which capture the network interac-tions. Stacking (1) and defining f (x) := ( f1(x), . . . , f N (x)) 
+
+and B := blkdiag  B1, . . . , B N
+
+ yields 
+
+˙x = f (x) + Bu + w. (2) It is assumed that each subsystem implements a local nominal controller ui = κi(xi), where κi : Rni → Rmi
+
+is locally Lipschitz. Let κ(x) := ( κ1(x1), . . . , κ N (xN )) and 
+
+m := PNi=1 mi; then the nominal dynamics are given by 
+
+˙x = F(x) + w, F(x) := f (x) + Bκ (x). (3) The nominal controllers κi are designed to achieve pre-scribed local or global performance objectives, such as stabilization of desired equilibria of the networked system. In particular, we assume the following. 
+
+Assumption 1 (Stable nominal dynamics): For a given norm ∥ · ∥ on Rn, there exists cF < 0 such that μ(DF(x)) ≤
+
+cF for almost every x ∈ D . □
+
+Since x 7 → F(x) is locally Lipschitz, it is differentiable almost everywhere by Rademacher’s theorem. Assumption 1 implies that, for any given w, the nominal system is strongly infinitesimally contractive in the norm ∥ · ∥ [16], hence incrementally exponentially stable on D (cF is essentially the one-sided Lipschitz constant of F(x)). We are interested in enforcing safety constraints on the local states. Specifically, for each subsystem i, let Si ⊂ D 
+
+denote a local safe set . Given a continuously differentiable function hi : D → R, the local safe set is defined as 
+
+Si := {xi ∈ D : hi(xi) ≥ 0}. (4) The overall safe set for the network is given by S = S1 ×· · · × S N . Since the nominal controllers are not guaranteed to ensure safety, a common approach is to provide an input correction by leveraging tools from CBFs [1]. In the following, we recall the definition of CBFs and describe the associated safety filter (with definitions provided globally for the network). 
+
+Definition 1 (Network CBF): The functions {hi}i∈N de-fine a CBF for S on D under the dynamics (3) if there exist extended class-K∞ functions αi such that, for all x ∈ D ,there exist inputs ui satisfying ∇hi(xi)⊤ Fi(x) + Biui +
+
+wi
+
+ + αi(hi(xi)) ≥ 0 for all i ∈ N . □
+
+To minimally modify the local nominal controllers, we introduce a correction s ∈ Rm and set ui = κi(xi) + si,
+
+i ∈ N . In particular, for a given state x, the correction s(x),also referred to as safety filter , is computed as the unique optimal solution of the following quadratic program (QP) [1]: 
+
+s(x) := arg min  
+
+> θ∈Rm
+
+∥θ∥22 (5a) s. to: ∇hi(xi)⊤ Fi(x) + Biθi + wi
+
+
+
++ αi(hi(xi)) ≥ 0, i ∈ N (5b) where θ = ( θ1, . . . , θ N ) and Fi(x) the ith block of F(x).The QP corresponds to the projection of 0m onto the poly-hedron defined by (5b). We impose the following assumption (cf. [1]). 
+
+Assumption 2 (Well-posedness of the safety filter): For every x ∈ D , the QP (5) is feasible. For all i ∈ N and all 
+
+x such that hi(xi) = 0 , it holds that B⊤ 
+
+> i
+
+∇hi(xi)̸ = 0 . □
+
+The resulting filtered system is then defined as 
+
+˙x = N(x) := F(x) + Bs (x) + w . (6) Under Assumption 2, s(x) is well defined on D; moreover, the right-hand side of (6) is locally Lipschitz [17]. When 
+
+{hi}i∈N define a CBF for S on D as in Definition 1, it is well known that (6) renders the set S forward invariant; see, e.g., [1] for a formal proof of this result. 
+
+B. Problem statement 
+
+The optimization problem (5) favorably decouples into N
+
+sub-problems, one per sub-system, each affording a closed-loop solution. In particular, a convenient way to write the closed-form solution using the ReLU function is: 
+
+si(x) = di(xi)ReLU (−ηi(x)) (7) where 
+
+ηi(x) := ∇hi(xi)⊤ Fi(x) + wi
+
+ + αi(hi(xi)) 
+
+di(xi) := B⊤ 
+
+> i
+
+∇hi(xi)
+
+∥B⊤ 
+
+> i
+
+∇hi(xi)∥2for brevity. Computing si(x) at each subsystem i ∈ N
+
+requires access to: (i) the model terms Fi(x), which depend on the global state x and the network couplings, and (ii) the exogenous input wi. In many large-scale systems, such as power grids [3] transportation systems [2], and robotic networks [4], collecting the global state in real time is impractical due to communication and latency constraints. As a result, evaluating Fi(x) at the time scales required for safety enforcement may be impractical. Furthermore, distur-bance observers become difficult to design when accurate models of Fi(x) are unavailable. This fundamentally limits the deployment of CBF-based safety filters in distributed, real-time settings and motivates the main problem tackled in this paper. 
+
+Problem 1 (Filter design): Design an approximate safety filter that can be implemented locally at each subsystem with-out requiring knowledge of the global state x, function F(x),and the disturbance wi. Characterize the trade-offs between safety and the availability of model and state information. □
+
+A couple of remarks are provided next. 
+
+Remark 1 (Safety sets): For clarity of exposition, we present the proposed approach for local safe sets defined as in (4). However, the methodology developed in this paper is applicable to cases when Si is defined by multiple constraints; the key requirement is that the safety filter (5) admits a closed-form solution. This condition holds, for example, when enforcing box constraints on the local states 
+
+xi, or when the matrix of the linear constraints is order preserving. See, for example [18]. □
+
+Remark 2 (Sub-system dynamics): The technical argu-ments presented in the paper can be, at the cost of a heavier notation, be extended to dynamics of the form ˙xi = fi(x) + 
+
+gi(xi)ui + wi, with gi(xi) locally Lipschitz on D. □
+
+III. L OCAL DYNAMIC FILTER 
+
+A. Design of the Dynamic Filter 
+
+The main impediment to local evaluation of the filter si(x)
+
+in (7) is the term ∇hi(xi)⊤ Fi(x) + wi
+
+ appearing in ηi(x).To eliminate the need for Fi(x) and wi, we construct an approximate dynamic filter via a two-step procedure. 
+
+(i) Dynamic relaxation . First, we consider a dynamical approximation of (7) 
+
+˙zi = −zi + si(x), i ∈ N , (8) and we utilize z := ( z1, . . . , z N ) as the input correction to the system; i.e., ˙x = F(x) + Bz + w. For frozen x,the dynamics (8) are exponentially stable, implying that zi
+
+converges to si(x). This observation will serve as the basis for the two-time-scale construction [11]. 
+
+(ii) Measurement-based approximation . Second, using z as the correction, note that ˙xi − Bizi = Fi(x) + wi. If an estimate b˙xi of ˙xi is available, (8) can be approximated by 
+
+˙zi = −zi + di(xi)ReLU (−bηi(x; b˙xi)) (9a) 
+
+bηi(x; b˙xi) := ∇hi(xi)⊤(b˙xi − Bizi)+ αi(hi(xi)) . (9b) The dynamics (9) are locally implementable at subsystem i
+
+and require only local derivative estimates. Given (9), we propose the two-time-scale implementation 
+
+˙x = F(x) + Bz + w, (10a) 
+
+ϵ ˙zi = −zi + ˜ si(xi, z i; b˙xi), i ∈ N , (10b) where ˜si(xi, z i; b˙xi) := di(xi) ReLU  − bηi(x, b˙xi) for brevity, and ϵ > 0 induces a time-scale separation between the dynamic filter and the plant. In particular, when ϵ ≪ 1, the filter dynamics evolve on the fast time scale [11]. We will show that the parameter ϵ tunes the bandwidth of the dynamic filter and provides a built-in trade-off between safety and noise attenuation. Borrowing the terminology from singular-perturbation the-ory [11], we now connect the static filtered system with the two-time-scale system (10). In the ideal case where 
+
+b˙x = ˙ x (i.e., perfect estimate), the fast dynamics reduce to 
+
+ϵ ˙z = −z + s(x). In the limit ϵ → 0+, the slow manifold is given by z = s(x), and the reduced model coincides with (6). We next inspect the case with estimation errors; suppose that 
+
+b˙xi = ˙ xi + ei, (11) where ei : t → Rni is measurable and essentially bounded. Noting that ∇hi(xi)⊤(b˙xi − Bizi) = ∇hi(xi)⊤( ˙ xi + ei −
+
+Bizi) = ∇hi(xi)⊤(Fi(x) + wi) + ∇hi(xi)⊤ei, in the limit 
+
+ϵ → 0+, (10b) yields the correction 
+
+se,i (x, t ) := di(xi)ReLU (−ηi(x) − ∇ hi(xi)⊤ei(t)) , (12) which can be interpreted as a perturbed version of s(x).
+
+B. Analysis of the Dynamic Filter 
+
+The analysis is based on bounding the distance be-tween trajectories of (10) and those of the ideal filtered system (6). This viewpoint is natural because (6) guar-antees forward invariance of the safe set. By quantifying the trajectory deviation induced by the dynamic imple-mentation, we obtain explicit trade-offs between time-scale separation, estimation accuracy, and safety degradation. In what follows, ℓs,x denotes the Lipschitz constant of s(x)
+
+on D, while ℓs,e := sup x∈D ∥d(x)∇h(x)⊤∥ (d(x) := blkdiag( d1(x1), ..., d N (xN )) ). All the results are for given vector norms and corresponding induced norms. 
+
+Proposition 1 (Error of the dynamic filter): Consider the dynamics (10) over [t0, t 1]. Suppose that x(t) ∈ X ⊂ D for all t ∈ [t0, t 1], with X compact, and let Assumption 2 hold. Define ˜z := z(t) − s(x(t)) . If ϵ−1 > ℓ s,x ∥B∥, then, 
+
+∥˜z(t)∥ ≤ e−( 1 
+
+> ϵ−ℓs,x ∥B∥)( t−t0)
+
+∥˜z(t0)∥ + E(ϵ, t 1) (13) for all t ∈ [t0, t 1], where 
+
+E(ϵ, t 1) := ϵ ℓ s,x ¯N (t1) + ℓs,e ¯e(t1)1 − ϵ ℓ s,x ∥B∥
+
+and ¯e(t1) := ess sup τ ∈[t0,t 1] ∥e(τ )∥, ¯N (t1) := sup τ ∈[t0,t 1] ∥N(x(τ )) ∥. □
+
+The proof is postponed to Section IV. The bound (13) reveals a fundamental trade-off. The parameter ϵ acts as a bandwidth knob: as ϵ → 0+, the dynamic filter approaches the static safety filter, with vanishing tracking error in the noise-free case; i.e., ∥˜z(t)∥ → 0 when ¯e(t1) = 0 . However, when derivative estimates have errors, the bias is lower bounded by O(ℓs,e ¯e(t1)) , highlighting an intrinsic robust-ness–responsiveness trade-off. The restriction to a compact set X is standard and can be ensured by boundedness of the closed-loop trajectories under the dynamic filter [19]. 
+
+Theorem 1 (Distance between x(t) and xs(t)): Consider the solution (x(t), z (t)) of the two-time-scale filtered system (10) starting from (x(t0), z (t0)) , and let xs(t)
+
+be the solution of (6) starting from xs(t0). Assume that: 
+
+x(t), x s(t) ∈ X ⊂ D for all t ∈ [t0, t 1], with X compact; Assumptions 1–2 hold; and, ϵ−1 − ℓs,x ∥B∥ > 0. Define the inactive time set 
+
+I := {t ∈ [t0, t 1] : s(x(t)) = 0 and s(xs(t)) = 0 },
+
+and let A := [ t0, t 1] \ I . Then, for all t ∈ [t0, t 1], the following holds for ˜x(t) := x(t) − xs(t):
+
+∥˜x(t)∥ ≤ ecF(t−t0)+ ℓs,x ∥B∥TA(t) ∥˜x(t0)∥ (14) 
+
++ ∥B∥ eℓs,x ∥B∥ TA(t)
+
+ ∥˜z(t0)∥
+
+ϵ−1 −ℓs,x ∥B∥ + 1
+
+|cF| E(ϵ, t 1)
+
+
+
+where TA(t) := R tt0 1A(τ ) dτ . □
+
+The proof is postponed to Section IV. Some observations are in order. 
+
+i) In the bound (14), the parameter ϵ enters only through the term E(ϵ, t 1) (see Proposition 1). As ϵ → 0+, the deviation 
+
+∥˜x(t)∥ approaches an ϵ-independent limit whenever the estimation error ¯e(t1) does not vanish. If ¯e(t1) = 0 , the dominant contribution becomes E(ϵ, t 1) = O(ϵ).
+
+ii) A more negative cF yields faster decay of the initial mismatch, provided that cF(t − t0) dominates ℓs,x ∥B∥ TA(t)
+
+(obviously, if ∥˜x(t0)∥ = 0 , the first term on the right-hand side of (14) vanishes). Moreover, the contribution in the first term scales with 1/|cF|, so stronger contraction reduces the impact of derivative estimation errors. 
+
+iii) The factor cF(t − t0) + ∥B∥ℓs,x TA(t) admits a natural interpretation in terms of filter activation time. Here, cF < 0
+
+captures the intrinsic contraction rate of the nominal dynam-ics, while the term ∥B∥ℓs,x TA(t) accumulates over intervals where both safety filters are active. Since TA(t) measures the total time spent in the set A, the bound separates a baseline contraction proportional to elapsed time (t − t0)
+
+from a deviation proportional to the filter activation time. We note that the dynamic filter (10) does not, in general, guarantee safety. Nevertheless, the bound (14) quantifies how far the trajectory x(t) may deviate from the reference trajectory xs(t) generated by the static safety filter, thereby providing an estimate of the potential degree of safety violation as a function of ϵ and the estimation error. This characterization reveals explicit trade-offs between safety and the ability to implement a network-level filter s(x).Finally, the result of Theorem 1 parallels classical singular perturbation intuition [11]. In the limit ϵ → 0, the fast esti-mation dynamics collapse onto the slow manifold z = s(x),and the bound approaches that of the reduced system, with residual mismatch governed by estimation errors through 
+
+E(ϵ, t 1). The activation-time term provides an additional refinement beyond classical singular perturbation results: rather than uniformly decreasing the trajectory distance, deviations accumulate during intervals where the safety filter actively modifies the dynamics. A remark is provided next. 
+
+Remark 3 (Estimation of the derivative): In practice, the derivative ˙xi is typically filtered to avoid noise amplification. A simple approach is based on “dirty derivatives”, which require only local measurements; in particular, an estimate is obtained via ˙ρi = − 1 
+
+> τd
+
+ρi + 1 
+
+> τd
+
+xi, b˙xi = 1 
+
+> τd
+
+(xi − ρi), where 
+
+τd > 0 is a bandwidth parameter [12], [13]. Observer-based schemes or disturbance observers may provide improved estimates of ˙xi; however, such approaches typically rely on knowledge of the system model and may not be compatible with the local implementations. □
+
+IV. P ROOFS 
+
+A. Proof of Proposition 1 
+
+Recall that ˜z(t) := z(t) − s(x(t)) . For brevity, let 
+
+G(x, z ) = ϵ−1(−z + s(x)) and ˜G(x, z ) = ϵ−1(−z +˜s(x, z ; b˙x)) , so that the ideal fast dynamics read ˙z = G(x, z )
+
+and the implemented ones read ˙z = ˜G(x, z ). Let J·; ·K be a compatible weak pairing associated with the selected norm 
+
+∥ · ∥ on Rm [15, Ch. 2]. Using the curve norm derivative formula, we have that 
+
+∥˜z(t)∥D+∥˜z(t)∥ ≤ J ˙z(t) − Ds (x(t)) ˙ x(t); ˜ z(t)K,
+
+for a.e. t ∈ [t0, t 1], where Ds (x(t)) is the Jacobian of 
+
+s(x) evaluated at x(t) (defined for a.e. x by Rademacher’s theorem). By sub-additivity of the weak pairing and the Cauchy–Schwarz-type bound Jv; wK ≤ ∥ v∥ ∥ w∥ for compat-ible pairings [15, Ch. 2], we obtain: 
+
+∥˜z(t)∥ D+∥˜z(t)∥ ≤ J ˙z(t) ; ˜ z(t)K + ∥Ds (x(t)) ˙ x(t)∥ ∥ ˜z(t)∥.
+
+We first bound the term J ˙z; ˜ zK. Using ˙z = ˜G(x, z ), add and subtract G(x, z ) to obtain J ˙z ; ˜ zK = J ˜G(x, z ) ; ˜ zK =
+
+JG(x, z ) ; ˜ zK + J ˜G(x, z ) − G(x, z ) ; ˜ zK. Note that 
+
+JG(x, z ) ; ˜ zK = JG(x, z ) − G(x, s (x)) ; ˜ zK; then, from [15, Thm. 3.7], the first term satisfies 
+
+JG(x(t), z (t)) ; ˜ z(t)K ≤ − ϵ−1∥˜z(t)∥2, (15) that is, G(x(t), z (t)) is strongly infinitesimally contractive in z for any given x. For the mismatch term, use Jv; wK ≤∥v∥ ∥ w∥ to obtain 
+
+J ˜G(x, z ) − G(x, z ) ; ˜ zK ≤ ∥ ˜G(x, z ) − G(x, z )∥ ∥ ˜z∥. (16) Finally, by the definitions of G and ˜G, ˜G(x, z ) − G(x, z ) = 
+
+ϵ−1 ˜s(x, z ; b˙x) − s(x) and, thus, 
+
+∥ ˜G(x(t), z (t)) − G(x(t), z (t)) ∥ ≤ ϵ−1ℓs,e ¯e(t1) (17) a.e. in [t0, t 1], with ℓs,e := sup x∈X ∥d(x)∇h(x)⊤∥.Next, for the term ∥Ds (x) ˙ x∥, since s(·) is Lipschitz on the compact set X with constant ℓs,x , Rademacher’s theorem implies ∥Ds (x)∥ ≤ ℓs,x for a.e. x ∈ X . Hence, for a.e. t,
+
+∥Ds (x(t)) ˙ x(t)∥ ≤ ℓs,x ∥ ˙x(t)∥. Moreover, using ˙x = N(x)+ 
+
+B(z − s(x)) = N(t, x ) + B ˜z, we have 
+
+∥ ˙x(t)∥ ≤ ∥ N(x(t)) ∥ + ∥B∥ ∥ ˜z(t)∥ ≤ ¯N (t1) + ∥B∥ ∥ ˜z(t)∥,
+
+(18) where ¯N (t1) := sup σ∈[t0,t 1] ∥N(x(σ)) ∥.Substituting (15)–(17) into the bound on J ˙z; ˜ zK, and us-ing (18) we obtain, for a.e. t ∈ [t0, t 1],
+
+∥˜z(t)∥ D+∥˜z(t)∥ ≤ − ϵ−1∥˜z(t)∥2 + ϵ−1ℓs,e ¯e(t1)∥˜z(t)∥
+
++ ℓs,x 
+
+  ¯N (t1) + ∥B∥ ∥ ˜z(t)∥ ∥˜z(t)∥.
+
+(19) If ∥˜z(t)∥ > 0, divide both sides by ∥˜z(t)∥; if ∥˜z(t)∥ = 0 ,the resulting inequality holds trivially by continuity of the right-hand side. Defining λ := −ϵ−1 + ℓs,x ∥B∥ for brevity yields 
+
+D+∥˜z(t)∥ ≤ λ∥˜z(t)∥ + ℓs,x ¯N (t1) + ϵ−1ℓs,e ¯e(t1). (20) Applying the Gr¨ onwall Comparison Lemma for absolutely continuous functions on [t0, t 1] [20] gives, for all t ∈ [t0, t 1],
+
+∥˜z(t)∥ ≤ e−λ(t−t0)∥˜z(t0)∥
+
++ 1 − e−λ(t−t0)
+
+λ
+
+
+
+ℓs,x ¯N (t1) + ϵ−1ℓs,e ¯e(t1)
+
+
+
+. (21) Using λ = (1 − ϵℓ s,x ∥B∥)/ϵ and dropping −e−λ(t−t0) yield the main bound. 
+
+B. Proof of Theorem 1 
+
+The main result and the proof are for given vector norms on Rn and Rm, and the corresponding induced norms. Subscripts are omitted to make the notation lighter. Recall that ˜x(t) := x(t)−xs(t). Then, ˙˜x = F(x)−F(xs)+ 
+
+B z−s(xs) (noting that w(t) cancels, since the two systems have the same disturbance). Add and subtract s(x):
+
+˙˜x = F(x) − F(xs) + B z − s(x) + B s(x) − s(xs).
+
+By [15, Thm. 3.7], and using the properties of the logarithmic norms μ(A + B) ≤ μ(A) + μ(B) and μ(A) ≤ ∥ A∥ one gets for almost all t ∈ [t0, t 1],
+
+D+∥˜x(t)∥ ≤ ess sup 
+
+> ξ∈co {x(t),x s(t)}
+
+μ DF(ξ) ∥˜x(t)∥
+
++ ∥B∥ ∥ ˜z(t)∥ + ∥B∥ ∥ s(x(t)) − s(xs(t)) ∥≤ cF ∥˜x(t)∥ + ∥B∥∥ ˜z(t)∥ + ∥B∥ ∥ s(x(t)) − s(xs(t)) ∥
+
+where co {x(t), x s(t)} is the convex hull of x(t) and xs(t);i.e., co {x(t), x s(t)} := {θx (t) + (1 − θ)xs(t) | θ ∈ [0 , 1] }.By definition of the sets I and A, we have ∥s(x(t)) −
+
+s(xs(t)) ∥ = 0 for t ∈ I ; hence, for almost all t ∈ [t0, t 1],
+
+D+∥˜x(t)∥ ≤ 
+
+
+
+cF + ∥B∥ ℓs,x 1A(t)
+
+
+
+∥˜x∥ + ∥B∥∥ ˜z(t)∥. (22) Applying the Gr¨ onwall Comparison Lemma [20, Ap-pendix E] (for locally integrable functions), one gets 
+
+∥˜x(t)∥ ≤ e    
+
+> Rtt0a(σ)dσ
+
+∥˜x(t0)∥+∥B∥
+
+Z tt0
+
+eR tτ a(σ) dσ ∥˜z(τ )∥ dτ, 
+
+(23) with a(t) := cF + ∥B∥ ℓs,x 1A(t) for brevity. Using the defi-nition of TA yields R tτ a(σ) dσ ≤ cF(t−τ )+ ∥B∥ ℓs,x TA(t),and substituting this into (23) gives 
+
+∥˜x(t)∥ ≤ ecF(t−t0)+ ∥B∥ ℓs,x TA(t) ∥˜x(t0)∥
+
++ ∥B∥ e∥B∥ ℓs,x TA(t)
+
+Z tt0
+
+ecF(t−τ ) ∥˜z(τ )∥ dτ. 
+
+(24) Next, we bound ∥˜z(τ )∥ using ∥˜z(τ )∥ ≤
+
+e−λ(τ −t0)∥˜z(t0)∥ + E(ϵ, t 1) as in (13), and split the integral in (24) in two terms accordingly. the final bound (14) is obtained by noticing that since cF < 0,
+
+Z tt0
+
+ecF(t−τ )e−λ(τ −t0) dτ ≤
+
+Z t−t0
+
+> 0
+
+e−λu du = 1 − e−λ(t−t0)
+
+λ
+
+which can be further bounded by 1 
+
+> λ
+
+; moreover, 
+
+R tt0 ecF(t−τ ) dτ = ecFT −1 
+
+> cF
+
+= 1−ecFT 
+
+> −cF
+
+. This concludes the proof. V. I LLUSTRATIVE NUMERICAL EXPERIMENTS 
+
+As a representative application, we consider a power transmission system with inverter-based resources (IBRs) operating in a grid-following configuration [3]. In partic-ular, IBRs provide droop control and virtual inertia. The transmission network consists of buses N = {1, . . . , N },with synchronous generators at G ⊂ N and IBRs at 
+
+R = N \ G . Active power injections follow pn(θ) =P 
+
+> j∈N n
+
+|Vn|| Vj |bnj sin( θn − θj ) assuming constant voltage magnitudes. Algebraic buses can be reduced to ODE models via frequency-divider reductions. For generators n ∈ G , we adopt the turbine–governor model [3] 
+
+˙θn = ωn, (25a) 
+
+Mn ˙ωn = −Dnωn + pm,n − pℓ,n − pn(θ), (25b) 
+
+τn ˙pm,n = −pm,n + pr 
+
+> n
+
+− Rnωn. (25c) For grid-following IBRs, we use [21] 
+
+˙θn = ωn, (26a) 
+
+Mn ˙ωn = −Dnωn + prIBR ,n − pℓ,n − pn(θ) (26b) with virtual inertia Mn and damping Dn. The IBR local state is xn = ( θn, ω n). Stacking all the dynamics yields ˙x =
+
+F(x)+ w, where the vector w collects the loads {pℓ,n }, which are unknown and time varying, and the reference points {pr
+
+> n
+
+}
+
+and {prIBR ,n }, while F(x) models the network coupling and the droop controllers. Each IBR enforces the local safety constraint ωn ≥ ω.The corresponding closed-form CBF filter is 
+
+sn(x) = ReLU  −Mne⊤ 
+
+> wn
+
+(F(x) + w) − Mnαn(ωn − ω) ,
+
+where ewn is a vector with a 1 in the position of ωn and zero otherwise. Augmenting the inverter dynamics with the ideal filter gives 
+
+Mn ˙ωn = −Dnωn + prIBR ,n − pℓ,n − pn(θ) + sn(x), (27) Fig. 1. Frequency at the bus 1. Different values of ϵ are tested. 
+
+Fig. 2. Frequency across the system with and without dynamic filter. 
+
+while the proposed dynamic implementation is 
+
+Mn ˙ωn = −Dnωn + prIBR ,n − pℓ,n − pn(θ) + zn, (28) 
+
+ϵ ˙zn = −zn + ReLU (zn − Mn ˜˙ωn − Mnαn(ωn − ω)) ,
+
+where ˜˙ωn is a derivative estimate. We simulate the IEEE-14 bus system using the DC power-flow approximation. Generators are placed at buses 2, 3, 6, 8,with IBRs at the remaining buses. The frequency nadir constraint is ω = 59 .5 Hz. Derivatives are estimated via dirty derivative as in Remark 3 with τd = 0 .01 , and trajectories are computed using forward Euler with step 10 −4.Figure 1 shows the frequency at bus 1 after a load step for three cases: no filter, ideal filter, and dynamic filter with varying ϵ. As predicted by the theory, the dynamic filter approaches the ideal one as ϵ decreases; for ϵ =0.1, violations are practically negligible. Figure 2 reports frequencies across all buses with and without the dynamic filter ( ϵ = 0 .1), showing effective post-disturbance regulation despite the fully local implementation. Connecting to Remark 1, we note that one can consider upper and lower bounds on ωn. The filter still admits a closed form solution, but it is omitted due to space limitations. VI. C ONCLUDING REMARKS 
+
+This paper studied locally implementable approximations of CBF-based safety filters for networked dynamical systems. The design was based on a two-time-scale approximation and estimates of the state derivatives. We derived explicit trajectory deviation bounds that quantify the mismatch with ideal CBF-filtered dynamics and characterize how safety degradation depends on the time-scale parameter ϵ, esti-mation errors, and filter activation. These results provide a principled framework for understanding trade-offs between safety guarantees and implementability. Future work will explore extensions to broader classes of safety constraints and robust ways to guarantee invariance with dynamic filters. REFERENCES [1] A. D. Ames, X. Xu, J. W. Grizzle, and P. Tabuada, “Control barrier function based quadratic programs for safety critical systems,” IEEE Transactions on Automatic Control , vol. 62, no. 8, pp. 3861–3876, 2017. [2] C. G. Cassandras, K. H. Johansson, and A. A. Malikopoulos, “Control, learning, and optimization methods for autonomous multi-agent sys-tems in transportation,” in IEEE Conference on Decision and Control ,2025, pp. 4744–4756. [3] F. D¨ orfler and D. Groß, “Control of low-inertia power systems,” 
+
+Annual Review of Control, Robotics, and Autonomous Systems , vol. 6, no. 1, pp. 415–445, 2023. [4] K. P. Wabersich, A. J. Taylor, J. J. Choi, K. Sreenath, C. J. Tom-lin, A. D. Ames, and M. N. Zeilinger, “Data-driven safety filters: Hamilton-jacobi reachability, control barrier functions, and predictive methods for uncertain systems,” IEEE Control Systems Magazine ,vol. 43, no. 5, pp. 137–177, 2023. [5] X. Tan and D. V. Dimarogonas, “Distributed implementation of control barrier functions for multi-agent systems,” IEEE Control Systems Letters , vol. 6, pp. 1879–1884, 2021. [6] H. Wang, A. Papachristodoulou, and K. Margellos, “Distributed safe control design and probabilistic safety verification for multi-agent systems,” Automatica , vol. 179, p. 112393, 2025. [7] P. Mestres, C. Nieto-Granda, and J. Cort´ es, “Distributed safe nav-igation of multi-agent systems using control barrier function-based controllers,” IEEE Robotics and Automation Letters , vol. 9, no. 7, pp. 6760–6767, 2024. [8] X. Min, S. Baldi, Y. Shi, and W. Yu, “Safe control of multiagent sys-tems via low-complexity control barrier functions,” IEEE Transactions on Automatic Control , vol. 70, no. 10, pp. 6831–6845, 2025. [9] X. Gao, G. Pascual, S. Brown, and S. Mart´ ınez, “Banach con-trol barrier functions for large-scale swarm control,” arXiv preprint arXiv:2602.05011 , 2026. [10] B. A. Butler and P. E. Par´ e, “Collaborative safety-critical control in coupled networked systems,” IEEE Open Journal of Control Systems ,2025. [11] P. V. Kokotovic, R. E. O’Malley Jr, and P. Sannuti, “Singular perturba-tions and order reduction in control theory - an overview,” Automatica ,vol. 12, no. 2, pp. 123–132, 1976. [12] K. J. Astrom, “PID controllers: theory, design, and tuning,” The international society of measurement and control , 1995. [13] M. Marchi, L. Fraile, and P. Tabuada, “Dirty derivatives for output feedback stabilization,” arXiv preprint arXiv:2202.01941 , 2022. [14] Z. Marvi, F. Bullo, and A. G. Alleyne, “Control barrier proximal dynamics: A contraction theoretic approach for safety verification,” 
+
+IEEE Control Systems Letters , vol. 8, pp. 880–885, 2024. [15] F. Bullo, Contraction Theory for Dynamical Systems , 1.2 ed. Kindle Direct Publishing, 2024. [16] A. Davydov, A. V. Proskurnikov, and F. Bullo, “Non-Euclidean contraction analysis of continuous-time neural networks,” IEEE Trans-actions on Automatic Control , vol. 70, no. 1, pp. 235–250, 2025. [17] P. Mestres, A. Allibhoy, and J. Cort´ es, “Regularity properties of optimization-based controllers,” European Journal of Control , vol. 81, p. 101098, 2025. [18] P. Mestres, S. S. Mousavi, P. Ong, L. Yang, E. Das, J. W. Burdick, and A. D. Ames, “Explicit control barrier function-based safety filters and their resource-aware computation,” arXiv preprint arXiv:2512.10118 ,2025. [19] H. K. Khalil, Nonlinear Systems; 3rd ed. Upper Saddle River, NJ: Prentice-Hall, 2002. [20] C. A. Desoer and M. Vidyasagar, Feedback systems: input-output properties . SIAM, 2009. [21] S. S. Guggilam, C. Zhao, E. Dall’Anese, Y. C. Chen, and S. V. Dho-ple, “Optimizing der participation in inertial and primary-frequency response,” IEEE Transactions on Power Systems , vol. 33, no. 5, pp. 5194–5205, 2018.

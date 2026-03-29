@@ -1,0 +1,693 @@
+Title: Periodic solutions of nonlinear control systems with switching: a Lie-algebraic and contraction approach
+
+URL Source: https://arxiv.org/pdf/2603.20935v1
+
+Published Time: Tue, 24 Mar 2026 00:57:40 GMT
+
+Number of Pages: 13
+
+Markdown Content:
+# Periodic solutions of nonlinear control systems with switching: a Lie-algebraic and contraction approach 
+
+# Alexander Zuyev 1,2, Peter Benner 1
+
+> 1
+
+Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg, Germany 
+
+Email: zuyev@mpi-magdeburg.mpg.de , ORCID: 0000-0002-7610-5621 
+
+Email: benner@mpi-magdeburg.mpg.de , ORCID: 0000-0003-3362-4103 
+
+> 2
+
+Institute of Applied Mathematics and Mechanics, National Academy of Sciences of Ukraine 
+
+Abstract: This paper is devoted to the analysis of periodic solutions of nonlinear control-affine systems with bang-bang controls. Such problems naturally arise in pe-riodic optimal control with constrained inputs, which have, in particular, important applications in the performance optimization of chemical reactions. We reduce the problem of constructing a periodic solution to that of finding a fixed point of a com-position of exponential maps. The latter problem is then addressed using the Baker– Campbell–Hausdorff–Dynkin (BCHD) formula. We establish the equivalence between periodic solutions of the original control system and those of an associated autonomous system involving iterated Lie brackets. In the planar case, applying the Bendixson– Dulac theorem allows us to further simplify the problem to finding the equilibria of this autonomous system. The developed theory is then applied to nonlinear chemical reaction models with constrained controls. 
+
+Keywords: nonlinear control system, Baker–Campbell–Hausdorff–Dynkin (BCHD) formula, periodic boundary value problem, contraction theory, nonlinear chemical re-action model 
+
+AMS subject classifications: 93C15, 34B15, 34A36, 92E20 
+
+Novelty statement: 
+
+• The relation between periodic solutions of a nonlinear control-affine system with bang-bang controls and an associated autonomous nonlinear differential equation is established using the Baker–Campbell–Hausdorff–Dynkin (BCHD) formula. 
+
+• For two-dimensional systems, this scheme reduces significantly to finding equi-libria of an associated vector field F .
+
+• Periodic trajectories of controlled nonisothermal chemical reaction models with piecewise constant input modulations are characterized within this approach, and their stability is established using contraction theory. 
+
+# 1 Introduction 
+
+Optimal control problems for nonlinear systems with periodic boundary conditions constitute an important area of research in mathematical control theory [4, 6, 22], with significant applications in physics [2, 7], life sciences [1, 21], and engineering [20]. In the case of constrained controls, the necessary optimality conditions derived from Pontryagin’s maximum principle for this class of 
+
+Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24 
+
+> arXiv:2603.20935v1 [math.OC] 21 Mar 2026
+
+2problems typically result in bang-bang extremal controls, whose switching times exhibit nontrivial properties due to the coupled structure of the associated Hamiltonian system (see, e.g., [24] and references therein). This problem was analyzed in our recent paper [23], where certain properties of the matrix exponent of the linear part of the system were assumed, and iterative schemes were proposed in relevant Banach spaces of continuous functions on [0 , τ ]. Our present study is motivated by the goal to propose feasible solutions to this problem without relying on such a dominant linearization assumption. The key idea in this direction is to identify fixed points of an associated composition of flows and to reformulate the problem in terms of the flow of a time-invariant system, whose vector field is defined as the logarithm of a certain product of exponential maps in the driftless representation of the original system. The subsequent sections are organized as follows. The periodic control problem for a control-affine system with bang-bang inputs is introduced and reformulated in the sense of a composition of exponential maps in Section 2. Solvability conditions for this periodic problem are proposed in Section 3 in terms of the Baker–Campbell–Hausdorff–Dynkin (BCHD) formula. In addition, we apply the contraction theory [13,14,19] to characterize the controlled dynamics in a neighborhood of the considered periodic solutions. These theoretical results are applied to controlled nonisothermal chemical reaction models with piecewise constant input modulations in Section 4. Conclusions and future perspectives are outlined in Section 5. 
+
+# 2 Problem Formulation and Preliminaries 
+
+Consider a nonlinear control-affine system of the form ˙x = f0(x) + 
+
+> m
+
+X
+
+> j=1
+
+uj gj (x), x ∈ D ⊂ Rn, u ∈ U ⊂ Rn, (2.1) where all vector fields f0 : D → Rn and gj : D → Rn are assumed to be analytic in the domain D.For a given time horizon τ > 0, an integer N ≥ 1, and a finite sequence 0 = α0 < α 1 < α 2 < ... < α N = 1 ,
+
+we introduce a partition of the interval [0 , τ ] into subintervals Ik defined by 
+
+IN = [ αN −1τ, α N τ ], I k = [ αk−1τ, α kτ ) for k = 1 , ..., N − 1.
+
+Let uτ : [0 , τ ] → U be a bang-bang control with N − 1 switchings such that 
+
+uτ (t) = u(k) for t ∈ Ik, k = 1 , 2, ..., N, (2.2) for some “switching scenario” – a finite sequence of control values u(k) ∈ U , k = 1 , 2, ..., N . We denote by x(t; x0, u τ ) the solution of system (2.1) with the initial condition x(0; x0, u τ ) = x0 ∈ D
+
+and control u = uτ (t) of the form (2.2). The main problem addressed in this paper is to find periodic solutions of system (2.1) under bang-bang control, as formulated below. 
+
+Periodic control problem. 1 Given τ > 0, N ≥ 1, and a control uτ : [0 , τ ] → U of the form (2.2) , find an initial condition x0 ∈ D such that the corresponding solution x(t; x0, u τ ) ∈ D
+
+on t ∈ [0 , τ ] satisfies the boundary condition x(τ ; x0, u τ ) = x0.
+
+By introducing the vector fields fk : D → Rn,
+
+fk(x) = f0(x) + 
+
+> m
+
+X
+
+> j=1
+
+u(k) 
+
+> j
+
+gj (x), k = 1 , 2, ..., N, (2.3) we rewrite system (2.1) with controls (2.2) 2 in a driftless representation: ˙x(t) = 
+
+> N
+
+X
+
+> k=1
+
+χIk (t)fk(x(t)) , t ∈ [0 , τ ], x (t) ∈ D, (2.4)                          
+
+> 1Any solution of x(t;x0, u τ) of the above problem defined on t∈[0 , τ ] can, by periodicity be extended to a τ-periodic solution, defined for all t∈R, under τ-periodic extension the control uτ. Therefore, we do not distinguish between solutions on [0 , τ ] satisfying the boundary condition x(0) = x(τ) and their periodic extensions on R.
+> 2In formula (2.3), u(k)
+> jstands for the j-th component of the vector u(k).
+
+Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24 3where χIk : R → { 0, 1} is the indicator function of the interval Ik. Thus, the above periodic control problem is transformed into finding solutions of the driftless control-affine system (2.4) satisfying 
+
+x(0) = x(τ ). We will refer to such solutions as τ -periodic solutions. To describe the solutions of system (2.4), we denote the (local) flow of a vector field fk : D → Rn
+
+by Φ k : X → D, where X ⊂ R × D is an open set containing {0} × D. For each x ∈ D, the map Φk(t, x ) represents the maximal solution of ddt Φk(t, x ) = fk(Φ k(t, x )) such that Φ k(0 , x ) = x. We also adopt the flow notation in terms of the exponential map as Φ k(t, x ) = etf k x. Then, the property that x(t) with x(0) = x0 is a τ -periodic solution of (2.4) is equivalent to requiring that the composition of exponential maps 
+
+eα1τ f 1 eα2τ f 2 · · · eαN τ f N (2.5) has a fixed point x0 ∈ D.
+
+# 3 Main Results 
+
+To study the fixed points of the flow composition (2.5), we will construct a vector field F : D → Rn
+
+such that 
+
+eα1τ f 1 eα2τ f 2 · · · eαN τ f N = eF , (3.1) where the concatenation of flows in (3.1) is read from left to right (cf. [8]). For this purpose, we treat f1, f 2, ..., f N as elements of a Lie algebra L of vector fields on D, and consider their exponential maps etf 1 , etf 2 , ..., etf N in the corresponding Lie group G. We recall that, for any 
+
+X, Y ∈ L , the product of their exponentials can be expressed as the exponential of some vector field Z ∈ L :
+
+eX eY = eZ , Z = B(X, Y ), (3.2) where B(X, Y ) is given by the Baker–Campbell–Hausdorff–Dynkin (BCHD) formula as a formal series in iterated commutators of X and Y [5, 18]: 
+
+B(X, Y ) = X + Y + 12 [X, Y ] + 112 [X, [X, Y ]] 
+
+− 112 [Y, [X, Y ]] + ... . 
+
+(3.3) For vector fields X and Y defined in coordinates as mappings from a column vector in D ⊂ Rn to a column vector in Rn, the Lie bracket (commutator) at x ∈ D is defined as [X, Y ]( x) = ∂Y (x)
+
+∂x X(x) − ∂X (x)
+
+∂x Y (x),
+
+where ∂X (x) 
+
+> ∂x
+
+and ∂Y (x) 
+
+> ∂x
+
+denote the Jacobian matrices of X and Y , respectively. Without truncation, the complete infinite series in (3.3) is expressed by Dynkin’s notation as follows [9]:                 
+
+> B(X, Y ) =
+> ∞X
+> n=1
+> (−1) n−1
+> n
+> X
+> r1+s1>0,
+> ···
+> rn+sn>0
+> [Xr1Ys1Xr2Ys2. . . X rnYsn]
+> Pnj=1 (rj+sj)
+> 
+> ·Qni=1 ri!si!
+> .(3.4)
+
+Here, the iterated Lie brackets are treated as                           
+
+> [Xr1Ys1. . . X rn Ysn ] = [ X, [X, . . . [X
+> |{z }
+> r1times
+> ,[Y, [Y, . . . [Y
+> |{z }
+> s1times
+> , . . .
+> [X, [X, . . . [X
+> |{z }
+> rn times
+> ,[Y, [Y, . . . Y
+> |{z }
+> sn times
+> ]] . . . ]] .
+
+By applying this Lie-algebraic approach, we obtain a characterization of τ -periodic trajectories as follows. 
+
+Theorem 3.1. Assume that the vector fields f1, f 2, ..., f N : D → Rn of system (2.4) are analytic in a domain D, and let x0 ∈ D. Then, for any sufficiently small τ > 0, the following two conditions are equivalent: 
+
+Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24 4
+
+(i) The solution x(t) of the non-autonomous system (2.4) for t ∈ [0 , τ ] with the initial data 
+
+x(0) = x0 satisfies the boundary condition x(τ ) = x(0) .(ii) The solution ˜x(t) of the autonomous Cauchy problem 
+
+˙˜x(t) = F (˜ x(t)) , t ∈ [0 , 1] ,
+
+˜x(0) = x0 (3.5) 
+
+satisfies the boundary condition ˜x(1) = ˜ x(0) .Here, 
+
+F (x) = τ
+
+> N
+
+X
+
+> i=1
+
+αifi(x) + τ 2
+
+> 2
+
+X
+
+> 1≤i<j ≤N
+
+αiαj [fi, f j ]( x)+ τ 3
+
+12 
+
+X
+
+> 1≤i,j ≤Ni̸=j
+
+α2 
+
+> i
+
+αj [fi, [fi, f j ]]( x)
+
+− τ 3
+
+12 
+
+X
+
+> 1≤i<j ≤N
+
+αiα2 
+
+> j
+
+[fj , [fi, f j ]]( x)
+
+− τ 3
+
+4
+
+X
+
+> 1≤i<j<k ≤N
+
+αiαj αk[fk, [fi, f j ]]( x) + O(τ 4). (3.6) 
+
+Proof. In the case N = 1, formula (3.6) reduces to F (x) = τ f 1(x), so that for each solution x(t) of system (2.4), the corresponding function ˜ x(t) = x(τ t ) satisfies system (3.5). This establishes the equivalence of properties (i) and (ii). For N ≥ 2, we apply the BCHD formula to derive the vector field F : D → Rn satisfying equation (3.1). If N = 2, we obtain F = F2 from representations (3.2) and (3.4), where 
+
+F2 = B(α1τ f 1, α 2τ f 2) = τ (α1f1 + α2f2) + α1α2τ 2
+
+2 [f1, f 2]+ α1α2τ 3
+
+12 (α1[f1, [f1, f 2]] − α2[f2, [f1, f 2]]) + O(τ 4).
+
+(3.7) 
+
+Then, for arbitrary N > 2, we recursively define 
+
+Fk = B(Fk−1, α kτ f k), k = 3 , ..., N. (3.8) Applying the CBHD formula (3.4) to (3.8) yields 
+
+Fk =Fk−1 + αk τ f k + αk τ
+
+2 [Fk−1, f k ] + αk τ
+
+12 [Fk−1, [Fk−1, f k ]] 
+
+− α2 
+
+> k
+
+τ 2
+
+12 [fk , [Fk−1, f k ]] + O(τ 4) for k = 3 , ..., N. 
+
+By collecting terms according to powers of τ in FN , we conclude that expression (3.6) coincides with the recursively defined FN for N > 3, and with F2 defined by (3.7) for N = 2. Since the vector fields f1, ..., fN are analytic in D, the CBHD expansions (3.7)–(3.8) converge for all sufficiently small τ > 0 (see, e.g., [5, Chap. 5] for convergence conditions of the CBHD formula). For such τ > 0, ˜ x(1) = eF x0 represents the solution of the Cauchy problem (3.5) at 
+
+t = 1, and, due to (3.1), ˜x(1) = x(τ ), (3.9) where x(t) is the solution of (2.4) with the initial data x(0) = x0. Therefore, the equivalence of (i) and (ii) follows from equality (3.9). 
+
+Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24 5
+
+Remark 3.1. As system (2.4) is obtained from (2.1) through the transformations of vector fields in (2.3) , Theorem 3.1 ensures the solvability conditions of the periodic control problem formulated in Section 2, with the vector fields in (3.6) expressed in terms of f0, g1, ..., gm. Although the formula for F in (3.6) is explicitly presented up to terms of order O(τ 3), the proof of Theorem 3.1 provides an inductive procedure for defining F with arbitrary accuracy. Higher-order iterated Lie brackets in Dynkin’s formula (3.4) can, in principle, be taken into account using a computer algebra system. The Appendix contains the expression of F for the case N = 2 , including higher-order terms obtained with the use of Maple 2024 .
+
+Although a test for periodic solutions of the nonlinear autonomous system (3.5) remains a challenging problem in general and can be approached using the Poincar´ e map [16, Chapter 6], Hopf bifurcation theory, and normal forms [11, 12], we outline below a particular result based on the Bendixson–Dulac theorem for planar systems. 
+
+Theorem 3.2. Assume that n = 2 , and let the vector fields f1, ..., f N : D → R2 be analytic in a simply connected domain D ⊂ R2. Let τ > 0 be sufficiently small so that the series of nested commutators defining the vector field F : D → R2 in Theorem 3.1 converges. Suppose, moreover, that there exists a function ρ ∈ C1(D; R) such that 
+
+div  ρ(x)F (x) > 0 for almost all x ∈ D. (3.10) 
+
+Then, the existence of a solution x(t) ∈ D, t ∈ [0 , τ ], of system (2.4) satisfying x(0) = x(τ ) is equivalent to the condition 
+
+F (x(0)) = 0 . (3.11) 
+
+Proof. If x0 ∈ D is an equilibrium of system (3.5), then the corresponding solution x(t) of (2.4) with x(0) = x0 is τ -periodic by Theorem 3.1. Conversely, suppose x(t) ∈ D is a τ -periodic solution of (2.4). Then the corresponding solution ˜x(t) of the Cauchy problem (3.5) satisfies ˜ x(0) = ˜ x(1) = x(0) by Theorem 3.1. However, sys-tem (3.5) has no non-constant periodic orbits lying entirely within D under condition (3.10) due to the Bendixson–Dulac theorem [15, Section 3.9]. Therefore, ˜ x(t) ≡ x(0) for all t ∈ [0 , 1], so that 
+
+x(0) is an equilibrium of (3.5), which proves (3.11). 
+
+Remark 3.2. By considering either ρ(x) ≡ 1 or ρ(x) ≡ − 1, we obtain sufficient conditions that can be easily verified for a given F (x). In this case, condition (3.10) can be replaced by the requirement that div F (x) be either positive or negative in the domain D (Bendixson’s criterion). 
+
+Under additional assumptions on the right-hand side of system (2.1), we prove the uniqueness of its periodic solutions for any admissible τ -periodic control. For this purpose, we adopt the concept of contraction [13] with respect to a metric generated by a constant positive definite matrix as follows. 
+
+Definition 3.1. System (2.1) is called contractive in D0 ⊂ D if there exist a symmetric n × n
+
+matrix M ≻ 0 and a constant β > 0 such that 
+
+M ∂f (x, u )
+
+∂x +
+
+ ∂f (x, u )
+
+∂x 
+
+⊤
+
+M + βI ⪯ 0, ∀(x, u ) ∈ D0 × U. (3.12) 
+
+Here, f (x, u ) = f0(x) + Pmj=1 uj gj (x) is the right-hand side of system (2.1) , I is the identity matrix, the relations “ ≻ 0” and “ ⪯ 0” denote positive-definite and negative-semidefinite matrices, respectively. 
+
+Theorem 3.3. Assume that system (2.1) is contractive in a closed domain D0 ⊂ D, and that 
+
+x(t) ∈ D0 for t ≥ 0 is a solution of (2.1) with a τ -periodic control u∗ ∈ L∞(R≥0; U ). Then there exists a τ -periodic solution x∗(t) ∈ D0, t ≥ 0 of system (2.1) with u = u∗(t) such that 
+
+lim  
+
+> t→+∞
+
+∥x(t) − x∗(t)∥ = 0 . (3.13) 
+
+Moreover, x∗(t) is the unique exponentially attractive solution of (2.1) in D0 with u = u∗(t). 
+
+> Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24
+
+6
+
+Proof. For a given solution x(t) ∈ D0 of the system ˙x(t) = f (x(t), u ∗(t)) , t ≥ 0, (3.14) consider the sequence of its shifts x(k)(t) = x(t + kτ ) ∈ D0, defined for all k ∈ N and t ≥ 0. According to property ( vi ) of [13, Sec. 3.7], x(t) converges exponentially to a periodic function 
+
+x∗(t) with period τ > 0 such that x∗(t) = lim k→+∞ x(t + kτ ), and x∗(t) ∈ D0 for all t ≥ 0 because 
+
+D0 is closed. Moreover, x(k) ⇒ x∗ as k → +∞ uniformly for t ∈ [0 , τ ], which proves that x∗(t) is a solution of (3.14). By [13, Thm. 2], x∗(t) is exponentially attractive for all solutions of (3.14) in D0.
+
+Remark 3.3. In the case of constant vector fields g1, ..., gm, the Jacobian ∂f (x,u ) 
+
+> ∂x
+
+equals ∂f 0(x) 
+
+> ∂x
+
+for all (x, u ) ∈ D × U , so the contraction assumption (3.12) means that the Jacobian of f0 is uniformly Hurwitz in D0, in the sense that there exists a solution M = M ⊤ ≻ 0 of the Lyapunov-type linear matrix inequality (LMI): 
+
+M ∂f 0(x)
+
+∂x +
+
+ ∂f 0(x)
+
+∂x 
+
+⊤
+
+M ⪯ − βI for all x ∈ D0. (3.15) 
+
+In the considered case, condition (3.15) implies that the Taylor approximation of order O(τ ) of the vector field F in (3.6) has a uniformly Hurwitz Jacobian in D0. Therefore, if F (1) (x) = 
+
+α1f1(x) + ... + αN fN (x) vanishes at some interior point x0 of D0, then the equilibrium ˜x = x0 of the autonomous system ˙˜x(t) = τ F (1) (˜ x(t)) is exponentially stable in D0 [13, Thm. 2]. Although a complete stability analysis of the autonomous system in (3.5) from Theorem 3.1 requires considering all higher-order terms in the vector field F , the above observation suggests to consider a quadratic Lyapunov candidate function with the matrix M , obtained from the LMI (3.15) for f0, to study the dynamics of ˙˜x(t) = F (˜ x(t)) in a neighborhood of its steady-state. 
+
+# 4 Case Studies 
+
+4.1 Reaction of the type “ A → Product” 
+
+In this first example, we apply the proposed description of periodic trajectories to a mathematical model of a nonisothermal chemical reaction. A reaction of the type “ A → Product” of order ¯ n,considered in [3, 24], is described by the following nonlinear control-affine system:          
+
+> ˙x=f0(x) + u1g1(x) + u2g2(x), x =
+> x1
+> x2
+> 
+> ∈D, u =
+> u1
+> u2
+> 
+> ∈U, (4.1)
+
+where D = ( −1, +∞)2, U = [ umin 1 , u max 1 ] × [umin 2 , u max 2 ], 
+
+f0(x) = 
+
+−ϕ1x1 + k1e−κ − (x1 + 1) ¯ne−κ/(x2+1) 
+
+−ϕ2x2 + k2e−κ − (x1 + 1) ¯ne−κ/(x2+1) 
+
+
+
+,g1(x) = (1 , 0) ⊤, g 2(x) = (0 , 1) ⊤.
+
+In this control system, x1 and x2 describe deviations of the outlet concentration of A and the outlet temperature, respectively, from their steady-state operation values in a continuously stirred tank reactor (CSTR). The controls u1 and u2 denote deviations of the inlet concentration of 
+
+A and the inlet temperature from their steady-state values, respectively. The state variables, control inputs, and time in (4.1) are normalized to be dimensionless, and the parameters of the vector field f0 are also dimensionless (see [24] for details on the derivation of equations (4.1)). The constraint x1 > −1 ensures the positivity of the physical concentration, while x2 > −1ensures the positivity of the absolute temperature in Kelvin. For the hydrolysis reaction of the type (CH 3CO) 2O + H 2O → 2 CH 3COOH with an excess of water, we choose the parameters of system (4.1) as in [3]: ¯n = 1, ϕ1 = ϕ2 = 1, k1 = 5 .819 · 10 7, k2 = −8.99 · 10 5, κ = 17 .77, 
+
+umax 1 = −umin 1 = 1 .798, umax 2 = −umin 2 = 0 .06663. Control system (4.1) admits the trivial equilibrium x1 = x2 = 0 with u1 = u2 = 0, which corresponds to a steady state operation of the reactor. We will study the periodic solutions of system (4.1) in a neighborhood of this trivial equilibrium by applying bang-bang controls.  
+
+> Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24
+
+7The case N = 2 is reported in [3] to be locally optimal for the optimization of the performance of the considered chemical reaction model. Therefore, we focus on system (2.4) with the vector fields 
+
+f1, f 2 : D → R2 defined by (2.3) with N = 2, i.e. f1 = f0 +u(1) 1 g1 +u(1) 2 g2, f2 = f0 +u(2) 1 g1 +u(2) 2 g2,where the control values u(1) and u(2) 2 belong to the boundary ∂U of U . For the vector fields of system (4.1), the corresponding vector field F = ˜FM + O(τ M +1 ) in Theorem 3.1 is derived using 
+
+Maple in the form ˜FM (x) = 
+
+> M
+
+X
+
+> k=1
+
+τ kF (k)(x), (4.2) up to M = 4. According to Theorem 3.1, the τ -periodic solutions of system (4.1) with bang-bang controls u = uτ (t) of the form (2.2) are determined by 1-periodic solutions of (3.5), which are analysed using the following “BCHD-approximate system”: ˜x(t) = ˜FM (˜ x(t)) , ˜x(t) ∈ D. (4.3) Under the above choice of kinetic parameters and control parameters 
+
+α1 = α2 = 12 , u (1)  
+
+> j
+
+= umax  
+
+> j
+
+, u (2)  
+
+> j
+
+= umin  
+
+> j
+
+, j = 1 , 2, (4.4) the phase portrait of system (4.3) has been analyzed numerically for M = 4 using MATLAB R2025a .In these numerical studies, we observe that system (4.3) possesses an attracting point x∗ ∈ D.This attractor x∗ is depicted by a red circle in Fig. 1. The considered solutions ˜ x(t) of system (4.3) converge to the attractor x∗ for large t, and the coordinates of x∗ are evaluated numerically as zeros of ˜FM for different M . These computations are summarized in Table 1 for τ = 1 and M ≤ 4. We have also tested the sign of the divergence 
+
+M F (M ) in (4.2) (x∗
+
+> 1
+
+, x ∗
+
+> 2
+
+)1 α1f1 + α2f2 (0 , 0) 2 α1α2 
+
+> 2
+
+[f1, f 2] (−0.3651 , −0.01796) 3 α1α2(α1[f1,[f1,f 2]] −α2[f2,[f1,f 2]]) 12 (−0.4638 , −0.01644) 4 − α21α22τ 4 
+
+> 24
+
+[f2, [f1, [f1, f 2]]] (−0.4384 , −0.01634) Table 1. Equilibrium x∗ = ( x∗
+
+> 1
+
+, x ∗
+
+> 2
+
+)⊤ of system (4.3) for different M .of ˜FM (x) numerically in (4.3) and observed that div ˜FM (x) < 0 for all x ∈ D: |x1| < 0.999, |x2| <
+
+0.999 and all M = 2 , 3, 4. Thus, according to Theorem 3.2 and Remark 3.2, the characterization of periodic trajectories of (4.1) in terms of the equilibrium of (4.3) is well confirmed in our case study. To compare these results with other approaches, we compute the initial data x∗ for the τ -periodic solution of system (4.1) with controls (2.2), (4.4), obtained after 10 iterations of the modified Newton’s method from [23] with N = 2. As a result, we obtain: x∗ ≈ (−0.4314 , −0.01646) ⊤. By comparing this x∗ with the rows of Table 1, we observe that the equilibrium of system (4.3) for M =4 already provides an acceptable approximation of the initial data for the corresponding periodic solution of system (4.1). Periodic trajectories of system (4.1) with controls (2.2), corresponding to the periods τ = 0 .1, 0 .3, 0 .5, 0 .7, 1, are shown in Fig. 2. 
+
+4.2 Reaction of the type “ A → B → P roduct ”
+
+A controlled nonisothermal chemical reaction of the type “ A → B → P roduct ” in a CSTR is described by the following system (see, e.g., [10]): ˙x = f0(x) + u1g1(x) + u2g2(x), x ∈ R3, u ∈ R2, (4.5)  
+
+> Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24
+
+8-0.6 -0.4 -0.2 0 0.2 0.4 
+
+# x1
+
+# -0.5 -0.45 -0.4 -0.35 -0.3 -0.25 -0.2 -0.15 -0.1 -0.05 00.05 
+
+> x2
+
+Figure 1: Phase portrait of system (4.3) with M = 4. where x1 and x2 denote the concentrations of A and B in mol L , respectively, x3 is the temperature in K, and the vector fields are g1(x) = ( F/V, 0, 0) ⊤, g2(x) = (0 , 0, F/V )⊤,
+
+f0(x) = −
+
+ FV + k01 e− E1
+
+> Rx 3
+
+
+
+x1
+
+( FV + k02 e− E2 
+
+> Rx 3
+
+)x2 − k01 x1e− E1 
+
+> Rx 3
+> F x 3
+> V
+
++ ∆H1k01 x1 
+
+> ρC p
+
+e− E1 
+
+> Rx 3
+
++ ∆H2k02 x2 
+
+> ρC p
+
+e− E2
+
+> Rx 3
+
+ .
+
+The reaction is assumed to be adiabatic (i.e., no heat transfer occurs through the boundary of the reactor) and is controlled by u1 (the inlet concentration of A) and u2 (the inlet temperature) in a neighborhood of their reference values ¯ u1 and ¯ u2. We choose the following realistic parameters for this system (cf. [17, Example 2.5]): F = 100 Lmin , V = 100 L, R = 8 .314 Jmol ·K , k01 = 7 .2 ·
+
+10 10 min −1, k02 = 10 10 min −1, E1 = 7 .275 · 10 4 Jmol , E2 = 8 · 10 4 Jmol , ∆ H1 = −5 · 10 4 Jmol ,∆H2 = −7 · 10 4 Jmol , ρC p = 4 .2 · 10 3 JL·K , ¯ u1 = 1 mol L , ¯ u2 = 350 K. For the steady-state controls 
+
+u1 = ¯ u1 and u2 = ¯ u2, system (4.5) has an equilibrium ¯ x with ¯ x1 ≈ 0.3683 mol L , ¯ x2 ≈ 0.6189 mol L ,¯x3 ≈ 357 .7354 K.As in the previous example, we consider the switching control (2.2) with N = 2 and the switching scenario (4.4) with amplitudes of 50% modulation of the inlet concentration u1 and 50 K mod-ulation of the inlet temperature u2 around their reference values ¯ ui. That is, umin 1 = 0 .5 mol L ,
+
+umax 1 = 1 .5 mol L , umin 2 = 300 K, umax 2 = 400 K. Under this choice of parameters and the time hori-
+
+Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24 9-0.5 -0.4 -0.3 -0.2 -0.1 0 0.1 0.2 0.3 0.4 
+
+x1
+
+-0.02 -0.015 -0.01 -0.005 00.005 0.01 0.015 0.02 
+
+> x2
+
+=0.1 
+
+=0.3 
+
+=0.5 
+
+=0.7 
+
+=1 
+
+Figure 2: Periodic solutions of (4.1) with controls (2.2) for N = 2. zon τ = 1 min , we numerically determine the equilibrium ˜ x∗ of system (3.5), where the vector field 
+
+F in (3.5) is approximated up to terms of order M = 4. Using the fsolve function in MATLAB , we obtain ˜ x∗ ≈  0.2582478 mol L , 0.6062874 mol L , 357 .4668 K⊤. The components of the corresponding periodic solution x(t) of (4.5) with the initial data x(0) = ˜ x∗ are shown in Fig. 3. Note that the matrix J = ∂f 0(x) 
+
+> ∂x x=¯ x
+
+is Hurwitz, and the solution of the Lyapunov equation M A + A⊤M = −I
+
+is 
+
+M ≈
+
+
+
+32 .1045 1.3812 4.1283 1.3812 0.5365 0.1375 4.1283 0.1375 0.6974 
+
+ .
+
+Numerical computations in MATLAB show that the contraction condition (3.15) (and also (3.12) because of Remark 3.3) hold in D0 = {x ∈ R3| | xi − ¯xi| ≤ δi ¯xi, i = 1 , 2, 3} with δ1 = 0 .3, 
+
+δ2 = 0 .65, δ3 = 0 .999, and β = 0 .1, so the control system (4.5) is contractive in D0. To illustrate the assertion of Theorem 3.3, also in the case of large initial deviation of controlled solutions from the periodic trajectory, we present the trajectory of (4.5), starting from the initial conditions 
+
+x1(0) = x2(0) = 0 Lmol and u3(0) = 350 K, with the periodic controls (2.2) and (4.4) in Fig. 4. 
+
+# 5 Conclusions 
+
+Although the main theoretical contributions of this work (Theorem 3.1) links the time-varying 
+
+periodic control problem to a rather complicated problem of localizing periodic trajectories of the highly nonlinear autonomous problem (3.5), a significant simplification of this scheme to finding equilibria of the vector field F is possible under extra assumptions. These assumptions, formally stated in Theorem 3.2 for two-dimensional systems, are well supported by the computational results presented in the case studies. Each of the two considered realistic controlled nonlinear reaction models generates an autonomous system with an equilibrium x∗, whose coordinates are efficiently  
+
+> Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24
+
+10 0 0.5 1 1.5 2 2.5 3 3.5 4                
+
+> 0.3 0.35 0.4 0.45
+> x1 [mol/L]
+> x1(t)
+> 00.5 11.5 22.5 33.5 4
+> 0.6 0.65
+> x2 [mol/L]
+> x2(t)
+> 00.5 11.5 22.5 33.5 4
+> t [min]
+> 357.5 358
+> T [K]
+> x3(t)
+
+Figure 3: Periodic solution of (4.5). computed using numerical solvers via the root-finding problem F (x∗) = 0, without requiring the solution of differential equations . Stability properties are established via contraction analysis in Theorem 3.3 and further supported by simulation results, where the attracting property of x∗ is illustrated through numerical integration of the autonomous “BCHD-approximate systems” of the form (4.3), and also by simulations of the periodically forced original control system. It should be noted that the convergence issues of the BCHD approach, discussed in Section 3, are essentially restricted to “small” periods τ ; however, the numerical study in Section 4 shows the feasibility of this approach for a “moderate” time interval τ = 1.  
+
+> Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24
+
+11 350 
+
+0.8 0
+
+352 
+
+354 
+
+0.6 0.2 
+
+> x3 [K]
+
+356 
+
+x1 [mol/L] x2[mol/L] 
+
+0.4 
+
+358 
+
+0.4 
+
+360 
+
+0.2 
+
+0.6 0
+
+Figure 4: Trajectory of (4.5) attracted to the periodic regime. 
+
+# Appendix 
+
+Higher-order expansion of F from Theorem 3.1 for N = 2 :
+
+F =τ (α1f1 + α2f2) + α1α2τ 2 
+
+> 2
+
+[f1, f 2]+ α1α2τ 3
+
+> 12
+
+ α1[f1, [f1, f 2]] − α2[f2, [f1, f 2]] 
+
+− α21α22τ 4 
+
+> 24
+
+[f2, [f1, [f1, f 2]]] 
+
+− α1α2τ 5
+
+> 720
+
+ α32[f2, [f2, [f2, [f2, f 1]]]] + α31[f1, [f1, [f1, [f1, f 2]]]] 
+
++ α21α22τ 5
+
+> 360
+
+ α2[f1, [f2, [f2, [f2, f 1]]]] + α1[f2, [f1, [f1, [f1, f 2]]]] 
+
++ α21α22τ 5
+
+> 120
+
+ α2[f2, [f1, [f2, [f1, f 2]]]] + α1[f1, [f2, [f1, [f2, f 1]]]] 
+
++ α31α32τ 6 
+
+> 240
+
+[f1, [f2, [f1, [f2, [f1, f 2]]]]] + α31α22τ 6
+
+> 720
+
+ α1[f1, [f2, [f1, [f1, [f1, f 2]]]]] 
+
+− α2[f1, [f1, [f2, [f2, [f1, f 2]]]]] 
+
++ α21α22τ 6
+
+> 1440
+
+ α22[f1, [f2, [f2, [f2, [f1, f 2]]]]] 
+
+− α21[f1, [f1, [f2, [f1, [f1, f 2]]]]]  + O(τ 7).
+
+Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24 12 
+
+# Acknowledgment 
+
+The authors gratefully acknowledge the funding by the European Regional Development Fund (ERDF) within the programme Research and Innovation – Grant Number ZS/2023/12/182138. 
+
+# References 
+
+[1] M. Ali Al-Radhawi, M. Margaliot, and E. D. Sontag, Maximizing average throughput in os-cillatory biochemical synthesis systems: an optimal control approach , Royal Society Open Science, 8 (2021), p. 210878. [2] S.-Y. Bai, C. Chen, H. Wu, and J.-H. An, Quantum control in open and periodically driven systems , Advances in Physics: X, 6 (2021), p. 1870559. [3] P. Benner, A. Seidel-Morgenstern, and A. Zuyev, Periodic switching strategies for an isoperi-metric control problem with application to nonlinear chemical reactions , Applied Mathematical Modelling, 69 (2019), pp. 287–300. [4] S. Bittanti and P. Colaneri, Periodic Systems: Filtering and Control , Springer, 2009. [5] A. Bonfiglioli and R. Fulci, Topics in Noncommutative Algebra: The Theorem of Campbell, Baker, Hausdorff and Dynkin , vol. 2034, Springer Science & Business Media, 2011. [6] F. Colonius, Optimal Periodic Control , vol. 1313, Springer, 2006. [7] A. Das, S. Mahunta, B. K. Agarwalla, and V. Mukherjee, Precision bound and optimal con-trol in periodically modulated continuous quantum thermal machines , Physical Review E, 108 (2023), p. 014137. [8] I. Duleba, On use of Campbell-Baker-Hausdorff-Dynkin formulas in nonholonomic motion planning , in Proceedings of the First Workshop on Robot Motion and Control. RoMoCo’99 (Cat. No. 99EX353), IEEE, 1999, pp. 177–182. [9] E. B. Dynkin, Calculation of the coefficients in the Campbell-Hausdorff formula , in Dokl. Akad. Nauk. SSSR, vol. 57, 1947, pp. 323–326. [10] H. S. Fogler, Elements of Chemical Reaction Engineering. 6th Ed. , Pearson Educacion, 2022. [11] V. Grushkovskaya and A. Zuyev, Asymptotic behavior of solutions of a nonlinear system in the critical case of q pairs of purely imaginary eigenvalues , Nonlinear Analysis: Theory, Methods & Applications, 80 (2013), pp. 156–178. [12] M. Han and P. Yu, Normal Forms, Melnikov Functions and Bifurcations of Limit Cycles ,vol. 181, Springer, 2012. [13] W. Lohmiller and J.-J. E. Slotine, On contraction analysis for non-linear systems , Automatica, 34 (1998), pp. 683–696. [14] , Nonlinear process control using contraction theory , AIChE journal, 46 (2000), pp. 588– 596. [15] L. Perko, Differential Equations and Dynamical Systems , vol. 7, Springer Science & Business Media, 2013. [16] R. C. Robinson, An Introduction to Dynamical Systems: Continuous and Discrete , vol. 19, American Mathematical Soc., 2012. [17] D. E. Seborg, T. F. Edgar, D. A. Mellichamp, and F. J. Doyle III, Process Dynamics and Control. 4th Ed. , John Wiley & Sons, 2017. [18] R. S. Strichartz, The Campbell-Baker-Hausdorff-Dynkin formula and solutions of differential equations , Journal of Functional Analysis, 72 (1987), pp. 320–345.  
+
+> Preprint (Max Planck Institute for Dynamics of Complex Technical Systems, Magdeburg). 2026-03-24
+
+13 [19] H. Tsukamoto, S.-J. Chung, and J.-J. E. Slotine, Contraction theory for nonlinear stability analysis and learning-based control: A tutorial overview , Annual Reviews in Control, 52 (2021), pp. 135–169. [20] S. R. Upreti, Optimal Control for Chemical Engineers , Taylor & Francis, 2013. [21] M. Yuan, J. Qu, W. Hong, and P. Li, Reconciling periodic rhythms of large-scale biological networks by optimal control , Royal Society Open Science, 7 (2020), p. 191698. [22] M. Zanon, L. Gr¨ une, and M. Diehl, Periodic optimal control, dissipativity and MPC , IEEE Transactions on Automatic Control, 62 (2016), pp. 2943–2949. [23] A. Zuyev and P. Benner, Iterative approximations of periodic trajectories for nonlinear systems with discontinuous inputs , IEEE Control Systems Letters, 9 (2025), pp. 985–990. [24] A. Zuyev, A. Seidel-Morgenstern, and P. Benner, An isoperimetric optimal control problem for a non-isothermal chemical reactor with periodic inputs , Chemical Engineering Science, 161 (2017), pp. 206–214.

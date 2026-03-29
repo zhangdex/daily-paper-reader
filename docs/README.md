@@ -6,88 +6,95 @@
 </div>
 
 ## 每次日报
-- 最新运行日期：2026-03-28
-- 运行时间：2026-03-28 19:23:48 UTC
+- 最新运行日期：2026-03-29
+- 运行时间：2026-03-29 19:42:09 UTC
 - 运行状态：成功
-- 本次总论文数：22
-- 精读区：9
+- 本次总论文数：24
+- 精读区：11
 - 速读区：13
 
 ### 今日简报（AI）
-今日精选 22 篇论文，深度解析跨形态机器人导航与无人机视觉语言动作（VLA）任务的最新突破。
-重点关注 CeRLP 框架的通用规划能力与 HUGE-Bench 带来的高阶基准，两者均获得 9.0 高分评价。
-建议从语义记忆图与安全约束控制入手，了解如何让机器人导航在复杂环境中更智能且更安全。
-- 详情：[/202603/28/README](/202603/28/README)
+- 今日共生成 24 篇推荐（精读 11 篇，速读 13 篇）
+- 精读：《Optimal Solutions for the Moving Target Vehicle Routing Problem with Obstacles via Lazy Branch and Price》（9.0/10）, 《Energy-Aware Collaborative Exploration for a UAV-UGV Team》（9.0/10）
+- 速读：《Watch Your Step: Learning Semantically-Guided Locomotion in Cluttered Environment》（8.0/10）, 《CASSR: Continuous A-Star Search through Reachability for real time footstep planning》（8.0/10）, 《CASSR: Continuous A-Star Search through Reachability for real time footstep planning》（8.0/10）
+- 这些结果覆盖了当下较热的方向，建议先看精读区论文的关键问题与方法。
+- 详情：[/202603/29/README](/202603/29/README)
 
 ### 精读区论文标签
-1. [CeRLP: A Cross-embodiment Robot Local Planning Framework for Visual Navigation](/202603/28/2603.19602v1-cerlp-a-cross-embodiment-robot-local-planning-framework-for-visual-navigation)  
+1. [Optimal Solutions for the Moving Target Vehicle Routing Problem with Obstacles via Lazy Branch and Price](/202603/29/2603.21880v1-optimal-solutions-for-the-moving-target-vehicle-routing-problem-with-obstacles-via-lazy-branch-and-price)  
    标签：评分：9.0/10、query:robot-planning
-   evidence：用于视觉导航的机器人局部规划框架
-2. [HUGE-Bench: A Benchmark for High-Level UAV Vision-Language-Action Tasks](/202603/28/2603.19822v1-huge-bench-a-benchmark-for-high-level-uav-vision-language-action-tasks)  
+   evidence：拦截运动目标的多智能体轨迹优化
+2. [Energy-Aware Collaborative Exploration for a UAV-UGV Team](/202603/29/2603.22507v1-energy-aware-collaborative-exploration-for-a-uav-ugv-team)  
    标签：评分：9.0/10、query:robot-planning
-   evidence：无人机视觉-语言-动作任务与安全过程导向轨迹
-3. [Coverage Games](/202603/28/2603.20398v1-coverage-games)  
+   evidence：具有交会约束的无人机-无人车团队协同探索
+3. [Trajectory Generation for Underactuated Soft Robot Manipulators using Discrete Elastic Rod Dynamics](/202603/29/2603.22604v1-trajectory-generation-for-underactuated-soft-robot-manipulators-using-discrete-elastic-rod-dynamics)  
+   标签：评分：9.0/10、query:robot-planning
+   evidence：软体机器人机械臂的轨迹生成与运动规划
+4. [SG-VLA: Learning Spatially-Grounded Vision-Language-Action Models for Mobile Manipulation](/202603/29/2603.22760v1-sg-vla-learning-spatially-grounded-vision-language-action-models-for-mobile-manipulation)  
+   标签：评分：9.0/10、query:robot-planning
+   evidence：用于移动操作的具身智能与规划
+5. [Agile-VLA: Few-Shot Industrial Pose Rectification via Implicit Affordance Anchoring](/202603/29/2603.22899v1-agile-vla-few-shot-industrial-pose-rectification-via-implicit-affordance-anchoring)  
+   标签：评分：9.0/10、query:robot-planning
+   evidence：用于工业机器人操作的具身智能与VLA
+6. [Learning Multi-Agent Local Collision-Avoidance for Collaborative Carrying tasks with Coupled Quadrupedal Robots](/202603/29/2603.23278v1-learning-multi-agent-local-collision-avoidance-for-collaborative-carrying-tasks-with-coupled-quadrupedal-robots)  
+   标签：评分：9.0/10、query:robot-planning
+   evidence：协作搬运任务中的多智能体局部避障
+7. [Grounding Vision and Language to 3D Masks for Long-Horizon Box Rearrangement](/202603/29/2603.23676v1-grounding-vision-and-language-to-3d-masks-for-long-horizon-box-rearrangement)  
+   标签：评分：9.0/10、query:robot-planning
+   evidence：长时程规划与箱体重新排列任务
+8. [ELITE: Experiential Learning and Intent-Aware Transfer for Self-improving Embodied Agents](/202603/29/2603.24018v1-elite-experiential-learning-and-intent-aware-transfer-for-self-improving-embodied-agents)  
+   标签：评分：9.0/10、query:robot-planning
+   evidence：具身智能体框架，支持持续学习与任务迁移
+9. [Knowledge-Guided Manipulation Using Multi-Task Reinforcement Learning](/202603/29/2603.24083v1-knowledge-guided-manipulation-using-multi-task-reinforcement-learning)  
+   标签：评分：9.0/10、query:robot-planning
+   evidence：机器人操作的多任务强化学习
+10. [Active Calibration of Reachable Sets Using Approximate Pick-to-Learn](/202603/29/2603.24894v1-active-calibration-of-reachable-sets-using-approximate-pick-to-learn)  
    标签：评分：9.0/10、query:ra-rl-pe
-   evidence：针对对抗性干扰者的多智能体规划
-4. [Towards Practical World Model-based Reinforcement Learning for Vision-Language-Action Models](/202603/28/2603.20607v1-towards-practical-world-model-based-reinforcement-learning-for-vision-language-action-models)  
+   evidence：用于安全保证的可达集主动校准
+11. [LILAC: Language-Conditioned Object-Centric Optical Flow for Open-Loop Trajectory Generation](/202603/29/2603.25481v1-lilac-language-conditioned-object-centric-optical-flow-for-open-loop-trajectory-generation)  
    标签：评分：9.0/10、query:robot-planning
-   evidence：基于世界模型的VLA模型机器人控制强化学习
-5. [Closed-Loop Verbal Reinforcement Learning for Task-Level Robotic Planning](/202603/28/2603.22169v1-closed-loop-verbal-reinforcement-learning-for-task-level-robotic-planning)  
-   标签：评分：9.0/10、query:robot-planning
-   evidence：任务级机器人规划的语言强化学习
-6. [CaP-X: A Framework for Benchmarking and Improving Coding Agents for Robot Manipulation](/202603/28/2603.22435v1-cap-x-a-framework-for-benchmarking-and-improving-coding-agents-for-robot-manipulation)  
-   标签：评分：9.0/10、query:robot-planning
-   evidence：具身操纵与机器人控制原语的代码即策略框架
-7. [Finite-time Convergent Control Barrier Functions with Feasibility Guarantees](/202603/28/2603.22445v1-finite-time-convergent-control-barrier-functions-with-feasibility-guarantees)  
-   标签：评分：9.0/10、query:space-defense
-   evidence：具有可行性保证的有限时间收敛控制障碍函数
-8. [Fleet-Level Battery-Health-Aware Scheduling for Autonomous Mobile Robots](/202603/28/2603.22731v1-fleet-level-battery-health-aware-scheduling-for-autonomous-mobile-robots)  
-   标签：评分：9.0/10、query:robot-planning
-   evidence：多机器人任务分配与车队级调度
-9. [VideoWeaver: Multimodal Multi-View Video-to-Video Transfer for Embodied Agents](/202603/28/2603.25420v1-videoweaver-multimodal-multi-view-video-to-video-transfer-for-embodied-agents)  
-   标签：评分：9.0/10、query:robot-planning
-   evidence：具身智能体的多视图视频迁移
+   evidence：语言调节的机器人操作轨迹生成
 
 ### 速读区论文标签
-1. [SSMG-Nav: Enhancing Lifelong Object Navigation with Semantic Skeleton Memory Graph](/202603/28/2603.01813v1-ssmg-nav-enhancing-lifelong-object-navigation-with-semantic-skeleton-memory-graph)  
+1. [Watch Your Step: Learning Semantically-Guided Locomotion in Cluttered Environment](/202603/29/2603.02657v1-watch-your-step-learning-semantically-guided-locomotion-in-cluttered-environment)  
+   标签：评分：8.0/10、query:ra-rl-pe
+   evidence：结合软硬约束的强化学习用于安全足式运动
+2. [CASSR: Continuous A-Star Search through Reachability for real time footstep planning](/202603/29/2603.02989v1-cassr-continuous-a-star-search-through-reachability-for-real-time-footstep-planning)  
    标签：评分：8.0/10、query:robot-planning
-   evidence：机器人导航与记忆图谱
-2. [SaferPath: Hierarchical Visual Navigation with Learned Guidance and Safety-Constrained Control](/202603/28/2603.01898v1-saferpath-hierarchical-visual-navigation-with-learned-guidance-and-safety-constrained-control)  
+   evidence：通过可达性进行实时足迹规划
+3. [CASSR: Continuous A-Star Search through Reachability for real time footstep planning](/202603/29/2603.02989v2-cassr-continuous-a-star-search-through-reachability-for-real-time-footstep-planning)  
    标签：评分：8.0/10、query:robot-planning
-   evidence：视觉导航的安全约束控制
-3. [Optimizing Orbital Parameters of Satellites for a Global Quantum Network](/202603/28/2603.02480v1-optimizing-orbital-parameters-of-satellites-for-a-global-quantum-network)  
+   evidence：基于可达性的连续A*搜索机器人规划
+4. [MA-CoNav: A Master-Slave Multi-Agent Framework with Hierarchical Collaboration and Dual-Level Reflection for Long-Horizon Embodied VLN](/202603/29/2603.03024v1-ma-conav-a-master-slave-multi-agent-framework-with-hierarchical-collaboration-and-dual-level-reflection-for-long-horizon-embodied-vln)  
+   标签：评分：8.0/10、query:robot-planning
+   evidence：具身视觉语言导航
+5. [Local Safety Filters for Networked Systems via Two-Time-Scale Design](/202603/29/2603.03632v1-local-safety-filters-for-networked-systems-via-two-time-scale-design)  
    标签：评分：8.0/10、query:space-defense
-   evidence：卫星集群分配与轨道参数优化
-4. [COLREGs Compliant Collision Avoidance and Grounding Prevention for Autonomous Marine Navigation](/202603/28/2603.02484v1-colregs-compliant-collision-avoidance-and-grounding-prevention-for-autonomous-marine-navigation)  
-   标签：评分：8.0/10、query:robot-planning
-   evidence：自主船舶航行与避障的运动规划
-5. [Uni-Skill: Building Self-Evolving Skill Repository for Generalizable Robotic Manipulation](/202603/28/2603.02623v1-uni-skill-building-self-evolving-skill-repository-for-generalizable-robotic-manipulation)  
-   标签：评分：8.0/10、query:robot-planning
-   evidence：机器人操作的技能感知规划与自动技能演化
-6. [When both Grounding and not Grounding are Bad -- A Partially Grounded Encoding of Planning into SAT (Extended Version)](/202603/28/2603.19429v1-when-both-grounding-and-not-grounding-are-bad----a-partially-grounded-encoding-of-planning-into-sat-extended-version)  
+   evidence：基于控制屏障函数 (CBF) 的安全过滤器
+6. [StageCraft: Execution Aware Mitigation of Distractor and Obstruction Failures in VLA Models](/202603/29/2603.20659v1-stagecraft-execution-aware-mitigation-of-distractor-and-obstruction-failures-in-vla-models)  
    标签：评分：7.0/10、query:robot-planning
-   evidence：经典规划的SAT编码
-7. [SWARM+: Scalable and Resilient Multi-Agent Consensus for Fully-Decentralized Data-Aware Workload Management](/202603/28/2603.19431v1-swarm-scalable-and-resilient-multi-agent-consensus-for-fully-decentralized-data-aware-workload-management)  
-   标签：评分：7.0/10、query:space-defense
-   evidence：去中心化多智能体工作负载分配
-8. [Variational Encrypted Model Predictive Control](/202603/28/2603.19450v1-variational-encrypted-model-predictive-control)  
+   evidence：减轻机器人任务执行中 VLA 模型的故障
+7. [Does Peer Observation Help? Vision-Sharing Collaboration for Vision-Language Navigation](/202603/29/2603.20804v1-does-peer-observation-help-vision-sharing-collaboration-for-vision-language-navigation)  
+   标签：评分：7.0/10、query:robot-planning
+   evidence：多机器人导航的视觉共享协作
+8. [Active Inference for Physical AI Agents -- An Engineering Perspective](/202603/29/2603.20927v1-active-inference-for-physical-ai-agents----an-engineering-perspective)  
+   标签：评分：7.0/10、query:robot-planning
+   evidence：针对物理AI与具身系统的主动推理框架
+9. [Cyber Deception for Mission Surveillance via Hypergame-Theoretic Deep Reinforcement Learning](/202603/29/2603.20981v1-cyber-deception-for-mission-surveillance-via-hypergame-theoretic-deep-reinforcement-learning)  
    标签：评分：7.0/10、query:ra-rl-pe
-   evidence：用于约束优化的变分加密模型预测控制
-9. [Can LLMs Prove Robotic Path Planning Optimality? A Benchmark for Research-Level Algorithm Verification](/202603/28/2603.19464v1-can-llms-prove-robotic-path-planning-optimality-a-benchmark-for-research-level-algorithm-verification)  
-   标签：评分：7.0/10、query:robot-planning
-   evidence：机器人路径规划最优性与算法验证
-10. [On Performance Guarantees for Federated Learning with Personalized Constraints](/202603/28/2603.19617v1-on-performance-guarantees-for-federated-learning-with-personalized-constraints)  
+   evidence：基于超博弈理论的深度强化学习防御
+10. [A reliability-aware randomized simheuristic for the team orienteering problem with stochastic travel times](/202603/29/2603.20766v1-a-reliability-aware-randomized-simheuristic-for-the-team-orienteering-problem-with-stochastic-travel-times)  
+   标签：评分：6.0/10、query:space-defense
+   evidence：随机约束下的团队定向问题
+11. [Deep Learning-Based Multi-Satellite Massive MIMO Transmission: Centralized or Decentralized?](/202603/29/2603.20862v1-deep-learning-based-multi-satellite-massive-mimo-transmission-centralized-or-decentralized)  
+   标签：评分：6.0/10、query:space-defense
+   evidence：多卫星传输与大规模MIMO架构
+12. [Periodic solutions of nonlinear control systems with switching: a Lie-algebraic and contraction approach](/202603/29/2603.20935v1-periodic-solutions-of-nonlinear-control-systems-with-switching-a-lie-algebraic-and-contraction-approach)  
    标签：评分：6.0/10、query:ra-rl-pe
-   evidence：具有个性化智能体特定约束的联邦优化
-11. [Accurate Open-Loop Control of a Soft Continuum Robot Through Visually Learned Latent Representations](/202603/28/2603.19655v1-accurate-open-loop-control-of-a-soft-continuum-robot-through-visually-learned-latent-representations)  
-   标签：评分：6.0/10、query:robot-planning
-   evidence：潜空间内的最优控制与轨迹跟踪
-12. [Legged Autonomous Surface Science In Analogue Environments (LASSIE): Making Every Robotic Step Count in Planetary Exploration](/202603/28/2603.19661v1-legged-autonomous-surface-science-in-analogue-environments-lassie-making-every-robotic-step-count-in-planetary-exploration)  
-   标签：评分：6.0/10、query:robot-planning
-   evidence：行星机器人的自主探索与数据采集
-13. [On the Ability of Transformers to Verify Plans](/202603/28/2603.19954v1-on-the-ability-of-transformers-to-verify-plans)  
-   标签：评分：6.0/10、query:robot-planning
-   evidence：用于验证经典规划领域计划的Transformer
+   evidence：具有约束输入的非线性控制系统
+13. [The Intelligent Disobedience Game: Formulating Disobedience in Stackelberg Games and Markov Decision Processes](/202603/29/2603.20994v1-the-intelligent-disobedience-game-formulating-disobedience-in-stackelberg-games-and-markov-decision-processes)  
+   标签：评分：6.0/10、query:ra-rl-pe
+   evidence：用于安全关键智能抗命的Stackelberg博弈
 
 
 <div class="dpr-home-promo-card">
